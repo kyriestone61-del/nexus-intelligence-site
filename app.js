@@ -49,6 +49,74 @@
     }
   }
 
+  // Improve portal account-creation UX around email confirmation.
+  if(location.pathname==='/portal'){
+    const form=document.getElementById('createForm');
+    const pane=document.getElementById('createPane');
+    const message=document.getElementById('authMessage');
+    const signInTab=document.getElementById('tabSignIn');
+    let signupTimer=null;
+
+    // Explain the verification step before a prospect submits anything.
+    if(form && !document.getElementById('portalEmailConfirmNote')){
+      const note=document.createElement('div');
+      note.id='portalEmailConfirmNote';
+      note.className='note';
+      note.style.marginBottom='16px';
+      note.innerHTML='<b>Email verification required:</b> After creating the account, we will send a confirmation email. Delivery can take a minute. Keep this page open until you see the confirmation instructions.';
+      form.parentElement.insertBefore(note,form);
+    }
+
+    // Give immediate, durable feedback while Supabase sends the confirmation email.
+    form?.addEventListener('submit',()=>{
+      const button=form.querySelector('button[type="submit"]');
+      if(button){button.disabled=true;button.dataset.originalText=button.textContent;button.textContent='Sending confirmation email…';}
+      clearTimeout(signupTimer);
+      signupTimer=setTimeout(()=>{
+        if(message && /Creating account/i.test(message.textContent||'')){
+          message.innerHTML='<b>Still working.</b> Confirmation email delivery can occasionally take a little longer. Do not submit the form again; keep this page open and check your inbox.';
+          message.style.color='var(--muted)';
+        }
+      },8000);
+    },true);
+
+    if(message){
+      const observer=new MutationObserver(()=>{
+        const text=(message.textContent||'').trim();
+        const button=form?.querySelector('button[type="submit"]');
+
+        if(/Account created\. Check your email/i.test(text)){
+          clearTimeout(signupTimer);
+          if(button){button.disabled=false;button.textContent=button.dataset.originalText||'Create account';}
+          if(pane && !document.getElementById('portalConfirmationState')){
+            const email=document.getElementById('createEmail')?.value?.trim()||'your email address';
+            const card=document.createElement('div');
+            card.id='portalConfirmationState';
+            card.className='result-box';
+            card.style.marginTop='18px';
+            card.innerHTML='<div class="kicker">Account created</div><h3 style="font-size:25px;margin:8px 0">Check your email to finish verification.</h3><p style="color:var(--muted)">A confirmation message was sent to <b style="color:var(--text)">'+email.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))+'</b>. Delivery may take a minute. Click the confirmation link once, then return to the Nexus Client Portal and sign in.</p><div class="actions"><button id="portalReturnSignIn" class="btn primary" type="button">Return to sign in</button><a class="btn secondary" href="/portal">Reload portal</a></div>';
+            pane.appendChild(card);
+            form.style.display='none';
+            document.getElementById('portalEmailConfirmNote')?.remove();
+            document.getElementById('portalReturnSignIn')?.addEventListener('click',()=>signInTab?.click());
+          }
+        }else if(text && !/Creating account/i.test(text) && !/Still working/i.test(text)){
+          clearTimeout(signupTimer);
+          if(button){button.disabled=false;button.textContent=button.dataset.originalText||'Create account';}
+        }
+      });
+      observer.observe(message,{childList:true,subtree:true,characterData:true});
+    }
+
+    // Surface authentication-link failures if Supabase sends them back to the portal.
+    const authParams=new URLSearchParams((location.hash||'').replace(/^#/,''));
+    const authError=authParams.get('error_description')||authParams.get('error');
+    if(authError && message){
+      message.textContent='Email verification could not complete: '+decodeURIComponent(authError.replace(/\+/g,' '))+'. Please return to sign in or request a fresh confirmation email.';
+      message.style.color='#ffb5b5';
+    }
+  }
+
   // Simple first-party event queue for later backend connection.
   window.nexusTrack=function(name,props={}){
     const e={name,props,path:location.pathname,ts:new Date().toISOString()};
