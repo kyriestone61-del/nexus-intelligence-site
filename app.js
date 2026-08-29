@@ -2,6 +2,19 @@
   const menu=document.querySelector('.menu-btn'), nav=document.querySelector('.navlinks');
   if(menu&&nav) menu.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));});
 
+  // Add low-friction public screening and authenticated client workspace links sitewide.
+  if(nav){
+    const cta=nav.querySelector('.nav-cta');
+    if(!nav.querySelector('a[href="/quick-scan"]')){
+      const a=document.createElement('a');a.href='/quick-scan';a.textContent='60-Second Quick Scan';
+      cta?nav.insertBefore(a,cta):nav.appendChild(a);
+    }
+    if(!nav.querySelector('a[href="/portal"]')){
+      const a=document.createElement('a');a.href='/portal';a.textContent='Client Portal';
+      cta?nav.insertBefore(a,cta):nav.appendChild(a);
+    }
+  }
+
   // Keep the homepage offer ladder aligned with the six paid services.
   if(location.pathname==='/' || location.pathname===''){
     const serviceGrid=[...document.querySelectorAll('section .grid')].find(g=>g.querySelector('a[href="/services/ai-opportunity-assessment"]'));
@@ -26,6 +39,14 @@
         serviceGrid.after(actions);
       }
     }
+
+    // Give curious businesses a simple anonymous step before the full diagnostic.
+    const hero=document.querySelector('main > .wrap.hero');
+    if(hero && !document.getElementById('quickScanPromo')){
+      const section=document.createElement('section');section.id='quickScanPromo';
+      section.innerHTML='<div class="wrap"><div class="band split"><div><div class="kicker">Not ready for a full diagnostic?</div><h2 style="font-size:35px">Start with a 60-second AI Opportunity Quick Scan.</h2><p style="color:var(--muted)">Answer four anonymous screening questions and see which workflow category may be worth investigating first. No name, email, account, or document upload required.</p></div><div><div class="actions"><a class="btn primary" href="/quick-scan">Run the Quick Scan →</a><a class="btn secondary" href="/capabilities">Explore capabilities</a></div><p class="small">Preliminary screening only. It does not determine feasibility, expected ROI, security suitability, or a binding recommendation.</p></div></div></div>';
+      hero.after(section);
+    }
   }
 
   // Simple first-party event queue for later backend connection.
@@ -49,10 +70,10 @@
   if(consent==='accepted' && !gpc) loadHubSpot();
   if(!consent && !gpc && banner) banner.classList.add('show');
   document.getElementById('acceptCookies')?.addEventListener('click',()=>{
-    localStorage.setItem('nexus_cookie_consent','accepted');banner.classList.remove('show');loadHubSpot();
+    localStorage.setItem('nexus_cookie_consent','accepted');banner?.classList.remove('show');loadHubSpot();
   });
   document.getElementById('declineCookies')?.addEventListener('click',()=>{
-    localStorage.setItem('nexus_cookie_consent','declined');banner.classList.remove('show');
+    localStorage.setItem('nexus_cookie_consent','declined');banner?.classList.remove('show');
   });
   document.querySelectorAll('[data-track]').forEach(el=>el.addEventListener('click',()=>nexusTrack(el.dataset.track)));
 })();
