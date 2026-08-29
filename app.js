@@ -2,6 +2,32 @@
   const menu=document.querySelector('.menu-btn'), nav=document.querySelector('.navlinks');
   if(menu&&nav) menu.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));});
 
+  // Keep the homepage offer ladder aligned with the six paid services.
+  if(location.pathname==='/' || location.pathname===''){
+    const serviceGrid=[...document.querySelectorAll('section .grid')].find(g=>g.querySelector('a[href="/services/ai-opportunity-assessment"]'));
+    if(serviceGrid){
+      const cards=[...serviceGrid.querySelectorAll(':scope > a.card')];
+      const managed=cards.find(c=>c.getAttribute('href')==='/services/managed-ai-operations');
+      const transformation=cards.find(c=>c.getAttribute('href')==='/services/business-transformation');
+      const fractional=cards.find(c=>c.getAttribute('href')==='/services/fractional-ai-director');
+      const compare=cards.find(c=>c.getAttribute('href')==='/services');
+      if(managed) managed.querySelector('.tag').textContent='04 · Optimize';
+      if(transformation) transformation.querySelector('.tag').textContent='05 · Expand';
+      if(fractional) fractional.querySelector('.tag').textContent='06 · Advise';
+      if(compare){
+        compare.href='/services/ai-enablement-training';
+        compare.querySelector('.tag').textContent='03 · Enable';
+        compare.querySelector('h3').textContent='AI Enablement & Training';
+        compare.querySelector('p').textContent='Help teams use approved AI tools consistently through role-based training, playbooks, SOPs, and human-review boundaries.';
+      }
+      if(!serviceGrid.parentElement.querySelector('.service-compare-link')){
+        const actions=document.createElement('div');actions.className='actions service-compare-link';
+        actions.innerHTML='<a class="btn secondary" href="/services">Compare all six services →</a>';
+        serviceGrid.after(actions);
+      }
+    }
+  }
+
   // Simple first-party event queue for later backend connection.
   window.nexusTrack=function(name,props={}){
     const e={name,props,path:location.pathname,ts:new Date().toISOString()};
