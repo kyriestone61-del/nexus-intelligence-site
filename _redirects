@@ -1,0 +1,4 @@
+# Cloudflare Pages route rewrites for dynamic detail views.
+# Static extensionless routes such as /portal and /quick-scan are served automatically.
+/services/* /services.html 200
+/industries/* /industries.html 200
