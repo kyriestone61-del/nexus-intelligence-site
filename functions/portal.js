@@ -10,6 +10,14 @@ export async function onRequest(context) {
     `LIVE='${origin}/portal'`
   );
 
+  // Make the path back to the public Nexus website obvious from inside the app.
+  if (!patched.includes('id="mainWebsiteBtn"')) {
+    patched = patched.replace(
+      '<select id="companySelect"',
+      '<a id="mainWebsiteBtn" class="btn secondary" href="/" title="Return to the Nexus Intelligence website">← Main Website</a><select id="companySelect"'
+    );
+  }
+
   if (!patched.includes('/secure-documents.css')) {
     patched = patched.replace('</head>', '<link rel="stylesheet" href="/secure-documents.css"></head>');
   }
