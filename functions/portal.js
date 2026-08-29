@@ -5,10 +5,20 @@ export async function onRequest(context) {
 
   const origin = new URL(context.request.url).origin;
   const html = await response.text();
-  const patched = html.replace(
+  let patched = html.replace(
     "LIVE='https://nexus-intelligence-v3-preview.vercel.app/portal'",
     `LIVE='${origin}/portal'`
   );
+
+  if (!patched.includes('/secure-documents.css')) {
+    patched = patched.replace('</head>', '<link rel="stylesheet" href="/secure-documents.css"></head>');
+  }
+
+  const enhancement = `\nimport('/secure-documents.js').then(({init})=>init({sb,state,$,toast,download,log,workspace})).catch(err=>console.error('Secure documents enhancement failed',err));\n`;
+  const scriptClose = patched.lastIndexOf('</script>');
+  if (scriptClose !== -1 && !patched.includes('secure-documents.js')) {
+    patched = patched.slice(0, scriptClose) + enhancement + patched.slice(scriptClose);
+  }
 
   const headers = new Headers(response.headers);
   headers.set('Cache-Control', 'no-store, max-age=0');
