@@ -3,6 +3,11 @@ export async function initAuthUX({sb,$,pane,show}){
   const createPane=$('createPane');
   const pendingFlag='nexus_verification_expected';
 
+  // The current operations module relabels legacy secure-file sections. Keep the new
+  // preparation checklist outside that legacy relabeling path while preserving its
+  // requested-files and shared-files labels.
+  document.getElementById('dataRoomRequirements')?.closest('.secure-doc-section')?.classList.remove('secure-doc-section');
+
   // Make the verification requirement obvious before submission.
   if(createPane && createForm && !document.getElementById('portalVerificationPreflight')){
     const note=document.createElement('div');
