@@ -47,7 +47,7 @@ jobs:
             echo 'Potential privileged secret reference found in founder console files.' >&2
             exit 1
           fi
-      - name: Portal data-room and layout safety assertions
+      - name: Portal data-room, role, and runtime safety assertions
         shell: bash
         run: |
           set -euo pipefail
@@ -57,12 +57,21 @@ jobs:
           grep -q 'portal-simplify.css' portal-app.js
           grep -q 'portal-admin-intake.js' portal-app.js
           grep -q 'portal-admin-intake.css' portal-app.js
+          grep -q 'NativeMutationObserver' portal-app.js
+          grep -q 'NexusPortalNoopObserver' portal-app.js
+          grep -q 'setInterval(schedule,1200)' portal-simplify.js
+          if grep -q 'new MutationObserver' portal-simplify.js; then
+            echo 'portal-simplify must not observe and rewrite its own DOM mutations.' >&2
+            exit 1
+          fi
           grep -q 'select.task-status' portal-layout-fix.css
           grep -q 'grid-template-columns:minmax(0,1fr) max-content' portal-layout-fix.css
           grep -q 'Secure Data Room' portal.html
           grep -q 'Build with Nexus' portal-client.js
           grep -q 'Files & Information' portal-simplify.js
           grep -q 'Managed by Nexus' portal-simplify.js
+          grep -q 'ADMIN ACCOUNT · YOU RUN THE ENGAGEMENT' portal-simplify.js
+          grep -q 'CLIENT ACCOUNT · YOUR RESPONSIBILITIES' portal-simplify.js
           grep -q "taskBtn.style.display=admin?'inline-flex':'none'" portal-simplify.js
           grep -q "metricBtn.style.display=admin?'inline-flex':'none'" portal-simplify.js
           grep -q 'nexus_project_data_requirements' portal-client.js
