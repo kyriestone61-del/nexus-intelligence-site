@@ -13,6 +13,11 @@ adminIntakeStyles.rel='stylesheet';
 adminIntakeStyles.href='/portal-admin-intake.css?v=20260830-3';
 document.head.appendChild(adminIntakeStyles);
 
+const diagnosisWorkflowStyles=document.createElement('link');
+diagnosisWorkflowStyles.rel='stylesheet';
+diagnosisWorkflowStyles.href='/portal-diagnosis-v2.css?v=20260830-1';
+document.head.appendChild(diagnosisWorkflowStyles);
+
 const actionWorkflowStyles=document.createElement('link');
 actionWorkflowStyles.rel='stylesheet';
 actionWorkflowStyles.href='/portal-action-workflow.css?v=20260830-2';
@@ -47,6 +52,7 @@ await Promise.all([
   new Promise(resolve=>{layoutFix.onload=resolve;layoutFix.onerror=resolve}),
   new Promise(resolve=>{simplifyStyles.onload=resolve;simplifyStyles.onerror=resolve}),
   new Promise(resolve=>{adminIntakeStyles.onload=resolve;adminIntakeStyles.onerror=resolve}),
+  new Promise(resolve=>{diagnosisWorkflowStyles.onload=resolve;diagnosisWorkflowStyles.onerror=resolve}),
   new Promise(resolve=>{actionWorkflowStyles.onload=resolve;actionWorkflowStyles.onerror=resolve}),
   new Promise(resolve=>{actionExecutionStyles.onload=resolve;actionExecutionStyles.onerror=resolve}),
   new Promise(resolve=>{guidedOpsStyles.onload=resolve;guidedOpsStyles.onerror=resolve}),
@@ -79,6 +85,12 @@ try{
 }finally{
   window.MutationObserver=NativeMutationObserver;
 }
+
+// Upgrade legacy shadow-mode intake in-place. Capture-phase interception keeps the
+// existing upload/discovery UI while sending Queue diagnosis through the secured
+// model endpoint and governed review/orchestration workflow.
+await import('/portal-diagnosis-override.js?v=20260830-1');
+await import('/portal-diagnosis-v2.js?v=20260830-1');
 
 await importWithoutRecurringIntervals('/portal-action-workflow.js?v=20260830-3',[1200]);
 await importWithoutRecurringIntervals('/portal-action-execution-v2.js?v=20260830-2',[900]);
