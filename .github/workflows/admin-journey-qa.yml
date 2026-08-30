@@ -6,6 +6,7 @@ on:
       - 'portal-admin-journey.js'
       - 'portal-admin-journey-router.js'
       - 'portal-admin-journey.css'
+      - 'portal-diagnosis-result-capture.js'
       - 'portal-app.js'
       - '.github/workflows/admin-journey-qa.yml'
 
@@ -27,6 +28,7 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-admin-journey-router.js
+          node --input-type=module --check < portal-diagnosis-result-capture.js
           node --input-type=module --check < portal-app.js
       - name: Seven-stage workflow assertions
         run: |
@@ -42,11 +44,15 @@ jobs:
           grep -Fq 'Client Journey' portal-admin-journey.js
           grep -Fq 'Tools & records' portal-admin-journey.js
           grep -Fq 'ready_to_finish' portal-admin-journey.js
-      - name: Existing methodology package assertions
+      - name: Methodology and diagnosis gate assertions
         run: |
           set -euo pipefail
           grep -Fq "package:'client_discovery'" portal-admin-journey.js
-          grep -Fq "package:'ai_diagnosis'" portal-admin-journey.js
+          grep -Fq 'diagnosisApproved' portal-admin-journey.js
+          grep -Fq 'analysis_result' portal-admin-journey.js
+          grep -Fq 'Open Diagnosis Review' portal-admin-journey.js
+          grep -Fq 'Save diagnosis output' portal-diagnosis-result-capture.js
+          grep -Fq 'Approve diagnosis' portal-diagnosis-result-capture.js
           grep -Fq "package:'solution_design'" portal-admin-journey.js
           grep -Fq "package:'implementation_launch'" portal-admin-journey.js
           grep -Fq "package:'training_handoff'" portal-admin-journey.js
@@ -60,20 +66,20 @@ jobs:
           grep -Fq '.open-client' portal-admin-journey-router.js
           grep -Fq '.journey-primary' portal-admin-journey-router.js
           grep -Fq 'portal-admin-journey-router.js' portal-app.js
-      - name: Backend-preservation assertion
+      - name: Frontend-only repository assertion
         run: |
           set -euo pipefail
           git fetch origin "${{ github.base_ref }}" --depth=1
           changed="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
           echo "$changed"
           if echo "$changed" | grep -E '^(functions/|supabase/|migrations/|schema/|database/|.*\.sql$)'; then
-            echo 'Admin simplification must not change backend/database files.' >&2
+            echo 'This PR should contain browser-delivered workflow changes only; production DB migrations were applied through Supabase separately.' >&2
             exit 1
           fi
       - name: Browser security assertion
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-admin-journey.js portal-admin-journey-router.js portal-admin-journey.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-admin-journey.js portal-admin-journey-router.js portal-admin-journey.css portal-diagnosis-result-capture.js; then
             echo 'Privileged credential reference found in browser-delivered admin journey.' >&2
             exit 1
           fi
@@ -82,4 +88,5 @@ jobs:
           set -euo pipefail
           grep -Fq '@media(max-width:900px)' portal-admin-journey.css
           grep -Fq 'portal-admin-journey.css' portal-app.js
-          grep -Fq 'portal-admin-journey.js' portal-app.js
+          grep -Fq 'portal-admin-journey.js?v=20260830-3' portal-app.js
+          grep -Fq 'portal-diagnosis-result-capture.js?v=20260830-1' portal-app.js

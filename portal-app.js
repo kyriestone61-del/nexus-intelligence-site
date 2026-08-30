@@ -30,8 +30,18 @@ document.head.appendChild(guidedOpsStyles);
 
 const adminJourneyStyles=document.createElement('link');
 adminJourneyStyles.rel='stylesheet';
-adminJourneyStyles.href='/portal-admin-journey.css?v=20260830-1';
+adminJourneyStyles.href='/portal-admin-journey.css?v=20260830-2';
 document.head.appendChild(adminJourneyStyles);
+
+const journeyQaqcStyles=document.createElement('link');
+journeyQaqcStyles.rel='stylesheet';
+journeyQaqcStyles.href='/portal-journey-qaqc.css?v=20260830-1';
+document.head.appendChild(journeyQaqcStyles);
+
+const diagnosisResultStyles=document.createElement('link');
+diagnosisResultStyles.rel='stylesheet';
+diagnosisResultStyles.href='/portal-diagnosis-result-capture.css?v=20260830-1';
+document.head.appendChild(diagnosisResultStyles);
 
 await Promise.all([
   new Promise(resolve=>{layoutFix.onload=resolve;layoutFix.onerror=resolve}),
@@ -40,7 +50,9 @@ await Promise.all([
   new Promise(resolve=>{actionWorkflowStyles.onload=resolve;actionWorkflowStyles.onerror=resolve}),
   new Promise(resolve=>{actionExecutionStyles.onload=resolve;actionExecutionStyles.onerror=resolve}),
   new Promise(resolve=>{guidedOpsStyles.onload=resolve;guidedOpsStyles.onerror=resolve}),
-  new Promise(resolve=>{adminJourneyStyles.onload=resolve;adminJourneyStyles.onerror=resolve})
+  new Promise(resolve=>{adminJourneyStyles.onload=resolve;adminJourneyStyles.onerror=resolve}),
+  new Promise(resolve=>{journeyQaqcStyles.onload=resolve;journeyQaqcStyles.onerror=resolve}),
+  new Promise(resolve=>{diagnosisResultStyles.onload=resolve;diagnosisResultStyles.onerror=resolve})
 ]);
 
 async function importWithoutRecurringIntervals(url,blockedDelays=[]){
@@ -70,7 +82,9 @@ try{
 
 await importWithoutRecurringIntervals('/portal-action-workflow.js?v=20260830-3',[1200]);
 await importWithoutRecurringIntervals('/portal-action-execution-v2.js?v=20260830-2',[900]);
-await import('/portal-action-execution-v2-forms.js?v=20260830-1');
+await import('/portal-action-execution-v2-forms.js?v=20260830-2');
 await import('/portal-guided-ops.js?v=20260830-1');
-await import('/portal-admin-journey.js?v=20260830-1');
+await import('/portal-diagnosis-result-capture.js?v=20260830-1');
+await import('/portal-admin-journey.js?v=20260830-3');
 await import('/portal-admin-journey-router.js?v=20260830-1');
+await import('/portal-journey-task-guard.js?v=20260830-1');

@@ -3,7 +3,7 @@ if(!portal)throw new Error('Nexus portal context is unavailable.');
 const {sb,state,toast,workspace}=portal;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const addressed=s=>['ready','uploaded','build_with_nexus','not_available','not_applicable'].includes(s);
-const complete=s=>['completed','approved','done'].includes(s);
+const complete=s=>['completed','approved','done','not_applicable'].includes(s);
 let scheduled=false;
 
 function inputFor(field,value){const required=field.required?' <em>Required</em>':'';const common=`data-v2-field="${esc(field.key)}" ${field.required?'data-required="true"':''}`;if(field.type==='textarea')return `<label><span>${esc(field.label)}${required}</span><textarea ${common} placeholder="${esc(field.placeholder||'')}">${esc(value??'')}</textarea></label>`;if(field.type==='select'&&Array.isArray(field.options))return `<label><span>${esc(field.label)}${required}</span><select ${common}>${field.options.map(o=>`<option value="${esc(o)}" ${String(value??'')===String(o)?'selected':''}>${esc(o)}</option>`).join('')}</select></label>`;return `<label><span>${esc(field.label)}${required}</span><input ${common} type="${field.type==='date'?'date':'text'}" value="${esc(value??'')}" placeholder="${esc(field.placeholder||'')}"></label>`}
