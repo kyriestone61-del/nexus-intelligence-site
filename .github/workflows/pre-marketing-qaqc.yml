@@ -13,6 +13,10 @@ on:
       - 'snapshot-lifecycle-patch.js'
       - 'book.html'
       - 'booking-manage.html'
+      - 'assessment.html'
+      - 'services.html'
+      - 'industries.html'
+      - '_redirects'
       - 'functions/**'
       - '.github/workflows/pre-marketing-qaqc.yml'
   workflow_dispatch:
@@ -115,12 +119,14 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re,sys
-          known_dynamic={'/portal','/prospect-workspace','/booking-manage'}
+          known_dynamic_exact={'/portal','/prospect-workspace','/booking-manage'}
+          known_dynamic_prefixes=('/services/','/industries/')
           failures=[]
           for p in Path('.').glob('*.html'):
               text=p.read_text(errors='ignore')
               for href in re.findall(r'href=["\'](/[^"\'#?]*)',text):
-                  if href=='/' or href.startswith('/api/') or href in known_dynamic: continue
+                  if '${' in href: continue
+                  if href=='/' or href.startswith('/api/') or href in known_dynamic_exact or href.startswith(known_dynamic_prefixes): continue
                   candidate=Path(href.lstrip('/')+'.html')
                   direct=Path(href.lstrip('/'))
                   if not candidate.exists() and not direct.exists(): failures.append(f'{p}: {href}')
