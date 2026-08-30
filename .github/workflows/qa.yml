@@ -103,11 +103,13 @@ jobs:
         run: |
           set -euo pipefail
           grep -q "href:'/book',label:'Request My Fit Call'" app.js
+          grep -q "!j.quickScan?.completedAt&&!j.assessment?.completedAt" app.js
           grep -q "shareUrl(target='/book')" app.js
           grep -q 'injectSimpleCustomerJourney' app.js
           grep -q 'Free AI Snapshot' app.js
           grep -q 'Paid Opportunity Assessment' app.js
           grep -q 'simplifyQuickScanHandoff' app.js
+          grep -q "observer.observe(root,{childList:true,subtree:true})" app.js
           grep -q 'simplifyFitCallExperience' app.js
           grep -q 'Request a Nexus Fit Call' app.js
           grep -q 'appointment-based beauty business' industries.html
