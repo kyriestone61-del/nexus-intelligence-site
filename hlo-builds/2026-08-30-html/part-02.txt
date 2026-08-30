@@ -1,0 +1,307 @@
+);gap:10px}.agent-card{padding:14px;border:1px solid var(--line);border-radius:12px;background:#11151a}.agent-card b{display:block}.agent-status{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent)}
+.path-empty{padding:26px;border:1px dashed #4d535b;border-radius:15px;background:#101317;text-align:center}
+.private-pill{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#d9bd78;border:1px solid #63532f;border-radius:99px;padding:4px 8px;margin-left:6px}
+@media(max-width:900px){.path-hero,.builder-shell{grid-template-columns:1fr}.builder-steps{position:relative;top:auto;display:flex;overflow:auto}.builder-step{min-width:max-content}.choice-grid,.path-module-grid,.agent-grid{grid-template-columns:1fr}.multi-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.multi-grid{grid-template-columns:1fr}}
+
+
+/* Sidebar IA v3: exactly five top-level headings; maximum depth three. */
+.nav-groups{display:block}
+.nav-group{margin:7px 0}
+.nav-group-toggle{letter-spacing:.01em}
+.nav-group-items{padding-left:7px}
+.nav-subfolder{margin-left:4px}
+.nav-sub-items{padding-left:9px}
+.nav-sub-items button{border-left-color:#3a414a!important}
+</style>
+</head>
+<body>
+
+<div id="authGate" class="auth-gate">
+  <div class="auth-box">
+    <div class="eyebrow">Human Leverage OS</div>
+    <h2 style="margin-bottom:6px">Persistent Personal Intelligence</h2>
+    <p class="muted">Sign in to sync your curriculum, mastery, missions, tutor history, research and recommendations across devices. The owner account also unlocks its private Nexus, Statecraft, Career and Trading studio.</p>
+    <div class="auth-tabs">
+      <button class="primary" id="loginTab" type="button">Sign in</button>
+      <button class="secondary" id="signupTab" type="button">Create account</button>
+    </div>
+    <div class="formGrid">
+      <label>Email<input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
+      <label>Password<input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 8 characters"></label>
+    </div>
+    <label id="nameWrap" style="display:none;font-size:12px;color:var(--muted);margin-top:10px">Display name<input id="authName" style="width:100%;margin-top:4px" placeholder="Kato"></label>
+    <button class="primary" id="authSubmit" style="width:100%;margin-top:12px">Sign in</button>
+    <div id="authMsg" class="auth-msg"></div>
+    <button class="secondary" id="offlineBtn" style="width:100%;margin-top:8px">Open local preview without cloud</button>
+    <p class="note" style="margin-top:12px">For full cloud behavior, use the hosted version. The local file remains usable as an offline preview.</p>
+  </div>
+</div>
+<div id="syncToast" class="sync-toast">Synced</div>
+
+<div class="shell">
+<aside>
+  <div class="brand">HUMAN LEVERAGE OS</div>
+  <div class="sub">Personal intelligence system · <span id="cloudStatus">Local mode</span></div>
+  <nav id="nav" class="nav-groups">
+    <div class="nav-group open">
+      <button class="nav-group-toggle" type="button"><span>Command Center</span><span class="nav-chevron">▾</span></button>
+      <div class="nav-group-items">
+        <button data-view="dashboard" class="active">Home</button>
+        <button data-view="personalize" class="nav-feature">Build My Path</button>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <button class="nav-group-toggle" type="button"><span>Learn</span><span class="nav-chevron">▾</span></button>
+      <div class="nav-group-items">
+        <button data-view="academy">Core Academy</button>
+        <div class="nav-subfolder">
+          <button class="nav-sub-toggle" type="button"><span>Coach & Assess</span><span>›</span></button>
+          <div class="nav-sub-items">
+            <button data-view="tutor">AI Tutor</button>
+            <button data-view="quiz">Adaptive Quiz</button>
+          </div>
+        </div>
+        <button data-view="certificates">Mastery Gates</button>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <button class="nav-group-toggle" type="button"><span>Apply</span><span class="nav-chevron">▾</span></button>
+      <div class="nav-group-items">
+        <button data-view="missions">Missions</button>
+        <button data-view="labs">Interactive Labs</button>
+        <div class="nav-subfolder owner-only">
+          <button class="nav-sub-toggle" type="button"><span>Ventures</span><span>›</span></button>
+          <div class="nav-sub-items">
+            <button data-view="nexus">Nexus Intelligence</button>
+            <button data-view="statecraft">Statecraft</button>
+          </div>
+        </div>
+        <div class="nav-subfolder owner-only">
+          <button class="nav-sub-toggle" type="button"><span>Personal Systems</span><span>›</span></button>
+          <div class="nav-sub-items">
+            <button data-view="career">Career</button>
+            <button data-view="trading">Trading</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <button class="nav-group-toggle" type="button"><span>Intelligence</span><span class="nav-chevron">▾</span></button>
+      <div class="nav-group-items">
+        <button data-view="research">Live Research</button>
+        <button data-view="sources">Research Library</button>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <button class="nav-group-toggle" type="button"><span>Account</span><span class="nav-chevron">▾</span></button>
+      <div class="nav-group-items">
+        <button data-view="account">Profile & Preferences</button>
+      </div>
+    </div>
+  </nav>
+  <div class="card" style="margin-top:22px;padding:14px">
+    <div class="small muted">Operating principle</div>
+    <div style="font-weight:700;margin-top:4px">AI capability ↑ should make your productive capacity ↑</div>
+  </div>
+
+  <div class="account-row">
+    <div class="small"><span id="accountDot" class="dot"></span><span id="accountLabel">Local preview</span></div>
+    <button class="secondary small" id="signOutBtn" style="display:none;padding:6px 8px">Sign out</button>
+  </div>
+
+</aside>
+
+<main>
+<section id="dashboard" class="view active">
+  <div class="hero">
+    <div class="card">
+      <div class="eyebrow">Human Leverage OS</div>
+      <h1>Build an <span class="gold">AI-leveraged future</span> specific to you.</h1>
+      <p class="muted">Learn the universal foundations of AI, automation and robotics, then build a personal curriculum around what you want to do, what you care about, what you want to create, and the person you are trying to become.</p>
+      <div class="toolbar">
+        <button class="primary" onclick="go('personalize')">Build My Path</button>
+        <button class="secondary" onclick="go('academy')">Open Core Academy</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Your progress</div>
+      <div class="score" id="overallPct">0%</div>
+      <div class="progress"><div id="overallBar"></div></div>
+      <div class="kpi-list" style="margin-top:12px">
+        <div class="kpi"><span>Core lessons complete</span><b id="lessonsDone">0</b></div>
+        <div class="kpi"><span>Personal path</span><b id="cmdPathStatus">Not built</b></div>
+        <div class="kpi"><span>Quiz best</span><b id="quizBest">—</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="commandRecommendation" class="reco-hero">
+    <div class="reco-primary">
+      <div class="eyebrow">Next best action</div>
+      <h2 id="cmdNextTitle">Build your personal path</h2>
+      <p id="cmdNextReason" class="muted">Answer the onboarding questions so the system can connect AI capabilities to your actual future.</p>
+      <button class="primary" id="cmdNextBtn">Open next action</button>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Current position</div>
+      <div class="kpi"><span>Ascension level</span><b id="cmdLevel">Beginner</b></div>
+      <div class="kpi"><span>Current focus</span><b id="cmdWeakSkill">Build your path</b></div>
+      <div class="kpi"><span>Active missions</span><b id="cmdMissionCount">0</b></div>
+      <div class="kpi"><span>Research updates</span><b id="cmdResearchCount">0</b></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="metric"><strong>Learn</strong><span>Build a grounded model of AI, automation, agents, robotics, verification and the changing economy.</span></div>
+    <div class="metric"><strong>Apply</strong><span>Translate those capabilities into your own goals instead of collecting generic AI knowledge.</span></div>
+    <div class="metric"><strong>Own</strong><span>Turn increased capability into evidence, systems, intellectual property, distribution and eventually assets.</span></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="eyebrow">The universal progression</div>
+    <h2>Five levels of leverage</h2>
+    <div class="level-map">
+      <div class="level-node"><b>1 · Beginner</b>Understand the landscape, your exposure and the human moat.</div>
+      <div class="level-node"><b>2 · Operator</b>Use models, research and automation safely enough to multiply real work.</div>
+      <div class="level-node"><b>3 · Architect</b>Design workflows, agents, data, evaluations and governance.</div>
+      <div class="level-node"><b>4 · Owner</b>Productize systems, build distribution and accumulate proprietary context.</div>
+      <div class="level-node"><b>5 · Allocator</b>Understand capital cycles, infrastructure, bottlenecks and ownership.</div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card" id="genericPathCard">
+      <div class="eyebrow">Your personalized branch</div>
+      <h3 id="dashPathTitle">No personal curriculum yet</h3>
+      <p class="muted" id="dashPathSummary">Answer a short set of questions about your future, interests, goals, preferred work and AI experience. The system will build a staged curriculum and practical projects around your answers.</p>
+      <button class="secondary" onclick="go('personalize')">Open My Path</button>
+    </div>
+    <div class="card">
+      <div class="eyebrow">How the system learns you</div>
+      <p class="muted">It uses your stated goals, completed modules, quiz weaknesses, missions and evidence. It does not assign a fixed personality label. You can rebuild the path when your direction changes.</p>
+    </div>
+  </div>
+
+  <div class="card owner-only" id="ownerDashboardCard" style="margin-top:16px;display:none">
+    <div class="eyebrow">Private Studio <span class="private-pill">Owner account</span></div>
+    <h2>Your private applied systems</h2>
+    <div class="grid2">
+      <div><h3>Nexus Intelligence</h3><p class="muted">AI implementation, workflow architecture, agent systems and consulting leverage.</p><h3>Statecraft</h3><p class="muted">Human agency, personalized development systems and educational product design.</p></div>
+      <div><h3>Career</h3><p class="muted">AI-augmented preconstruction, contech and career evidence.</p><h3>Trading</h3><p class="muted">Research, backtesting, journaling and controlled automation—not AI market prophecy.</p></div>
+    </div>
+  </div>
+</section>
+
+
+
+<section id="personalize" class="view">
+  <div class="path-hero">
+    <div class="track-banner" style="margin:0">
+      <div class="eyebrow">Personal Curriculum Builder</div>
+      <h1>Tell the system where you want to go. It will build the AI education around that future.</h1>
+      <p class="muted">This is not a personality test. Your answers become a learner brief, an AI-opportunity map, a staged curriculum, practical missions, assessments, resource recommendations and guardrails. You can rebuild the path whenever your direction changes.</p>
+    </div>
+    <div class="path-status-card">
+      <div class="small muted">Personal path status</div>
+      <div class="score" id="pathStatusScore">—</div>
+      <div id="pathStatusText" class="muted">Answer the intake to create your first path.</div>
+      <div class="toolbar" style="margin-bottom:0"><button class="secondary" id="rebuildPathBtn" style="display:none">Rebuild path</button></div>
+    </div>
+  </div>
+
+  <div id="pathBuilderHost">
+    <div class="builder-shell" id="builderShell">
+      <div class="builder-steps" id="builderSteps">
+        <div class="builder-step active" data-step="0">1 · Future</div>
+        <div class="builder-step" data-step="1">2 · Interests</div>
+        <div class="builder-step" data-step="2">3 · Learning</div>
+        <div class="builder-step" data-step="3">4 · Guardrails</div>
+      </div>
+      <div class="card">
+        <div class="builder-progress"><div id="builderProgress" style="width:25%"></div></div>
+        <form id="pathIntakeForm">
+          <div class="builder-panel active" data-panel="0">
+            <div class="eyebrow">Step 1 · Your future</div><h2>What are you trying to make true?</h2>
+            <p class="muted">Pick the closest answer. You can refine it later.</p>
+            <h3>Primary goal</h3><div class="choice-grid" id="goalChoices"></div>
+            <h3>Where do you see yourself?</h3><div class="choice-grid" id="futureChoices"></div>
+          </div>
+          <div class="builder-panel" data-panel="1">
+            <div class="eyebrow">Step 2 · What pulls you</div><h2>What do you actually like doing and building?</h2>
+            <h3>What do you love doing? <span class="note">Choose as many as fit.</span></h3><div class="multi-grid" id="loveChoices"></div>
+            <h3>What are you trying to build now?</h3><div class="choice-grid" id="buildChoices"></div>
+            <h3>Which environment interests you most?</h3><div class="choice-grid" id="domainChoices"></div>
+          </div>
+          <div class="builder-panel" data-panel="2">
+            <div class="eyebrow">Step 3 · How you learn</div><h2>Meet you at the right starting point.</h2>
+            <h3>Current AI comfort</h3><div class="choice-grid" id="aiChoices"></div>
+            <h3>How do you learn best? <span class="note">Choose multiple.</span></h3><div class="multi-grid" id="learningChoices"></div>
+            <h3>Time you can realistically commit each week</h3><div class="choice-grid" id="hoursChoices"></div>
+          </div>
+          <div class="builder-panel" data-panel="3">
+            <div class="eyebrow">Step 4 · Human advantage & boundaries</div><h2>How should the system shape the path?</h2>
+            <h3>Your strongest human advantage today</h3><div class="choice-grid" id="strengthChoices"></div>
+            <h3>Your experimentation posture</h3><div class="choice-grid" id="riskChoices"></div>
+            <label style="display:block;margin-top:14px"><b>What would make the next 6–12 months a real win?</b><textarea id="pathOutcome" rows="4" style="width:100%;margin-top:7px" placeholder="Example: launch a small consulting offer, change careers, build an app, develop a creative business, become an AI-augmented expert in my field…"></textarea></label>
+          </div>
+          <div class="builder-nav"><button class="secondary" type="button" id="builderBack" style="visibility:hidden">Back</button><div><span class="note" id="builderValidation"></span> <button class="primary" type="button" id="builderNext">Continue</button></div></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="generatedPathHost" style="display:none">
+    <div class="path-tabs" id="pathTabs"><button class="active" data-path-tab="curriculum">Curriculum</button><button data-path-tab="plan">30/90-Day Plan</button><button data-path-tab="agents">Agent Team</button><button data-path-tab="profile">Learner Brief</button></div>
+    <div id="pathTabContent"></div>
+  </div>
+</section>
+<section id="intelligence" class="view">
+  <div class="track-banner"><div class="eyebrow">Recommendation Engine</div><h1>Exactly what should you do next?</h1><p class="muted">The engine weighs lesson completion, quiz weakness, skill bottlenecks, active missions and your current ascension level. It gives you one priority plus separate Learn / Build / Test / Practice actions.</p></div>
+  <div id="priorityBlock" class="reco-primary"><div class="eyebrow">Priority #1</div><h2 id="priorityTitle">Sync your profile</h2><p id="priorityReason" class="muted">Cloud learner state is required for precise recommendations.</p><button class="primary" id="priorityBtn">Open</button></div>
+  <h2 style="margin-top:22px">Action stack</h2>
+  <div id="actionStack" class="action-grid"></div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="card"><h3>Why this engine chooses what it chooses</h3><ol><li>Finish active work before adding more.</li><li>Close foundational knowledge gaps before advanced architecture.</li><li>Prefer evidence-producing missions over passive consumption.</li><li>Target the lowest important skill.</li><li>Use quizzes to detect false confidence.</li></ol></div>
+    <div class="card"><h3>Current learner state</h3><div id="learnerStateSummary" class="muted">No cloud state loaded.</div></div>
+  </div>
+</section>
+
+<section id="tutor" class="view">
+  <div class="track-banner"><div class="eyebrow">Context-Aware Tutor</div><h1>Your tutor knows what you have mastered.</h1><p class="muted">Ask for an explanation, a scenario, a critique, or an application to your personal curriculum. On the owner account, the tutor can also use the private Nexus, Statecraft, Career and Trading tracks. Tutor conversations are saved to your account.</p></div>
+  <div class="tutor-layout">
+    <div class="card">
+      <label class="small muted">Tutor focus</label>
+      <select id="tutorLesson" style="width:100%;margin-top:5px"><option value="">Overall system</option></select>
+      <div style="margin-top:14px">
+        <button class="secondary" style="width:100%;margin-bottom:7px" onclick="askTutorPreset('What should I focus on next and why?')">What should I do next?</button>
+        <button class="secondary" style="width:100%;margin-bottom:7px" onclick="askTutorPreset('Teach this concept to me from novice to expert, then give me one practical exercise.')">Teach current lesson</button>
+        <button class="secondary" style="width:100%;margin-bottom:7px" onclick="askTutorPreset('Test my understanding with a realistic scenario. Do not give me the answer until I respond.')">Test me with a scenario</button>
+        <button class="secondary" style="width:100%;margin-bottom:7px" onclick="askTutorPreset('Apply this concept directly to my personal curriculum, goal, and current project. Give me one concrete next action.')">Apply to my goal</button>
+      </div>
+      <div class="callout small" id="tutorModeNote">Tutor mode: checking backend…</div>
+    </div>
+    <div class="card">
+      <div id="tutorChat" class="tutor-chat"><div class="msg assistant">Sign in, then ask a question. I will use your core progress, personal curriculum, quiz weaknesses and active missions as context.</div></div>
+      <div class="composer"><textarea id="tutorInput" placeholder="Ask the tutor…"></textarea><button class="primary" id="tutorSend">Send</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="missions" class="view">
+  <div class="track-banner"><div class="eyebrow">Applied Missions</div><h1>Education must produce artifacts.</h1><p class="muted">Missions are how the system turns knowledge into capability. Complete them with evidence; the recommendation engine then advances you.</p></div>
+  <div class="toolbar">
+    <select id="missionTrackFilter"><option value="">All tracks</option><option>Core Academy</option><option>Personal Path</option></select>
+    <select id="missionStatusFilter"><option value="">All statuses</option><option value="active">Active</option><option value="queued">Queued</option><option value="completed">Completed</option></select>
+  </div>
+  <h2>Your missions</h2><div id="missionList"></div>
+  <h2 style="margin-top:26px">Mission library</h2><div id="missionTemplates"></div>
+</section>
+
+
+<section id="academy" class="view">
+  
