@@ -1,0 +1,35 @@
+/* Nexus mobile-first UX layer */
+html{scroll-padding-top:84px;-webkit-text-size-adjust:100%}body{overflow-x:hidden}button,a,input,select,textarea{touch-action:manipulation}input,select,textarea{font-size:16px}.journey-bar{position:fixed;z-index:55;left:0;right:0;bottom:0;padding:10px max(14px,env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));background:rgba(5,13,23,.94);border-top:1px solid rgba(101,216,255,.16);backdrop-filter:blur(18px);box-shadow:0 -16px 50px rgba(0,0,0,.25)}.journey-inner{width:min(1180px,100%);margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px}.journey-copy{display:flex;align-items:center;gap:11px;min-width:0}.journey-copy>div{min-width:0}.journey-copy b{display:block;font-size:13px}.journey-copy small{display:block;color:#8394aa;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:650px}.journey-check{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:rgba(117,228,181,.1);border:1px solid rgba(117,228,181,.24);color:#75e4b5;font-weight:900}.journey-action{min-height:42px!important;font-size:13px!important;padding:0 15px!important;white-space:nowrap}.personal-recommendation{padding:24px 0!important;border-top:0!important}.recommendation-band{display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center;padding:25px;border:1px solid rgba(101,216,255,.22);border-radius:18px;background:linear-gradient(135deg,rgba(101,216,255,.065),rgba(169,184,255,.035))}.recommendation-band h2{font-size:32px;margin:6px 0}.recommendation-band p{color:var(--muted);margin:0;max-width:720px}.rec-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}.rec-chips span{padding:6px 9px;border:1px solid var(--line);border-radius:999px;color:#afbed1;font-size:11px}.mobile-only{display:none}.desktop-only{display:block}
+
+/* Better form ergonomics */
+.field{min-width:0}.field label{line-height:1.25}.field input,.field select,.field textarea{min-height:48px}.field textarea{min-height:120px}.diag-actions{position:sticky;bottom:72px;z-index:10;padding-top:14px;background:linear-gradient(180deg,rgba(7,17,31,0),#07111f 30%)}
+
+/* Avoid content sitting behind the journey dock */
+body:has(.journey-bar){padding-bottom:74px}
+
+@media(max-width:930px){
+  .site-header nav{min-height:64px}.site-header .brand{font-size:15px}.site-header .mark{width:32px;height:32px}.menu-btn{min-width:48px;min-height:44px;font-size:15px}
+  .navlinks.open{position:fixed!important;inset:64px 0 auto 0!important;max-height:calc(100dvh - 64px);overflow:auto;padding:16px max(18px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))!important;background:rgba(5,13,23,.985)!important;border-bottom:1px solid var(--line);box-shadow:0 18px 45px rgba(0,0,0,.35)}
+  .navlinks.open a{display:flex;align-items:center;min-height:50px!important;padding:10px 4px!important;border-bottom:1px solid rgba(255,255,255,.055);font-size:17px}.navlinks.open .nav-cta{justify-content:center;border-bottom:0!important;margin-top:12px!important;min-height:54px!important}
+  body.menu-open{overflow:hidden}
+  .recommendation-band{grid-template-columns:1fr}.recommendation-band .actions{margin-top:0}
+}
+
+@media(max-width:720px){
+  .wrap{width:min(var(--max),calc(100% - 30px))!important}.hero{padding:52px 0 42px!important}.hero h1{font-size:clamp(42px,13vw,58px)!important;line-height:.97!important}.hero p{font-size:18px!important;line-height:1.5!important}.eyebrow{font-size:10px!important;max-width:100%}
+  section{padding:52px 0!important}.section-head{gap:18px!important;margin-bottom:25px!important}.section-head h2,.simple-head h2{font-size:34px!important}.section-head p,.simple-head p{font-size:16px!important}
+  .btn,.btn-large{min-height:52px!important}.actions{gap:9px}.actions>.btn{flex:1 1 100%}
+  .journey-bar{padding-top:8px}.journey-inner{gap:9px}.journey-copy small{display:none}.journey-copy b{font-size:12px}.journey-action{width:auto!important;flex:0 0 auto;padding:0 12px!important;font-size:12px!important;min-height:42px!important}.journey-check{width:24px;height:24px}
+  body:has(.journey-bar){padding-bottom:72px}
+  .desktop-only{display:none}.mobile-only{display:block}
+  .recommendation-band{padding:20px}.recommendation-band h2{font-size:27px}.rec-chips{display:grid;grid-template-columns:1fr 1fr}.rec-chips span{text-align:center}
+  .diag-shell{border-radius:16px}.diag-top{padding:16px 17px!important}.diag-body{padding:20px 16px 18px!important}.diag-actions{bottom:68px;margin:20px -16px -18px!important;padding:16px;border-top:1px solid var(--line);background:#081421}.diag-actions .btn{width:auto!important;flex:1}.progress{height:6px!important}
+  .card{padding:19px!important;border-radius:15px}.note{line-height:1.45}
+}
+
+@media(max-width:480px){
+  .wrap{width:min(var(--max),calc(100% - 24px))!important}.hero h1{font-size:43px!important}.hero-copy h1{font-size:47px!important}.simple-proof{grid-template-columns:1fr 1fr!important}.simple-proof span{font-size:11px!important;padding:8px!important}.rec-chips{grid-template-columns:1fr}.journey-copy{gap:7px}.journey-check{display:none}.journey-action{padding:0 10px!important}.footer{padding-bottom:90px!important}
+}
+
+/* Print the opportunity report cleanly */
+@media print{.site-header,.footer,.journey-bar,.diag-actions,.no-print,.cookie{display:none!important}body{background:#fff!important;color:#111!important;padding:0!important}.result-box,.opportunity-report{border:0!important;background:#fff!important;color:#111!important;box-shadow:none!important}.result-box p,.opportunity-report p,.result-box li,.opportunity-report li{color:#333!important}.wrap{width:100%!important;max-width:none!important}}
