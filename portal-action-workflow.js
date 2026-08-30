@@ -88,7 +88,17 @@ async function saveTaskResponse(card,{complete=false}={}){
 }
 
 async function updateTaskStatus(id,status){
-  const {error}=await sb.from('nexus_tasks').update({status,updated_at:new Date().toISOString()}).eq('id',id);if(error)return toast(error.message||'Action status could not be updated.');
+  const task=state.tasks.find(t=>t.id===id);if(!task)return;
+  if(!state.admin&&status==='done'){
+    if(task.task_type==='preparation_checklist'){
+      const remaining=(state.dataRequirements||[]).filter(r=>!addressed(r.status));
+      if(remaining.length){taskStamp='';enhanceTaskSection();return toast(`Address ${remaining.length} remaining checklist item${remaining.length===1?'':'s'} before completing this action.`)}
+    }
+    const schema=Array.isArray(task.form_schema)?task.form_schema:[];const data=task.response_data||{};
+    const missing=schema.filter(f=>f.required&&!String(data[f.key]??'').trim());
+    if(missing.length){taskStamp='';enhanceTaskSection();return toast('Save the required action responses before marking this complete.')}
+  }
+  const {error}=await sb.from('nexus_tasks').update({status,updated_at:new Date().toISOString()}).eq('id',id);if(error){taskStamp='';enhanceTaskSection();return toast(error.message||'Action status could not be updated.');}
   await workspace();taskStamp='';
 }
 
