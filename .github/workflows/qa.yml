@@ -1,0 +1,49 @@
+name: Nexus QA
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  static-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app.js
+          node --input-type=module --check < portal-ops.js
+          node --input-type=module --check < portal-auth.js
+          node --input-type=module --check < operations.js
+          node --input-type=module --check < functions/api/opportunity-snapshot.js
+      - name: Founder console safety assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'nexus_is_platform_admin' operations.js
+          grep -q 'approved external action.*Blocked in foundation release' operations.js
+          grep -q 'Do not mark a gate passed from architecture alone' operations.js
+          grep -q 'business_completed' operations.js
+          grep -q 'robots" content="noindex,nofollow' operations.html
+          grep -q '^/operations\*' _headers
+          grep -q 'Cache-Control: no-store, max-age=0' _headers
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY' operations.js operations.html operations.css; then
+            echo 'Potential privileged secret reference found in founder console files.' >&2
+            exit 1
+          fi
+      - name: Snapshot funnel safety assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '/api/opportunity-snapshot' quick-scan.html
+          grep -q 'sms_opt_in' quick-scan.html
+          grep -q 'submit_nexus_opportunity_snapshot' functions/api/opportunity-snapshot.js
