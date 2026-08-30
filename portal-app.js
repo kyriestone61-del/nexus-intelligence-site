@@ -23,16 +23,28 @@ actionExecutionStyles.rel='stylesheet';
 actionExecutionStyles.href='/portal-action-execution-v2.css?v=20260830-1';
 document.head.appendChild(actionExecutionStyles);
 
+const guidedOpsStyles=document.createElement('link');
+guidedOpsStyles.rel='stylesheet';
+guidedOpsStyles.href='/portal-guided-ops.css?v=20260830-1';
+document.head.appendChild(guidedOpsStyles);
+
 await Promise.all([
   new Promise(resolve=>{layoutFix.onload=resolve;layoutFix.onerror=resolve}),
   new Promise(resolve=>{simplifyStyles.onload=resolve;simplifyStyles.onerror=resolve}),
   new Promise(resolve=>{adminIntakeStyles.onload=resolve;adminIntakeStyles.onerror=resolve}),
   new Promise(resolve=>{actionWorkflowStyles.onload=resolve;actionWorkflowStyles.onerror=resolve}),
-  new Promise(resolve=>{actionExecutionStyles.onload=resolve;actionExecutionStyles.onerror=resolve})
+  new Promise(resolve=>{actionExecutionStyles.onload=resolve;actionExecutionStyles.onerror=resolve}),
+  new Promise(resolve=>{guidedOpsStyles.onload=resolve;guidedOpsStyles.onerror=resolve})
 ]);
 
+async function importWithoutRecurringIntervals(url,blockedDelays=[]){
+  const nativeSetInterval=window.setInterval;
+  window.setInterval=(fn,delay,...args)=>blockedDelays.includes(Number(delay))?0:nativeSetInterval(fn,delay,...args);
+  try{return await import(url)}finally{window.setInterval=nativeSetInterval}
+}
+
 await import('/portal-client.js?v=20260830-3');
-await import('/portal-simplify.js?v=20260830-3');
+await importWithoutRecurringIntervals('/portal-simplify.js?v=20260830-4',[1200]);
 
 // portal-admin-intake already has explicit auth/company reconciliation hooks.
 // Its legacy DOM observer can react to its own badge changes indefinitely, so
@@ -50,6 +62,7 @@ try{
   window.MutationObserver=NativeMutationObserver;
 }
 
-await import('/portal-action-workflow.js?v=20260830-2');
-await import('/portal-action-execution-v2.js?v=20260830-1');
+await importWithoutRecurringIntervals('/portal-action-workflow.js?v=20260830-3',[1200]);
+await importWithoutRecurringIntervals('/portal-action-execution-v2.js?v=20260830-2',[900]);
 await import('/portal-action-execution-v2-forms.js?v=20260830-1');
+await import('/portal-guided-ops.js?v=20260830-1');
