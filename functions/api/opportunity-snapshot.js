@@ -13,6 +13,10 @@ const allowed={
   authority:new Set(['unclear','manager','owner']),
   timeline:new Set(['exploring','quarter','month'])
 };
+const boundedObject=(value,max=6000)=>{
+  if(!value||typeof value!=='object'||Array.isArray(value))return {};
+  try{return JSON.stringify(value).length<=max?value:{}}catch{return {}}
+};
 
 export async function onRequestPost(context){
   try{
@@ -24,6 +28,7 @@ export async function onRequestPost(context){
     const company_name=clean(body.company_name,160)||null;
     const phone=clean(body.phone,40)||null;
     const sms_opt_in=body.sms_opt_in===true;
+    const marketing_opt_in=body.marketing_opt_in===true;
     const business_type=clean(body.business_type,30);
     const team_size=clean(body.team_size,20);
     const priority_goal=clean(body.priority_goal,30);
@@ -53,8 +58,10 @@ export async function onRequestPost(context){
       const raw=JSON.stringify(body.snapshot_data);
       if(raw.length<=4000) snapshot_data=body.snapshot_data;
     }
+    const first_touch=boundedObject(body.first_touch);
+    const last_touch=boundedObject(body.last_touch);
 
-    const payload={first_name,email,phone,sms_opt_in,company_name,business_type,team_size,priority_goal,opportunity_areas,frequency,burden,systems,authority,timeline,opportunity_score,primary_opportunity,top_opportunities,snapshot_data};
+    const payload={first_name,email,phone,sms_opt_in,marketing_opt_in,company_name,business_type,team_size,priority_goal,opportunity_areas,frequency,burden,systems,authority,timeline,opportunity_score,primary_opportunity,top_opportunities,snapshot_data,first_touch,last_touch};
     const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_nexus_opportunity_snapshot`,{
       method:'POST',
       headers:{'content-type':'application/json','apikey':SUPABASE_KEY,'cache-control':'no-store'},
