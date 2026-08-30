@@ -1,0 +1,1 @@
+Human Leverage OS production asset package. Version: 2026-08-30-final. This directory contains a gzip+base64 encoded frontend split into numbered chunks for integrity-checked serving. Do not edit individual chunks.
