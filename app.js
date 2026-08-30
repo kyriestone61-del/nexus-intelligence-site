@@ -5,6 +5,13 @@
   const safeParse=(value,fallback={})=>{try{return JSON.parse(value)||fallback}catch{return fallback}};
   const safeStore=(key,value)=>{try{localStorage.setItem(key,value);return true}catch{return false}};
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  const normalizeText=value=>String(value??'').replace(/</g,'‹').replace(/>/g,'›');
+  const normalizeJourneyValue=value=>{
+    if(typeof value==='string')return normalizeText(value);
+    if(Array.isArray(value))return value.map(normalizeJourneyValue);
+    if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,normalizeJourneyValue(v)]));
+    return value;
+  };
   window.NexusEscapeHtml=escapeHtml;
 
   window.nexusTrack=function(name,props={}){
@@ -35,7 +42,7 @@
     try{
       let value=String(encoded||'').replace(/-/g,'+').replace(/_/g,'/');
       value+='='.repeat((4-value.length%4)%4);
-      return JSON.parse(decodeURIComponent(escape(atob(value))));
+      return normalizeJourneyValue(JSON.parse(decodeURIComponent(escape(atob(value)))));
     }catch{return null}
   }
   function mergeDeep(base,patch){
@@ -52,7 +59,7 @@
     if(j?.quickScan?.completedAt) return 'scan';
     return 'new';
   }
-  let journey=safeParse(localStorage.getItem(JOURNEY_KEY)||'{}',{});
+  let journey=normalizeJourneyValue(safeParse(localStorage.getItem(JOURNEY_KEY)||'{}',{}));
   const hashParams=new URLSearchParams((location.hash||'').replace(/^#/,''));
   const imported=hashParams.get('journey');
   if(imported){
@@ -62,10 +69,10 @@
   journey.stage=deriveStage(journey);
 
   window.NexusJourney={
-    load:()=>safeParse(localStorage.getItem(JOURNEY_KEY)||'{}',{}),
+    load:()=>normalizeJourneyValue(safeParse(localStorage.getItem(JOURNEY_KEY)||'{}',{})),
     get:()=>journey,
     save(patch={}){
-      journey=mergeDeep(journey,patch);journey.stage=deriveStage(journey);journey.updatedAt=new Date().toISOString();safeStore(JOURNEY_KEY,JSON.stringify(journey));
+      journey=mergeDeep(journey,normalizeJourneyValue(patch));journey.stage=deriveStage(journey);journey.updatedAt=new Date().toISOString();safeStore(JOURNEY_KEY,JSON.stringify(journey));
       window.dispatchEvent(new CustomEvent('nexusjourneychange',{detail:{stage:journey.stage}}));
       return journey;
     },
@@ -81,6 +88,17 @@
       return {href:'/prospect-workspace',label:'Continue My Nexus Journey'};
     }
   };
+
+  // Normalize angle-bracket input before it is stored or echoed into generated report/review UI.
+  if(location.pathname==='/assessment'||location.pathname==='/book'){
+    document.addEventListener('input',event=>{
+      const el=event.target;
+      if(!el||typeof el.value!=='string'||!/[<>]/.test(el.value))return;
+      const start=el.selectionStart,end=el.selectionEnd;
+      el.value=normalizeText(el.value);
+      try{if(start!==null&&end!==null)el.setSelectionRange(start,end)}catch{}
+    },true);
+  }
 
   // Global experience layers.
   if(!isPortal && !document.querySelector('link[href="/simple-site.css"]')){
