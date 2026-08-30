@@ -8,5 +8,9 @@
   Cache-Control: no-store, max-age=0
   X-Robots-Tag: noindex, nofollow
 
+/prospect-workspace*
+  Cache-Control: no-store, max-age=0
+  X-Robots-Tag: noindex, nofollow
+
 /assessment*
   Cache-Control: no-store, max-age=0
