@@ -8,12 +8,38 @@
 
   const menu=document.querySelector('.menu-btn'), nav=document.querySelector('.navlinks');
 
-  // Keep the public navigation intentionally small and obvious.
+  // Keep public navigation centered on the prospect journey.
   if(nav && !isPortal){
-    nav.innerHTML='<a href="/services">Services</a><a href="/methodology">How It Works</a><a href="/industries">Industries</a><a href="/about">About</a><a href="/portal">Client Login</a><a class="nav-cta" data-track="nav_quick_scan" href="/quick-scan">Free 60-Second Scan</a>';
+    nav.innerHTML='<a href="/services">Solutions</a><a href="/methodology">How It Works</a><a href="/case-studies">Results</a><a href="/about">About</a><a href="/portal">Client Login</a><a class="nav-cta" data-track="nav_quick_scan" href="/quick-scan">Find My AI Opportunities</a>';
   }
 
   if(menu&&nav) menu.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));});
+
+  // Homepage problem-first explorer. Keep the language business-first and route to the existing screening flow.
+  const problemButtons=[...document.querySelectorAll('.problem-btn')];
+  const problemTitle=document.getElementById('problemTitle');
+  const problemText=document.getElementById('problemText');
+  const problemList=document.getElementById('problemList');
+  const measureList=document.getElementById('measureList');
+  if(problemButtons.length && problemTitle && problemText && problemList && measureList){
+    const problemData={
+      manual:{title:'Reduce repetitive work',text:'Nexus can identify repetitive handoffs, copying, routing, document preparation, and status-update work that may be suitable for automation.',examine:['Manual data entry and copying','Recurring document work','Routing, reminders, and status updates'],measure:['Handling time','Manual touchpoints','Rework and exception rate']},
+      revenue:{title:'Generate more revenue',text:'Nexus can examine where leads are lost, follow-up is inconsistent, or sales teams spend too much time on work that does not require human judgment.',examine:['Lead capture and routing','Follow-up consistency','Sales preparation and CRM workflows'],measure:['Lead response time','Follow-up completion','Qualified opportunity conversion']},
+      service:{title:'Improve customer response',text:'Nexus can structure intake, triage, scheduling, response preparation, and exception routing so customers receive faster and more consistent service.',examine:['Inquiry classification','Scheduling and intake','Response preparation and escalations'],measure:['Response time','Resolution time','Exception volume']},
+      knowledge:{title:'Organize company knowledge',text:'Nexus can make SOPs, policies, project information, and internal documents easier for authorized employees to find and use.',examine:['SOP and policy retrieval','Document search','Internal knowledge assistance'],measure:['Search time','Repeat questions','Successful retrieval rate']},
+      data:{title:'Understand business data',text:'Nexus can help turn recurring reporting work and scattered operational data into clearer summaries, dashboards, and exception views.',examine:['Recurring KPI reporting','Cross-system summaries','Management visibility and exceptions'],measure:['Reporting time','Data completeness','Decision latency']},
+      systems:{title:'Connect disconnected systems',text:'Nexus can map where employees manually move information between email, spreadsheets, CRMs, documents, and operating systems—and determine what can be connected safely.',examine:['Cross-system handoffs','Duplicate data entry','Status synchronization'],measure:['Handoff time','Duplicate entry volume','Sync and exception rate']}
+    };
+    function setProblem(key){
+      const data=problemData[key];if(!data)return;
+      problemTitle.textContent=data.title;problemText.textContent=data.text;
+      problemList.innerHTML=data.examine.map(x=>`<li>${x}</li>`).join('');
+      measureList.innerHTML=data.measure.map(x=>`<li>${x}</li>`).join('');
+      problemButtons.forEach(btn=>{const active=btn.dataset.problem===key;btn.classList.toggle('active',active);btn.setAttribute('aria-selected',String(active));});
+      window.nexusTrack?.('home_problem_selected',{problem:key});
+    }
+    problemButtons.forEach(btn=>btn.addEventListener('click',()=>setProblem(btn.dataset.problem)));
+  }
 
   // Improve portal account-creation UX around email confirmation.
   if(isPortal){
