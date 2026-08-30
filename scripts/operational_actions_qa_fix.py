@@ -25,32 +25,4 @@ new="""async function updateTaskStatus(id,status){
 if old not in s: raise SystemExit('updateTaskStatus block not found')
 s=s.replace(old,new)
 p.write_text(s)
-
-q=Path('.github/workflows/qa.yml')
-y=q.read_text()
-start=y.index('      - name: Operational client action assertions\n')
-end=y.index('      - name: SMB customer journey assertions\n',start)
-block="""      - name: Operational client action assertions
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -Fq 'preparation_checklist' portal-action-workflow.js
-          grep -Fq 'workflow_evidence' portal-action-workflow.js
-          grep -Fq 'structured_form' portal-action-workflow.js
-          grep -Fq 'embedded-checklist' portal-action-workflow.js
-          grep -Fq 'nexus_assign_action_template' portal-action-workflow.js
-          grep -Fq 'nexus_action_templates' portal-action-workflow.js
-          grep -Fq 'nexus_diagnosis_request_drafts' portal-action-workflow.js
-          grep -Fq 'nexus_send_diagnosis_request_draft' portal-action-workflow.js
-          grep -Fq 'Nexus has been notified' portal-action-workflow.js
-          grep -Fq 'Address ${remaining.length} remaining checklist item' portal-action-workflow.js
-          grep -Fq 'Save the required action responses before marking this complete.' portal-action-workflow.js
-          grep -Fq 'setInterval(()=>reconcile(false).catch(console.error),1200);' portal-action-workflow.js
-          if grep -Fq 'new MutationObserver' portal-action-workflow.js; then
-            echo 'Operational action workflow must not use a self-observing DOM mutation loop.' >&2
-            exit 1
-          fi
-"""
-y=y[:start]+block+y[end:]
-q.write_text(y)
-print('operational action QA fix applied')
+print('client completion guard applied')
