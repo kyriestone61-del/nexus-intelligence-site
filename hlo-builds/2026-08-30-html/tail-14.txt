@@ -1,0 +1,125 @@
+rules"], "a": 1, "ex": "AI is useful as a research/process multiplier, not a guaranteed market oracle."}, {"q": "Why is proprietary context valuable?", "choices": ["It makes all models perfect", "Competitors can rent similar models, but not your accumulated workflow/outcome data", "It removes security concerns", "It eliminates the need for domain expertise"], "a": 1, "ex": "Differentiated context can compound even when base models commoditize."}, {"q": "What are NIST AI RMF's four core functions?", "choices": ["Build, Sell, Scale, Exit", "Govern, Map, Measure, Manage", "Prompt, Train, Fine-tune, Deploy", "Plan, Code, Test, Ship"], "a": 1, "ex": "Govern, Map, Measure and Manage provide a reusable risk-management structure."}, {"q": "What should Nexus sell first?", "choices": ["AI jargon", "The newest model", "A measurable business outcome tied to a workflow", "Prompts"], "a": 2, "ex": "The technology is implementation detail. The client buys economic or operational improvement."}, {"q": "Why can a transformative AI thesis still be a poor investment thesis?", "choices": ["Technology never matters", "Price, expectations, financing and cycles can overwhelm long-term capability gains", "Markets are always efficient", "AI has no infrastructure costs"], "a": 1, "ex": "A correct technology direction does not guarantee an attractive entry price or risk/reward."}];
+const WEEKS = [["Week 1", "Mental Model", "Complete L1–L4. Map your current work into machine/human/bridge tasks. Write your personal AI boundary."], ["Week 2", "Operator Fundamentals", "Complete L5–L7. Build a verification checklist and compare two tool stacks."], ["Week 3", "Workflow Architecture", "Complete L8–L10. Map one SMB workflow and produce an AI risk register."], ["Week 4", "Nexus Diagnostic", "Complete N1–N3. Run three hypothetical SMB audits and calculate ROI."], ["Week 5", "Nexus Production", "Complete N4–N5. Build your agent launch gate and product ladder."], ["Week 6", "Statecraft Human Layer", "Complete S1–S4. Design the human premium map and content engine."], ["Week 7", "Career Repositioning", "Complete C1–C2. Build an AI-augmented estimator workflow case."], ["Week 8", "Career Proof", "Complete C3–C4. Produce four portfolio case outlines and role ladder."], ["Week 9", "Trading Research OS", "Complete T1–T3. Define AI trading boundaries and journal schema."], ["Week 10", "Trading Automation", "Complete T4–T5. Automate non-predictive workflow tasks and create a process scorecard."], ["Week 11", "Ownership", "Complete L11–L13. Design one productized service and one proprietary-data loop."], ["Week 12", "Capital & Foresight", "Complete L14–L15. Build AI infrastructure map, bull/base/bear scenarios, then retake assessment."]];
+
+const state = {
+  done: JSON.parse(localStorage.getItem('hlo_done')||'{}'),
+  weeks: JSON.parse(localStorage.getItem('hlo_weeks')||'{}'),
+  quizBest: Number(localStorage.getItem('hlo_quizbest')||0)
+};
+
+function go(v){
+  if(window.HLOCloud?.isOwner===false && ['nexus','statecraft','career','trading','tradelog','plan'].includes(v)) v='dashboard';
+  if(!v || !document.getElementById(v)) return;
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('nav button[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));
+  document.getElementById(v).classList.add('active');
+  document.querySelectorAll('.nav-group').forEach(g=>{
+    const has=!!g.querySelector(`button[data-view="${v}"]`);
+    g.classList.toggle('has-active',has);
+    if(has) g.classList.add('open');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('nav button[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view));
+document.querySelectorAll('.nav-group-toggle').forEach(b=>b.onclick=()=>{
+  const g=b.closest('.nav-group'); if(g) g.classList.toggle('open');
+});
+document.querySelectorAll('.nav-sub-toggle').forEach(b=>b.onclick=()=>{const g=b.closest('.nav-subfolder');if(g)g.classList.toggle('open')});
+
+function sourceLinks(ids){
+  return ids.map(id=>{
+    const s=SOURCES.find(x=>x.id===id); if(!s)return '';
+    return `<a class="badge" href="${s.url}" target="_blank" rel="noopener">${s.title}</a>`;
+  }).join(' ');
+}
+function lessonCard(l){
+  const cls=l.level.toLowerCase();
+  return `<div class="card lesson" data-title="${(l.title+' '+l.summary+' '+l.why).toLowerCase()}" data-level="${l.level}">
+    <div class="lesson-head">
+      <div><span class="badge ${cls}">${l.level}</span><span class="badge">${l.track}</span><h2 style="margin:8px 0 6px">${l.id} · ${l.title}</h2><p class="muted" style="margin:0">${l.summary}</p></div>
+      <span class="pill">${state.done[l.id]?'Complete':'Open'}</span>
+    </div>
+    <details><summary>Why this matters</summary><p>${l.why}</p></details>
+    <details><summary>Step-by-step</summary><ol>${l.steps.map(s=>`<li>${s}</li>`).join('')}</ol></details>
+    <details><summary>Practical exercise</summary><div class="callout">${l.exercise}</div></details>
+    <details><summary>Proof of mastery</summary><p>${l.proof}</p></details>
+    <details><summary>Research base</summary>${sourceLinks(l.sources)}</details>
+    <label class="completeRow"><input type="checkbox" ${state.done[l.id]?'checked':''} onchange="toggleLesson('${l.id}',this.checked)"> Mark lesson complete</label>
+  </div>`;
+}
+function renderTrack(track, el){
+  document.getElementById(el).innerHTML=LESSONS.filter(x=>x.track===track).map(lessonCard).join('');
+}
+
+function academyModuleProgress(m){
+  const done=m.lessonIds.filter(id=>state.done[id]).length;
+  const lessonPct=m.lessonIds.length?Math.round(done/m.lessonIds.length*100):0;
+  const quiz=Number(academyQuizScores[m.id]||0);
+  return {done,total:m.lessonIds.length,lessonPct,quiz,mastered:lessonPct===100&&quiz>=80};
+}
+function academyOverall(){
+  const ps=ACADEMY_MODULES.map(academyModuleProgress);
+  const avg=Math.round(ps.reduce((s,p)=>s+(p.lessonPct*.7+p.quiz*.3),0)/ps.length);
+  const mastered=ps.filter(p=>p.mastered).length;
+  return {avg,mastered};
+}
+function academySourceLinks(ids){
+  return ids.map(id=>{
+    const s=SOURCES.find(x=>x.id===id); if(!s)return '';
+    return `<a class="badge" href="${s.url}" target="_blank" rel="noopener">${s.title}</a>`;
+  }).join(' ');
+}
+function renderAcademy(){
+  const list=document.getElementById('academyModuleList'), content=document.getElementById('academyModuleContent');
+  if(!list||!content)return;
+  const mods=ACADEMY_MODULES.filter(m=>!academyStageFilter||m.level===academyStageFilter);
+  if(academyStageFilter && !mods.some(m=>m.id===academyActiveModule)) academyActiveModule=mods[0]?.id||'A1';
+  list.innerHTML=mods.map(m=>{
+    const p=academyModuleProgress(m);
+    return `<button class="academy-module-btn ${m.id===academyActiveModule?'active':''}" onclick="openAcademyModule('${m.id}')">
+      <span class="module-num">${m.id} · ${m.level}</span>
+      <span class="module-title">${m.title}</span>
+      <span class="module-meta"><span>${m.duration}</span><span>${p.mastered?'Mastered':p.lessonPct+'% lessons · '+p.quiz+'% quiz'}</span></span>
+    </button>`;
+  }).join('');
+  const o=academyOverall();
+  const pct=document.getElementById('academyMasteryPct'),bar=document.getElementById('academyMasteryBar'),txt=document.getElementById('academyMasteryText');
+  if(pct)pct.textContent=o.avg+'%';if(bar)bar.style.width=o.avg+'%';if(txt)txt.textContent=`${o.mastered} of ${ACADEMY_MODULES.length} modules mastered`;
+  renderAcademyModule(academyActiveModule);
+}
+function renderAcademyOverview(){
+  const content=document.getElementById('academyModuleContent'); if(!content)return;
+  content.innerHTML=`<div class="card">
+    <div class="eyebrow">Curriculum map</div>
+    <h2>How to use this academy</h2>
+    <p class="muted">Do not binge modules. For each module: read the objectives, expand the deep lessons, watch the short video, complete the applied exercise, mark the related units complete, then score at least 80% on the module quiz. Use the AI Tutor to challenge your understanding before moving on.</p>
+    <div class="callout"><b>Mastery rule:</b> reading is exposure; a quiz is recall; an applied artifact is evidence. Treat a topic as mastered only when you can explain it, apply it to a real workflow, and defend your reasoning.</div>
+  </div>
+  <div class="academy-overview-grid" style="margin-top:12px">
+  ${ACADEMY_MODULES.filter(m=>!academyStageFilter||m.level===academyStageFilter).map(m=>{
+    const p=academyModuleProgress(m);
+    return `<div class="card academy-overview-card" onclick="openAcademyModule('${m.id}')">
+      <span class="badge ${m.level.toLowerCase()}">${m.level}</span>
+      <h3 style="margin:10px 0 6px">${m.id} · ${m.title}</h3>
+      <p class="muted small">${m.subtitle}</p>
+      <div class="progress"><div style="width:${Math.round(p.lessonPct*.7+p.quiz*.3)}%"></div></div>
+      <div class="small muted" style="margin-top:6px">${p.done}/${p.total} units · quiz ${p.quiz}%</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function openAcademyModule(id){
+  academyActiveModule=id;localStorage.setItem('hlo_academy_active',id);renderAcademy();
+  const el=document.getElementById('academyModuleContent');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+window.openAcademyModule=openAcademyModule;
+function renderAcademyModule(id){
+  const m=ACADEMY_MODULES.find(x=>x.id===id),content=document.getElementById('academyModuleContent');if(!m||!content)return;
+  const p=academyModuleProgress(m);
+  const videos=[m.video,m.secondaryVideo].filter(Boolean);
+  content.innerHTML=`<div class="module-header">
+    <div><span class="badge ${m.level.toLowerCase()}">${m.level}</span><span class="badge">${m.duration}</span></div>
+    <h1>${m.id} · ${m.title}</h1>
+    <p class="muted">${m.subtitle}</p>
+    <div class="module-progress-row">
+      <span class="pill">${p.done}/${p.total} related units complete</span>
+      <span class="pill">Module 
