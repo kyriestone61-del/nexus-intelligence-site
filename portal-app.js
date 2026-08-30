@@ -100,3 +100,4 @@ await import('/portal-diagnosis-result-capture.js?v=20260830-1');
 await import('/portal-admin-journey.js?v=20260830-3');
 await import('/portal-admin-journey-router.js?v=20260830-1');
 await import('/portal-journey-task-guard.js?v=20260830-1');
+await import('/portal-launch-control.js?v=20260830-1');
