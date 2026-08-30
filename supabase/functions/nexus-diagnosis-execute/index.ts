@@ -8,6 +8,11 @@ const ANON=()=>Deno.env.get("SUPABASE_ANON_KEY")||"";
 const safe=(v:any,n=12000)=>String(v??"").slice(0,n);
 const serviceHeaders=()=>({"apikey":SERVICE(),"Authorization":`Bearer ${SERVICE()}`,"Content-Type":"application/json"});
 
+async function recordHealth(status:"healthy"|"degraded"|"failed",summary:string,details:any={}){
+  try{
+    await fetch(`${BASE()}/rest/v1/nexus_system_health`,{method:"POST",headers:{...serviceHeaders(),"Prefer":"return=minimal"},body:JSON.stringify({check_name:"diagnosis_provider",status,summary,details,checked_at:new Date().toISOString()})});
+  }catch{}
+}
 async function sha256Hex(value:string){
   const bytes=new TextEncoder().encode(value);
   const digest=await crypto.subtle.digest("SHA-256",bytes);
@@ -140,10 +145,13 @@ Deno.serve(async(req:Request)=>{
     const result=validateResult(parseJson(raw));
     result.execution={agent:"client_diagnosis",evidence_document_ids:ids,evidence_files:docs.map((d:any)=>d.file_name),completed_at:new Date().toISOString(),model:Deno.env.get("NEXUS_DIAGNOSIS_MODEL")||"openai/gpt-5.6-sol",human_review_required:true,trigger:authz.mode};
     await patchRun(runId,{status:"ready_for_review",analysis_result:result,analysis_completed_at:new Date().toISOString(),execution_error:null});
+    await recordHealth("healthy","Client Diagnosis model provider responded successfully.",{run_id:runId,model:result.execution.model});
     return new Response(JSON.stringify({ok:true,run_id:runId,status:"ready_for_review",evidence_count:ids.length}),{status:200,headers:JSONH});
   }catch(e){
     const message=safe((e as Error)?.message||e,1200);
     console.error("Nexus diagnosis execution failed",message);
+    if(message.includes("AI_GATEWAY_NOT_CONFIGURED"))await recordHealth("failed","Client Diagnosis model provider is not configured.",{missing:["AI_GATEWAY_API_KEY"]});
+    else if(message.startsWith("MODEL_")||message.includes("MODEL_EMPTY_RESULT"))await recordHealth("failed","Client Diagnosis model provider request failed.",{error:safe(message,500)});
     if(runId){
       try{
         const blocked=/UNSUPPORTED_EVIDENCE|MISSING_EVIDENCE|EMPTY_EVIDENCE|NO_ANALYZABLE_EVIDENCE/.test(message);
