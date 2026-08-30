@@ -68,13 +68,16 @@
       if(!j.quickScan?.completedAt)return {href:'/quick-scan',label:'Find My AI Opportunities'};
       if(!j.assessment?.completedAt)return {href:'/assessment',label:'Continue My Diagnostic'};
       if(!j.booking?.status)return {href:'/book',label:'Book My Fit Call'};
-      return {href:'/portal',label:'Continue My Nexus Journey'};
+      return {href:'/prospect-workspace',label:'Continue My Nexus Journey'};
     }
   };
 
-  // Public-site readability layer.
+  // Global experience layers.
   if(!isPortal && !document.querySelector('link[href="/simple-site.css"]')){
     const link=document.createElement('link');link.rel='stylesheet';link.href='/simple-site.css';document.head.appendChild(link);
+  }
+  if(!document.querySelector('link[href="/mobile-ux.css"]')){
+    const mobile=document.createElement('link');mobile.rel='stylesheet';mobile.href='/mobile-ux.css';document.head.appendChild(mobile);
   }
 
   const menu=document.querySelector('.menu-btn'), nav=document.querySelector('.navlinks');
@@ -137,7 +140,7 @@
     }
   }
 
-  // Improve portal account-creation UX and carry prospect context into signup fields.
+  // Improve portal account-creation UX and carry prospect context into signup fields when app.js is used there.
   if(isPortal){
     const form=document.getElementById('createForm');
     const pane=document.getElementById('createPane');
