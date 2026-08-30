@@ -30,7 +30,10 @@ function stageStatus(stage){
  if(stage.key==='finish'&&String(project()?.status||'').toLowerCase()==='complete')return 'complete';
  const tasks=tasksFor(stage);
  if(!tasks.length)return 'not_started';
- if(tasks.every(t=>done(t.status)))return stage.key==='finish'&&!(state.metrics||[]).length?'needs_measurement':'complete';
+ if(tasks.every(t=>done(t.status))){
+   if(stage.key==='finish')return !(state.metrics||[]).length?'needs_measurement':'ready_to_finish';
+   return 'complete';
+ }
  if(tasks.some(reviewWaiting))return 'review';
  if(tasks.some(clientWaiting))return 'client';
  if(tasks.some(nexusWaiting))return 'nexus';
@@ -39,8 +42,8 @@ function stageStatus(stage){
 function firstIncomplete(){return STAGES.find(s=>stageStatus(s)!=='complete')||STAGES[STAGES.length-1]}
 function priorComplete(stage){return STAGES.filter(s=>s.n<stage.n).every(s=>stageStatus(s)==='complete')}
 function counts(){const tasks=state.tasks||[];return {client:tasks.filter(clientWaiting).length,nexus:tasks.filter(nexusWaiting).length,review:tasks.filter(reviewWaiting).length}}
-function statusText(status){return ({complete:'Complete',not_started:'Not started',client:'Waiting on client',nexus:'Your work',review:'Ready for review',in_progress:'In progress',needs_measurement:'Record a result'}[status]||'In progress')}
-function statusClass(status,current){if(status==='complete')return 'complete';if(['review','client','needs_measurement'].includes(status))return 'attention';return current?'current':''}
+function statusText(status){return ({complete:'Complete',not_started:'Not started',client:'Waiting on client',nexus:'Your work',review:'Ready for review',in_progress:'In progress',needs_measurement:'Record a result',ready_to_finish:'Ready to complete'}[status]||'In progress')}
+function statusClass(status,current){if(status==='complete')return 'complete';if(['review','client','needs_measurement','ready_to_finish'].includes(status))return 'attention';return current?'current':''}
 
 function ensureSection(){
  const main=document.querySelector('.main');if(!main)return null;
@@ -80,6 +83,7 @@ function stageAction(stage,status,locked){
  if(locked)return '<span class="journey-status">Locked</span>';
  if(stage.key==='setup')return project()?'<button class="btn secondary" data-open="clients" type="button">View client</button>':'<button class="btn primary" data-open="clients" type="button">Set up client →</button>';
  if(status==='complete')return `<button class="btn secondary" data-stage-records="${stage.key}" type="button">View records</button>`;
+ if(status==='ready_to_finish')return '<button class="btn primary" data-finish-engagement type="button">Complete engagement →</button>';
  if(status==='review')return '<button class="btn primary" data-open="tasks" data-view="ready_review" type="button">Review submission →</button>';
  if(status==='client')return '<button class="btn primary" data-open="tasks" data-view="client_work" type="button">See what client owes →</button>';
  if(status==='nexus'||status==='in_progress')return '<button class="btn primary" data-open="tasks" data-view="my_work" type="button">Continue my work →</button>';
@@ -93,7 +97,7 @@ function nextMove(stage,status){
  if(stage.key==='finish'){
    if(!(state.metrics||[]).length)return {title:'Record what changed',copy:'Add at least one baseline/current result before closing the engagement. This becomes your proof of impact.',label:'Open Improvements',open:'metrics'};
    if(status==='not_started')return {title:'Run the final review',copy:'Create the optimization/closeout actions so Nexus can review KPIs, failures, feedback, and the next recommendation.',label:'Start Final Review',package:stage.package};
-   if(status==='complete'||tasksFor(stage).every(t=>done(t.status)))return {title:'Complete the engagement',copy:'The delivery steps and result record are complete. Close the project when you are satisfied with the handoff.',label:'Mark Engagement Complete',finish:true};
+   if(status==='ready_to_finish')return {title:'Complete the engagement',copy:'The delivery steps and result record are complete. Close the project when you are satisfied with the handoff.',label:'Mark Engagement Complete',finish:true};
  }
  if(status==='not_started'&&stage.package)return {title:`Start Step ${stage.n}: ${stage.title}`,copy:'Nexus will create the standard actions for this stage. Remove or adjust anything that does not apply to this client.',label:'Start This Step',package:stage.package};
  if(status==='review')return {title:'A submission is ready for you',copy:'Review what the client submitted. Approve it or send it back for revision.',label:'Review Now',open:'tasks',view:'ready_review'};
@@ -118,6 +122,7 @@ function renderJourney(){
  root.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openTool(b.dataset.open,b.dataset.view||null));
  root.querySelectorAll('[data-start-package]').forEach(b=>b.onclick=()=>startPackage(b.dataset.startPackage,b));
  root.querySelectorAll('[data-stage-records]').forEach(b=>{const stage=STAGES.find(s=>s.key===b.dataset.stageRecords);b.onclick=()=>openTool(recordsTarget(stage))});
+ root.querySelectorAll('[data-finish-engagement]').forEach(b=>b.onclick=finishEngagement);
 }
 async function runMove(move,stage){if(move.open)return openTool(move.open,move.view);if(move.package)return startPackage(move.package,$('journeyPrimaryAction'));if(move.finish)return finishEngagement();return openTool(recordsTarget(stage))}
 async function startPackage(code,button){
