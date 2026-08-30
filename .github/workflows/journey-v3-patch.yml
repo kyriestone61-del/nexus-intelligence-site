@@ -1,0 +1,44 @@
+name: Journey V3 Patch
+
+on:
+  push:
+    branches: [improve/smb-customer-journey-v3]
+    paths:
+      - '.github/workflows/journey-v3-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: improve/smb-customer-journey-v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply customer journey improvements
+        run: python scripts/journey_v3_patch.py
+      - name: Syntax and targeted QA before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app.js
+          node --input-type=module --check < portal-simplify.js
+          grep -q "href:'/book',label:'Request My Fit Call'" app.js
+          grep -q 'portalClientNavGroups' portal-simplify.js
+          grep -q 'How this work is done today' portal-simplify.js
+          grep -q 'appointment-based beauty business' industries.html
+          if grep -qi 'Moon Wax' industries.html; then exit 1; fi
+      - name: Commit patched production source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm scripts/journey_v3_patch.py .github/workflows/journey-v3-patch.yml
+          git add app.js portal-simplify.js portal-simplify.css experience-round-two.css industries.html security.html .github/workflows/qa.yml
+          git commit -m 'Simplify SMB customer journey and client portal'
+          git push origin HEAD:improve/smb-customer-journey-v3
