@@ -52,3 +52,4 @@ try{
 
 await import('/portal-action-workflow.js?v=20260830-2');
 await import('/portal-action-execution-v2.js?v=20260830-1');
+await import('/portal-action-execution-v2-forms.js?v=20260830-1');
