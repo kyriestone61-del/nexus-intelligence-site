@@ -1,0 +1,58 @@
+/* Nexus public-site simplification layer */
+body{font-size:17px;line-height:1.5}
+.brand{font-size:17px}
+.navlinks{gap:22px;font-size:15px}
+.nav-cta{padding:12px 17px!important;background:linear-gradient(135deg,#e8fbff,#abdff0);color:#05101d!important;border:0!important;font-weight:850}
+.hero{padding:88px 0 72px}
+.hero-simple{max-width:1000px;text-align:left}
+.hero-simple h1{max-width:900px;font-size:clamp(54px,8vw,92px);line-height:.96;margin:22px 0 24px}
+.hero-simple>p{font-size:clamp(20px,2.2vw,24px);line-height:1.48;max-width:760px}
+.eyebrow,.kicker{font-size:13px}
+.btn{min-height:52px;padding:0 21px;font-size:16px;border-radius:12px}
+.btn-large{min-height:58px;padding:0 25px;font-size:17px}
+.hero-actions{margin-top:34px;gap:14px}
+.simple-proof{display:flex;flex-wrap:wrap;gap:12px 28px;margin-top:38px;color:#c7d4e6;font-size:15px;font-weight:700}
+section{padding:68px 0}
+.simple-head{display:block;max-width:760px;margin-bottom:32px}
+.simple-head h2{font-size:clamp(36px,4.8vw,56px);line-height:1.03;margin-top:10px}
+.simple-grid{gap:16px}
+.simple-card{padding:27px}
+.simple-card h3{font-size:24px;line-height:1.12;margin:11px 0 9px}
+.simple-card p{font-size:16px;line-height:1.55}
+.simple-card .tag{font-size:12px}
+.step-number{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:rgba(101,216,255,.08);border:1px solid rgba(101,216,255,.2);color:var(--accent);font-size:13px;font-weight:900}
+.simple-steps .simple-card{min-height:210px}
+.centered-actions{justify-content:center;margin-top:28px}
+.industry-pills{display:flex;flex-wrap:wrap;gap:12px}
+.industry-pills a{padding:14px 18px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.035);font-weight:750;font-size:16px}
+.industry-pills a:hover{border-color:rgba(101,216,255,.36);background:rgba(101,216,255,.06)}
+.final-cta{display:flex;align-items:center;justify-content:space-between;gap:36px;padding:36px}
+.final-cta h2{font-size:clamp(34px,4vw,50px);max-width:700px;margin-top:8px}
+.final-cta p{font-size:16px;color:var(--muted);margin:10px 0 0}
+.footer{font-size:14px;padding-top:38px}
+.footer .small{font-size:14px;max-width:330px}
+.footer-legal{margin-top:28px;font-size:12px;line-height:1.5;color:#74849a}
+.small{font-size:13px}
+.card h3{font-size:22px}.card p{font-size:16px}
+.section-head p{font-size:18px;line-height:1.55}
+.note{font-size:14px}
+@media(max-width:930px){
+  .navlinks.open{gap:8px;font-size:17px;padding:20px}
+  .navlinks.open a{width:100%;padding:11px 4px}
+  .navlinks.open .nav-cta{text-align:center;padding:13px 16px!important;margin-top:5px}
+  .final-cta{display:block}
+  .final-cta .actions{margin-top:24px}
+  .hero-simple h1{font-size:clamp(50px,11vw,74px)}
+}
+@media(max-width:560px){
+  body{font-size:16px}
+  .hero{padding:64px 0 54px}
+  .hero-simple h1{font-size:48px}
+  .hero-simple>p{font-size:19px}
+  .btn,.btn-large{width:100%;min-height:55px}
+  .hero-actions,.final-cta .actions{display:grid;width:100%}
+  section{padding:54px 0}
+  .simple-head h2{font-size:38px}
+  .simple-proof{display:grid;gap:10px}
+  .final-cta{padding:26px}
+}
