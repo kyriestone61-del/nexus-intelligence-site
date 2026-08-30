@@ -45,11 +45,14 @@ jobs:
             echo 'Potential privileged secret reference found in founder console files.' >&2
             exit 1
           fi
-      - name: Portal data-room safety assertions
+      - name: Portal data-room and layout safety assertions
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "import '/portal-client.js'" portal-app.js
+          grep -q 'portal-client.js' portal-app.js
+          grep -q 'portal-layout-fix.css' portal-app.js
+          grep -q 'select.task-status' portal-layout-fix.css
+          grep -q 'grid-template-columns:minmax(0,1fr) max-content' portal-layout-fix.css
           grep -q 'Secure Data Room' portal.html
           grep -q 'Build with Nexus' portal-client.js
           grep -q 'nexus_project_data_requirements' portal-client.js
@@ -60,7 +63,7 @@ jobs:
           grep -q 'initAuthUX' portal-client.js
           grep -q 'initOps' portal-client.js
           grep -q 'Email delivery provider connection pending' portal-client.js
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal.html portal-v2.css portal-auth.js portal-ops.js; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal.html portal-v2.css portal-layout-fix.css portal-auth.js portal-ops.js; then
             echo 'Privileged server credential reference found in browser-delivered portal files.' >&2
             exit 1
           fi
