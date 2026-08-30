@@ -1,0 +1,146 @@
+name: Nexus pre-marketing source upgrade
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/nexus-source-upgrade.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply Nexus source upgrades
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          # 1. Secured diagnosis execution + deterministic review states.
+          p=Path('portal-admin-intake.js')
+          s=p.read_text()
+          run_markup=r'''function runMarkup(run){
+  const manifest=Array.isArray(run.analysis_packet?.evidence_manifest)?run.analysis_packet.evidence_manifest:[];
+  const result=run.analysis_result&&Object.keys(run.analysis_result).length?'<span class="pill">Result stored</span>':'';
+  const status=String(run.status||'queued');
+  const label={queued:'Queued',analyzing:'Analyzing',ready_for_review:'Ready for Review',revision_requested:'Revision Requested',blocked:'Blocked',approved:'Approved',failed:'Failed',archived:'Archived',ready_for_analysis:'Queued',in_review:'Ready for Review'}[status]||status.replaceAll('_',' ');
+  const generated=run.orchestrated_at&&run.orchestration_summary?`<div class="diagnosis-generated-mini"><b>Workspace generated:</b> ${Object.entries(run.orchestration_summary).map(([k,v])=>`${v} ${k.replaceAll('_',' ')}`).join(' · ')}</div>`:'';
+  const error=run.execution_error?`<div class="note error"><b>Execution issue:</b> ${esc(run.execution_error)}</div>`:'';
+  let action='';
+  if(status==='queued'||status==='analyzing') action=`<span class="small">${status==='queued'?'Waiting for secured model execution…':'Analyzing authorized evidence…'}</span>`;
+  else if(status==='ready_for_review'||status==='approved'||status==='in_review') action=`<button class="btn primary diagnosis-review-btn" type="button" data-id="${run.id}">${status==='approved'?'Open approved diagnosis':'Review diagnosis'} →</button>`;
+  else if(status==='blocked'||status==='failed'||status==='revision_requested'||status==='ready_for_analysis') action=`<button class="btn secondary diagnosis-retry-btn" type="button" data-id="${run.id}">Retry diagnosis →</button>`;
+  else if(status==='archived') action='<span class="small">Archived</span>';
+  return `<article class="diagnosis-run-card"><div class="diagnosis-run-head"><div><span class="pill">Client Diagnosis Agent</span> ${result}<h3>${esc(company()?.name||'Client')} · ${dt(run.created_at)}</h3></div><span class="diagnosis-status ${esc(status)}">${esc(label)}</span></div><p class="small">${run.meeting_date?`Meeting ${esc(run.meeting_date)} · `:''}${esc(run.participants||'Participants not recorded')}</p><p>${esc(run.discovery_notes||'No separate discovery notes were saved.')}</p><div class="diagnosis-manifest">${manifest.slice(0,6).map(x=>`<span>${esc(x.file_name||'Evidence')}</span>`).join('')}${manifest.length>6?`<span>+${manifest.length-6} more</span>`:''}</div>${error}${generated}<div class="diagnosis-run-actions">${action}</div></article>`;
+}'''
+          s,n=re.subn(r'function runMarkup\(run\)\{.*?\n\}\n\nfunction renderAdminIntake',run_markup+'\n\nfunction renderAdminIntake',s,count=1,flags=re.S)
+          if n!=1: raise SystemExit('runMarkup patch failed')
+
+          queue=r'''async function queueDiagnosis(){
+  if(!state.admin||!state.companyId)return;
+  saveDraft();const draft=getDraft();
+  const transcriptId=$('diagnosisTranscriptDoc')?.value||null;
+  const selected=[...document.querySelectorAll('.diagnosis-supporting-doc:checked')].map(x=>x.value);if(transcriptId&&!selected.includes(transcriptId))selected.unshift(transcriptId);
+  if(!transcriptId&&!draft.transcript&&!draft.notes)return toast('Add a transcript, paste transcript text, or enter discovery notes before queueing a diagnosis.');
+  const c=company(),p=project(),docs=(state.docs||[]).filter(d=>selected.includes(d.id));
+  const packet={version:2,company:{id:c?.id||state.companyId,name:c?.name||'',industry:c?.industry||'',website:c?.website||''},project:{id:p?.id||null,name:p?.name||'',service_type:p?.service_type||''},agent:{code:'client_diagnosis',mode:'secured_execution',permission_level:'draft_only'},meeting:{date:draft.meeting_date||null,participants:draft.participants||null},discovery_notes:draft.notes||null,transcript_text:draft.transcript||null,evidence_manifest:docs.map(d=>({id:d.id,file_name:d.file_name,category:d.category,note:d.note||null,created_at:d.created_at})),required_output:['facts','client_statements','inferences','unknowns','process_map','bottlenecks','baseline_gaps','baseline_measurements','opportunity_backlog','risks','follow_up_questions','smallest_safe_pilot','nexus_actions','client_action_items','document_requests','decision_items'],prohibited_actions:['send emails','contact anyone','modify client systems','make purchases','publish content','change permissions','take external action without explicit approval']};
+  const row={company_id:state.companyId,project_id:p?.id||null,agent_code:'client_diagnosis',status:'queued',queued_at:new Date().toISOString(),transcript_document_id:transcriptId,supporting_document_ids:selected,meeting_date:draft.meeting_date||null,participants:draft.participants||null,discovery_notes:draft.notes||null,analysis_packet:packet,created_by:state.user.id,updated_at:new Date().toISOString()};
+  const button=$('queueDiagnosisBtn');button.disabled=true;button.textContent='Queueing…';
+  try{
+    const {data:created,error}=await sb.from('nexus_diagnosis_runs').insert(row).select('id').single();if(error)throw error;
+    clearDraft();await loadRuns();renderAdminIntake();toast('Diagnosis queued. Secured analysis is starting.');
+    const {data:result,error:invokeError}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:created.id}});
+    if(invokeError||result?.ok===false)throw new Error(result?.error||invokeError?.message||'Diagnosis execution failed.');
+    toast('Diagnosis is ready for review.');await loadRuns();renderAdminIntake();
+  }catch(error){toast(error.message||'Diagnosis could not be completed.');await loadRuns();renderAdminIntake()}
+  finally{const b=$('queueDiagnosisBtn');if(b){b.disabled=false;b.textContent='Queue diagnosis →'}}
+}'''
+          s,n=re.subn(r'async function queueDiagnosis\(\)\{.*?\n\}\n\nasync function loadRuns',queue+'\n\nasync function loadRuns',s,count=1,flags=re.S)
+          if n!=1: raise SystemExit('queueDiagnosis patch failed')
+          s=s.replace('This creates an internal, auditable diagnosis run in <b>shadow / draft-only mode</b>. It prepares the evidence packet and analysis instruction. It does not send emails, modify client systems, or take external action.','This creates an internal, auditable diagnosis run and starts the secured Client Diagnosis Agent. The output remains draft-only until a Nexus admin reviews and approves it. It does not send emails, modify client systems, or take external action.')
+          s=s.replace('<b>Current execution boundary:</b> Nexus stores and structures the source packet here. “Copy agent packet” gives you the exact Client Diagnosis Agent instruction for the current shadow-mode workflow. Automated model execution is not shown as live until a secured model endpoint is connected.','<b>Execution boundary:</b> The secured Client Diagnosis Agent reads only the evidence selected here. Its result is an internal draft. Human approval is required before downstream workspace records are generated, and external actions remain prohibited.')
+          s=s.replace("root.querySelectorAll('.copy-agent-packet').forEach(b=>b.addEventListener('click',()=>copyAgentPacket(b.dataset.id)));\n  root.querySelectorAll('.diagnosis-status-select').forEach(s=>s.addEventListener('change',()=>updateRunStatus(s.dataset.id,s.value)));","root.querySelectorAll('.copy-agent-packet').forEach(b=>b.addEventListener('click',()=>copyAgentPacket(b.dataset.id)));")
+          if "nexus:diagnosis-changed" not in s:
+              s += "\nwindow.addEventListener('nexus:diagnosis-changed',async()=>{if(state.admin&&state.companyId){await loadRuns();renderAdminIntake()}});\n"
+          p.write_text(s)
+
+          # 2. Portal review UI assets.
+          p=Path('portal.html');s=p.read_text()
+          if '/portal-diagnosis-v2.css' not in s:
+              s=s.replace('<link rel="stylesheet" href="/portal-v2.css">','<link rel="stylesheet" href="/portal-v2.css">\n<link rel="stylesheet" href="/portal-diagnosis-v2.css">')
+          if '/portal-diagnosis-v2.js' not in s:
+              s=s.replace('</body>','<script src="/portal-diagnosis-v2.js"></script>\n</body>')
+          p.write_text(s)
+
+          # 3. Snapshot: explicit marketing consent + attribution payload.
+          p=Path('quick-scan.html');s=p.read_text()
+          if 'marketingOptIn' not in s:
+              anchor='<label class="consent-row"><input id="smsOptIn" type="checkbox"><span>Yes, Nexus may text me about my Snapshot and relevant Nexus services. Message/data rates may apply. Consent is optional and not required to use the free Snapshot.</span></label>'
+              addition=anchor+'<label class="consent-row"><input id="marketingOptIn" type="checkbox"><span>Yes, email me useful Nexus follow-up related to this Snapshot. This is optional, and I can unsubscribe at any time.</span></label>'
+              if anchor not in s: raise SystemExit('Snapshot consent anchor not found')
+              s=s.replace(anchor,addition,1)
+              s=s.replace("sms=document.getElementById('smsOptIn').checked;","sms=document.getElementById('smsOptIn').checked,marketing=document.getElementById('marketingOptIn')?.checked===true;",1)
+              s=s.replace("sms_opt_in:sms,website_field:honeypot,","sms_opt_in:sms,marketing_opt_in:marketing,first_touch:window.NexusAttribution?.first?.()||{},last_touch:window.NexusAttribution?.last?.()||{},website_field:honeypot,",1)
+              s=s.replace("phone,smsOptIn:sms},quickScan:","phone,smsOptIn:sms,marketingOptIn:marketing},quickScan:",1)
+              s=s.replace("sms_opt_in:sms});","sms_opt_in:sms,marketing_opt_in:marketing});",1)
+          p.write_text(s)
+
+          # 4. Load production attribution/metadata layer on all site HTML pages.
+          for p in Path('.').glob('*.html'):
+              s=p.read_text()
+              if '/launch-readiness.js' not in s:
+                  s=s.replace('</body>','<script src="/launch-readiness.js"></script>\n</body>')
+                  p.write_text(s)
+
+          # 5. Keep prospect terminology coherent in static markup.
+          replacements={
+            '>Results<':'>Evidence & Results<',
+            '>Case Studies<':'>Evidence & Results<',
+            '>Opportunity Scan<':'>Free AI Snapshot<',
+            '>Quick Scan<':'>Free AI Snapshot<',
+            '>Full Diagnostic<':'>Deeper Diagnostic<',
+            '>Client Portal<':'>Client Login<',
+          }
+          for p in Path('.').glob('*.html'):
+              if p.name in {'portal.html','operations.html'}: continue
+              s=p.read_text()
+              for a,b in replacements.items(): s=s.replace(a,b)
+              p.write_text(s)
+          PY
+      - name: Static source QA
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re,sys
+          failures=[]
+          def need(path,text):
+              s=Path(path).read_text()
+              if text not in s: failures.append(f'{path}: missing {text}')
+          need('portal-admin-intake.js',"status:'queued'")
+          need('portal-admin-intake.js',"nexus-diagnosis-execute")
+          need('portal-admin-intake.js',"diagnosis-review-btn")
+          need('portal.html','/portal-diagnosis-v2.js')
+          need('portal.html','/portal-diagnosis-v2.css')
+          need('quick-scan.html','marketingOptIn')
+          need('quick-scan.html','first_touch:window.NexusAttribution')
+          for p in Path('.').glob('*.html'):
+              if '/launch-readiness.js' not in p.read_text(): failures.append(f'{p}: launch-readiness missing')
+          if failures:
+              print('\n'.join(failures));sys.exit(1)
+          print('Nexus source upgrade static QA passed.')
+          PY
+      - name: Commit upgrade
+        shell: bash
+        run: |
+          git config user.name "nexus-release-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add portal-admin-intake.js portal.html quick-scan.html '*.html'
+          git diff --cached --quiet && exit 0
+          git commit -m "Implement Nexus diagnosis workflow and funnel readiness"
+          git push
