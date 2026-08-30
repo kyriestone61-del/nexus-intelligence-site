@@ -1,0 +1,107 @@
+] .data||[];
+  cloud.research=results[7].data||[];
+  cloud.trades=results[8].data||[];
+  cloud.certs=results[9].data||[];
+  cloud.plan=results[10].data||[];
+  cloud.isOwner=!!results[11].data;
+  cloud.intakes=results[12].data||[];
+  cloud.curricula=results[13].data||[];
+  cloud.customProgress=results[14].data||[];
+  cloud.agentRuns=results[15].data||[];
+  cloud.activeCurriculum=cloud.curricula.find(x=>x.status==='active')||cloud.curricula[0]||null;
+  if(!cloud.profile){
+    const display=cloud.session.user.user_metadata?.display_name||cloud.session.user.email?.split('@')[0]||'Kato';
+    const {data,error}=await sb.from('hlo_profiles').upsert({user_id:uid,display_name:display,active_tracks:cloud.isOwner?['Core Academy','Personal Path','Nexus Intelligence','Statecraft','Career','Trading']:['Core Academy']},{onConflict:'user_id'}).select().single();
+    if(!error)cloud.profile=data;
+  }
+  cloud.progress.forEach(p=>{C.state.done[p.lesson_id]=['completed','mastered'].includes(p.status)});
+  localStorage.setItem('hlo_done',JSON.stringify(C.state.done));
+  cloud.plan.forEach(p=>{const m=p.item_key.match(/^week-(\d+)$/);if(m)C.state.weeks[Number(m[1])]=p.status==='completed'});
+  localStorage.setItem('hlo_weeks',JSON.stringify(C.state.weeks));
+  if(cloud.quizzes.length){C.state.quizBest=Math.max(C.state.quizBest,...cloud.quizzes.map(q=>Number(q.score)||0));localStorage.setItem('hlo_quizbest',C.state.quizBest)}
+  rerenderCore();
+  renderAllCloud();
+  subscribeResearch();
+  toast('Cloud state loaded');
+}
+function rerenderCore(){
+  C.renderAcademy(); C.renderTrack('Nexus Intelligence','nexusLessons');C.renderTrack('Statecraft','statecraftLessons');C.renderTrack('Career','careerLessons');C.renderTrack('Trading','tradingLessons');C.renderWeeks();C.updateProgress();
+}
+async function syncLesson(id,val){
+  if(!signedIn())return;
+  const prev=progressFor(id);
+  const payload={user_id:userId(),lesson_id:id,status:val?(Number(prev?.mastery_score)>=85?'mastered':'completed'):'in_progress',updated_at:new Date().toISOString(),completed_at:val?new Date().toISOString():null,started_at:prev?.started_at||new Date().toISOString(),mastery_score:Number(prev?.mastery_score)||0,attempts:Number(prev?.attempts)||0,evidence_note:prev?.evidence_note||null};
+  const {error}=await sb.from('hlo_lesson_progress').upsert(payload,{onConflict:'user_id,lesson_id'});
+  if(error){console.error(error);toast('Sync failed')}else{const idx=cloud.progress.findIndex(x=>x.lesson_id===id);if(idx>=0)cloud.progress[idx]={...cloud.progress[idx],...payload};else cloud.progress.push(payload);toast();renderRecommendations();evaluateCertificates()}
+}
+async function syncWeek(i,v){
+  if(!signedIn())return;
+  const payload={user_id:userId(),plan_id:'12-week-ascension',item_key:`week-${i}`,status:v?'completed':'in_progress',completed_at:v?new Date().toISOString():null,updated_at:new Date().toISOString()};
+  const {error}=await sb.from('hlo_plan_progress').upsert(payload,{onConflict:'user_id,plan_id,item_key'});if(error){console.error(error);toast('Week sync failed')}else toast()
+}
+async function recordLegacyQuiz(pct){
+  if(!signedIn())return;
+  const {error}=await sb.from('hlo_quiz_attempts').insert({user_id:userId(),quiz_id:'legacy-core-10',difficulty:'adaptive',score:pct,answers:{source:'legacy'}});
+  if(!error){cloud.quizzes.unshift({score:pct,quiz_id:'legacy-core-10',created_at:new Date().toISOString()});renderRecommendations();evaluateCertificates();toast('Quiz saved')}
+}
+async function recordModuleQuiz(moduleId,pct,answers,level){
+  if(!signedIn())return;
+  const row={user_id:userId(),quiz_id:`academy-${moduleId}-${new Date().toISOString()}`,difficulty:String(level||'adaptive').toLowerCase(),score:pct,answers:{module_id:moduleId,answers},weak_concepts:pct<80?[`academy:${moduleId}`]:[]};
+  const {data,error}=await sb.from('hlo_quiz_attempts').insert(row).select().single();
+  if(error){console.error(error);toast('Module quiz cloud sync failed');return}
+  cloud.quizzes.unshift(data);renderRecommendations();evaluateCertificates();toast('Module quiz saved');
+}
+
+function ascension(){
+  const p=completionPct(), q=cloud.quizzes.length?Math.max(...cloud.quizzes.map(x=>Number(x.score)||0)):C.state.quizBest||0;
+  if(p>=90&&q>=85)return 'Allocator';
+  if(p>=70&&q>=85)return 'Owner';
+  if(p>=45&&q>=80)return 'Architect';
+  if(p>=20&&q>=75)return 'Operator';
+  return 'Beginner';
+}
+function nextIncompleteLesson(){const core=C.LESSONS.filter(x=>x.track==='Core Academy');const applied=cloud.isOwner?C.LESSONS.filter(x=>x.track!=='Core Academy'):[];return [...core,...applied].find(l=>!C.state.done[l.id])||null;}
+function customModules(){return cloud.activeCurriculum?.curriculum?.modules||[]}
+function nextCustomModule(){const mods=customModules();if(!mods.length)return null;return mods.find(m=>{const p=cloud.customProgress.find(x=>x.curriculum_id===cloud.activeCurriculum.id&&x.module_key===m.key);return !p||!['completed','mastered'].includes(p.status)})||null}
+function lowSkill(){
+  if(!cloud.skills.length)return null;
+  return [...cloud.skills].sort((a,b)=>Number(a.score)-Number(b.score))[0];
+}
+function missionForRecommendation(){
+  const level=currentLevel(); const order=['beginner','operator','architect','owner','allocator']; const li=order.indexOf(level);
+  const completedIds=new Set(cloud.missions.filter(m=>m.status==='completed').map(m=>m.template_id));
+  return cloud.templates.find(t=>!completedIds.has(t.id)&&order.indexOf(t.level)<=li+1) || cloud.templates.find(t=>!completedIds.has(t.id)) || null;
+}
+function buildRecommendations(){
+  const active=cloud.missions.find(m=>m.status==='active');
+  const personal=nextCustomModule(), lesson=nextIncompleteLesson(), mt=missionForRecommendation();
+  const quizBest=cloud.quizzes.length?Math.max(...cloud.quizzes.map(x=>Number(x.score)||0)):C.state.quizBest||0;
+  const weak=[...new Set(cloud.quizzes.flatMap(q=>q.weak_concepts||[]))];
+  const actions=[];
+  if(!cloud.activeCurriculum){actions.push({type:'Personalize',title:'Build your personal curriculum',reason:'Your universal AI education becomes much more valuable when it is connected to a future you actually want.',view:'personalize'});}
+  else if(personal){actions.push({type:'Learn',title:personal.title,reason:'This is the next unfinished module in your personalized path.',view:'personalize',customModule:personal.key});}
+  else if(lesson){actions.push({type:'Learn',title:`${lesson.id} · ${lesson.title}`,reason:`This is the next incomplete ${lesson.level.toLowerCase()} foundation in your dependency chain.`,view:'academy',lessonId:lesson.id});}
+  if(mt && (cloud.isOwner || mt.track==='Core Academy'))actions.push({type:'Build',title:mt.title,reason:'Convert learning into evidence through a practical mission.',view:'missions',templateId:mt.id});
+  actions.push({type:'Test',title:quizBest<80?'Take an adaptive diagnostic':'Retest weak concepts',reason:quizBest<80?'Measure your understanding before adding harder material.':'Use scenario questions to detect false confidence.',view:'quiz'});
+  actions.push({type:'Practice',title:weak.length?`Practice: ${weak[0].replaceAll('_',' ')}`:'Apply one concept to your real goal',reason:weak.length?'This concept appeared in a recent miss.':'Application builds more durable competence than passive review.',view:cloud.activeCurriculum?'personalize':'academy'});
+  let priority;if(active)priority={type:'Build',title:`Continue: ${active.title}`,reason:'Finish active work before adding another project.',view:'missions'};else if(actions.length)priority=actions[0];
+  return {priority,actions:actions.slice(0,4)};
+}
+function trackView(track){return {'Core Academy':'academy','Nexus Intelligence':'nexus','Statecraft':'statecraft','Career':'career','Trading':'trading'}[track]||'academy'}
+function openAction(a){if(!a)return;if(a.view)C.go(a.view);if(a.lessonId)setTimeout(()=>{const el=[...document.querySelectorAll('.lesson h2')].find(x=>x.textContent.startsWith(a.lessonId+' ·'));el?.scrollIntoView({behavior:'smooth',block:'start'})},200)}
+async function renderRecommendations(){
+  const r=buildRecommendations();cloud.recommendation=r.priority;
+  const p=r.priority||{title:'Build your personal path',reason:'Connect the Academy to a future you actually want.',view:'personalize'};
+  for(const [titleId,reasonId,btnId] of [['cmdNextTitle','cmdNextReason','cmdNextBtn'],['priorityTitle','priorityReason','priorityBtn']]){
+    if($(titleId))$(titleId).textContent=p.title;if($(reasonId))$(reasonId).textContent=p.reason;if($(btnId))$(btnId).onclick=()=>openAction(p)
+  }
+  if($('cmdLevel'))$('cmdLevel').textContent=ascension();
+  const pm=nextCustomModule();if($('cmdWeakSkill'))$('cmdWeakSkill').textContent=pm?pm.title:(cloud.activeCurriculum?'Path complete':'Build your path');
+  if($('cmdMissionCount'))$('cmdMissionCount').textContent=cloud.missions.filter(m=>['active','submitted'].includes(m.status)).length;
+  if($('cmdResearchCount'))$('cmdResearchCount').textContent=cloud.research.length;
+  if($('actionStack'))$('actionStack').innerHTML=r.actions.map((a,i)=>`<div class="action-card" data-i="${i}"><span class="action-type">${esc(a.type)}</span><b>${esc(a.title)}</b><span class="note">${esc(a.reason)}</span></div>`).join('');
+  [...document.querySelectorAll('#actionStack .action-card')].forEach((el,i)=>el.onclick=()=>openAction(r.actions[i]));
+  if($('learnerStateSummary'))$('learnerStateSummary').innerHTML=`<b>${completionPct()}%</b> core completion · <b>${ascension()}</b> current level · <b>${cloud.quizzes.length}</b> quiz attempts · <b>${cloud.missions.filter(x=>x.status==='completed').length}</b> missions completed · <b>${cloud.activeCurriculum?'personal path active':'personal path not built'}</b>.`;
+  if(signedIn()){
+    const payload={user_id:userId(),learner_state:{completion_pct:completionPct(),level:ascension(),quiz_best:cloud.quizzes.length?Math.max(...cloud.quizzes.map(x=>Number(x.score)||0)):0,next_custom_module:pm?.key||null},recommendations:r.actions};
+    sb.from('hlo 
