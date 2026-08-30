@@ -5,6 +5,7 @@
   const safeParse=(value,fallback={})=>{try{return JSON.parse(value)||fallback}catch{return fallback}};
   const safeStore=(key,value)=>{try{localStorage.setItem(key,value);return true}catch{return false}};
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  window.NexusEscapeHtml=escapeHtml;
 
   window.nexusTrack=function(name,props={}){
     try{
@@ -25,10 +26,17 @@
     };
   }
   function encodeJourney(journey){
-    try{return btoa(unescape(encodeURIComponent(JSON.stringify(sanitizeSharedJourney(journey))))).replace(/=+$/,'')}catch{return ''}
+    try{
+      return btoa(unescape(encodeURIComponent(JSON.stringify(sanitizeSharedJourney(journey)))))
+        .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }catch{return ''}
   }
   function decodeJourney(encoded){
-    try{return JSON.parse(decodeURIComponent(escape(atob(encoded.replace(/-/g,'+').replace(/_/g,'/')))))}catch{return null}
+    try{
+      let value=String(encoded||'').replace(/-/g,'+').replace(/_/g,'/');
+      value+='='.repeat((4-value.length%4)%4);
+      return JSON.parse(decodeURIComponent(escape(atob(value))));
+    }catch{return null}
   }
   function mergeDeep(base,patch){
     const out={...(base||{})};
@@ -57,9 +65,11 @@
     load:()=>safeParse(localStorage.getItem(JOURNEY_KEY)||'{}',{}),
     get:()=>journey,
     save(patch={}){
-      journey=mergeDeep(journey,patch);journey.stage=deriveStage(journey);journey.updatedAt=new Date().toISOString();safeStore(JOURNEY_KEY,JSON.stringify(journey));return journey;
+      journey=mergeDeep(journey,patch);journey.stage=deriveStage(journey);journey.updatedAt=new Date().toISOString();safeStore(JOURNEY_KEY,JSON.stringify(journey));
+      window.dispatchEvent(new CustomEvent('nexusjourneychange',{detail:{stage:journey.stage}}));
+      return journey;
     },
-    clear(){journey={};try{localStorage.removeItem(JOURNEY_KEY)}catch{}},
+    clear(){journey={};try{localStorage.removeItem(JOURNEY_KEY)}catch{}window.dispatchEvent(new CustomEvent('nexusjourneychange',{detail:{stage:'new'}}));},
     shareUrl(path='/assessment'){
       const code=encodeJourney(journey);return `${location.origin}${path}${code?`#journey=${code}`:''}`;
     },
@@ -94,15 +104,17 @@
   function renderJourneyUI(){
     if(isPortal)return;
     const j=window.NexusJourney.get();
+    const existing=document.getElementById('nexusJourneyBar');
+    if(j.stage==='new'){existing?.remove();return;}
     const next=window.NexusJourney.next();
-    if(j.stage==='new')return;
     const labels={scan:'Opportunity Scan complete',assessment:'Diagnostic complete',booking:j.booking?.status==='confirmed'?'Fit Call confirmed':'Fit Call requested'};
-    const existing=document.getElementById('nexusJourneyBar');existing?.remove();
+    existing?.remove();
     const bar=document.createElement('div');bar.id='nexusJourneyBar';bar.className='journey-bar';
     const rec=j.recommendation?.service?` · ${escapeHtml(j.recommendation.service)}`:'';
     bar.innerHTML=`<div class="journey-inner"><div class="journey-copy"><span class="journey-check">✓</span><div><b>${labels[j.stage]||'Nexus journey in progress'}</b><small>Your previous answers will follow you${rec}.</small></div></div><a class="btn primary journey-action" href="${next.href}">${next.label} →</a></div>`;
     document.body.appendChild(bar);
   }
+  window.addEventListener('nexusjourneychange',renderJourneyUI);
 
   // Homepage problem-first explorer.
   const problemButtons=[...document.querySelectorAll('.problem-btn')];
