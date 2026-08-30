@@ -1,0 +1,74 @@
+_recommendation_snapshots').insert(payload).then(()=>{});
+  }
+}
+
+function renderMissions(){
+  const tf=$('missionTrackFilter')?.value||'', sf=$('missionStatusFilter')?.value||'';
+  const allowed=m=>cloud.isOwner||['Core Academy','Personal Path'].includes(m.track);const ms=cloud.missions.filter(m=>allowed(m)&&(!tf||m.track===tf)&&(!sf||m.status===sf));
+  $('missionList').innerHTML=ms.length?ms.map(m=>`<div class="mission-card ${m.status==='active'?'active':''}"><span class="badge">${esc(m.track)}</span><span class="badge ${esc(m.difficulty)}">${esc(m.difficulty)}</span><span class="badge">${esc(m.status)}</span><h3>${esc(m.title)}</h3><p class="muted">${esc(m.description||'')}</p><details><summary>Acceptance criteria</summary><ul>${(m.acceptance_criteria||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details><div class="mission-actions">${m.status==='queued'?`<button class="primary" onclick="window.HLOCloud.setMissionStatus('${m.id}','active')">Start</button>`:''}${m.status==='active'?`<button class="primary" onclick="window.HLOCloud.completeMission('${m.id}')">Complete with evidence</button>`:''}<button class="secondary" onclick="window.HLOCloud.setMissionStatus('${m.id}','archived')">Archive</button></div></div>`).join(''):'<div class="card muted">No missions match this filter.</div>';
+  const owned=new Set(cloud.missions.map(m=>m.template_id));
+  $('missionTemplates').innerHTML=cloud.templates.filter(t=>allowed(t)&&(!tf||t.track===tf)&&!owned.has(t.id)).map(t=>`<div class="mission-card"><span class="badge">${esc(t.track)}</span><span class="badge ${esc(t.level)}">${esc(t.level)}</span><span class="badge">${esc(t.estimated_minutes)} min</span><h3>${esc(t.title)}</h3><p class="muted">${esc(t.description)}</p><div>${(t.skills||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div><button class="secondary" style="margin-top:10px" onclick="window.HLOCloud.startTemplate('${t.id}')">Add mission</button></div>`).join('')||'<div class="card muted">All available templates have been added.</div>';
+}
+async function startTemplate(id){
+  if(!signedIn())return toast('Sign in first');const t=cloud.templates.find(x=>x.id===id);if(!t)return;
+  const row={user_id:userId(),template_id:t.id,track:t.track,title:t.title,description:t.description,mission_type:t.mission_type,difficulty:t.level,status:'queued',priority:3,acceptance_criteria:t.acceptance_criteria};
+  const {data,error}=await sb.from('hlo_missions').insert(row).select().single();if(error){console.error(error);toast('Mission add failed')}else{cloud.missions.unshift(data);renderMissions();renderRecommendations();toast('Mission added')}
+}
+async function setMissionStatus(id,status){
+  if(!signedIn())return;const patch={status,updated_at:new Date().toISOString(),completed_at:status==='completed'?new Date().toISOString():null};
+  const {data,error}=await sb.from('hlo_missions').update(patch).eq('id',id).eq('user_id',userId()).select().single();if(error){console.error(error);toast('Mission update failed')}else{const i=cloud.missions.findIndex(x=>x.id===id);if(i>=0)cloud.missions[i]=data;renderMissions();renderRecommendations();evaluateCertificates();toast()}
+}
+async function completeMission(id){
+  const evidence=prompt('What evidence did you produce? Paste a short description, link, filename, metric, or artifact note.');
+  if(evidence===null)return;const reflection=prompt('What did you learn or change because of this mission?')||'';
+  const {data,error}=await sb.from('hlo_missions').update({status:'completed',evidence:[{note:evidence,recorded_at:new Date().toISOString()}],reflection,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',userId()).select().single();
+  if(error){console.error(error);toast('Completion failed')}else{const i=cloud.missions.findIndex(x=>x.id===id);cloud.missions[i]=data;renderMissions();renderRecommendations();evaluateCertificates();toast('Evidence saved')}
+}
+
+function renderSkills(){
+  if(!$('skillList'))return;
+  $('skillList').innerHTML=SKILLS.map(([key,track,label])=>{const s=cloud.skills.find(x=>x.skill_key===key);const v=Math.round(Number(s?.score)||0);return `<div class="skill-row"><div><b>${esc(label)}</b><div class="note">${esc(track)}</div></div><input type="range" min="0" max="100" value="${v}" data-skill="${key}" data-track="${esc(track)}" oninput="this.nextElementSibling.textContent=this.value"><b>${v}</b></div>`}).join('');
+}
+async function saveSkills(){
+  if(!signedIn())return toast('Sign in first');const rows=[...document.querySelectorAll('#skillList input[type=range]')].map(el=>({user_id:userId(),skill_key:el.dataset.skill,track:el.dataset.track,score:Number(el.value),last_practiced_at:new Date().toISOString(),updated_at:new Date().toISOString()}));
+  const {data,error}=await sb.from('hlo_skill_scores').upsert(rows,{onConflict:'user_id,skill_key'}).select();if(error){console.error(error);toast('Skill save failed')}else{cloud.skills=data;renderRecommendations();toast('Skill map saved')}
+}
+
+function renderResearch(){
+  const topic=$('researchTopic')?.value||'';const rows=cloud.research.filter(r=>!topic||r.topic===topic);
+  $('researchFeed').innerHTML=rows.length?rows.map(r=>`<div class="feed-item"><div class="feed-meta"><span>${esc(r.source_name)}</span><span>${esc(r.topic)}</span><span>Importance ${r.importance}/5</span><span>${dateFmt(r.published_at)}</span>${r.verified?'<span>Verified source</span>':''}</div><h3><a href="${esc(r.source_url)}" target="_blank" rel="noopener">${esc(r.title)}</a></h3><p class="muted">${esc(r.summary||'')}</p></div>`).join(''):'No updates in this topic yet.';
+}
+async function refreshResearch(){
+  if(!signedIn())return;const {data,error}=await sb.from('hlo_research_items').select('*').order('importance',{ascending:false}).order('published_at',{ascending:false});if(error){console.error(error);toast('Research refresh failed')}else{cloud.research=data||[];renderResearch();renderRecommendations();toast('Research feed refreshed')}
+}
+let researchChannel;
+function subscribeResearch(){
+  if(!sb||researchChannel)return;
+  researchChannel=sb.channel('hlo-research-live').on('postgres_changes',{event:'*',schema:'public',table:'hlo_research_items'},()=>refreshResearch()).subscribe();
+}
+
+function renderTrades(){
+  const rows=cloud.trades;
+  const avg=k=>{const vals=rows.map(x=>num(x[k])).filter(x=>x!==null);return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):'—'};
+  $('taProcess').textContent=avg('process_score');$('taDiscipline').textContent=avg('discipline_score');$('taAdherence').textContent=avg('rule_adherence');
+  $('tradeList').innerHTML=rows.length?rows.slice(0,25).map(t=>`<div class="feed-item"><div class="feed-meta"><span>${dateFmt(t.occurred_at)}</span><span>${esc(t.instrument||'')}</span><span>${esc(t.setup||'')}</span><span>${esc(t.direction||'')}</span><span>P&L ${t.pnl==null?'—':moneySafe(t.pnl)}</span></div><b>Process ${t.process_score??'—'} · Discipline ${t.discipline_score??'—'} · Adherence ${t.rule_adherence??'—'}</b><p class="muted">${esc(t.lessons||t.thesis||'')}</p></div>`).join(''):'No cloud trading research logs yet.';
+}
+function moneySafe(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(Number(v)||0)}
+async function saveTrade(){
+  if(!signedIn())return toast('Sign in first');
+  const row={user_id:userId(),instrument:$('tlInstrument').value.trim()||null,setup:$('tlSetup').value.trim()||null,regime:$('tlRegime').value.trim()||null,direction:$('tlDirection').value||null,planned_risk:num($('tlPlannedRisk').value),actual_risk:num($('tlActualRisk').value),pnl:num($('tlPnl').value),rule_adherence:num($('tlAdherence').value),process_score:num($('tlProcess').value),risk_score:num($('tlRisk').value),discipline_score:num($('tlDiscipline').value),session:$('tlSession').value.trim()||null,thesis:$('tlThesis').value.trim()||null,lessons:$('tlLesson').value.trim()||null};
+  const {data,error}=await sb.from('hlo_trading_logs').insert(row).select().single();if(error){console.error(error);toast('Trading log save failed')}else{cloud.trades.unshift(data);renderTrades();['tlInstrument','tlSetup','tlRegime','tlPlannedRisk','tlActualRisk','tlPnl','tlAdherence','tlProcess','tlRisk','tlDiscipline','tlSession','tlThesis','tlLesson'].forEach(id=>$(id).value='');$('tlDirection').value='';toast('Research log saved')}
+}
+
+function tutorContext(){
+  const selected=$('tutorLesson')?.value;const l=lessonById(selected);
+  const weak=[...new Set(cloud.quizzes.flatMap(q=>q.weak_concepts||[]))].slice(0,8);
+  return {displayName:cloud.profile?.display_name||'Learner',privateOwner:cloud.isOwner,currentTrack:l?.track||null,currentLesson:l?{id:l.id,title:l.title,summary:l.summary,why:l.why,steps:l.steps}:null,personalCurriculum:cloud.activeCurriculum?{title:cloud.activeCurriculum.title,summary:cloud.activeCurriculum.summary,modules:customModules().map(m=>({key:m.key,title:m.title,stage:m.stage,why:m.why,project:m.project}))}:null,masteredLessons:cloud.progress.filter(x=>x.status==='mastered').map(x=>x.lesson_id),completedLessons:Object.entries(C.state.done).filter(([,v])=>v).map(([k])=>k),weakConcepts:weak,activeMissions:cloud.missions.filter(x=>x.status==='active'&&(cloud.isOwner||['Core Academy','Personal Path'].includes(x.track))).map(x=>({title:x.title,track:x.track,mission_type:x.mission_type,status:x.status})),recommendation:cloud.recommendation};
+}
+async function ensureThread(){
+  if(cloud.threadId)return cloud.threadId;if(!signedIn())return null;
+  const {data,error}=await sb.from('hlo_tutor_threads').insert({user_id:userId(),title:'Personal intelligence session',track:'Overall'}).select().single();if(error){console.error(error);return null}cloud.threadId=data.id;return data.id;
+}
+async function loadTutorHistory(){
+  if(!signedIn())return;const {data:threads}=await sb.from('hlo_tutor_threads').select('*').eq('user_id',userId()).order('updated_at',{ascending:false}).limit(1);
+  if(threads?.length
