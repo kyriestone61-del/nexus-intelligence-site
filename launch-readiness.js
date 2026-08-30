@@ -1,4 +1,5 @@
 (function(){
+  if(window.__nexusLaunchReadiness)return;window.__nexusLaunchReadiness=true;
   const SUPABASE_URL='https://dmdgkjksouhhsuojthav.supabase.co';
   const SUPABASE_KEY='sb_publishable_-bZLK1vmL0eUMz65A6EUsw_I20LBq2B';
   const FIRST='nexus_first_touch_v1',LAST='nexus_last_touch_v1',ANON='nexus_anon_id_v1',SESSION='nexus_session_id_v1',CONSENT='nexus_analytics_consent_v1';
@@ -36,24 +37,27 @@
     '/book':{title:'Book a Nexus Fit Call | Nexus Intelligence',description:'Choose a real available time to discuss your AI opportunity and carry your Snapshot or diagnostic context into the call.'},
     '/case-studies':{title:'Evidence & Results | Nexus Intelligence',description:'Nexus Intelligence evidence standards, measured improvement records, and verified case studies when client authorization is complete.'},
     '/about':{title:'About Nexus Intelligence',description:'How Nexus Intelligence approaches practical AI implementation, evidence, human control, and measurable business improvement.'},
-    '/how-it-works':{title:'How Nexus Intelligence Works',description:'See the Nexus path from opportunity screening and diagnosis to a controlled pilot, implementation, and measurement.'}
+    '/methodology':{title:'How Nexus Intelligence Works',description:'See the Nexus path from opportunity screening and diagnosis to a controlled pilot, implementation, and measurement.'}
   };
   function meta(name,content,property=false){let el=document.head.querySelector(`meta[${property?'property':'name'}="${name}"]`);if(!el){el=document.createElement('meta');el.setAttribute(property?'property':'name',name);document.head.appendChild(el)}el.content=content}
   function metadata(){
     const path=location.pathname.replace(/\/$/,'')||'/',m=pageMeta[path]||{title:document.title,description:document.querySelector('meta[name="description"]')?.content||'Nexus Intelligence'};
     document.title=m.title;meta('description',m.description);const canonical=location.origin+path;
     let link=document.head.querySelector('link[rel="canonical"]');if(!link){link=document.createElement('link');link.rel='canonical';document.head.appendChild(link)}link.href=canonical;
-    meta('og:title',m.title,true);meta('og:description',m.description,true);meta('og:url',canonical,true);meta('og:type',path==='/case-studies'?'website':'website',true);meta('twitter:card','summary_large_image');meta('twitter:title',m.title);meta('twitter:description',m.description);
+    meta('og:title',m.title,true);meta('og:description',m.description,true);meta('og:url',canonical,true);meta('og:type','website',true);meta('twitter:card','summary_large_image');meta('twitter:title',m.title);meta('twitter:description',m.description);
     if(!document.getElementById('nexusSchema')){const s=document.createElement('script');s.id='nexusSchema';s.type='application/ld+json';s.textContent=JSON.stringify({'@context':'https://schema.org','@type':'Organization','name':'Nexus Intelligence','url':location.origin,'description':'Practical AI implementation and workflow improvement for small and mid-sized businesses.'});document.head.appendChild(s)}
   }
   function vocabulary(){
-    document.querySelectorAll('.navlinks a,footer a').forEach(a=>{const t=(a.textContent||'').trim().toLowerCase();if(t==='services')a.textContent='Solutions';else if(t==='results'||t==='case studies')a.textContent='Evidence & Results';else if(t==='opportunity scan'||t==='quick scan'||t==='assessment')a.textContent=a.href.includes('/assessment')?'Deeper Diagnostic':'Free AI Snapshot'});
+    document.querySelectorAll('.navlinks a,footer a').forEach(a=>{const t=(a.textContent||'').trim().toLowerCase();if(t==='services')a.textContent='Solutions';else if(t==='results'||t==='case studies'||t==='results & evidence')a.textContent='Evidence & Results';else if(t==='opportunity scan'||t==='quick scan'||t==='assessment')a.textContent=a.href.includes('/assessment')?'Deeper Diagnostic':'Free AI Snapshot';else if(t==='client portal')a.textContent='Client Login'});
     if(location.pathname==='/quick-scan'){document.querySelectorAll('h1,h2,.eyebrow,.kicker').forEach(el=>{if(/quick scan|opportunity scan/i.test(el.textContent||''))el.textContent=(el.textContent||'').replace(/quick scan|opportunity scan/ig,'Free AI Opportunity Snapshot')})}
     if(location.pathname==='/assessment'){document.querySelectorAll('h1,h2,.eyebrow,.kicker').forEach(el=>{if(/assessment|diagnostic/i.test(el.textContent||''))el.textContent=(el.textContent||'').replace(/AI Opportunity Assessment|Opportunity Assessment/ig,'Deeper AI Diagnostic')})}
   }
   function annotateForms(){
     document.querySelectorAll('form').forEach(form=>{if(form.dataset.nexusTracked)return;form.dataset.nexusTracked='1';form.addEventListener('submit',()=>send('form_submit',{form_id:form.id||null,path:location.pathname}),true)});
   }
-  document.addEventListener('DOMContentLoaded',()=>{metadata();vocabulary();annotateForms();send('page_view',{title:document.title});flush()});
+  function stageEvent(){
+    const p=location.pathname;if(p==='/quick-scan')send('snapshot_start',{returning:Boolean(window.NexusJourney?.get?.()?.quickScan?.completedAt)});if(p==='/assessment')send('deeper_diagnostic_start',{returning:Boolean(window.NexusJourney?.get?.()?.assessment?.completedAt)});if(p==='/portal')send('portal_visit',{});
+  }
+  document.addEventListener('DOMContentLoaded',()=>{metadata();vocabulary();annotateForms();send('page_view',{title:document.title});stageEvent();flush()});
   window.addEventListener('load',()=>{vocabulary();annotateForms()});
 })();
