@@ -40,7 +40,6 @@ form{margin:0}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.fi
 @media(max-width:930px){.navlinks{display:none}.menu-btn{display:block}.navlinks.open{display:flex;position:absolute;left:0;right:0;top:72px;background:#07111f;padding:18px 20px;flex-direction:column;align-items:flex-start;border-bottom:1px solid var(--line)}.proof-strip,.grid,.grid.two,.grid.four,.split,.section-head,.method,.cap-grid,.roi-results{grid-template-columns:1fr}.proof-item{border-right:0;border-bottom:1px solid var(--line)}.proof-item:last-child{border-bottom:0}.filterbar,.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.footer-grid{grid-template-columns:1fr 1fr}.hero{padding:72px 0 58px}.cookie.show{align-items:flex-start;flex-direction:column}}
 @media(max-width:560px){.footer-grid{grid-template-columns:1fr}.wrap{width:min(var(--max),calc(100% - 28px))}.diag-body{padding:20px}.hero h1{font-size:45px}}
 
-
 /* Industries page */
 .industry-fitbar{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:10px;margin:18px 0 22px}
 .industry-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -58,6 +57,45 @@ form{margin:0}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.fi
 .signal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.signal{padding:18px;border:1px solid var(--line);border-radius:14px}.signal b{display:block;margin-bottom:5px}.signal span{color:var(--muted);font-size:13px}
 @media(max-width:930px){.industry-fitbar,.industry-grid,.fit-finder,.signal-grid,.usecase-list{grid-template-columns:1fr}}
 
-
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .privacy-link{color:#c8f2ff!important;text-decoration:underline;text-underline-offset:3px}
+
+/* Mobile ergonomics, including the authenticated client portal. */
+html{-webkit-text-size-adjust:100%}input,select,textarea{font-size:16px}
+@media(max-width:950px){
+  .portal-body .auth-shell{padding:24px 14px 90px}
+  .portal-body .auth-grid{gap:12px}
+  .portal-body .panel{padding:20px;border-radius:16px}
+  .portal-body .topbar{position:sticky;top:0;padding:10px 12px;gap:8px;z-index:30}
+  .portal-body .topbar .brand span:last-child{display:none}
+  .portal-body .topbar .mark{width:32px;height:32px}
+  .portal-body .company-select{order:4;max-width:none!important;width:100%}
+  .portal-body .workspace{display:block;min-height:auto}
+  .portal-body .sidebar{position:sticky;top:61px;z-index:25;padding:8px 10px;background:rgba(8,20,34,.97);border-right:0;border-bottom:1px solid var(--line)}
+  .portal-body .sidebar #companyMini{display:none}
+  .portal-body .sidebar>.note{display:none}
+  .portal-body .side-nav{display:flex;overflow-x:auto;gap:5px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .portal-body .side-nav::-webkit-scrollbar{display:none}
+  .portal-body .side-nav button{flex:0 0 auto;min-height:44px;padding:9px 12px;border:1px solid var(--line);white-space:nowrap;scroll-snap-align:start}
+  .portal-body .main{padding:18px 12px 90px}
+  .portal-body .toolbar h1,.portal-body .section h1{font-size:30px!important}
+  .portal-body .stats{grid-template-columns:1fr 1fr!important}
+  .portal-body .two,.portal-body .metrics{grid-template-columns:1fr!important}
+  .portal-body .row{display:grid;grid-template-columns:1fr;gap:8px}
+  .portal-body .row .btn,.portal-body .row select{width:100%;max-width:none}
+  .portal-body .upload{padding:16px}
+  .portal-body .modal{align-items:flex-end;padding:0}
+  .portal-body .modal-card{width:100%;max-height:88dvh;border-radius:18px 18px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+  .portal-body input,.portal-body select,.portal-body textarea{font-size:16px;min-height:48px}
+  .portal-body textarea{min-height:110px}
+  .portal-body .toast{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:none}
+}
+@media(max-width:560px){
+  .portal-body .stats{grid-template-columns:1fr 1fr!important}
+  .portal-body .stat{padding:14px}
+  .portal-body .stat b{font-size:24px}
+  .portal-body .topbar .btn{padding:0 11px;min-height:42px;font-size:12px}
+  .portal-body .auth-shell h1{font-size:36px!important}
+  .portal-body .tabs{display:grid;grid-template-columns:1fr 1fr}
+  .portal-body .tabs button{min-height:46px}
+}
