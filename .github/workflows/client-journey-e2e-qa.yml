@@ -1,0 +1,70 @@
+name: Nexus Client Journey E2E Contract QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-admin-journey.js'
+      - 'portal-action-execution-v2-forms.js'
+      - 'portal-journey-task-guard.js'
+      - 'portal-journey-qaqc.css'
+      - 'portal-app.js'
+      - '.github/workflows/client-journey-e2e-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  client-journey-contract-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-admin-journey.js
+          node --input-type=module --check < portal-action-execution-v2-forms.js
+          node --input-type=module --check < portal-journey-task-guard.js
+          node --input-type=module --check < portal-app.js
+      - name: Transcript-first Step 2 assertions
+        run: |
+          set -euo pipefail
+          grep -Fq "title:'Collect Information'" portal-admin-journey.js
+          grep -Fq 'Open Discovery Intake' portal-admin-journey.js
+          grep -Fq 'Send Client Checklist (optional)' portal-admin-journey.js
+          grep -Fq "sb.from('nexus_diagnosis_runs')" portal-admin-journey.js
+          grep -Fq 'ready_for_analysis' portal-admin-journey.js
+          grep -Fq "['intake','Discovery Intake']" portal-admin-journey.js
+      - name: Silent-click and failure-feedback assertions
+        run: |
+          set -euo pipefail
+          grep -Fq 'root.onclick=handleJourneyClick' portal-admin-journey.js
+          grep -Fq 'journey-inline-notice' portal-admin-journey.js
+          grep -Fq 'No action items were created' portal-admin-journey.js
+          grep -Fq 'Starting…' portal-admin-journey.js
+          grep -Fq 'journey-inline-notice.error' portal-journey-qaqc.css
+      - name: Task dependency and exception assertions
+        run: |
+          set -euo pipefail
+          grep -Fq 'nexus_admin_set_task_status' portal-journey-task-guard.js
+          grep -Fq 'dependencyBlocked' portal-journey-task-guard.js
+          grep -Fq 'Complete from evidence' portal-journey-task-guard.js
+          grep -Fq 'Not applicable' portal-journey-task-guard.js
+          grep -Fq "'not_applicable'" portal-action-execution-v2-forms.js
+          grep -Fq "'not_applicable'" portal-admin-journey.js
+      - name: Fresh asset loader assertions
+        run: |
+          set -euo pipefail
+          grep -Fq 'portal-admin-journey.js?v=20260830-2' portal-app.js
+          grep -Fq 'portal-action-execution-v2-forms.js?v=20260830-2' portal-app.js
+          grep -Fq 'portal-journey-task-guard.js?v=20260830-1' portal-app.js
+          grep -Fq 'portal-journey-qaqc.css?v=20260830-1' portal-app.js
+      - name: Browser security assertions
+        run: |
+          set -euo pipefail
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-admin-journey.js portal-journey-task-guard.js portal-journey-qaqc.css; then
+            echo 'Privileged credential reference found in browser-delivered journey files.' >&2
+            exit 1
+          fi
