@@ -28,13 +28,19 @@ guidedOpsStyles.rel='stylesheet';
 guidedOpsStyles.href='/portal-guided-ops.css?v=20260830-1';
 document.head.appendChild(guidedOpsStyles);
 
+const adminJourneyStyles=document.createElement('link');
+adminJourneyStyles.rel='stylesheet';
+adminJourneyStyles.href='/portal-admin-journey.css?v=20260830-1';
+document.head.appendChild(adminJourneyStyles);
+
 await Promise.all([
   new Promise(resolve=>{layoutFix.onload=resolve;layoutFix.onerror=resolve}),
   new Promise(resolve=>{simplifyStyles.onload=resolve;simplifyStyles.onerror=resolve}),
   new Promise(resolve=>{adminIntakeStyles.onload=resolve;adminIntakeStyles.onerror=resolve}),
   new Promise(resolve=>{actionWorkflowStyles.onload=resolve;actionWorkflowStyles.onerror=resolve}),
   new Promise(resolve=>{actionExecutionStyles.onload=resolve;actionExecutionStyles.onerror=resolve}),
-  new Promise(resolve=>{guidedOpsStyles.onload=resolve;guidedOpsStyles.onerror=resolve})
+  new Promise(resolve=>{guidedOpsStyles.onload=resolve;guidedOpsStyles.onerror=resolve}),
+  new Promise(resolve=>{adminJourneyStyles.onload=resolve;adminJourneyStyles.onerror=resolve})
 ]);
 
 async function importWithoutRecurringIntervals(url,blockedDelays=[]){
@@ -66,3 +72,4 @@ await importWithoutRecurringIntervals('/portal-action-workflow.js?v=20260830-3',
 await importWithoutRecurringIntervals('/portal-action-execution-v2.js?v=20260830-2',[900]);
 await import('/portal-action-execution-v2-forms.js?v=20260830-1');
 await import('/portal-guided-ops.js?v=20260830-1');
+await import('/portal-admin-journey.js?v=20260830-1');
