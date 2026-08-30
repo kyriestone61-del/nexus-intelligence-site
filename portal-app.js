@@ -15,7 +15,7 @@ document.head.appendChild(adminIntakeStyles);
 
 const actionWorkflowStyles=document.createElement('link');
 actionWorkflowStyles.rel='stylesheet';
-actionWorkflowStyles.href='/portal-action-workflow.css?v=20260830-1';
+actionWorkflowStyles.href='/portal-action-workflow.css?v=20260830-2';
 document.head.appendChild(actionWorkflowStyles);
 
 await Promise.all([
@@ -44,4 +44,4 @@ try{
   window.MutationObserver=NativeMutationObserver;
 }
 
-await import('/portal-action-workflow.js?v=20260830-1');
+await import('/portal-action-workflow.js?v=20260830-2');
