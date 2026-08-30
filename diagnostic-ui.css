@@ -1,0 +1,29 @@
+/* AI Opportunity Diagnostic — high-visibility navigation */
+#diagPrev{
+  background:#234f78 !important;
+  color:#ffffff !important;
+  border:1px solid #65d8ff !important;
+  min-height:54px !important;
+  padding:0 22px !important;
+  border-radius:12px !important;
+  font-size:16px !important;
+  font-weight:850 !important;
+  letter-spacing:.01em;
+  box-shadow:0 7px 22px rgba(0,0,0,.24),0 0 0 1px rgba(101,216,255,.08);
+  opacity:1 !important;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease,box-shadow .16s ease;
+}
+#diagPrev:hover{
+  background:#2e648f !important;
+  border-color:#9be9ff !important;
+  transform:translateY(-1px);
+  box-shadow:0 9px 26px rgba(0,0,0,.3),0 0 0 2px rgba(101,216,255,.12);
+}
+#diagPrev:focus-visible{
+  outline:3px solid #ffffff !important;
+  outline-offset:3px !important;
+}
+@media(max-width:560px){
+  .diag-actions{gap:10px}
+  #diagPrev,#diagNext{min-height:56px !important;font-size:16px !important;flex:1}
+}
