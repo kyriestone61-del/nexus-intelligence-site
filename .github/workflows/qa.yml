@@ -26,6 +26,7 @@ jobs:
           node --input-type=module --check < portal-ops.js
           node --input-type=module --check < portal-auth.js
           node --input-type=module --check < portal-simplify.js
+          node --input-type=module --check < portal-admin-intake.js
           node --input-type=module --check < operations.js
           node --input-type=module --check < functions/api/opportunity-snapshot.js
           node --input-type=module --check < functions/api/email-status.js
@@ -54,6 +55,8 @@ jobs:
           grep -q 'portal-layout-fix.css' portal-app.js
           grep -q 'portal-simplify.js' portal-app.js
           grep -q 'portal-simplify.css' portal-app.js
+          grep -q 'portal-admin-intake.js' portal-app.js
+          grep -q 'portal-admin-intake.css' portal-app.js
           grep -q 'select.task-status' portal-layout-fix.css
           grep -q 'grid-template-columns:minmax(0,1fr) max-content' portal-layout-fix.css
           grep -q 'Secure Data Room' portal.html
@@ -70,7 +73,12 @@ jobs:
           grep -q 'initAuthUX' portal-client.js
           grep -q 'initOps' portal-client.js
           grep -q 'Email delivery provider connection pending' portal-client.js
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal.html portal-v2.css portal-layout-fix.css portal-simplify.js portal-simplify.css portal-auth.js portal-ops.js; then
+          grep -q 'NEXUS ADMIN ACCOUNT' portal-admin-intake.js
+          grep -q 'CLIENT ACCOUNT' portal-admin-intake.js
+          grep -q 'nexus_diagnosis_runs' portal-admin-intake.js
+          grep -q 'Client Diagnosis Agent' portal-admin-intake.js
+          grep -q 'shadow / draft-only' portal-admin-intake.js
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal.html portal-v2.css portal-layout-fix.css portal-simplify.js portal-simplify.css portal-auth.js portal-ops.js portal-admin-intake.js portal-admin-intake.css; then
             echo 'Privileged server credential reference found in browser-delivered portal files.' >&2
             exit 1
           fi
