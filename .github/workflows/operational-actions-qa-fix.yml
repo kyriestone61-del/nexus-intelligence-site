@@ -1,0 +1,39 @@
+name: Operational Actions QA Fix
+
+on:
+  push:
+    branches: [feature/operational-client-actions]
+    paths:
+      - '.github/workflows/operational-actions-qa-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/operational-client-actions
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply QA and completion guard fix
+        run: python scripts/operational_actions_qa_fix.py
+      - name: Validate syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-action-workflow.js
+          grep -Fq 'Save the required action responses before marking this complete.' portal-action-workflow.js
+      - name: Commit repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm scripts/operational_actions_qa_fix.py .github/workflows/operational-actions-qa-fix.yml
+          git add portal-action-workflow.js .github/workflows/qa.yml
+          git commit -m 'Harden client action completion and QA'
+          git push origin HEAD:feature/operational-client-actions
