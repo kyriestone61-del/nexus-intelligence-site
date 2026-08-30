@@ -30,7 +30,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'nexus_is_platform_admin' operations.js
-          grep -q 'approved external action.*Blocked in foundation release' operations.js
+          grep -q 'approved_external_action' operations.js
+          grep -q 'Blocked in foundation release' operations.js
           grep -q 'Do not mark a gate passed from architecture alone' operations.js
           grep -q 'business_completed' operations.js
           grep -q 'robots" content="noindex,nofollow' operations.html
