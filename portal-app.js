@@ -18,11 +18,17 @@ actionWorkflowStyles.rel='stylesheet';
 actionWorkflowStyles.href='/portal-action-workflow.css?v=20260830-2';
 document.head.appendChild(actionWorkflowStyles);
 
+const actionExecutionStyles=document.createElement('link');
+actionExecutionStyles.rel='stylesheet';
+actionExecutionStyles.href='/portal-action-execution-v2.css?v=20260830-1';
+document.head.appendChild(actionExecutionStyles);
+
 await Promise.all([
   new Promise(resolve=>{layoutFix.onload=resolve;layoutFix.onerror=resolve}),
   new Promise(resolve=>{simplifyStyles.onload=resolve;simplifyStyles.onerror=resolve}),
   new Promise(resolve=>{adminIntakeStyles.onload=resolve;adminIntakeStyles.onerror=resolve}),
-  new Promise(resolve=>{actionWorkflowStyles.onload=resolve;actionWorkflowStyles.onerror=resolve})
+  new Promise(resolve=>{actionWorkflowStyles.onload=resolve;actionWorkflowStyles.onerror=resolve}),
+  new Promise(resolve=>{actionExecutionStyles.onload=resolve;actionExecutionStyles.onerror=resolve})
 ]);
 
 await import('/portal-client.js?v=20260830-3');
@@ -45,3 +51,5 @@ try{
 }
 
 await import('/portal-action-workflow.js?v=20260830-2');
+await import('/portal-action-execution-v2.js?v=20260830-1');
+await import('/portal-action-execution-v2-forms.js?v=20260830-1');

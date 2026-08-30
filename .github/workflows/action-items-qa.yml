@@ -1,0 +1,70 @@
+name: Nexus Action Items QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-action-execution-v2.js'
+      - 'portal-action-execution-v2-forms.js'
+      - 'portal-action-execution-v2.css'
+      - 'portal-app.js'
+      - '.github/workflows/action-items-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  action-workflow-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-action-execution-v2.js
+          node --input-type=module --check < portal-action-execution-v2-forms.js
+          node --input-type=module --check < portal-app.js
+      - name: Delivery methodology assertions
+        run: |
+          set -euo pipefail
+          grep -Fq "['my_work','My Work']" portal-action-execution-v2.js
+          grep -Fq "['client_work','Client Work']" portal-action-execution-v2.js
+          grep -Fq "['ready_review','Ready for Review']" portal-action-execution-v2.js
+          grep -Fq "['completed','Completed']" portal-action-execution-v2.js
+          grep -Fq 'nexus_submit_task_for_review' portal-action-execution-v2.js
+          grep -Fq 'nexus_request_task_revision' portal-action-execution-v2.js
+          grep -Fq 'nexus_approve_task' portal-action-execution-v2.js
+          grep -Fq 'nexus_assign_action_package' portal-action-execution-v2.js
+          grep -Fq 'nexus_assign_action_template' portal-action-execution-v2.js
+          grep -Fq 'dependencyBlocked' portal-action-execution-v2.js
+          grep -Fq 'nexus_task_comments' portal-action-execution-v2.js
+          grep -Fq 'Submitted to Nexus for review.' portal-action-execution-v2.js
+          grep -Fq 'Needs Your Attention' portal-action-execution-v2.js
+          grep -Fq 'Workflow packages' portal-action-execution-v2.js
+      - name: Client simplicity, structured input, and security assertions
+        run: |
+          set -euo pipefail
+          grep -Fq 'Never share passwords or secrets here.' portal-action-execution-v2.js
+          grep -Fq 'Open secure upload' portal-action-execution-v2.js
+          grep -Fq 'Request revision' portal-action-execution-v2.js
+          grep -Fq 'Approve & complete' portal-action-execution-v2.js
+          grep -Fq 'Submit uploaded item for review' portal-action-execution-v2-forms.js
+          grep -Fq 'data-v2-field' portal-action-execution-v2-forms.js
+          grep -Fq 'Address ${remaining.length} remaining checklist item' portal-action-execution-v2-forms.js
+          grep -Fq 'nexus_submit_task_for_review' portal-action-execution-v2-forms.js
+          grep -Fq 'portal-action-execution-v2.css' portal-app.js
+          grep -Fq 'portal-action-execution-v2.js' portal-app.js
+          grep -Fq 'portal-action-execution-v2-forms.js' portal-app.js
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-action-execution-v2.js portal-action-execution-v2-forms.js portal-action-execution-v2.css; then
+            echo 'Privileged credential reference found in browser-delivered action workflow.' >&2
+            exit 1
+          fi
+      - name: Responsive UI assertions
+        run: |
+          set -euo pipefail
+          grep -Fq '@media(max-width:760px)' portal-action-execution-v2.css
+          grep -Fq '.action-view-tabs' portal-action-execution-v2.css
+          grep -Fq '.package-grid' portal-action-execution-v2.css
+          grep -Fq '.dependency-note' portal-action-execution-v2.css
