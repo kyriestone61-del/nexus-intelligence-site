@@ -50,7 +50,7 @@ jobs:
           grep -Fq 'Run the Client Diagnosis Agent' portal-admin-journey.js
           grep -Fq 'Save diagnosis output' portal-diagnosis-result-capture.js
           grep -Fq 'Approve diagnosis' portal-diagnosis-result-capture.js
-          grep -Fq 'Copy agent packet' portal-diagnosis-result-capture.js
+          grep -Fq '.copy-agent-packet' portal-diagnosis-result-capture.js
           grep -Fq 'analysis_result' portal-diagnosis-result-capture.js
           grep -Fq 'nexus:diagnosis-updated' portal-diagnosis-result-capture.js
       - name: Silent-click and failure-feedback assertions
