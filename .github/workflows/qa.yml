@@ -71,7 +71,14 @@ jobs:
           grep -q 'Files & Information' portal-simplify.js
           grep -q 'Managed by Nexus' portal-simplify.js
           grep -q 'ADMIN ACCOUNT · YOU RUN THE ENGAGEMENT' portal-simplify.js
-          grep -q 'CLIENT ACCOUNT · YOUR RESPONSIBILITIES' portal-simplify.js
+          grep -q 'CLIENT ACCOUNT · KEEP IT SIMPLE' portal-simplify.js
+          grep -q 'portalClientNavGroups' portal-simplify.js
+          grep -q 'How this work is done today' portal-simplify.js
+          grep -q '3–10 real examples' portal-simplify.js
+          grep -q 'Tools your team uses' portal-simplify.js
+          grep -q 'How often this happens' portal-simplify.js
+          grep -q 'Any reports or numbers you already track' portal-simplify.js
+          grep -q 'Who does the work and who approves changes' portal-simplify.js
           grep -q "taskBtn.style.display=admin?'inline-flex':'none'" portal-simplify.js
           grep -q "metricBtn.style.display=admin?'inline-flex':'none'" portal-simplify.js
           grep -q 'nexus_project_data_requirements' portal-client.js
@@ -91,6 +98,26 @@ jobs:
             echo 'Privileged server credential reference found in browser-delivered portal files.' >&2
             exit 1
           fi
+      - name: SMB customer journey assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "href:'/book',label:'Request My Fit Call'" app.js
+          grep -q "!j.quickScan?.completedAt&&!j.assessment?.completedAt" app.js
+          grep -q "shareUrl(target='/book')" app.js
+          grep -q 'injectSimpleCustomerJourney' app.js
+          grep -q 'Free AI Snapshot' app.js
+          grep -q 'Paid Opportunity Assessment' app.js
+          grep -q 'simplifyQuickScanHandoff' app.js
+          grep -q "observer.observe(root,{childList:true,subtree:true})" app.js
+          grep -q 'simplifyFitCallExperience' app.js
+          grep -q 'Request a Nexus Fit Call' app.js
+          grep -q 'appointment-based beauty business' industries.html
+          if grep -qi 'Moon Wax' industries.html; then
+            echo 'Client-adjacent Moon Wax reference must not appear on the public industries page.' >&2
+            exit 1
+          fi
+          grep -q 'The Nexus Client Portal is an authenticated business workspace' security.html
       - name: Email dispatcher assertions
         shell: bash
         run: |

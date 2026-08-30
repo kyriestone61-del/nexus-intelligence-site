@@ -90,15 +90,14 @@
       try{localStorage.removeItem(JOURNEY_KEY)}catch{}
       window.dispatchEvent(new CustomEvent('nexusjourneychange',{detail:{stage:'new'}}));
     },
-    shareUrl(target='/assessment'){
+    shareUrl(target='/book'){
       const code=encodeJourney(journey);
       return `${location.origin}${target}${code?`#journey=${code}`:''}`;
     },
     next(){
       const j=this.get();
-      if(!j.quickScan?.completedAt)return {href:'/quick-scan',label:'Find My AI Opportunities'};
-      if(!j.assessment?.completedAt)return {href:'/assessment',label:'Continue My Diagnostic'};
-      if(!j.booking?.status)return {href:'/book',label:'Book My Fit Call'};
+      if(!j.quickScan?.completedAt&&!j.assessment?.completedAt)return {href:'/quick-scan',label:'Get My Free AI Snapshot'};
+      if(!j.booking?.status)return {href:'/book',label:'Request My Fit Call'};
       return {href:'/prospect-workspace',label:'Continue My Nexus Journey'};
     }
   };
@@ -128,7 +127,7 @@
   // Public navigation is intentionally prospect-journey first.
   const menu=document.querySelector('.menu-btn'),nav=document.querySelector('.navlinks');
   if(nav&&!isPortal){
-    nav.innerHTML='<a href="/services">Solutions</a><a href="/methodology">How It Works</a><a href="/case-studies">Results</a><a href="/about">About</a><a href="/portal">Client Login</a><a class="nav-cta" data-track="nav_quick_scan" href="/quick-scan">Find My AI Opportunities</a>';
+    nav.innerHTML='<a href="/services">Solutions</a><a href="/methodology">How It Works</a><a href="/case-studies">Results</a><a href="/about">About</a><a href="/portal">Client Login</a><a class="nav-cta" data-track="nav_quick_scan" href="/quick-scan">Free AI Snapshot</a>';
   }
   if(menu&&nav){
     menu.addEventListener('click',()=>{
@@ -156,7 +155,7 @@
     const existing=document.getElementById('nexusJourneyBar');
     if(j.stage==='new'){existing?.remove();renderMobileStart();return;}
     const next=window.NexusJourney.next();
-    const labels={scan:'Opportunity Scan complete',assessment:'Diagnostic complete',booking:j.booking?.status==='confirmed'?'Fit Call confirmed':'Fit Call requested'};
+    const labels={scan:'Free AI Snapshot complete',assessment:'Deeper diagnostic complete',booking:j.booking?.status==='confirmed'?'Fit Call confirmed':'Fit Call requested'};
     existing?.remove();
     document.querySelector('.nx-mobile-start')?.remove();
     document.body.classList.remove('nx-has-mobile-start');
@@ -173,7 +172,7 @@
     document.body.classList.remove('nx-has-mobile-start');
     if(window.NexusJourney.get().stage!=='new'||excluded.includes(path))return;
     const bar=document.createElement('div');bar.className='nx-mobile-start';
-    bar.innerHTML='<a class="btn primary" href="/quick-scan">Find My AI Opportunities →</a>';
+    bar.innerHTML='<a class="btn primary" href="/quick-scan">Get My Free AI Snapshot →</a>';
     document.body.appendChild(bar);document.body.classList.add('nx-has-mobile-start');
   }
   window.addEventListener('nexusjourneychange',renderJourneyUI);
@@ -377,7 +376,7 @@
     const [headline,body]=copy[path]||['Turn the information into a next step.','Use the Nexus opportunity flow to move from browsing into a structured business decision.'];
     const rec=j.recommendation?.service?` Your diagnostic currently points to ${escapeHtml(j.recommendation.service)}.`:'';
     const section=document.createElement('section');section.id='nxNextStep';
-    section.innerHTML=`<div class="wrap"><div class="nx-next-step"><div><div class="kicker">Next best action</div><h3>${headline}</h3><p>${body}${rec}</p></div><div class="actions"><a class="btn primary" href="${next.href}">${next.label} →</a>${j.stage==='new'?'<a class="btn secondary" href="/book">Book a Fit Call</a>':''}</div></div></div>`;
+    section.innerHTML=`<div class="wrap"><div class="nx-next-step"><div><div class="kicker">Next best action</div><h3>${headline}</h3><p>${body}${rec}</p></div><div class="actions"><a class="btn primary" href="${next.href}">${next.label} →</a>${j.stage==='new'?'<a class="btn secondary" href="/book">Request a Fit Call</a>':''}</div></div></div>`;
     footer.insertAdjacentElement('beforebegin',section);
   }
 
@@ -388,6 +387,61 @@
       if(link&&/Continue to My Nexus Workspace/i.test(link.textContent||'')){
         event.preventDefault();location.href='/prospect-workspace';
       }
+    });
+  }
+
+
+  // SMB journey v3: one obvious buying path and simpler buyer language.
+  function injectSimpleCustomerJourney(){
+    if(path!=='/'||document.getElementById('nxCustomerJourney'))return;
+    const hero=document.querySelector('main .hero-section');if(!hero)return;
+    const section=document.createElement('section');section.id='nxCustomerJourney';section.className='nx-customer-journey-section';
+    section.innerHTML=`<div class="wrap"><div class="nx-journey-shell"><div class="nx-journey-head"><div class="kicker">The simplest way to start</div><h2>One path from curiosity to measurable improvement.</h2><p>You do not need to know which AI tool you need. Start with the business problem and move forward only when the evidence supports the next step.</p></div><div class="nx-journey-steps"><div><span>01</span><b>Free AI Snapshot</b><small>Five minutes to identify the strongest opportunities.</small></div><i>→</i><div><span>02</span><b>Request a Fit Call</b><small>Confirm whether the problem is worth investigating together.</small></div><i>→</i><div><span>03</span><b>Paid Opportunity Assessment</b><small>Establish the real workflow, baseline, risk, and priority.</small></div><i>→</i><div><span>04</span><b>Implement</b><small>Build the smallest controlled solution that is justified.</small></div><i>→</i><div><span>05</span><b>Measure & Improve</b><small>Compare the result to the baseline and expand only when it works.</small></div></div><div class="actions"><a class="btn primary" href="/quick-scan">Get My Free AI Snapshot →</a><a class="btn secondary" href="/book">Request a Fit Call</a></div></div></div>`;
+    hero.insertAdjacentElement('afterend',section);
+  }
+
+  function simplifyQuickScanHandoff(){
+    if(path!=='/quick-scan')return;
+    const root=document.getElementById('snapshotBody');if(!root)return;
+    const patch=()=>{
+      root.querySelectorAll('a[href="/assessment"]').forEach(a=>{
+        a.href='/book';
+        if(/diagnostic|deeper|continue|assessment/i.test(a.textContent||''))a.textContent='Request a 20-Minute Fit Call →';
+      });
+      root.querySelectorAll('a[href="/book"]').forEach(a=>{
+        if(/book/i.test(a.textContent||''))a.textContent=(a.textContent||'').replace(/Book/gi,'Request');
+      });
+      document.querySelectorAll('footer a[href="/assessment"]').forEach(a=>{a.href='/book';a.textContent='Request a Fit Call'});
+    };
+    patch();
+    const observer=new MutationObserver(()=>patch());
+    observer.observe(root,{childList:true,subtree:true});
+  }
+
+  function simplifyAssessmentPositioning(){
+    if(path!=='/assessment'||document.getElementById('nxOptionalDiagnostic'))return;
+    const hero=document.querySelector('main .wrap.hero');if(!hero)return;
+    const note=document.createElement('div');note.id='nxOptionalDiagnostic';note.className='nx-optional-diagnostic';
+    note.innerHTML='<b>Optional deeper diagnostic.</b><span>The Free AI Snapshot is enough to request a Fit Call. Use this page only when you want to provide more operating detail before the conversation.</span><a class="btn secondary" href="/book">Request a Fit Call →</a>';
+    hero.appendChild(note);
+  }
+
+  function simplifyFitCallExperience(){
+    if(path!=='/book'||document.getElementById('nxFitCallGuide'))return;
+    document.title='Request a Nexus Fit Call | Nexus Intelligence';
+    const hero=document.querySelector('main .wrap.hero');if(!hero)return;
+    const eyebrow=hero.querySelector('.eyebrow');if(eyebrow)eyebrow.textContent='20-minute Nexus Fit Call';
+    const h1=hero.querySelector('h1');if(h1)h1.innerHTML='Request a conversation.<br><span class="grad">Keep the process simple.</span>';
+    const p=hero.querySelector('p');if(p)p.textContent='Tell Nexus what you want to improve, choose a preferred time, and submit the request. Your time is not considered confirmed until the calendar invitation is sent.';
+    const guide=document.createElement('div');guide.id='nxFitCallGuide';guide.className='nx-fit-call-guide';
+    guide.innerHTML='<div><span>1</span><b>Confirm your details</b><small>We carry forward your Snapshot when available.</small></div><div><span>2</span><b>Choose a preferred time</b><small>This is a request, not a false confirmation.</small></div><div><span>3</span><b>Receive the invitation</b><small>The meeting becomes confirmed when Nexus sends the calendar invite.</small></div>';
+    hero.appendChild(guide);
+  }
+
+  function simplifySecurityPortalLanguage(){
+    if(path!=='/security')return;
+    document.querySelectorAll('p').forEach(p=>{
+      if(/The portal is being built as an authenticated business workspace/i.test(p.textContent||''))p.textContent='The Nexus Client Portal is an authenticated business workspace, not a public document dropbox.';
     });
   }
 
@@ -407,6 +461,11 @@
   document.getElementById('declineCookies')?.addEventListener('click',()=>{safeStore('nexus_cookie_consent','declined');banner?.classList.remove('show');});
   document.querySelectorAll('[data-track]').forEach(el=>el.addEventListener('click',()=>window.nexusTrack(el.dataset.track)));
 
+  injectSimpleCustomerJourney();
+  simplifyQuickScanHandoff();
+  simplifyAssessmentPositioning();
+  simplifyFitCallExperience();
+  simplifySecurityPortalLanguage();
   markActiveNavigation();
   injectServiceGuide();
   injectDetailRecommendation();
