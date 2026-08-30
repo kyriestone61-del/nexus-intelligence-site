@@ -73,3 +73,4 @@ await importWithoutRecurringIntervals('/portal-action-execution-v2.js?v=20260830
 await import('/portal-action-execution-v2-forms.js?v=20260830-1');
 await import('/portal-guided-ops.js?v=20260830-1');
 await import('/portal-admin-journey.js?v=20260830-1');
+await import('/portal-admin-journey-router.js?v=20260830-1');
