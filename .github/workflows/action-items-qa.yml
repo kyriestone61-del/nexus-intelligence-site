@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'portal-action-execution-v2.js'
+      - 'portal-action-execution-v2-forms.js'
       - 'portal-action-execution-v2.css'
       - 'portal-app.js'
       - '.github/workflows/action-items-qa.yml'
@@ -23,6 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           node --input-type=module --check < portal-action-execution-v2.js
+          node --input-type=module --check < portal-action-execution-v2-forms.js
           node --input-type=module --check < portal-app.js
       - name: Delivery methodology assertions
         run: |
@@ -41,16 +43,21 @@ jobs:
           grep -Fq 'Submitted to Nexus for review.' portal-action-execution-v2.js
           grep -Fq 'Needs Your Attention' portal-action-execution-v2.js
           grep -Fq 'Workflow packages' portal-action-execution-v2.js
-      - name: Client simplicity and security assertions
+      - name: Client simplicity, structured input, and security assertions
         run: |
           set -euo pipefail
           grep -Fq 'Never share passwords or secrets here.' portal-action-execution-v2.js
           grep -Fq 'Open secure upload' portal-action-execution-v2.js
           grep -Fq 'Request revision' portal-action-execution-v2.js
           grep -Fq 'Approve & complete' portal-action-execution-v2.js
+          grep -Fq 'Submit uploaded item for review' portal-action-execution-v2-forms.js
+          grep -Fq 'data-v2-field' portal-action-execution-v2-forms.js
+          grep -Fq 'Address ${remaining.length} remaining checklist item' portal-action-execution-v2-forms.js
+          grep -Fq 'nexus_submit_task_for_review' portal-action-execution-v2-forms.js
           grep -Fq 'portal-action-execution-v2.css' portal-app.js
           grep -Fq 'portal-action-execution-v2.js' portal-app.js
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-action-execution-v2.js portal-action-execution-v2.css; then
+          grep -Fq 'portal-action-execution-v2-forms.js' portal-app.js
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-action-execution-v2.js portal-action-execution-v2-forms.js portal-action-execution-v2.css; then
             echo 'Privileged credential reference found in browser-delivered action workflow.' >&2
             exit 1
           fi
