@@ -1,0 +1,73 @@
+){cloud.threadId=threads[0].id;const {data:msgs}=await sb.from('hlo_tutor_messages').select('*').eq('thread_id',cloud.threadId).eq('user_id',userId()).order('created_at',{ascending:true}).limit(100);if(msgs?.length)$('tutorChat').innerHTML=msgs.map(m=>`<div class="msg ${m.role==='user'?'user':'assistant'}">${esc(m.content)}<div class="msg-meta">${dateFmt(m.created_at)}</div></div>`).join('');scrollTutor()}
+}
+function scrollTutor(){const el=$('tutorChat');if(el)el.scrollTop=el.scrollHeight}
+async function askTutor(question){
+  if(!signedIn())return toast('Sign in to use persistent tutor');question=String(question||'').trim();if(!question)return;const thread=await ensureThread();if(!thread)return;
+  $('tutorChat').insertAdjacentHTML('beforeend',`<div class="msg user">${esc(question)}</div>`);scrollTutor();$('tutorInput').value='';
+  await sb.from('hlo_tutor_messages').insert({thread_id:thread,user_id:userId(),role:'user',content:question,context:{lesson_id:$('tutorLesson').value||null}});
+  const pending=document.createElement('div');pending.className='msg assistant';pending.textContent='Thinking from your learner state…';$('tutorChat').appendChild(pending);scrollTutor();
+  const {data,error}=await sb.functions.invoke('hlo-tutor',{body:{question,context:tutorContext()}});
+  if(error){console.error(error);pending.textContent='Tutor request failed. Your question was still saved.';return}
+  pending.textContent=data.answer||'No tutor response returned.';pending.insertAdjacentHTML('beforeend',`<div class="msg-meta">${data.mode==='ai'?'AI tutor · '+(data.model||'model'):'Guided tutor · model key not configured'}</div>`);$('tutorModeNote').textContent=data.mode==='ai'?`Tutor mode: AI · ${data.model}`:'Tutor mode: guided fallback. The persistence and context system is active; a Vercel AI Gateway key activates full generative tutoring.';
+  await sb.from('hlo_tutor_messages').insert({thread_id:thread,user_id:userId(),role:'assistant',content:data.answer||'',context:{mode:data.mode,model:data.model||null}});
+  scrollTutor();
+}
+function askTutorPreset(q){askTutor(q)} window.askTutorPreset=askTutorPreset;
+
+function renderTutorLessonOptions(){
+  const cur=$('tutorLesson').value;const ls=cloud.isOwner?C.LESSONS:C.LESSONS.filter(l=>l.track==='Core Academy');$('tutorLesson').innerHTML='<option value="">Overall system</option>'+ls.map(l=>`<option value="${l.id}">${l.id} · ${esc(l.title)}</option>`).join('');$('tutorLesson').value=cur;
+}
+
+function difficultyRank(d){return ['beginner','operator','architect','owner','allocator'].indexOf(d)}
+function startAdaptiveQuiz(){
+  if(!cloud.questions.length){$('quizBox').innerHTML='<p>No cloud question bank loaded. Sign in and refresh.</p>';return}
+  const level=currentLevel(), rank=difficultyRank(level);const weak=[...new Set(cloud.quizzes.flatMap(q=>q.weak_concepts||[]))];
+  let pool=cloud.questions.filter(q=>cloud.isOwner||q.track==='Core Academy').sort((a,b)=>{
+    const aw=(a.concept_tags||[]).some(t=>weak.includes(t))?0:1,bw=(b.concept_tags||[]).some(t=>weak.includes(t))?0:1;
+    if(aw!==bw)return aw-bw;return Math.abs(difficultyRank(a.difficulty)-rank)-Math.abs(difficultyRank(b.difficulty)-rank)
+  });
+  const picked=[];const usedLessons=new Set();for(const q of pool){if(picked.length>=8)break;if(q.lesson_id&&!usedLessons.has(q.lesson_id)){picked.push(q);usedLessons.add(q.lesson_id)}}for(const q of pool){if(picked.length>=8)break;if(!picked.includes(q))picked.push(q)}
+  cloud.adaptive={items:picked,idx:0,score:0,answers:[],weak:[]};renderAdaptiveQuestion();
+}
+function renderAdaptiveQuestion(){
+  const a=cloud.adaptive;if(a.idx>=a.items.length)return finishAdaptiveQuiz();const q=a.items[a.idx];
+  $('quizBox').innerHTML=`<div class="muted small">Adaptive question ${a.idx+1} of ${a.items.length} · ${esc(q.difficulty)} · ${esc(q.track)}</div><h2>${esc(q.question)}</h2><div id="adChoices">${(q.choices||[]).map((c,i)=>`<button class="quizChoice" data-i="${i}">${esc(c)}</button>`).join('')}</div><div id="adExplain"></div>`;
+  [...document.querySelectorAll('#adChoices .quizChoice')].forEach(btn=>btn.onclick=()=>answerAdaptive(Number(btn.dataset.i)));
+}
+function answerAdaptive(i){
+  const a=cloud.adaptive,q=a.items[a.idx],correct=i===q.correct_index;if(correct)a.score++;else a.weak.push(...(q.concept_tags||[]));
+  a.answers.push({question_id:q.id,selected:i,correct});[...document.querySelectorAll('#adChoices .quizChoice')].forEach((b,j)=>{if(j===q.correct_index)b.classList.add('correct');else if(j===i)b.classList.add('wrong');b.disabled=true});
+  $('adExplain').innerHTML=`<div class="callout">${esc(q.explanation)}</div><button class="primary" id="adNext">Next</button>`;$('adNext').onclick=()=>{a.idx++;renderAdaptiveQuestion()}
+}
+async function finishAdaptiveQuiz(){
+  const a=cloud.adaptive,pct=Math.round(a.score/a.items.length*100),weak=[...new Set(a.weak)];
+  $('quizBox').innerHTML=`<div class="eyebrow">Adaptive result</div><h2>${pct}%</h2><p>${pct>=85?'Strong knowledge signal. Apply it through a mission before treating it as durable mastery.':'Review the weak concepts, then retake with scenarios.'}</p><div>${weak.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div><button class="primary" id="retakeAdaptive" style="margin-top:12px">New adaptive quiz</button>`;$('retakeAdaptive').onclick=startAdaptiveQuiz;
+  if(signedIn()){
+    const {data}=await sb.from('hlo_quiz_attempts').insert({user_id:userId(),quiz_id:'adaptive-'+new Date().toISOString(),difficulty:'adaptive',score:pct,answers:a.answers,weak_concepts:weak}).select().single();if(data)cloud.quizzes.unshift(data);
+    const byLesson={};a.items.forEach((q,i)=>{if(!q.lesson_id)return;byLesson[q.lesson_id]??={n:0,c:0};byLesson[q.lesson_id].n++;if(a.answers[i]?.correct)byLesson[q.lesson_id].c++});
+    for(const [lessonId,s] of Object.entries(byLesson)){const score=Math.round(s.c/s.n*100);const prev=progressFor(lessonId);const mastery=Math.max(Number(prev?.mastery_score)||0,score);const completed=!!C.state.done[lessonId];const status=completed&&mastery>=85?'mastered':completed?'completed':'in_progress';await sb.from('hlo_lesson_progress').upsert({user_id:userId(),lesson_id:lessonId,status,mastery_score:mastery,attempts:(Number(prev?.attempts)||0)+1,updated_at:new Date().toISOString(),started_at:prev?.started_at||new Date().toISOString(),completed_at:completed?(prev?.completed_at||new Date().toISOString()):null},{onConflict:'user_id,lesson_id'})}
+    const {data:prog}=await sb.from('hlo_lesson_progress').select('*').eq('user_id',userId());cloud.progress=prog||cloud.progress;renderRecommendations();evaluateCertificates();toast('Adaptive result saved')
+  }
+}
+
+const CERTS=[
+ {key:'beginner_foundation',title:'Human Leverage Foundation',level:'beginner',need:'Complete L1–L4 and score 75%+ on a quiz.',check:()=>['L1','L2','L3','L4'].every(id=>C.state.done[id])&&bestQuiz()>=75},
+ {key:'operator',title:'AI-Leveraged Operator',level:'operator',need:'Complete L1–L7, score 80%+, and finish one operator mission.',check:()=>['L1','L2','L3','L4','L5','L6','L7'].every(id=>C.state.done[id])&&bestQuiz()>=80&&cloud.missions.some(m=>m.status==='completed'&&m.difficulty==='operator')},
+ {key:'architect',title:'Human–Machine Systems Architect',level:'architect',need:'Complete L8–L10 and L16–L18, score 85%+, and complete an architect mission.',check:()=>['L8','L9','L10','L16','L17','L18'].every(id=>C.state.done[id])&&bestQuiz()>=85&&cloud.missions.some(m=>m.status==='completed'&&m.difficulty==='architect')},
+ {key:'owner',title:'AI-Era System Owner',level:'owner',need:'Complete L11–L13 and the productization mission.',check:()=>['L11','L12','L13'].every(id=>C.state.done[id])&&cloud.missions.some(m=>m.status==='completed'&&m.template_id==='owner-productize')},
+ {key:'allocator',title:'AI & Automation Capital Allocator',level:'allocator',need:'Complete L14–L15 and L19–L20 plus an allocator mission.',check:()=>['L14','L15','L19','L20'].every(id=>C.state.done[id])&&cloud.missions.some(m=>m.status==='completed'&&m.difficulty==='allocator')}
+];
+function bestQuiz(){return Math.max(C.state.quizBest||0,...cloud.quizzes.map(q=>Number(q.score)||0),0)}
+async function evaluateCertificates(){
+  if(!signedIn()){renderCertificates();return}
+  for(const c of CERTS){if(c.check()&&!cloud.certs.some(x=>x.certificate_key===c.key)){const {data,error}=await sb.from('hlo_certificates').insert({user_id:userId(),certificate_key:c.key,title:c.title,level:c.level,score:bestQuiz(),evidence:{completion_pct:completionPct(),missions:cloud.missions.filter(m=>m.status==='completed').map(m=>m.template_id)}}).select().single();if(!error&&data){cloud.certs.push(data);toast(`Mastery gate unlocked: ${c.title}`)}}}
+  renderCertificates();
+}
+function renderCertificates(){
+  $('certificateGrid').innerHTML=CERTS.map(c=>{const earned=cloud.certs.find(x=>x.certificate_key===c.key);return `<div class="certificate ${earned?'':'locked'}"><div class="seal">${earned?'◆':'◇'}</div><div class="eyebrow">${earned?'Mastery gate earned':'Locked gate'}</div><h2>${esc(c.title)}</h2><p class="muted">${esc(c.need)}</p>${earned?`<div class="gate-list">Awarded ${dateFmt(earned.awarded_at)} · Quiz signal ${earned.score??'—'}%</div><button class="secondary" onclick="window.print()" style="margin-top:10px">Print / Save certificate view</button>`:`<div class="gate-list">Current status: requirements not yet satisfied.</div>`}</div>`}).join('');
+}
+
+
+const PATH_OPTIONS={
+  goal:[['business','Build or grow a business'],['career','Advance or change my career'],['creator','Create media, art or content'],['technical','Build software or technical systems'],['consultant','Launch consulting or a service'],['educator','Teach, coach or help people'],['research','Research and analyze complex problems'],['markets','Understand markets / investing research'],['physical','Work with robotics, infrastructure or physical systems'],['explore','I am still exploring']],
+  future:[['founder','Founder / owner'],['expert','Specialist / expert'],['lea
