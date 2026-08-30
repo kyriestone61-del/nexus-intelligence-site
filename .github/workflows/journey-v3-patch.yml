@@ -38,7 +38,8 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -- .github/workflows/qa.yml
           git rm scripts/journey_v3_patch.py .github/workflows/journey-v3-patch.yml
-          git add app.js portal-simplify.js portal-simplify.css experience-round-two.css industries.html security.html .github/workflows/qa.yml
+          git add app.js portal-simplify.js portal-simplify.css experience-round-two.css industries.html security.html
           git commit -m 'Simplify SMB customer journey and client portal'
           git push origin HEAD:improve/smb-customer-journey-v3
