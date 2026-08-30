@@ -1,31 +1,51 @@
 const SUPABASE_URL='https://dmdgkjksouhhsuojthav.supabase.co';
 const SUPABASE_KEY='sb_publishable_-bZLK1vmL0eUMz65A6EUsw_I20LBq2B';
 
+const clean=(v,n)=>String(v||'').trim().slice(0,n);
+const jsonHeaders={'content-type':'application/json'};
+
 export async function onRequestPost(context){
   try{
     const data=await context.request.json();
-    if(data.website_field) return new Response(JSON.stringify({ok:true}),{status:200,headers:{'content-type':'application/json'}});
-    const full_name=String(data.full_name||'').trim().slice(0,120);
-    const email=String(data.email||'').trim().slice(0,254);
-    const company_name=String(data.company_name||'').trim().slice(0,160)||null;
-    const website=String(data.website||'').trim().slice(0,300)||null;
-    const problem_summary=String(data.problem_summary||'').trim().slice(0,2000);
-    if(!full_name||!email.includes('@')||problem_summary.length<5){
-      return new Response(JSON.stringify({ok:false,error:'Please complete your name, email, and business problem.'}),{status:400,headers:{'content-type':'application/json'}});
+    if(data.website_field) return new Response(JSON.stringify({ok:true}),{status:200,headers:jsonHeaders});
+    const full_name=clean(data.full_name,120);
+    const email=clean(data.email,254);
+    const company_name=clean(data.company_name,160)||null;
+    const website=clean(data.website,300)||null;
+    const problem_summary=clean(data.problem_summary,2000);
+    const timezone=clean(data.timezone,100)||null;
+    const recommended_service=clean(data.recommended_service,160)||null;
+    const opportunity_title=clean(data.opportunity_title,300)||null;
+    let requested_start=null;
+    if(data.requested_start){
+      const parsed=new Date(data.requested_start);
+      if(Number.isNaN(parsed.getTime())) return new Response(JSON.stringify({ok:false,error:'Please choose a valid fit-call time.'}),{status:400,headers:jsonHeaders});
+      const now=Date.now(),max=now+1000*60*60*24*90;
+      if(parsed.getTime()<now-1000*60*5||parsed.getTime()>max) return new Response(JSON.stringify({ok:false,error:'Please choose a fit-call time within the next 90 days.'}),{status:400,headers:jsonHeaders});
+      requested_start=parsed.toISOString();
     }
+    let journey_snapshot=null;
+    if(data.journey_snapshot&&typeof data.journey_snapshot==='object'){
+      const raw=JSON.stringify(data.journey_snapshot);
+      if(raw.length<=12000) journey_snapshot=data.journey_snapshot;
+    }
+    if(!full_name||!email.includes('@')||problem_summary.length<5){
+      return new Response(JSON.stringify({ok:false,error:'Please complete your name, email, and business problem.'}),{status:400,headers:jsonHeaders});
+    }
+    const row={full_name,email,company_name,website,problem_summary,requested_start,timezone,recommended_service,opportunity_title,journey_snapshot,booking_status:'requested'};
     const r=await fetch(`${SUPABASE_URL}/rest/v1/nexus_discovery_requests`,{
       method:'POST',
-      headers:{'content-type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=minimal'},
-      body:JSON.stringify({full_name,email,company_name,website,problem_summary})
+      headers:{'content-type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=representation'},
+      body:JSON.stringify(row)
     });
     if(!r.ok){
-      const detail=await r.text();
-      console.error('Discovery request insert failed',detail);
-      return new Response(JSON.stringify({ok:false,error:'Your request could not be submitted. Please try again.'}),{status:500,headers:{'content-type':'application/json'}});
+      const detail=await r.text();console.error('Discovery request insert failed',detail);
+      return new Response(JSON.stringify({ok:false,error:'Your fit-call request could not be submitted. Please try again.'}),{status:500,headers:jsonHeaders});
     }
-    return new Response(JSON.stringify({ok:true}),{status:200,headers:{'content-type':'application/json'}});
+    const created=(await r.json())?.[0]||null;
+    return new Response(JSON.stringify({ok:true,id:created?.id||null,status:'requested',requested_start}),{status:200,headers:jsonHeaders});
   }catch(err){
     console.error(err);
-    return new Response(JSON.stringify({ok:false,error:'Your request could not be submitted. Please try again.'}),{status:500,headers:{'content-type':'application/json'}});
+    return new Response(JSON.stringify({ok:false,error:'Your fit-call request could not be submitted. Please try again.'}),{status:500,headers:jsonHeaders});
   }
 }
