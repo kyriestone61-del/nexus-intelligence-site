@@ -1,0 +1,85 @@
+name: Nexus Admin Journey QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-admin-journey.js'
+      - 'portal-admin-journey-router.js'
+      - 'portal-admin-journey.css'
+      - 'portal-app.js'
+      - '.github/workflows/admin-journey-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  admin-journey-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-admin-journey.js
+          node --input-type=module --check < portal-admin-journey-router.js
+          node --input-type=module --check < portal-app.js
+      - name: Seven-stage workflow assertions
+        run: |
+          set -euo pipefail
+          grep -Fq "title:'Set Up Client'" portal-admin-journey.js
+          grep -Fq "title:'Collect Information'" portal-admin-journey.js
+          grep -Fq "title:'Diagnose'" portal-admin-journey.js
+          grep -Fq "title:'Agree on the Plan'" portal-admin-journey.js
+          grep -Fq "title:'Build, Test & Launch'" portal-admin-journey.js
+          grep -Fq "title:'Train & Handoff'" portal-admin-journey.js
+          grep -Fq "title:'Measure, Optimize & Complete'" portal-admin-journey.js
+          grep -Fq 'Your next move' portal-admin-journey.js
+          grep -Fq 'Client Journey' portal-admin-journey.js
+          grep -Fq 'Tools & records' portal-admin-journey.js
+          grep -Fq 'ready_to_finish' portal-admin-journey.js
+      - name: Existing methodology package assertions
+        run: |
+          set -euo pipefail
+          grep -Fq "package:'client_discovery'" portal-admin-journey.js
+          grep -Fq "package:'ai_diagnosis'" portal-admin-journey.js
+          grep -Fq "package:'solution_design'" portal-admin-journey.js
+          grep -Fq "package:'implementation_launch'" portal-admin-journey.js
+          grep -Fq "package:'training_handoff'" portal-admin-journey.js
+          grep -Fq "package:'monthly_optimization'" portal-admin-journey.js
+          grep -Fq 'nexus_assign_action_package' portal-admin-journey.js
+          grep -Fq "status:'complete'" portal-admin-journey.js
+          grep -Fq 'Mark Engagement Complete' portal-admin-journey.js
+      - name: Client selection routing assertion
+        run: |
+          set -euo pipefail
+          grep -Fq '.open-client' portal-admin-journey-router.js
+          grep -Fq '.journey-primary' portal-admin-journey-router.js
+          grep -Fq 'portal-admin-journey-router.js' portal-app.js
+      - name: Backend-preservation assertion
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          changed="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
+          echo "$changed"
+          if echo "$changed" | grep -E '^(functions/|supabase/|migrations/|schema/|database/|.*\.sql$)'; then
+            echo 'Admin simplification must not change backend/database files.' >&2
+            exit 1
+          fi
+      - name: Browser security assertion
+        run: |
+          set -euo pipefail
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-admin-journey.js portal-admin-journey-router.js portal-admin-journey.css; then
+            echo 'Privileged credential reference found in browser-delivered admin journey.' >&2
+            exit 1
+          fi
+      - name: Responsive and loader assertions
+        run: |
+          set -euo pipefail
+          grep -Fq '@media(max-width:900px)' portal-admin-journey.css
+          grep -Fq 'portal-admin-journey.css' portal-app.js
+          grep -Fq 'portal-admin-journey.js' portal-app.js
