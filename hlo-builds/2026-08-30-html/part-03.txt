@@ -1,0 +1,247 @@
+ <div class="track-banner academy-hero">
+    <div>
+      <div class="eyebrow">Human Leverage Academy · Expanded Curriculum</div>
+      <h1>Learn how to stay economically valuable as intelligence and execution become abundant.</h1>
+      <p class="muted">This academy is built from your uploaded briefing and expanded with current primary/high-authority research. Each module follows the same loop: <b>learn → watch → apply → test → produce evidence</b>. The objective is capability, not content consumption.</p>
+    </div>
+    <div class="academy-hero-score">
+      <div class="small muted">Academy mastery</div>
+      <div class="score" id="academyMasteryPct">0%</div>
+      <div class="progress"><div id="academyMasteryBar"></div></div>
+      <div class="small muted" id="academyMasteryText" style="margin-top:7px">0 of 13 modules in progress</div>
+    </div>
+  </div>
+
+  <div class="academy-how grid">
+    <div class="metric"><strong>13</strong><span>deep modules from economic foundations through ownership and capital allocation.</span></div>
+    <div class="metric"><strong>52</strong><span>module-specific multiple-choice questions with explanations and mastery scores.</span></div>
+    <div class="metric"><strong>Apply</strong><span>every module through a real artifact, mastery gate, quiz and—after onboarding—your personal goal.</span></div>
+  </div>
+
+  <div class="academy-stage-strip" id="academyStageStrip">
+    <button data-stage="" class="active">All</button>
+    <button data-stage="Foundation">Foundation</button>
+    <button data-stage="Operator">Operator</button>
+    <button data-stage="Architect">Architect</button>
+    <button data-stage="Owner">Owner</button>
+    <button data-stage="Allocator">Allocator</button>
+  </div>
+
+  <div class="academy-layout">
+    <div class="academy-module-rail">
+      <div class="academy-rail-head">
+        <div>
+          <div class="eyebrow">Learning path</div>
+          <b>Modules</b>
+        </div>
+        <button class="secondary small" id="academyOverviewBtn" type="button">Overview</button>
+      </div>
+      <div id="academyModuleList"></div>
+    </div>
+    <div id="academyModuleContent" class="academy-content"></div>
+  </div>
+</section>
+
+<section id="nexus" class="view">
+  <div class="track-banner"><div class="eyebrow">Applied Track</div><h1>Nexus Intelligence</h1><p class="muted">Objective: become excellent at diagnosing, redesigning, implementing and governing business workflows—not merely demonstrating AI tools.</p></div>
+  <div id="nexusLessons"></div>
+</section>
+
+<section id="statecraft" class="view">
+  <div class="track-banner"><div class="eyebrow">Applied Track</div><h1>Statecraft</h1><p class="muted">Objective: use machine intelligence to personalize and scale education while preserving human agency, interpretation and deliberate self-direction.</p></div>
+  <div id="statecraftLessons"></div>
+</section>
+
+<section id="career" class="view">
+  <div class="track-banner"><div class="eyebrow">Applied Track</div><h1>Career: AI-Augmented Preconstruction</h1><p class="muted">Objective: use your next role to increase domain depth, technology fluency, responsibility and credibility that also compounds into Nexus.</p></div>
+  <div id="careerLessons"></div>
+</section>
+
+<section id="trading" class="view">
+  <div class="track-banner"><div class="eyebrow">Applied Track</div><h1>Futures Trading Research OS</h1><p class="muted">Objective: use AI to improve research, testing, journaling and discipline—without outsourcing market risk decisions to an unvalidated black box.</p>
+    <div class="toolbar" style="margin-bottom:0">
+      <button class="secondary" onclick="go('tradelog')">Open Trading Log</button>
+      <button class="secondary" onclick="go('plan')">Open 12-Week Ascension</button>
+    </div>
+  </div>
+  <div class="callout"><b>Boundary:</b> This track is educational. It is not investment advice, a signal service, or a claim that AI can predict markets.</div>
+  <div id="tradingLessons"></div>
+</section>
+
+<section id="labs" class="view">
+  <div class="track-banner"><div class="eyebrow">Interactive Labs</div><h1>Turn concepts into decisions.</h1><p class="muted">Use these simple calculators as first-pass decision aids. They are deliberately transparent so you can inspect the assumptions.</p></div>
+
+  <div class="labGrid">
+    <div class="card">
+      <h2>Nexus Workflow ROI</h2>
+      <div class="formGrid">
+        <label>Occurrences / week<input id="roiFreq" type="number" value="80" min="0"></label>
+        <label>Minutes / occurrence<input id="roiMin" type="number" value="12" min="0"></label>
+        <label>Loaded labor $ / hour<input id="roiRate" type="number" value="38" min="0"></label>
+        <label>Realistic % automated<input id="roiAuto" type="number" value="65" min="0" max="100"></label>
+        <label>Implementation cost $<input id="roiBuild" type="number" value="4500" min="0"></label>
+        <label>Monthly software/oversight $<input id="roiMonthly" type="number" value="250" min="0"></label>
+      </div>
+      <button class="primary" onclick="calcROI()" style="margin-top:12px">Calculate</button>
+      <div class="output" id="roiOut">Enter assumptions and calculate.</div>
+    </div>
+
+    <div class="card">
+      <h2>Human Premium Score</h2>
+      <p class="note">Rate a role or Statecraft feature from 1 (low) to 5 (high).</p>
+      <div class="formGrid">
+        <label>Ambiguity<input id="hp1" type="number" value="4" min="1" max="5"></label>
+        <label>Relationship / trust<input id="hp2" type="number" value="4" min="1" max="5"></label>
+        <label>Accountability<input id="hp3" type="number" value="5" min="1" max="5"></label>
+        <label>Novel judgment<input id="hp4" type="number" value="4" min="1" max="5"></label>
+        <label>Physical unpredictability<input id="hp5" type="number" value="2" min="1" max="5"></label>
+        <label>Routine repeatability<input id="hp6" type="number" value="2" min="1" max="5"></label>
+      </div>
+      <button class="primary" onclick="calcHuman()" style="margin-top:12px">Score</button>
+      <div class="output" id="humanOut">Higher human-premium dimensions increase defensibility; high repeatability reduces it.</div>
+    </div>
+
+    <div class="card">
+      <h2>Career Repositioning Score</h2>
+      <p class="note">Rate your evidence today, 0–5.</p>
+      <div class="formGrid">
+        <label>Estimating fundamentals<input id="c1" type="number" value="2" min="0" max="5"></label>
+        <label>AI / workflow fluency<input id="c2" type="number" value="3" min="0" max="5"></label>
+        <label>Scope / risk judgment<input id="c3" type="number" value="3" min="0" max="5"></label>
+        <label>BIM / data fluency<input id="c4" type="number" value="2" min="0" max="5"></label>
+        <label>Client / subcontractor proof<input id="c5" type="number" value="3" min="0" max="5"></label>
+        <label>Portfolio case studies<input id="c6" type="number" value="1" min="0" max="5"></label>
+      </div>
+      <button class="primary" onclick="calcCareer()" style="margin-top:12px">Diagnose</button>
+      <div class="output" id="careerOut">The lowest evidence area becomes your next portfolio mission.</div>
+    </div>
+
+    <div class="card">
+      <h2>Trading Automation Gate</h2>
+      <p class="note">Check only what is actually true about a proposed trading automation.</p>
+      <div id="tradeGate">
+        <label><input type="checkbox"> Rules written before code</label><br>
+        <label><input type="checkbox"> Sample trades manually verified</label><br>
+        <label><input type="checkbox"> Out-of-sample test completed</label><br>
+        <label><input type="checkbox"> Costs/slippage included</label><br>
+        <label><input type="checkbox"> Parameter sensitivity tested</label><br>
+        <label><input type="checkbox"> Risk limit / kill switch defined</label><br>
+        <label><input type="checkbox"> Live action requires deliberate authorization</label>
+      </div>
+      <button class="primary" onclick="calcTradeGate()" style="margin-top:12px">Evaluate gate</button>
+      <div class="output" id="tradeGateOut">Do not confuse code that runs with a system that has been validated.</div>
+    </div>
+
+    <div class="card">
+      <h2>AI Production Risk Gate</h2>
+      <p class="note">Nexus/NIST-inspired pre-launch gate.</p>
+      <div id="riskGate">
+        <label><input type="checkbox"> Business owner and accountable owner identified</label><br>
+        <label><input type="checkbox"> Data classes and sensitive data mapped</label><br>
+        <label><input type="checkbox"> Least-privilege tool permissions</label><br>
+        <label><input type="checkbox"> Test set and failure thresholds defined</label><br>
+        <label><input type="checkbox"> Human approval for irreversible/high-impact actions</label><br>
+        <label><input type="checkbox"> Logs, monitoring and incident escalation</label><br>
+        <label><input type="checkbox"> Manual fallback / rollback</label>
+      </div>
+      <button class="primary" onclick="calcRiskGate()" style="margin-top:12px">Evaluate gate</button>
+      <div class="output" id="riskGateOut">A production system must be governable, measurable and recoverable.</div>
+    </div>
+
+    <div class="card">
+      <h2>Personal Leverage Audit</h2>
+      <p class="note">Rate 0–5. The objective is not perfection; it is identifying your bottleneck.</p>
+      <div class="formGrid">
+        <label>Domain expertise<input id="p1" type="number" value="3" min="0" max="5"></label>
+        <label>Judgment / verification<input id="p2" type="number" value="3" min="0" max="5"></label>
+        <label>Systems / automation<input id="p3" type="number" value="3" min="0" max="5"></label>
+        <label>Sales / relationships<input id="p4" type="number" value="2" min="0" max="5"></label>
+        <label>Distribution / audience<input id="p5" type="number" value="2" min="0" max="5"></label>
+        <label>Owned IP / data / assets<input id="p6" type="number" value="2" min="0" max="5"></label>
+      </div>
+      <button class="primary" onclick="calcPersonal()" style="margin-top:12px">Find bottleneck</button>
+      <div class="output" id="personalOut">Your next step should usually attack the lowest strategically important layer.</div>
+    </div>
+  </div>
+</section>
+
+<section id="plan" class="view">
+  <div class="track-banner"><div class="eyebrow">12-Week Ascension</div><h1>Beginner → operator → architect → owner → allocator.</h1><p class="muted">A practical curriculum. Each week has a concrete output so education becomes capability.</p></div>
+  <div class="card" id="weekList"></div>
+</section>
+
+<section id="quiz" class="view">
+  <div class="track-banner"><div class="eyebrow">Knowledge Check</div><h1>Can you reason with the concepts?</h1><p class="muted">The point is not memorization. Every answer should improve your decision model.</p></div>
+  <div class="card" id="quizBox"></div>
+</section>
+
+
+<section id="research" class="view">
+  <div class="track-banner"><div class="eyebrow">Live Research Feed</div><h1>Track what actually changes your strategy.</h1><p class="muted">The feed is stored in the cloud and updates in real time when new verified research is added. Prioritize primary sources and distinguish facts from forecasts.</p></div>
+  <div class="toolbar">
+    <select id="researchTopic"><option value="">All topics</option><option>AI adoption</option><option>Labor market</option><option>Automation</option><option>Robotics</option><option>Infrastructure</option><option>Career</option><option>Trading</option></select>
+    <button class="secondary" id="researchRefresh">Refresh cloud feed</button>
+  </div>
+  <div id="researchFeed" class="card">Sign in to load research.</div>
+</section>
+
+<section id="tradelog" class="view">
+  <div class="track-banner"><div class="eyebrow">Trading Research Journal</div><h1>Turn decisions into a proprietary dataset.</h1><p class="muted">This is for process research and decision quality—not an AI signal generator. Grade the decision separately from P&amp;L.</p></div>
+  <div class="card">
+    <div class="trade-form">
+      <label>Instrument<input id="tlInstrument" placeholder="MNQ / MGC / MES / MYM"></label>
+      <label>Setup<input id="tlSetup" placeholder="Setup name"></label>
+      <label>Regime<input id="tlRegime" placeholder="Trend / range / high vol"></label>
+      <label>Direction<select id="tlDirection"><option value="">—</option><option value="long">Long</option><option value="short">Short</option><option value="flat">Flat / no trade</option></select></label>
+      <label>Planned risk $<input id="tlPlannedRisk" type="number" step="0.01"></label>
+      <label>Actual risk $<input id="tlActualRisk" type="number" step="0.01"></label>
+      <label>P&amp;L $<input id="tlPnl" type="number" step="0.01"></label>
+      <label>Rule adherence 0–100<input id="tlAdherence" type="number" min="0" max="100"></label>
+      <label>Process score 0–100<input id="tlProcess" type="number" min="0" max="100"></label>
+      <label>Risk score 0–100<input id="tlRisk" type="number" min="0" max="100"></label>
+      <label>Discipline score 0–100<input id="tlDiscipline" type="number" min="0" max="100"></label>
+      <label>Session<input id="tlSession" placeholder="NY AM"></label>
+      <label class="wide">Thesis<textarea id="tlThesis" rows="3" placeholder="What made the setup valid?"></textarea></label>
+      <label class="wide">Lesson<textarea id="tlLesson" rows="3" placeholder="What did this trade teach you?"></textarea></label>
+    </div>
+    <button class="primary" id="saveTrade" style="margin-top:12px">Save research log</button>
+  </div>
+  <div class="grid" style="margin-top:14px">
+    <div class="metric"><strong id="taProcess">—</strong><span>Average process score</span></div>
+    <div class="metric"><strong id="taDiscipline">—</strong><span>Average discipline score</span></div>
+    <div class="metric"><strong id="taAdherence">—</strong><span>Average rule adherence</span></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h2>Recent logs</h2><div id="tradeList"></div></div>
+</section>
+
+<section id="certificates" class="view">
+  <div class="track-banner"><div class="eyebrow">Mastery Gates</div><h1>Advance only when you can prove it.</h1><p class="muted">Certificates require combinations of lesson completion, quiz performance and applied mission evidence. They are internal mastery gates—not accredited credentials.</p></div>
+  <div id="certificateGrid" class="cert-grid"></div>
+</section>
+
+<section id="sources" class="view">
+  <div class="track-banner"><div class="eyebrow">Research Library</div><h1>Primary and high-authority sources.</h1><p class="muted">Use these to update the platform as capabilities, labor markets, robotics and regulation change.</p></div>
+  <div class="card" id="sourceList"></div>
+  <footer>Research snapshot updated Aug 30, 2026. Forecasts are scenarios, not guarantees. Trading and capital-allocation material is educational and does not constitute financial advice.</footer>
+</section>
+
+<section id="account" class="view">
+  <div class="track-banner"><div class="eyebrow">Account & Learner Profile</div><h1>Control what the system optimizes for.</h1><p class="muted">Your learner profile tells the recommendation engine how much time you have and which tracks are active.</p></div>
+  <div class="card">
+    <div class="formGrid">
+      <label>Display name<input id="profileName"></label>
+      <label>Weekly learning hours<input id="profileHours" type="number" min="1" max="40" value="5"></label>
+      <label>Current career target<input id="profileCareer" placeholder="Estimator / Preconstruction / Contech…"></label>
+      <label>Current level<select id="profileLevel"><option value="beginner">Beginner</option><option value="operator">Operator</option><option value="architect">Architect</option><option value="owner">Owner</option><option value="allocator">Allocator</option></select></label>
+    </div>
+    <label class="small muted" style="display:block;margin-top:10px">Primary goal<textarea id="profileGoal" rows="4" style="width:100%;margin-top:4px"></textarea></label>
+    <button class="primary" id="saveProfile" style="margin-top:12px">Save profile</button>
+    <div id="profileMsg" class="note" style="margin-top:8px"></div>
+  </div>
+</section>
+
+</main></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script>
+const LESSONS = [{"id": "L1", "track": "Core Academy", "level": "Beginner", "title": "The New Economic Stack", "summary": "Understand why the goal is not to become 'AI-proof' but AI-leveraged and increasingly asset-owning.", "why": "AI lowers the marginal cost of routine cognition. Robotics lowers the cost of repeatable physical execution. As abundance rises at the execution layer, value migrates toward problem definition, verification, relationships, accountability, workflow ownership, data and capital.", "steps": ["Separate every job or business process into: objective → information → decision → execution → verification → accountability.", "Mark which pieces are routine and rules-based. Assume these become progressively cheaper.", "Mark which pieces require context, trust, ambiguity handling, domain judgment, negotiation or legal/financial accountability.", "Your career goal is to move toward the second group while using machines aggressively on the first.", "Your wealth goal is to own more of the process, data, customer relationship or equity over time."], "exercise": "Take one hour of your current work. List every action. Label each action M (machine-favored), H (human-favored), or B (best as a human-machine bridge).", "proof": "You can explain why 'AI user' is a temporary advantage but 'domain expert + systems architect + owner' is a more durable position.", "sources": ["stanford-economy", "pwc-2026", "mckinsey-agents"]}, {"id": "L2", "track": "Core Academy", "level": "Beginner", "title": "AI, Automation, Agents and Robots — What Is Actually Different?", "summary": "Build a clean mental model so you stop treating every technology as 'AI'.", "why": "Different technologies replace different bottlenecks. Generative AI produces content; automation moves data deterministically; agents choose and execute multi-step actions; robots act in the physical world.", "steps": ["Generative AI: prediction/generation over text, images, audio, code and other representations.", "Automation: pre-defined trigger → rule → action. Excellent when the pathway is known.", "Agent: model + tools + memory/context + permissions + feedback loop that can choose among actions.", "Robot: sensors + control software + actuators. Physical AI adds learned perception/reasoning to physical action.", "Do not use an agent where a deterministic automation is safer and cheaper."], "exercise": "For five business tasks, choose the lightest technology that solves them: manual, prompt, deterministic automation, agent, or robot.", "proof": "You can justify why an agent should not automatically be the default solution.", "sources": ["stanford-tech", "ifr-ai", "nist-rmf"]}, {"id": "L3", "track": "Core Academy", "level": "Beginner", "title": "Augmentation vs. Substitution", "summary": "Learn the labor-market split that should govern your career decisions.", "why": "PwC's 2026 work distinguishes roles that AI 'professionalises'—routine work removed while judgment rises—from roles it 'democratises' by making formerly specialized tasks easy for non-experts.", "steps": ["Ask whether AI makes your expertise more useful or makes your expertise less necessary.", "If routine execution dominates your job, add responsibility for interpretation, decisions, client trust or system ownership.", "If you are entering a field, choose roles where AI accelerates apprenticeship instead of eliminating the learning path.", "Document outcomes, not task volume. 'Produced 30 reports' is weaker than 
