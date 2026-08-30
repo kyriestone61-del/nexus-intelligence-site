@@ -24,10 +24,13 @@ export async function onRequest(context) {
   if (!patched.includes('/portal-auth.css')) {
     patched = patched.replace('</head>', '<link rel="stylesheet" href="/portal-auth.css"></head>');
   }
+  if (!patched.includes('/portal-ops.css')) {
+    patched = patched.replace('</head>', '<link rel="stylesheet" href="/portal-ops.css"></head>');
+  }
 
-  const enhancements = `\nimport('/secure-documents.js').then(({init})=>init({sb,state,$,toast,download,log,workspace})).catch(err=>console.error('Secure documents enhancement failed',err));\nimport('/portal-auth.js').then(({initAuthUX})=>initAuthUX({sb,$,pane,show})).catch(err=>console.error('Portal auth UX enhancement failed',err));\n`;
+  const enhancements = `\nimport('/secure-documents.js').then(({init})=>init({sb,state,$,toast,download,log,workspace})).catch(err=>console.error('Secure documents enhancement failed',err));\nimport('/portal-auth.js').then(({initAuthUX})=>initAuthUX({sb,$,pane,show})).catch(err=>console.error('Portal auth UX enhancement failed',err));\nimport('/portal-ops.js').then(({initOps})=>initOps({sb,state,$,toast,workspace,log})).catch(err=>console.error('Portal operations enhancement failed',err));\n`;
   const scriptClose = patched.lastIndexOf('</script>');
-  if (scriptClose !== -1 && !patched.includes('portal-auth.js')) {
+  if (scriptClose !== -1 && !patched.includes('portal-ops.js')) {
     patched = patched.slice(0, scriptClose) + enhancements + patched.slice(scriptClose);
   }
 
