@@ -27,6 +27,7 @@ jobs:
           node --input-type=module --check < portal-auth.js
           node --input-type=module --check < portal-simplify.js
           node --input-type=module --check < portal-admin-intake.js
+          node --input-type=module --check < portal-action-workflow.js
           node --input-type=module --check < operations.js
           node --input-type=module --check < functions/api/opportunity-snapshot.js
           node --input-type=module --check < functions/api/email-status.js
@@ -57,6 +58,8 @@ jobs:
           grep -q 'portal-simplify.css' portal-app.js
           grep -q 'portal-admin-intake.js' portal-app.js
           grep -q 'portal-admin-intake.css' portal-app.js
+          grep -q 'portal-action-workflow.js' portal-app.js
+          grep -q 'portal-action-workflow.css' portal-app.js
           grep -q 'NativeMutationObserver' portal-app.js
           grep -q 'NexusPortalNoopObserver' portal-app.js
           grep -q 'setInterval(schedule,1200)' portal-simplify.js
@@ -94,8 +97,28 @@ jobs:
           grep -q 'nexus_diagnosis_runs' portal-admin-intake.js
           grep -q 'Client Diagnosis Agent' portal-admin-intake.js
           grep -q 'shadow / draft-only' portal-admin-intake.js
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal.html portal-v2.css portal-layout-fix.css portal-simplify.js portal-simplify.css portal-auth.js portal-ops.js portal-admin-intake.js portal-admin-intake.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal.html portal-v2.css portal-layout-fix.css portal-simplify.js portal-simplify.css portal-auth.js portal-ops.js portal-admin-intake.js portal-admin-intake.css portal-action-workflow.js portal-action-workflow.css; then
             echo 'Privileged server credential reference found in browser-delivered portal files.' >&2
+            exit 1
+          fi
+      - name: Operational client action assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'preparation_checklist' portal-action-workflow.js
+          grep -q 'workflow_evidence' portal-action-workflow.js
+          grep -q 'structured_form' portal-action-workflow.js
+          grep -q 'embedded-checklist' portal-action-workflow.js
+          grep -q 'What “current-workflow evidence” means' portal-action-workflow.js
+          grep -q 'nexus_assign_action_template' portal-action-workflow.js
+          grep -q 'nexus_action_templates' portal-action-workflow.js
+          grep -q 'nexus_diagnosis_request_drafts' portal-action-workflow.js
+          grep -q 'nexus_send_diagnosis_request_draft' portal-action-workflow.js
+          grep -q 'Nothing is sent to the client until you approve it here' portal-action-workflow.js
+          grep -q 'Nexus has been notified' portal-action-workflow.js
+          grep -q 'setInterval(()=>reconcile(false)' portal-action-workflow.js
+          if grep -q 'new MutationObserver' portal-action-workflow.js; then
+            echo 'Operational action workflow must not use a self-observing DOM mutation loop.' >&2
             exit 1
           fi
       - name: SMB customer journey assertions
