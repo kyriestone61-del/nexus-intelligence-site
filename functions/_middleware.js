@@ -11,7 +11,7 @@ export async function onRequest(context){
       if(isPrivate)el.append('<meta name="robots" content="noindex,nofollow,noarchive">',{html:true});
       else el.append(`<link rel="canonical" href="${canonical}"><meta property="og:url" content="${canonical}"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image">`,{html:true});
     }})
-    .on('body',{element(el){el.append('<script src="/launch-readiness.js?v=20260830-1"></script>',{html:true})}})
+    .on('body',{element(el){el.append('<script src="/launch-readiness.js?v=20260830-2"></script><script src="/snapshot-lifecycle-patch.js?v=20260830-1"></script>',{html:true})}})
     .transform(new Response(response.body,{status:response.status,statusText:response.statusText,headers}));
   return transformed;
 }
