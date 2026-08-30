@@ -7,6 +7,8 @@ on:
       - 'portal-action-execution-v2-forms.js'
       - 'portal-journey-task-guard.js'
       - 'portal-journey-qaqc.css'
+      - 'portal-diagnosis-result-capture.js'
+      - 'portal-diagnosis-result-capture.css'
       - 'portal-app.js'
       - '.github/workflows/client-journey-e2e-qa.yml'
 
@@ -27,6 +29,7 @@ jobs:
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-action-execution-v2-forms.js
           node --input-type=module --check < portal-journey-task-guard.js
+          node --input-type=module --check < portal-diagnosis-result-capture.js
           node --input-type=module --check < portal-app.js
       - name: Transcript-first Step 2 assertions
         run: |
@@ -36,7 +39,20 @@ jobs:
           grep -Fq 'Send Client Checklist (optional)' portal-admin-journey.js
           grep -Fq "sb.from('nexus_diagnosis_runs')" portal-admin-journey.js
           grep -Fq 'ready_for_analysis' portal-admin-journey.js
-          grep -Fq "['intake','Discovery Intake']" portal-admin-journey.js
+          grep -Fq "['intake','Discovery & Diagnosis']" portal-admin-journey.js
+      - name: Step 3 diagnosis review assertions
+        run: |
+          set -euo pipefail
+          grep -Fq "title:'Diagnose'" portal-admin-journey.js
+          grep -Fq 'diagnosisApproved' portal-admin-journey.js
+          grep -Fq 'analysis_result' portal-admin-journey.js
+          grep -Fq 'Open Diagnosis Review' portal-admin-journey.js
+          grep -Fq 'Run the Client Diagnosis Agent' portal-admin-journey.js
+          grep -Fq 'Save diagnosis output' portal-diagnosis-result-capture.js
+          grep -Fq 'Approve diagnosis' portal-diagnosis-result-capture.js
+          grep -Fq 'Copy agent packet' portal-diagnosis-result-capture.js
+          grep -Fq 'analysis_result' portal-diagnosis-result-capture.js
+          grep -Fq 'nexus:diagnosis-updated' portal-diagnosis-result-capture.js
       - name: Silent-click and failure-feedback assertions
         run: |
           set -euo pipefail
@@ -57,14 +73,16 @@ jobs:
       - name: Fresh asset loader assertions
         run: |
           set -euo pipefail
-          grep -Fq 'portal-admin-journey.js?v=20260830-2' portal-app.js
+          grep -Fq 'portal-admin-journey.js?v=20260830-3' portal-app.js
           grep -Fq 'portal-action-execution-v2-forms.js?v=20260830-2' portal-app.js
           grep -Fq 'portal-journey-task-guard.js?v=20260830-1' portal-app.js
           grep -Fq 'portal-journey-qaqc.css?v=20260830-1' portal-app.js
+          grep -Fq 'portal-diagnosis-result-capture.js?v=20260830-1' portal-app.js
+          grep -Fq 'portal-diagnosis-result-capture.css?v=20260830-1' portal-app.js
       - name: Browser security assertions
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-admin-journey.js portal-journey-task-guard.js portal-journey-qaqc.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-admin-journey.js portal-journey-task-guard.js portal-journey-qaqc.css portal-diagnosis-result-capture.js; then
             echo 'Privileged credential reference found in browser-delivered journey files.' >&2
             exit 1
           fi
