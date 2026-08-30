@@ -1,0 +1,30 @@
+uth.signInWithPassword({email,password});$('authMsg').textContent=error?error.message:'Signed in.';
+}
+async function signUp(){
+  const email=$('authEmail').value.trim(),password=$('authPassword').value,name=$('authName').value.trim()||'Kato';$('authMsg').textContent='Creating account…';
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name},emailRedirectTo:window.location.origin}});if(error){$('authMsg').textContent=error.message;return}
+  $('authMsg').textContent=data.session?'Account created and signed in.':'Account created. Check your email if confirmation is required, then sign in.';
+}
+
+if($('builderNext'))$('builderNext').onclick=()=>{if(builderStep<3){if(validateStep())showBuilderStep(builderStep+1)}else buildPersonalCurriculum()};
+if($('builderBack'))$('builderBack').onclick=()=>showBuilderStep(builderStep-1);
+if($('rebuildPathBtn'))$('rebuildPathBtn').onclick=()=>{if(!confirm('Rebuild your personal curriculum from new answers? Your previous curriculum remains in history.'))return;$('builderShell').style.display='grid';$('generatedPathHost').style.display='none';showBuilderStep(0)};
+document.querySelectorAll('#pathTabs button').forEach(b=>b.onclick=()=>renderPathTab(b.dataset.pathTab));
+initPathBuilder();
+
+let authMode='login';
+$('loginTab').onclick=()=>{authMode='login';$('nameWrap').style.display='none';$('authSubmit').textContent='Sign in';$('loginTab').className='primary';$('signupTab').className='secondary'};
+$('signupTab').onclick=()=>{authMode='signup';$('nameWrap').style.display='block';$('authSubmit').textContent='Create account';$('loginTab').className='secondary';$('signupTab').className='primary'};
+$('authSubmit').onclick=()=>authMode==='login'?signIn():signUp();
+$('offlineBtn').onclick=()=>{cloud.offline=true;showAuth(false);setAccount();renderAllCloud()};
+$('signOutBtn').onclick=async()=>{await sb.auth.signOut();cloud.session=null;setAccount();showAuth(true)};
+if($('saveSkills'))$('saveSkills').onclick=saveSkills;$('researchRefresh').onclick=refreshResearch;$('researchTopic').onchange=renderResearch;$('saveTrade').onclick=saveTrade;$('tutorSend').onclick=()=>askTutor($('tutorInput').value);$('tutorInput').addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')askTutor($('tutorInput').value)});
+$('saveProfile').onclick=saveProfile;$('missionTrackFilter').onchange=renderMissions;$('missionStatusFilter').onchange=renderMissions;
+$('priorityBtn').onclick=()=>openAction(cloud.recommendation);$('cmdNextBtn').onclick=()=>openAction(cloud.recommendation);
+
+window.HLOCloud=Object.assign(cloud,{syncLesson,syncWeek,recordLegacyQuiz,recordModuleQuiz,startTemplate,setMissionStatus,completeMission,askTutor,startAdaptiveQuiz,refreshResearch});
+boot();
+})();
+</script>
+
+</body></html>
