@@ -5,7 +5,7 @@ export const PUBLIC_CORE_IDS=['M01','M02','M03','M04','M05','M06','M07','M12','M
 export const PRIVATE_SPECIALIZATION_IDS=['M08','M09','M11'];
 export const $=s=>document.querySelector(s);export const $$=s=>[...document.querySelectorAll(s)];
 export function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400)}
-export function esc(v=''){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[m]))}
+export function esc(v=''){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 export function coreModules(){return S.modules.filter(m=>PUBLIC_CORE_IDS.includes(m.id))}
 export function privateModules(){return S.modules.filter(m=>PRIVATE_SPECIALIZATION_IDS.includes(m.id))}
 export function currentView(){return document.querySelector('.view.active')?.id||'dashboard'}
@@ -24,3 +24,4 @@ export async function loadCloud(){if(!S.user)return;const uid=S.user.id;const qu
 export async function loadModules(){const parts=await Promise.all([1,2,3,4,5].map(i=>fetch(`${CFG.assetBase}?asset=modules-${String(i).padStart(2,'0')}.json`,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(`Module asset ${i} failed: ${r.status}`);return r.json()})));S.modules=parts.flat()}
 export async function markModule(id,score=null){if(!S.user){toast('Create a free account to save progress.');return}const old=S.progress.find(x=>x.lesson_id===id);const mastery=Math.max(Number(old?.mastery_score)||0,Number(score)||0);const status=mastery>=85?'mastered':'completed';const row={user_id:S.user.id,lesson_id:id,status,mastery_score:mastery,attempts:(old?.attempts||0)+(score!==null?1:0),started_at:old?.started_at||new Date().toISOString(),completed_at:old?.completed_at||new Date().toISOString(),updated_at:new Date().toISOString()};const {error}=await sb.from('hlo_lesson_progress').upsert(row,{onConflict:'user_id,lesson_id'});if(error)throw error;S.progress=S.progress.filter(x=>x.lesson_id!==id).concat(row);await track('module_progress_saved',{lesson_id:id,status,mastery_score:mastery});toast(status==='mastered'?'Module mastered':'Progress saved')}
 export async function bootSession(){const {data,error}=await sb.auth.getSession();if(error)throw error;S.session=data.session;S.user=data.session?.user||null;return S.user}
+setTimeout(()=>import(`${CFG.assetBase}?asset=experience.js`).catch(e=>console.warn('experience enhancements',e)),0);
