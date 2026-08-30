@@ -4,6 +4,7 @@ const {sb,state,toast,workspace}=portal;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const addressed=s=>['ready','uploaded','build_with_nexus','not_available','not_applicable'].includes(s);
 const complete=s=>['completed','approved','done'].includes(s);
+let scheduled=false;
 
 function inputFor(field,value){const required=field.required?' <em>Required</em>':'';const common=`data-v2-field="${esc(field.key)}" ${field.required?'data-required="true"':''}`;if(field.type==='textarea')return `<label><span>${esc(field.label)}${required}</span><textarea ${common} placeholder="${esc(field.placeholder||'')}">${esc(value??'')}</textarea></label>`;if(field.type==='select'&&Array.isArray(field.options))return `<label><span>${esc(field.label)}${required}</span><select ${common}>${field.options.map(o=>`<option value="${esc(o)}" ${String(value??'')===String(o)?'selected':''}>${esc(o)}</option>`).join('')}</select></label>`;return `<label><span>${esc(field.label)}${required}</span><input ${common} type="${field.type==='date'?'date':'text'}" value="${esc(value??'')}" placeholder="${esc(field.placeholder||'')}"></label>`}
 function blocked(task){if(!task.dependency_task_id)return false;const d=(state.tasks||[]).find(x=>x.id===task.dependency_task_id);return !!d&&!complete(d.status)}
@@ -20,12 +21,13 @@ async function submit(task,card){
  if(missing.length)return toast(`Complete the required field${missing.length===1?'':'s'}: ${missing.join(', ')}.`);
  const {error}=await sb.rpc('nexus_submit_task_for_review',{p_task_id:task.id,p_response_data:data});
  if(error)return toast(error.message||'This item could not be submitted.');
- toast('Submitted to Nexus for review.');await workspace();
+ toast('Submitted to Nexus for review.');await workspace();scheduleSoon();
 }
 
 function adminSummary(task,card){const schema=Array.isArray(task.form_schema)?task.form_schema:[],data=task.response_data||{};if(!schema.length||!Object.keys(data).length)return;const current=card.querySelector('.structured-response-summary');if(current)return;const rows=schema.filter(f=>String(data[f.key]??'').trim()).map(f=>`<div><b>${esc(f.label)}</b><span>${esc(data[f.key])}</span></div>`).join('');if(!rows)return;const el=document.createElement('div');el.className='client-submission-note structured-response-summary';el.innerHTML=`<b>Structured client response</b>${rows}`;const actions=card.querySelector('.action-v2-actions');actions?.before(el)}
 
 function enhance(){
+ scheduled=false;
  document.querySelectorAll('.action-v2-card').forEach(card=>{
    const task=(state.tasks||[]).find(t=>t.id===card.dataset.taskId);if(!task)return;
    if(state.admin){adminSummary(task,card);return}
@@ -37,4 +39,11 @@ function enhance(){
    const submitBtn=card.querySelector('.client-submit-task');if(submitBtn){if(['upload','workflow_evidence'].includes(task.task_type))submitBtn.textContent='Submit uploaded item for review →';submitBtn.onclick=()=>submit(task,card)}
  });
 }
-setInterval(enhance,450);enhance();
+function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(enhance)}
+function scheduleSoon(){schedule();setTimeout(schedule,100);setTimeout(schedule,350)}
+window.addEventListener('load',scheduleSoon);
+window.addEventListener('focus',scheduleSoon);
+document.addEventListener('click',scheduleSoon,true);
+document.addEventListener('change',scheduleSoon,true);
+document.addEventListener('submit',scheduleSoon,true);
+setTimeout(scheduleSoon,120);setTimeout(scheduleSoon,700);setTimeout(scheduleSoon,1500);
