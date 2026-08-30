@@ -107,13 +107,15 @@ jobs:
           set -euo pipefail
           grep -Fq 'preparation_checklist' portal-action-workflow.js
           grep -Fq 'workflow_evidence' portal-action-workflow.js
-          grep -Fq 'structured_form' portal-action-workflow.js
+          grep -Fq 'form_schema' portal-action-workflow.js
           grep -Fq 'embedded-checklist' portal-action-workflow.js
           grep -Fq 'nexus_assign_action_template' portal-action-workflow.js
           grep -Fq 'nexus_action_templates' portal-action-workflow.js
           grep -Fq 'nexus_diagnosis_request_drafts' portal-action-workflow.js
           grep -Fq 'nexus_send_diagnosis_request_draft' portal-action-workflow.js
           grep -Fq 'Nexus has been notified' portal-action-workflow.js
+          grep -Fq 'Save the required action responses before marking this complete.' portal-action-workflow.js
+          grep -Fq 'Address ${remaining.length} remaining checklist item' portal-action-workflow.js
           grep -Fq 'setInterval(()=>reconcile(false).catch(console.error),1200);' portal-action-workflow.js
           if grep -Fq 'new MutationObserver' portal-action-workflow.js; then
             echo 'Operational action workflow must not use a self-observing DOM mutation loop.' >&2
