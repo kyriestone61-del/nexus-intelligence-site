@@ -1,0 +1,132 @@
+name: Nexus Pre-Marketing QAQC
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-diagnosis-override.js'
+      - 'portal-diagnosis-v2.js'
+      - 'portal-diagnosis-v2.css'
+      - 'portal-launch-control.js'
+      - 'launch-readiness.js'
+      - 'snapshot-lifecycle-patch.js'
+      - 'book.html'
+      - 'booking-manage.html'
+      - 'functions/**'
+      - '.github/workflows/pre-marketing-qaqc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pre-marketing-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: JavaScript and Edge syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in portal-app.js portal-diagnosis-override.js portal-diagnosis-v2.js portal-launch-control.js launch-readiness.js snapshot-lifecycle-patch.js functions/_middleware.js functions/sitemap.xml.js functions/robots.txt.js functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js functions/api/opportunity-snapshot.js; do
+            echo "Checking $f"
+            node --input-type=module --check < "$f"
+          done
+
+      - name: Diagnosis execution and review contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "status:'queued'" portal-diagnosis-override.js
+          grep -Fq "nexus-diagnosis-execute" portal-diagnosis-override.js
+          grep -Fq "ready_for_review" portal-diagnosis-v2.js
+          grep -Fq "nexus_approve_diagnosis" portal-diagnosis-v2.js
+          grep -Fq "nexus_request_diagnosis_revision" portal-diagnosis-v2.js
+          grep -Fq "nexus_block_diagnosis" portal-diagnosis-v2.js
+          grep -Fq "nexus_archive_diagnosis" portal-diagnosis-v2.js
+          grep -Fq "portal-diagnosis-override.js" portal-app.js
+          grep -Fq "portal-diagnosis-v2.js" portal-app.js
+
+      - name: Booking contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "/api/booking-availability" book.html
+          grep -Fq "/api/booking-create" book.html
+          grep -Fq "Google Meet" book.html
+          grep -Fq "reschedule_url" book.html
+          grep -Fq "cancel_url" book.html
+          grep -Fq "freeBusy" functions/api/booking-create.js
+          grep -Fq "conferenceData" functions/_lib/google-calendar.js
+          grep -Fq "sendUpdates=all" functions/_lib/google-calendar.js
+          if grep -qi "preferred time" book.html; then echo 'Legacy preferred-time copy still present' >&2; exit 1; fi
+
+      - name: Snapshot lifecycle and attribution contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "marketingOptIn" snapshot-lifecycle-patch.js
+          grep -Fq "first_touch" functions/api/opportunity-snapshot.js
+          grep -Fq "last_touch" functions/api/opportunity-snapshot.js
+          grep -Fq "nexus_analytics_events" launch-readiness.js
+          grep -Fq "utm_campaign" launch-readiness.js
+          grep -Fq "nexus_analytics_consent" launch-readiness.js
+          grep -Fq "portal-launch-control.js" portal-app.js
+
+      - name: SEO and private-indexing contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "Sitemap:" functions/robots.txt.js
+          grep -Fq "application/xml" functions/sitemap.xml.js
+          grep -Fq "X-Robots-Tag" functions/_middleware.js
+          grep -Fq "noindex,nofollow" functions/_middleware.js
+          grep -Fq "canonical" launch-readiness.js
+          grep -Fq "application/ld+json" launch-readiness.js
+          grep -Fq "twitter:card" launch-readiness.js
+
+      - name: Browser secret safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|NEXUS_EMAIL_FROM' portal-diagnosis-override.js portal-diagnosis-v2.js portal-launch-control.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html; then
+            echo 'Server-only credential reference found in browser-delivered source.' >&2
+            exit 1
+          fi
+
+      - name: Nexus-only scope guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -Rni 'statecraft' portal-diagnosis-override.js portal-diagnosis-v2.js portal-launch-control.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js; then
+            echo 'Statecraft reference found in Nexus pre-marketing implementation.' >&2
+            exit 1
+          fi
+
+      - name: Public internal-link file integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re,sys
+          known_dynamic={'/portal','/prospect-workspace','/booking-manage'}
+          failures=[]
+          for p in Path('.').glob('*.html'):
+              text=p.read_text(errors='ignore')
+              for href in re.findall(r'href=["\'](/[^"\'#?]*)',text):
+                  if href=='/' or href.startswith('/api/') or href in known_dynamic: continue
+                  candidate=Path(href.lstrip('/')+'.html')
+                  direct=Path(href.lstrip('/'))
+                  if not candidate.exists() and not direct.exists(): failures.append(f'{p}: {href}')
+          if failures:
+              print('Broken local href targets:')
+              print('\n'.join(sorted(set(failures))))
+              sys.exit(1)
+          print('Internal-link file integrity passed.')
+          PY
