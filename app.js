@@ -186,6 +186,17 @@
     if(authError && message){message.textContent='Email verification could not complete: '+decodeURIComponent(authError.replace(/\+/g,' '))+'. Please return to sign in or request a fresh confirmation email.';message.style.color='#ffb5b5';}
   }
 
+  // Booking success was historically linked straight to the generic client portal.
+  // Route that specific handoff into the prospect evaluation workspace instead.
+  if(location.pathname==='/book'){
+    document.addEventListener('click',event=>{
+      const link=event.target.closest('a[href="/portal"]');
+      if(link && /Continue to My Nexus Workspace/i.test(link.textContent||'')){
+        event.preventDefault();location.href='/prospect-workspace';
+      }
+    });
+  }
+
   const consent=localStorage.getItem('nexus_cookie_consent');
   const banner=document.getElementById('cookieBanner');
   function loadHubSpot(){if(document.getElementById('hs-script-loader'))return;window._hsq=window._hsq||[];const s=document.createElement('script');s.id='hs-script-loader';s.async=true;s.defer=true;s.src='https://js.hs-scripts.com/247215482.js';document.body.appendChild(s);}
