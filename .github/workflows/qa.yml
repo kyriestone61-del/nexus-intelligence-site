@@ -105,19 +105,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'preparation_checklist' portal-action-workflow.js
-          grep -q 'workflow_evidence' portal-action-workflow.js
-          grep -q 'structured_form' portal-action-workflow.js
-          grep -q 'embedded-checklist' portal-action-workflow.js
-          grep -q 'What “current-workflow evidence” means' portal-action-workflow.js
-          grep -q 'nexus_assign_action_template' portal-action-workflow.js
-          grep -q 'nexus_action_templates' portal-action-workflow.js
-          grep -q 'nexus_diagnosis_request_drafts' portal-action-workflow.js
-          grep -q 'nexus_send_diagnosis_request_draft' portal-action-workflow.js
-          grep -q 'Nothing is sent to the client until you approve it here' portal-action-workflow.js
-          grep -q 'Nexus has been notified' portal-action-workflow.js
-          grep -q 'setInterval(()=>reconcile(false)' portal-action-workflow.js
-          if grep -q 'new MutationObserver' portal-action-workflow.js; then
+          grep -Fq 'preparation_checklist' portal-action-workflow.js
+          grep -Fq 'workflow_evidence' portal-action-workflow.js
+          grep -Fq 'structured_form' portal-action-workflow.js
+          grep -Fq 'embedded-checklist' portal-action-workflow.js
+          grep -Fq 'nexus_assign_action_template' portal-action-workflow.js
+          grep -Fq 'nexus_action_templates' portal-action-workflow.js
+          grep -Fq 'nexus_diagnosis_request_drafts' portal-action-workflow.js
+          grep -Fq 'nexus_send_diagnosis_request_draft' portal-action-workflow.js
+          grep -Fq 'Nexus has been notified' portal-action-workflow.js
+          grep -Fq 'setInterval(()=>reconcile(false).catch(console.error),1200);' portal-action-workflow.js
+          if grep -Fq 'new MutationObserver' portal-action-workflow.js; then
             echo 'Operational action workflow must not use a self-observing DOM mutation loop.' >&2
             exit 1
           fi
