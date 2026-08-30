@@ -1,0 +1,129 @@
+Id('careerOut').innerHTML=`<span class="score">${Math.round(avg)}/100</span><br><b>Next evidence mission:</b> ${low[0]} (${low[1]}/5). Build one concrete artifact or experience that moves this score up.`;
+}
+function gate(container,outEl){
+  const boxes=[...document.querySelectorAll(`#${container} input[type=checkbox]`)], n=boxes.filter(x=>x.checked).length;
+  const pct=Math.round(n/boxes.length*100); let msg=pct===100?'Gate complete on this checklist. Still validate use-case-specific risks.':pct>=70?'Not production-ready yet. Close the missing controls before increasing autonomy.':'Prototype stage only. Too many controls are missing.';
+  document.getElementById(outEl).innerHTML=`<span class="score">${pct}%</span><br>${msg}`;
+}
+function calcTradeGate(){gate('tradeGate','tradeGateOut')} function calcRiskGate(){gate('riskGate','riskGateOut')}
+function calcPersonal(){
+  const items=[['Domain expertise',+document.getElementById('p1').value],['Judgment / verification',+document.getElementById('p2').value],['Systems / automation',+document.getElementById('p3').value],['Sales / relationships',+document.getElementById('p4').value],['Distribution / audience',+document.getElementById('p5').value],['Owned IP / data / assets',+document.getElementById('p6').value]];
+  const low=[...items].sort((a,b)=>a[1]-b[1])[0]; const avg=Math.round(items.reduce((s,x)=>s+x[1],0)/(items.length*5)*100);
+  document.getElementById('personalOut').innerHTML=`<span class="score">${avg}/100</span><br><b>Current bottleneck:</b> ${low[0]} (${low[1]}/5). Your next 30-day project should create evidence here.`;
+}
+
+function renderWeeks(){
+  document.getElementById('weekList').innerHTML=WEEKS.map((w,i)=>`<div class="week"><b>${w[0]}</b><span class="gold">${w[1]}</span><span>${w[2]}</span><label><input type="checkbox" ${state.weeks[i]?'checked':''} onchange="toggleWeek(${i},this.checked)"> Done</label></div>`).join('');
+}
+function toggleWeek(i,v){state.weeks[i]=v;localStorage.setItem('hlo_weeks',JSON.stringify(state.weeks));updateProgress();if(window.HLOCloud?.syncWeek)window.HLOCloud.syncWeek(i,v)}
+
+let qi=0, qscore=0, locked=false;
+function renderQuiz(){
+  if(qi>=QUIZ.length){
+    const pct=Math.round(qscore/QUIZ.length*100);
+    if(pct>state.quizBest){state.quizBest=pct;localStorage.setItem('hlo_quizbest',pct)}
+    document.getElementById('quizBox').innerHTML=`<div class="eyebrow">Result</div><h2>${pct}%</h2><p>${pct>=80?'Strong. Move from comprehension into application and case-building.':'Retake after reviewing the lessons tied to your misses.'}</p><button class="primary" onclick="restartQuiz()">Retake</button>`;
+    updateProgress(); if(window.HLOCloud?.recordLegacyQuiz) window.HLOCloud.recordLegacyQuiz(pct); return;
+  }
+  const q=QUIZ[qi];
+  document.getElementById('quizBox').innerHTML=`<div class="muted small">Question ${qi+1} of ${QUIZ.length}</div><h2>${q.q}</h2><div id="choices">${q.choices.map((c,i)=>`<button class="quizChoice" onclick="answerQuiz(${i},this)">${c}</button>`).join('')}</div><div id="explain"></div>`;
+  locked=false;
+}
+function answerQuiz(i,btn){
+  if(locked)return; locked=true; const q=QUIZ[qi];
+  [...document.querySelectorAll('.quizChoice')].forEach((b,j)=>{if(j===q.a)b.classList.add('correct'); else if(j===i)b.classList.add('wrong')});
+  if(i===q.a)qscore++;
+  document.getElementById('explain').innerHTML=`<div class="callout">${q.ex}</div><button class="primary" onclick="nextQuiz()">Next</button>`;
+}
+function nextQuiz(){qi++;renderQuiz()} function restartQuiz(){qi=0;qscore=0;renderQuiz()}
+
+function renderSources(){
+  document.getElementById('sourceList').innerHTML=SOURCES.map(s=>`<div class="source-item"><a href="${s.url}" target="_blank" rel="noopener">${s.title}</a><div class="note">${s.note}</div></div>`).join('');
+}
+
+renderAcademy();
+renderTrack('Nexus Intelligence','nexusLessons');
+renderTrack('Statecraft','statecraftLessons');
+renderTrack('Career','careerLessons');
+renderTrack('Trading','tradingLessons');
+renderWeeks(); renderQuiz(); renderSources(); updateProgress();
+window.HLOCore={LESSONS,SOURCES,WEEKS,state,go,renderAcademy,renderTrack,renderWeeks,updateProgress,lessonCard};
+</script>
+
+<script>
+(function(){
+const URL='https://dmdgkjksouhhsuojthav.supabase.co';
+const KEY='sb_publishable_-bZLK1vmL0eUMz65A6EUsw_I20LBq2B';
+const sb = window.supabase?.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const C=window.HLOCore;
+const cloud={
+  session:null, profile:null, progress:[], quizzes:[], skills:[], missions:[], templates:[], research:[], trades:[], certs:[], plan:[], questions:[],
+  isOwner:false, intakes:[], curricula:[], customProgress:[], agentRuns:[], activeCurriculum:null,
+  recommendation:null, offline:false, adaptive:{items:[],idx:0,score:0,answers:[],weak:[]}, threadId:null
+};
+window.HLOCloud=cloud;
+const SKILLS=[
+ ['ai_fluency','Core Academy','AI systems literacy'],['verification','Core Academy','Judgment & verification'],['workflow_architecture','Nexus Intelligence','Workflow architecture'],
+ ['agents_governance','Nexus Intelligence','Agents, security & governance'],['consulting_sales','Nexus Intelligence','Consulting, trust & sales'],
+ ['statecraft_product','Statecraft','Statecraft product thinking'],['distribution','Statecraft','Distribution & educational content'],
+ ['estimating','Career','Estimating / preconstruction'],['bim_data','Career','BIM, data & contech fluency'],['career_positioning','Career','Career proof & positioning'],
+ ['trading_research','Trading','Trading research & backtesting'],['risk_discipline','Trading','Risk process & discipline'],['ownership','Core Academy','Productization & ownership'],['capital_allocation','Core Academy','Capital-cycle / infrastructure analysis']
+];
+
+const $=id=>document.getElementById(id);
+function toast(msg='Synced'){const el=$('syncToast'); if(!el)return;el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1600)}
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function num(v){const n=Number(v);return Number.isFinite(n)?n:null}
+function dateFmt(v){if(!v)return '—';try{return new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric'}).format(new Date(v))}catch{return v}}
+function signedIn(){return !!cloud.session?.user}
+function userId(){return cloud.session?.user?.id}
+function currentLevel(){
+  const p=completionPct();
+  if(p>=90)return 'allocator'; if(p>=70)return 'owner'; if(p>=45)return 'architect'; if(p>=20)return 'operator'; return 'beginner';
+}
+function completionPct(){const ls=cloud.isOwner?C.LESSONS:C.LESSONS.filter(x=>x.track==='Core Academy');return Math.round(ls.filter(x=>C.state.done[x.id]).length/Math.max(1,ls.length)*100)}
+function lessonById(id){return C.LESSONS.find(x=>x.id===id)}
+function progressFor(id){return cloud.progress.find(x=>x.lesson_id===id)}
+function showAuth(show=true){$('authGate')?.classList.toggle('hidden',!show)}
+function setAccount(){
+  const dot=$('accountDot'), label=$('accountLabel'), sign=$('signOutBtn'), cs=$('cloudStatus');
+  if(signedIn()){dot?.classList.add('good');if(label)label.textContent=cloud.profile?.display_name||cloud.session.user.email||'Cloud account';if(sign)sign.style.display='inline-block';if(cs)cs.textContent='Cloud synced'}
+  else{dot?.classList.remove('good');if(label)label.textContent=cloud.offline?'Local preview':'Signed out';if(sign)sign.style.display='none';if(cs)cs.textContent=cloud.offline?'Local preview':'Cloud offline'}
+}
+async function boot(){
+  if(!sb){$('authMsg').textContent='Supabase client failed to load. Use local preview or open the hosted version.';return}
+  const {data}=await sb.auth.getSession(); cloud.session=data.session;
+  if(cloud.session){showAuth(false);await hydrate()} else showAuth(true);
+  sb.auth.onAuthStateChange(async(_event,session)=>{cloud.session=session;if(session){showAuth(false);await hydrate()}else{setAccount();showAuth(true)}})
+}
+async function hydrate(){
+  if(!signedIn())return;
+  setAccount();
+  const uid=userId();
+  const results=await Promise.all([
+    sb.from('hlo_profiles').select('*').eq('user_id',uid).maybeSingle(),
+    sb.from('hlo_lesson_progress').select('*').eq('user_id',uid),
+    sb.from('hlo_quiz_attempts').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(50),
+    sb.from('hlo_skill_scores').select('*').eq('user_id',uid),
+    sb.from('hlo_missions').select('*').eq('user_id',uid).order('priority',{ascending:true}).order('created_at',{ascending:false}),
+    sb.from('hlo_mission_templates').select('*').eq('active',true),
+    sb.from('hlo_question_bank').select('*').eq('active',true),
+    sb.from('hlo_research_items').select('*').order('importance',{ascending:false}).order('published_at',{ascending:false}),
+    sb.from('hlo_trading_logs').select('*').eq('user_id',uid).order('occurred_at',{ascending:false}).limit(100),
+    sb.from('hlo_certificates').select('*').eq('user_id',uid),
+    sb.from('hlo_plan_progress').select('*').eq('user_id',uid).eq('plan_id','12-week-ascension'),
+    sb.from('hlo_owner_users').select('user_id').eq('user_id',uid).maybeSingle(),
+    sb.from('hlo_personalization_intakes').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(10),
+    sb.from('hlo_custom_curricula').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(10),
+    sb.from('hlo_custom_module_progress').select('*').eq('user_id',uid),
+    sb.from('hlo_curriculum_agent_runs').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(100)
+  ]);
+  const firstError=results.find(r=>r.error)?.error;
+  if(firstError){console.error(firstError);toast('Cloud read error');return}
+  cloud.profile=results[0].data;
+  cloud.progress=results[1].data||[];
+  cloud.quizzes=results[2].data||[];
+  cloud.skills=results[3].data||[];
+  cloud.missions=results[4].data||[];
+  cloud.templates=results[5].data||[];
+  cloud.questions=results[6
