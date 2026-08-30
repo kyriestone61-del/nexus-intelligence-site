@@ -1,0 +1,131 @@
+ quiz: ${p.quiz}%</span>
+      <span class="pill">${p.mastered?'Mastery gate met':'Mastery target: units + 80% quiz'}</span>
+    </div>
+    <h3 style="margin-top:18px">Learning objectives</h3>
+    <div class="module-objectives">${m.objectives.map(x=>`<div class="module-objective">${x}</div>`).join('')}</div>
+  </div>
+
+  ${m.sections.map((s,i)=>`<details class="academy-section" ${i===0?'open':''}>
+    <summary>${s.heading}</summary><div class="section-body">
+      ${(s.paragraphs||[]).map(p=>`<p>${p}</p>`).join('')}
+      ${s.bullets?`<ul>${s.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}
+    </div>
+  </details>`).join('')}
+
+  <div class="card">
+    <div class="eyebrow">Apply it to your world</div>
+    <h2>Four-track translation</h2>
+    <div class="application-grid">${((window.HLOCloud?.isOwner===false)?[['Your Personal Path','Use Build My Path to translate this principle into your own goal, domain and current project. The universal rule remains the same: machine execution should increase—not erase—your human judgment and ownership.']]:Object.entries(m.applications)).map(([k,v])=>`<div class="application-card"><b>${k}</b><span>${v}</span></div>`).join('')}</div>
+  </div>
+
+  ${videos.map(v=>`<div class="video-card">
+    <div class="video-frame"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/${v.id}" title="${v.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+    <div><div class="eyebrow">Short video lesson</div><h3>${v.title}</h3><div class="muted small">${v.channel}</div><p class="muted">${v.note}</p><a class="secondary" style="display:inline-block;text-decoration:none" href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">Open on YouTube</a></div>
+  </div>`).join('')}
+
+  <div class="card">
+    <div class="eyebrow">Practical lab</div><h2>Produce evidence</h2>
+    <div class="callout">${m.exercise}</div>
+  </div>
+
+  <div class="grid2" style="margin-top:12px">
+    <div class="card">
+      <div class="eyebrow">Related units</div><h3>Mark work complete</h3>
+      <div class="unit-checklist">${m.lessonIds.map(id=>{
+        const l=LESSONS.find(x=>x.id===id);return `<label class="unit-check"><input type="checkbox" ${state.done[id]?'checked':''} onchange="toggleLesson('${id}',this.checked);renderAcademy()"><span><b>${id} · ${l?.title||id}</b><br><span class="small muted">${l?.summary||''}</span></span></label>`;
+      }).join('')}</div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Mastery checklist</div><h3>You should be able to…</h3>
+      <div class="module-master-grid">${m.mastery.map(x=>`<div class="module-master-item">✓ ${x}</div>`).join('')}</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="eyebrow">Vocabulary</div><h3>Terms to own</h3>
+    <div class="glossary-grid">${m.glossary.map(([t,d])=>`<div class="glossary-item"><b>${t}</b><span class="small">${d}</span></div>`).join('')}</div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="eyebrow">Research base</div><h3>Go deeper</h3>
+    <p class="muted small">These sources extend and verify the ideas from your uploaded briefing. Use the primary/high-authority source when a number or claim affects a real decision.</p>
+    <div>${academySourceLinks(m.sources)}</div>
+  </div>
+
+  <div id="moduleQuizHost" class="module-quiz"></div>`;
+  renderModuleQuizStart(m.id);
+}
+function renderModuleQuizStart(moduleId){
+  const host=document.getElementById('moduleQuizHost'),m=ACADEMY_MODULES.find(x=>x.id===moduleId);if(!host||!m)return;
+  const prev=Number(academyQuizScores[moduleId]||0);
+  host.innerHTML=`<div class="eyebrow">Module knowledge check</div><h2>${m.quiz.length}-question quiz</h2><p class="muted">Target: 80%+. Explanations appear after every answer. Your best score is retained.</p>${prev?`<div class="pill">Best score: ${prev}%</div>`:''}<br><button class="primary" onclick="startModuleQuiz('${moduleId}')">${prev?'Retake module quiz':'Start module quiz'}</button>`;
+}
+function startModuleQuiz(moduleId){
+  const m=ACADEMY_MODULES.find(x=>x.id===moduleId);if(!m)return;
+  academyQuizState={moduleId,idx:0,score:0,answers:[]};renderModuleQuizQuestion();
+}
+window.startModuleQuiz=startModuleQuiz;
+function renderModuleQuizQuestion(){
+  const s=academyQuizState,host=document.getElementById('moduleQuizHost');if(!s||!host)return;
+  const m=ACADEMY_MODULES.find(x=>x.id===s.moduleId);if(s.idx>=m.quiz.length)return finishModuleQuiz();
+  const q=m.quiz[s.idx];
+  host.innerHTML=`<div class="small muted">${m.id} · Question ${s.idx+1} of ${m.quiz.length}</div><h3>${q.q}</h3>${q.choices.map((c,i)=>`<button class="module-quiz-choice" onclick="answerModuleQuiz(${i})">${c}</button>`).join('')}<div id="moduleQuizExplain"></div>`;
+}
+function answerModuleQuiz(i){
+  const s=academyQuizState,m=ACADEMY_MODULES.find(x=>x.id===s.moduleId),q=m.quiz[s.idx],correct=i===q.a;
+  if(correct)s.score++;s.answers.push({question:s.idx,selected:i,correct});
+  [...document.querySelectorAll('.module-quiz-choice')].forEach((b,j)=>{b.disabled=true;if(j===q.a)b.classList.add('correct');else if(j===i)b.classList.add('wrong')});
+  const e=document.getElementById('moduleQuizExplain');e.innerHTML=`<div class="callout"><b>${correct?'Correct':'Not quite'}.</b> ${q.ex}</div><button class="primary" onclick="nextModuleQuizQuestion()">Continue</button>`;
+}
+window.answerModuleQuiz=answerModuleQuiz;
+function nextModuleQuizQuestion(){academyQuizState.idx++;renderModuleQuizQuestion()}
+window.nextModuleQuizQuestion=nextModuleQuizQuestion;
+function finishModuleQuiz(){
+  const s=academyQuizState,m=ACADEMY_MODULES.find(x=>x.id===s.moduleId),host=document.getElementById('moduleQuizHost');
+  const pct=Math.round(s.score/m.quiz.length*100),best=Math.max(Number(academyQuizScores[m.id]||0),pct);
+  academyQuizScores[m.id]=best;localStorage.setItem('hlo_module_quiz_scores',JSON.stringify(academyQuizScores));
+  host.innerHTML=`<div class="eyebrow">Module result</div><div class="score">${pct}%</div><p>${pct>=80?'Knowledge gate passed. Now make sure the applied exercise and related units are complete.':'Review the deep lessons and retake. Treat mistakes as a map of what to study next.'}</p><button class="primary" onclick="startModuleQuiz('${m.id}')">Retake</button>`;
+  if(window.HLOCloud?.recordModuleQuiz)window.HLOCloud.recordModuleQuiz(m.id,pct,s.answers,m.level);
+  renderAcademy();
+}
+document.querySelectorAll('#academyStageStrip button').forEach(b=>b.onclick=()=>{
+  academyStageFilter=b.dataset.stage||'';
+  document.querySelectorAll('#academyStageStrip button').forEach(x=>x.classList.toggle('active',x===b));
+  renderAcademy();
+});
+document.getElementById('academyOverviewBtn').onclick=renderAcademyOverview;
+
+
+function toggleLesson(id,val){
+  state.done[id]=val; localStorage.setItem('hlo_done',JSON.stringify(state.done));
+  updateProgress();
+  if(window.HLOCloud?.syncLesson) window.HLOCloud.syncLesson(id,val);
+}
+function updateProgress(){
+  const visibleLessons=(window.HLOCloud?.isOwner===false)?LESSONS.filter(l=>l.track==='Core Academy'):LESSONS;
+  const done=visibleLessons.filter(l=>state.done[l.id]).length;
+  const wd=WEEKS.filter((w,i)=>state.weeks[i]).length;
+  const pct=Math.round((done/Math.max(1,visibleLessons.length))*100);
+  document.getElementById('lessonsDone').textContent=`${done}/${visibleLessons.length}`;
+  document.getElementById('weeksDone').textContent=`${wd}/${WEEKS.length}`;
+  document.getElementById('quizBest').textContent=state.quizBest?`${state.quizBest}%`:'—';
+  document.getElementById('overallPct').textContent=pct+'%';
+  document.getElementById('overallBar').style.width=pct+'%';
+}
+function money(x){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(x)}
+function calcROI(){
+  const f=+document.getElementById('roiFreq').value,m=+document.getElementById('roiMin').value,r=+document.getElementById('roiRate').value,a=+document.getElementById('roiAuto').value/100,b=+document.getElementById('roiBuild').value,mo=+document.getElementById('roiMonthly').value;
+  const annualLabor=f*52*m/60*r, recovered=annualLabor*a, recurring=mo*12, net=recovered-b-recurring;
+  const monthlyBenefit=recovered/12-mo; const payback=monthlyBenefit>0?b/monthlyBenefit:null;
+  document.getElementById('roiOut').innerHTML=`<b>Baseline annual labor value:</b> ${money(annualLabor)}<br><b>Recoverable gross value:</b> ${money(recovered)}<br><b>First-year net value:</b> ${money(net)}<br><b>Estimated payback:</b> ${payback?payback.toFixed(1)+' months':'Not reached'}<p class="note">Now challenge the automation %, loaded labor rate, exception rate and adoption assumptions before using this in a proposal.</p>`;
+}
+function calcHuman(){
+  const vals=['hp1','hp2','hp3','hp4','hp5'].map(id=>+document.getElementById(id).value); const rep=+document.getElementById('hp6').value;
+  const raw=(vals.reduce((a,b)=>a+b,0)-rep+5)/25*100; const score=Math.max(0,Math.min(100,Math.round(raw)));
+  let txt=score>=75?'High human premium: emphasize judgment, trust and accountability.':score>=50?'Hybrid zone: automate routine layers while deliberately owning the judgment layer.':'High automation exposure: move upward toward decisions, relationships, exceptions or system ownership.';
+  document.getElementById('humanOut').innerHTML=`<span class="score">${score}/100</span><br>${txt}`;
+}
+function calcCareer(){
+  const items=[['Estimating fundamentals',+document.getElementById('c1').value],['AI/workflow fluency',+document.getElementById('c2').value],['Scope/risk judgment',+document.getElementById('c3').value],['BIM/data fluency',+document.getElementById('c4').value],['Client/sub proof',+document.getElementById('c5').value],['Portfolio case studies',+document.getElementById('c6').value]];
+  const avg=items.reduce((s,x)=>s+x[1],0)/(items.length*5)*100; const low=[...items].sort((a,b)=>a[1]-b[1])[0];
+  document.getElementBy
