@@ -34,8 +34,11 @@ Move the public Nexus website and client portal off Vercel Hobby onto Cloudflare
 6. Test a fresh account signup, email confirmation, sign-in, workspace access, document upload/download, tasks, milestones, and metrics on Cloudflare.
 7. Once verified, use Cloudflare as the public production host. Keep Vercel only as a temporary rollback target until the migration is accepted, then retire the Vercel production path before commercial launch.
 
-## Important portal note
-The current portal signup code still references the Vercel portal URL for `emailRedirectTo`. This must be changed to use the active site origin before Cloudflare becomes the sole production host. Do not retire Vercel until that change and the complete auth test are finished.
+## Portal authentication status
+The portal now derives its signup confirmation redirect from the active origin (`${location.origin}/portal`) rather than a hard-coded Vercel hostname. That makes the browser-side auth flow host-agnostic. The Supabase Auth Site URL and redirect allowlist still must contain the final production origin before cutover, and a fresh-account confirmation test remains mandatory before retiring the rollback host.
+
+## Runtime configuration that must be verified before launch
+Cloudflare deployment alone does not configure the server-side integrations. Before the production cutover is accepted, verify the required runtime configuration for transactional email, booking/calendar access, and the Client Diagnosis Agent. A deployment is not considered launch-ready if the Nexus health dashboard reports those integrations as failed or degraded.
 
 ## Cost posture
-This site is predominantly static, so Cloudflare Pages static asset delivery should remain on the free path. Supabase continues to provide authentication, database, and private file storage. Pages Functions/Workers should only be introduced when a feature actually requires server-side execution.
+This site is predominantly static, so Cloudflare Pages static asset delivery should remain on the free path. Supabase continues to provide authentication, database, private file storage, scheduled workers, and the secured Client Diagnosis Agent. Pages Functions/Workers should only be introduced when a feature actually requires server-side execution.
