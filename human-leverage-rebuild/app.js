@@ -10,9 +10,11 @@ import{renderFrontier,renderOpportunities,renderLeverage}from'https://dmdgkjksou
 import{renderOwner,renderEmpire,renderAccount}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=owner.js';
 import{initExperience}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=experience-v2.js';
 
+function ensureMobileStyles(){if(document.getElementById('hloMobileFixes'))return;const l=document.createElement('link');l.id='hloMobileFixes';l.rel='stylesheet';l.href='https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=mobile-fixes.css';document.head.appendChild(l)}
 function ensureSection(id){if(document.getElementById(id))return;const s=document.createElement('section');s.id=id;s.className='view';document.querySelector('main.main')?.appendChild(s)}
 function addButton(parent,id,label,before=null,cls=''){if(!parent||document.querySelector(`[data-view="${id}"]`))return;const b=document.createElement('button');b.dataset.view=id;b.textContent=label;if(cls)b.className=cls;before?parent.insertBefore(b,before):parent.appendChild(b)}
 function ensureArchitecture(){
+ ensureMobileStyles();
  document.title='Human OS — Stay Ahead of AI, Automation & Robotics';const meta=document.querySelector('meta[name="description"]');if(meta)meta.content='Human OS teaches you to understand, anticipate and capitalize on AI, automation and robotics through adaptive learning, frontier intelligence, applied experiments and durable ownership.';
  document.querySelectorAll('[data-view="career"],[data-view="trading"],#career,#trading').forEach(x=>x.remove());document.querySelectorAll('.subfolder').forEach(x=>{if(!x.querySelector('[data-view]'))x.remove()});
  ['frontier','opportunities','leverage','empire'].forEach(ensureSection);
