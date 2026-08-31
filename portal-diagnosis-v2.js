@@ -2,12 +2,12 @@
   const portal=window.NexusPortal;
   if(!portal)return;
   const {sb,state,toast}=portal;
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const arr=v=>Array.isArray(v)?v:[];
   const title=s=>String(s||'').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase());
   const providerMissing=run=>String(run?.execution_error||'').includes('AI_GATEWAY_NOT_CONFIGURED');
   const executionMessage=run=>providerMissing(run)
-    ? 'Automatic diagnosis is not connected yet because the Nexus AI Gateway credential has not been configured. Your transcript and supporting files are still saved. Configure AI_GATEWAY_API_KEY before running this diagnosis again.'
+    ? 'Automatic diagnosis is not connected yet because the Nexus AI Gateway provider credential has not been configured. Your transcript and supporting files are still saved. Configure the server-side AI Gateway connection before running this diagnosis again.'
     : String(run?.execution_error||'');
 
   function ensureModal(){
