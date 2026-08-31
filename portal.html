@@ -4,11 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://js.hs-scripts.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https://dmdgkjksouhhsuojthav.supabase.co wss://dmdgkjksouhhsuojthav.supabase.co https://*.hubspot.com https://*.hubapi.com; worker-src 'self' blob:; upgrade-insecure-requests">
 <title>Client Control Room | Nexus Intelligence</title>
 <meta name="description" content="Secure Nexus Intelligence client control room for preparation, files, decisions, actions, implementation progress, and measured improvement.">
-<link rel="stylesheet" href="/styles.css">
-<link rel="stylesheet" href="/portal-ops.css">
-<link rel="stylesheet" href="/portal-v2.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/styles.css?v=20260831-security1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-ops.css?v=20260831-security1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-v2.css?v=20260831-security1">
+<script type="importmap">
+{
+  "imports": {
+    "/portal-auth.js": "https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-auth.js?v=20260831-security1",
+    "/portal-ops.js": "https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-ops.js?v=20260831-security1",
+    "https://cdn.jsdelivr.net/portal-auth.js": "https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-auth.js?v=20260831-security1",
+    "https://cdn.jsdelivr.net/portal-ops.js": "https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-ops.js?v=20260831-security1"
+  }
+}
+</script>
 </head>
 <body class="portal-body">
 
@@ -45,7 +57,7 @@
           <div class="field"><label>Company name</label><input id="createCompany" autocomplete="organization" required></div>
           <div class="field"><label>Company website <span class="small">(optional)</span></label><input id="createWebsite" type="url" placeholder="https://"></div>
           <div class="field"><label>Email</label><input id="createEmail" type="email" autocomplete="email" required></div>
-          <div class="field"><label>Password</label><input id="createPassword" type="password" minlength="8" autocomplete="new-password" required></div>
+          <div class="field"><label>Password</label><input id="createPassword" type="password" minlength="12" autocomplete="new-password" required></div>
           <div class="actions"><button id="createBtn" class="btn primary" type="submit">Create account →</button></div>
         </form>
       </div>
@@ -158,6 +170,7 @@
 <div id="documentRequestModal" class="modal"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Request a client item</h2><button class="btn secondary close" type="button">Close</button></div><form id="documentRequestForm"><div class="field"><label>What do you need?</label><input id="requestDocTitle" required></div><div class="field"><label>Why is it needed?</label><textarea id="requestDocPurpose" placeholder="Explain the decision, workflow, or measurement this will support."></textarea></div><div class="field"><label>Good examples</label><textarea id="requestDocExamples" placeholder="Give the client examples of acceptable evidence."></textarea></div><div class="field"><label>Privacy / redaction guidance</label><textarea id="requestDocPrivacy" placeholder="What should the client remove or avoid sharing?"></textarea></div><div class="form-grid"><div class="field"><label>Sensitivity</label><select id="requestDocSensitivity"><option value="standard">Standard</option><option value="confidential">Confidential</option></select></div><div class="field"><label>Requested by</label><input id="requestDocDue" type="date"></div></div><div class="actions"><button class="btn primary" type="submit">Send request →</button></div></form></div></div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script type="module" src="/portal-app.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-security-hardening.js?v=20260831-security1"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-app.js?v=20260831-security1"></script>
 </body>
 </html>

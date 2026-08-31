@@ -1,46 +1,49 @@
+const NEXUS_ASSET_ORIGIN='https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main';
+const asset=path=>`${NEXUS_ASSET_ORIGIN}/${String(path||'').replace(/^\//,'')}`;
+
 const layoutFix=document.createElement('link');
 layoutFix.rel='stylesheet';
-layoutFix.href='/portal-layout-fix.css?v=20260830-3';
+layoutFix.href=asset('portal-layout-fix.css?v=20260831-security1');
 document.head.appendChild(layoutFix);
 
 const simplifyStyles=document.createElement('link');
 simplifyStyles.rel='stylesheet';
-simplifyStyles.href='/portal-simplify.css?v=20260830-3';
+simplifyStyles.href=asset('portal-simplify.css?v=20260831-security1');
 document.head.appendChild(simplifyStyles);
 
 const adminIntakeStyles=document.createElement('link');
 adminIntakeStyles.rel='stylesheet';
-adminIntakeStyles.href='/portal-admin-intake.css?v=20260830-3';
+adminIntakeStyles.href=asset('portal-admin-intake.css?v=20260831-security1');
 document.head.appendChild(adminIntakeStyles);
 
 const diagnosisWorkflowStyles=document.createElement('link');
 diagnosisWorkflowStyles.rel='stylesheet';
-diagnosisWorkflowStyles.href='/portal-diagnosis-v2.css?v=20260830-1';
+diagnosisWorkflowStyles.href=asset('portal-diagnosis-v2.css?v=20260831-security1');
 document.head.appendChild(diagnosisWorkflowStyles);
 
 const actionWorkflowStyles=document.createElement('link');
 actionWorkflowStyles.rel='stylesheet';
-actionWorkflowStyles.href='/portal-action-workflow.css?v=20260830-2';
+actionWorkflowStyles.href=asset('portal-action-workflow.css?v=20260831-security1');
 document.head.appendChild(actionWorkflowStyles);
 
 const actionExecutionStyles=document.createElement('link');
 actionExecutionStyles.rel='stylesheet';
-actionExecutionStyles.href='/portal-action-execution-v2.css?v=20260830-1';
+actionExecutionStyles.href=asset('portal-action-execution-v2.css?v=20260831-security1');
 document.head.appendChild(actionExecutionStyles);
 
 const guidedOpsStyles=document.createElement('link');
 guidedOpsStyles.rel='stylesheet';
-guidedOpsStyles.href='/portal-guided-ops.css?v=20260830-1';
+guidedOpsStyles.href=asset('portal-guided-ops.css?v=20260831-security1');
 document.head.appendChild(guidedOpsStyles);
 
 const adminJourneyStyles=document.createElement('link');
 adminJourneyStyles.rel='stylesheet';
-adminJourneyStyles.href='/portal-admin-journey.css?v=20260830-2';
+adminJourneyStyles.href=asset('portal-admin-journey.css?v=20260831-security1');
 document.head.appendChild(adminJourneyStyles);
 
 const journeyQaqcStyles=document.createElement('link');
 journeyQaqcStyles.rel='stylesheet';
-journeyQaqcStyles.href='/portal-journey-qaqc.css?v=20260830-1';
+journeyQaqcStyles.href=asset('portal-journey-qaqc.css?v=20260831-security1');
 document.head.appendChild(journeyQaqcStyles);
 
 await Promise.all([
@@ -83,13 +86,13 @@ async function optionalImportWithoutRecurringIntervals(url,blockedDelays=[]){
 }
 
 try{
-  await import('/portal-client.js?v=20260830-4');
+  await import(asset('portal-client.js?v=20260831-security1'));
 }catch(error){
   showCoreLoadFailure(error);
   throw error;
 }
 
-await optionalImportWithoutRecurringIntervals('/portal-simplify.js?v=20260830-4',[1200]);
+await optionalImportWithoutRecurringIntervals(asset('portal-simplify.js?v=20260831-security1'),[1200]);
 
 // portal-admin-intake already has explicit auth/company reconciliation hooks.
 // Its legacy DOM observer can react to its own badge changes indefinitely, so
@@ -102,23 +105,23 @@ window.MutationObserver=class NexusPortalNoopObserver{
   takeRecords(){return []}
 };
 try{
-  await import('/portal-admin-intake.js?v=20260830-3');
+  await import(asset('portal-admin-intake.js?v=20260831-security1'));
 }catch(error){
-  console.error('Optional Nexus portal module failed to load: /portal-admin-intake.js',error);
+  console.error('Optional Nexus portal module failed to load: portal-admin-intake.js',error);
 }finally{
   window.MutationObserver=NativeMutationObserver;
 }
 
 // Secured diagnosis enhancements are non-core: a failure here must not prevent
 // the authenticated workspace, files, tasks, or navigation from loading.
-await optionalImport('/portal-diagnosis-override.js?v=20260830-2');
-await optionalImport('/portal-diagnosis-v2.js?v=20260830-1');
+await optionalImport(asset('portal-diagnosis-override.js?v=20260831-security1'));
+await optionalImport(asset('portal-diagnosis-v2.js?v=20260831-security1'));
 
-await optionalImportWithoutRecurringIntervals('/portal-action-workflow.js?v=20260830-3',[1200]);
-await optionalImportWithoutRecurringIntervals('/portal-action-execution-v2.js?v=20260830-2',[900]);
-await optionalImport('/portal-action-execution-v2-forms.js?v=20260830-2');
-await optionalImport('/portal-guided-ops.js?v=20260830-1');
-await optionalImport('/portal-admin-journey.js?v=20260830-3');
-await optionalImport('/portal-admin-journey-router.js?v=20260830-1');
-await optionalImport('/portal-journey-task-guard.js?v=20260830-1');
-await optionalImport('/portal-launch-control.js?v=20260830-1');
+await optionalImportWithoutRecurringIntervals(asset('portal-action-workflow.js?v=20260831-security1'),[1200]);
+await optionalImportWithoutRecurringIntervals(asset('portal-action-execution-v2.js?v=20260831-security1'),[900]);
+await optionalImport(asset('portal-action-execution-v2-forms.js?v=20260831-security1'));
+await optionalImport(asset('portal-guided-ops.js?v=20260831-security1'));
+await optionalImport(asset('portal-admin-journey.js?v=20260831-security1'));
+await optionalImport(asset('portal-admin-journey-router.js?v=20260831-security1'));
+await optionalImport(asset('portal-journey-task-guard.js?v=20260831-security1'));
+await optionalImport(asset('portal-launch-control.js?v=20260831-security1'));
