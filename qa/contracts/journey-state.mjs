@@ -4,6 +4,7 @@ export const TASK_STATUS = Object.freeze({
   WAITING_ON_NEXUS:'waiting_on_nexus',
   IN_PROGRESS:'in_progress',
   READY_FOR_REVIEW:'ready_for_review',
+  NEEDS_REVISION:'needs_revision',
   BLOCKED:'blocked',
   COMPLETED:'completed',
   NOT_APPLICABLE:'not_applicable'
@@ -56,6 +57,7 @@ const TASK_ALIASES = new Map([
   ['nexus',TASK_STATUS.WAITING_ON_NEXUS],
   ['in_progress',TASK_STATUS.IN_PROGRESS],
   ['ready_for_review',TASK_STATUS.READY_FOR_REVIEW],
+  ['needs_revision',TASK_STATUS.NEEDS_REVISION],
   ['blocked',TASK_STATUS.BLOCKED],
   ['done',TASK_STATUS.COMPLETED],
   ['complete',TASK_STATUS.COMPLETED],
@@ -102,7 +104,7 @@ export function evaluateGate(requirements=[]){
     const status=String(requirement?.status||'not_started').toLowerCase();
     if(['complete','completed','approved','not_applicable'].includes(status)){complete++;continue}
     if(status==='blocked')blocking.push(requirement);
-    if(status==='waiting_on_client')waitingClient=true;
+    if(['waiting_on_client','needs_revision'].includes(status))waitingClient=true;
     else if(status==='waiting_on_nexus')waitingNexus=true;
     else if(['waiting_on_decision','pending_approval','ready_for_review'].includes(status))waitingDecision=true;
     else if(status!=='not_started')inProgress=true;

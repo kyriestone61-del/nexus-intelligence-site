@@ -1,0 +1,27 @@
+name: Nexus Parallel State Transition QA
+
+on:
+  pull_request:
+    paths:
+      - 'qa/contracts/state-transitions.mjs'
+      - 'qa/contracts/state-transitions.test.mjs'
+      - '.github/workflows/parallel-state-transition-qaqc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transition-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check qa/contracts/state-transitions.mjs
+          node --check qa/contracts/state-transitions.test.mjs
+      - name: Legal transition tests
+        run: node --test qa/contracts/state-transitions.test.mjs
