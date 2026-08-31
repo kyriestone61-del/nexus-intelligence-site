@@ -45,7 +45,6 @@ jobs:
           if-no-files-found: ignore
 
   role-boundary-browser-qa:
-    if: ${{ secrets.NEXUS_QA_ADMIN_EMAIL != '' && secrets.NEXUS_QA_CLIENT_EMAIL != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
