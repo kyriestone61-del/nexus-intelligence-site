@@ -1,0 +1,32 @@
+name: Nexus Parallel Security QA
+
+on:
+  pull_request:
+    paths:
+      - 'qa/scripts/static-audit.mjs'
+      - 'qa/sql/**'
+      - '.github/workflows/parallel-security-qaqc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-architecture-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static reset audit
+        run: node qa/scripts/static-audit.mjs
+      - name: Prove SQL audit pack is read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -Ein '^[[:space:]]*(insert|update|delete|alter|drop|create|truncate|grant|revoke)[[:space:]]' qa/sql/integrity-readonly.sql; then
+            echo 'Read-only integrity pack contains a mutating SQL statement.' >&2
+            exit 1
+          fi
+          echo 'Read-only SQL contract verified.'
