@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'qa/contracts/**'
+      - 'portal-discovery-capture.js'
       - '.github/workflows/parallel-contracts-qaqc.yml'
   workflow_dispatch:
 
@@ -23,5 +24,6 @@ jobs:
           node --check qa/contracts/journey-state.mjs
           node --check qa/contracts/visibility.mjs
           node --check qa/contracts/journey-state.test.mjs
+          node --input-type=module --check < portal-discovery-capture.js
       - name: Canonical journey and visibility contracts
         run: node --test qa/contracts/*.test.mjs

@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'portal-diagnosis-recovery.js'
+      - 'portal-diagnosis-controller-v2.js'
       - 'portal-diagnosis-v2.css'
       - 'portal-app.js'
       - '.github/workflows/diagnosis-recovery-qa.yml'
@@ -23,6 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           node --input-type=module --check < portal-diagnosis-recovery.js
+          node --input-type=module --check < portal-diagnosis-controller-v2.js
           node --input-type=module --check < portal-app.js
       - name: Recovery modal contract
         run: |
@@ -37,13 +39,16 @@ jobs:
           grep -Fq "event.target.closest?.('#queueDiagnosisBtn')" portal-diagnosis-recovery.js
           grep -Fq 'event.stopImmediatePropagation()' portal-diagnosis-recovery.js
           recovery_line=$(grep -n 'portal-diagnosis-recovery.js' portal-app.js | head -1 | cut -d: -f1)
-          controller_line=$(grep -n 'portal-diagnosis-controller.js' portal-app.js | head -1 | cut -d: -f1)
+          controller_line=$(grep -n 'portal-diagnosis-controller-v2.js' portal-app.js | head -1 | cut -d: -f1)
+          test -n "$recovery_line"
+          test -n "$controller_line"
           test "$recovery_line" -lt "$controller_line"
+          grep -Fq 'existingRunForTranscript' portal-diagnosis-controller-v2.js
           grep -Fq 'const BUILD=' portal-app.js
       - name: Browser security
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-diagnosis-recovery.js; then
-            echo 'Privileged credential reference found in browser-delivered recovery code.' >&2
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-diagnosis-recovery.js portal-diagnosis-controller-v2.js; then
+            echo 'Privileged credential reference found in browser-delivered diagnosis code.' >&2
             exit 1
           fi

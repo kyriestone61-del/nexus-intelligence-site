@@ -6,6 +6,8 @@ on:
       - 'portal-admin-journey-router.js'
       - 'portal-admin-journey.js'
       - 'portal-admin-intake.js'
+      - 'portal-discovery-capture.js'
+      - 'portal-discovery-capture.css'
       - '.github/workflows/core-admin-nav-qa.yml'
 
 permissions:
@@ -25,6 +27,7 @@ jobs:
           node --input-type=module --check < portal-admin-journey-router.js
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-admin-intake.js
+          node --input-type=module --check < portal-discovery-capture.js
       - name: Core navigation visibility contract
         run: |
           set -euo pipefail
@@ -33,6 +36,8 @@ jobs:
           grep -Fq "intake.textContent='Discovery & Diagnosis'" portal-admin-journey-router.js
           grep -Fq "journey.insertAdjacentElement('afterend',intake)" portal-admin-journey-router.js
           grep -Fq "section.id='section-intake'" portal-admin-intake.js
+          grep -Fq 'captureDiscoveryContextBtn' portal-admin-intake.js
+          grep -Fq "status:DISCOVERY_CAPTURE_STATUS" portal-discovery-capture.js
           grep -Fq "['intake','Discovery & Diagnosis']" portal-admin-journey.js
       - name: No hidden-core regression
         run: |

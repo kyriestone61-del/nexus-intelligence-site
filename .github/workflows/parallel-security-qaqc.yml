@@ -3,6 +3,15 @@ name: Nexus Parallel Security QA
 on:
   pull_request:
     paths:
+      - 'portal-app.js'
+      - 'portal-auth.js'
+      - 'portal-client.js'
+      - 'portal-ops.js'
+      - 'portal-foundation-hardening.js'
+      - 'portal-diagnosis-controller-v2.js'
+      - 'portal-diagnosis-execution-ux.js'
+      - 'portal-diagnosis-release-queue.js'
+      - 'supabase/migrations/**'
       - 'qa/scripts/static-audit.mjs'
       - 'qa/sql/**'
       - '.github/workflows/parallel-security-qaqc.yml'
@@ -19,9 +28,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Static reset audit
-        run: node qa/scripts/static-audit.mjs
-      - name: Prove SQL audit pack is read-only
+      - name: Strict current-state security architecture audit
+        run: node qa/scripts/static-audit.mjs --strict
+      - name: Syntax-check hardening runtime
+        run: |
+          node --check portal-app.js
+          node --check portal-auth.js
+          node --check portal-foundation-hardening.js
+          node --check portal-accessibility.js
+      - name: Prove SQL integrity audit pack is read-only
         shell: bash
         run: |
           set -euo pipefail
@@ -30,3 +45,18 @@ jobs:
             exit 1
           fi
           echo 'Read-only SQL contract verified.'
+      - name: Require staged Company Memory privacy boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'nexus_get_company_memory_client' portal-foundation-hardening.js
+          grep -Fq 'nexus_get_company_memory_client' supabase/migrations/20260831_nexus_workspace_foundation_hardening.sql
+          grep -Fq 'nexus admins view company memory' supabase/migrations/20260831_nexus_company_memory_raw_privacy.sql
+      - name: Require atomic onboarding and explicit engagement identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'nexus_onboard_company_atomic' portal-foundation-hardening.js
+          grep -Fq 'nexus_active_engagements' portal-foundation-hardening.js
+          grep -Fq 'nexus_onboard_company_atomic' supabase/migrations/20260831_nexus_workspace_foundation_hardening.sql
+          grep -Fq 'nexus_active_engagements' supabase/migrations/20260831_nexus_workspace_foundation_hardening.sql
