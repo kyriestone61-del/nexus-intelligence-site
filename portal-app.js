@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260831-journeyfix2';
+const BUILD='20260831-reviewfix1';
 
 const layoutFix=document.createElement('link');
 layoutFix.rel='stylesheet';
@@ -124,6 +124,7 @@ await optionalImport(asset(`portal-action-execution-v2-forms.js?v=${BUILD}`));
 await optionalImport(asset(`portal-guided-ops.js?v=${BUILD}`));
 await optionalImport(asset(`portal-admin-journey.js?v=${BUILD}`));
 await optionalImport(asset(`portal-admin-journey-router.js?v=${BUILD}`));
+await optionalImport(asset(`portal-diagnosis-review-ux.js?v=${BUILD}`));
 await optionalImport(asset(`portal-journey-reliability.js?v=${BUILD}`));
 await optionalImport(asset(`portal-journey-task-guard.js?v=${BUILD}`));
 await optionalImport(asset(`portal-launch-control.js?v=${BUILD}`));
