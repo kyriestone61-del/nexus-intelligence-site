@@ -5,7 +5,7 @@
   const project=()=>state.projects?.[0]||null;
   const byId=id=>document.getElementById(id);
   const selectedEvidence=()=>[...document.querySelectorAll('.diagnosis-supporting-doc:checked')].map(x=>x.value);
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const observerOptions={childList:true,subtree:true};
   let observer=null,normalizationScheduled=false;
 
