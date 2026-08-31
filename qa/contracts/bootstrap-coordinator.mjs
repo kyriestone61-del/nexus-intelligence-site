@@ -28,7 +28,12 @@ export function createBootstrapCoordinator(){
   return {
     phase(){return phase},
     context(){return Object.freeze({...context})},
-    complete(step,value=true){completed.add(step);context[step]=value;return this},
+    complete(step,value=true){
+      context[step]=value;
+      const satisfied=value!==false&&value!==null&&value!==undefined;
+      if(satisfied)completed.add(step);else completed.delete(step);
+      return this;
+    },
     has(step){return completed.has(step)},
     advance(next,{requires=[]}={}){
       if(NEXT[phase]!==next)throw new BootstrapStateError(`Illegal Nexus boot transition: ${phase} → ${next}`,{from:phase,to:next});
