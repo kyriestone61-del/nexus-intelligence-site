@@ -16,7 +16,10 @@ test('public homepage and portal load without server errors',async({page})=>{
 
 test('portal is private from search indexing and has security boundary copy',async({page})=>{
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
-  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content',/noindex/i);
+  const robots=page.locator('meta[name="robots"]');
+  expect(await robots.count()).toBeGreaterThan(0);
+  const directives=await robots.evaluateAll(nodes=>nodes.map(node=>node.getAttribute('content')||''));
+  expect(directives.every(x=>/noindex/i.test(x))).toBe(true);
   await expect(page.getByText('Security boundary:',{exact:false})).toBeVisible();
 });
 
