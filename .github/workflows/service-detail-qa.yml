@@ -3,8 +3,9 @@ name: Nexus Service Detail QA
 on:
   pull_request:
     paths:
-      - 'service-detail.html'
+      - 'services/**'
       - 'services.html'
+      - 'service-route.js'
       - '_redirects'
       - 'app.js'
       - '.github/workflows/service-detail-qa.yml'
@@ -20,33 +21,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Route contract
+      - name: Static route contract
         run: |
           set -euo pipefail
-          grep -Fq '/services/* /service-detail.html 200' _redirects
-          grep -Fq "fetch('/services.html'" service-detail.html
-          grep -Fq "doc.getElementById('tpl-'+slug)" service-detail.html
-          grep -Fq 'serviceDetailRoot' service-detail.html
-      - name: All six service detail templates exist
+          if grep -Fq '/services/*' _redirects; then
+            echo 'Service detail wildcard rewrites are forbidden because Cloudflare pretty-URL canonicalization can strip the service slug.' >&2
+            exit 1
+          fi
+          grep -Fq "fetch('/services.html'" service-route.js
+          grep -Fq "doc.getElementById('tpl-'+slug)" service-route.js
+          grep -Fq 'nexus-service-detail-ready' service-route.js
+      - name: All six real service routes exist and preserve slug
         run: |
           set -euo pipefail
           for slug in ai-opportunity-assessment implementation-sprint ai-enablement-training managed-ai-operations business-transformation fractional-ai-director; do
+            test -f "services/$slug/index.html"
+            grep -Fq "data-service-slug=\"$slug\"" "services/$slug/index.html"
+            grep -Fq 'src="/service-route.js"' "services/$slug/index.html"
             grep -Fq "id=\"tpl-$slug\"" services.html
           done
-      - name: Review button targets supported deep routes
+      - name: Review button targets supported routes
         run: |
           set -euo pipefail
           grep -Fq 'href="/services/${x.slug}"' app.js
-          grep -Fq "slug:'ai-opportunity-assessment'" app.js
-          grep -Fq "slug:'implementation-sprint'" app.js
-          grep -Fq "slug:'ai-enablement-training'" app.js
-          grep -Fq "slug:'managed-ai-operations'" app.js
-          grep -Fq "slug:'business-transformation'" app.js
-          grep -Fq "slug:'fractional-ai-director'" app.js
+          for slug in ai-opportunity-assessment implementation-sprint ai-enablement-training managed-ai-operations business-transformation fractional-ai-director; do
+            grep -Fq "slug:'$slug'" app.js
+          done
       - name: Browser source safety
         run: |
           set -euo pipefail
-          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' service-detail.html; then
-            echo 'Server-only credential reference found in service detail page.' >&2
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' service-route.js services/*/index.html; then
+            echo 'Server-only credential reference found in service detail browser code.' >&2
             exit 1
           fi
