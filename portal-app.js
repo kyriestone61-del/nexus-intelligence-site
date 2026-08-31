@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260831-qaqc4';
+const BUILD='20260831-shell-reset2';
 
 window.__nexusPortalBooting=true;
 document.body.classList.add('nexus-runtime-booting');
