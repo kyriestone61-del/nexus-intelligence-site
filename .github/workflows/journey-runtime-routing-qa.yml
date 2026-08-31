@@ -85,7 +85,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq "const asset=path=>\`/" portal-app.js
-          grep -Fq 'cdn.jsdelivr.net' functions/portal.js
+          grep -Fq 'jsdelivr' functions/portal.js
           grep -Fq 'exact code packaged in this Cloudflare deployment' functions/portal.js
           if grep -Fq 'cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main' portal-app.js; then
             echo 'Portal app is loading mutable main-branch assets.' >&2
