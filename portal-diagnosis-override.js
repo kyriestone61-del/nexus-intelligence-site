@@ -5,7 +5,7 @@
   const project=()=>state.projects?.[0]||null;
   const byId=id=>document.getElementById(id);
   const selectedEvidence=()=>[...document.querySelectorAll('.diagnosis-supporting-doc:checked')].map(x=>x.value);
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const observerOptions={childList:true,subtree:true};
   let observer=null,normalizationScheduled=false;
 
@@ -28,6 +28,7 @@
       const {data,error:invokeError}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:created.id}});
       if(invokeError||data?.ok===false)throw new Error(data?.error||invokeError?.message||'Diagnosis execution failed.');
       toast?.('Diagnosis is ready for review.');
+      window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));
       sessionStorage.setItem('nexus_reopen_intake','1');
       setTimeout(()=>location.reload(),450);
     }catch(error){
@@ -50,7 +51,8 @@
         if(!action&&id){action=document.createElement('div');action.className='diagnosis-secure-action';card.querySelector('.diagnosis-run-actions')?.appendChild(action)}
         if(!action)return;
         let html='';
-        if(['queued','ready_for_analysis'].includes(status))html='<span class="small">Queued for secured analysis.</span>';
+        if(status==='queued')html='<span class="small">Queued for secured analysis.</span>';
+        else if(status==='ready_for_analysis')html=`<button class="btn primary diagnosis-retry-btn" data-id="${esc(id)}" type="button">Run secured diagnosis →</button>`;
         else if(status==='analyzing')html='<span class="small">Analyzing authorized evidence…</span>';
         else if(['ready_for_review','in_review'].includes(status))html=`<button class="btn primary diagnosis-review-btn" data-id="${esc(id)}" type="button">Review diagnosis →</button>`;
         else if(status==='approved')html=`<button class="btn secondary diagnosis-review-btn" data-id="${esc(id)}" type="button">Open approved diagnosis →</button>`;
