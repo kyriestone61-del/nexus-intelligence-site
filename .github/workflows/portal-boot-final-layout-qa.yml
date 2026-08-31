@@ -27,7 +27,7 @@ jobs:
           grep -Fq 'window.__nexusPortalBooting=true' portal-app.js
           grep -Fq 'nexusPortalBootOverlay' portal-app.js
           grep -Fq 'Loading Nexus workspace' portal-app.js
-          grep -Fq "portal-client.js?v=${BUILD}" portal-app.js
+          grep -Fq 'portal-client.js?v=${BUILD}' portal-app.js
           grep -Fq 'importWithoutRecurringIntervals' portal-app.js
           grep -Fq '[180]' portal-app.js
           grep -Fq 'window.__nexusOpsInit=false' portal-app.js
@@ -42,8 +42,8 @@ jobs:
           from pathlib import Path
           s=Path('portal-app.js').read_text()
           assert s.index('window.__nexusPortalBooting=true') < s.index('portal-client.js?v=${BUILD}')
-          assert s.index('labels.includes(\'Client Journey\')') < s.rindex('clearBootLock();')
-          assert s.index('labels.includes(\'Discovery & Diagnosis\')') < s.rindex('clearBootLock();')
+          assert s.index("labels.includes('Client Journey')") < s.rindex('clearBootLock();')
+          assert s.index("labels.includes('Discovery & Diagnosis')") < s.rindex('clearBootLock();')
           assert 'revealPortal();' not in s
           print('Final-layout boot ordering is deterministic.')
           PY
