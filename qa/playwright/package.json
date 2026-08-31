@@ -1,0 +1,13 @@
+{
+  "name":"nexus-reset-browser-qaqc",
+  "private":true,
+  "type":"module",
+  "scripts":{
+    "test":"playwright test",
+    "test:smoke":"playwright test tests/public-smoke.spec.mjs tests/mobile-smoke.spec.mjs",
+    "test:roles":"playwright test tests/role-boundary.spec.mjs"
+  },
+  "devDependencies":{
+    "@playwright/test":"^1.55.0"
+  }
+}
