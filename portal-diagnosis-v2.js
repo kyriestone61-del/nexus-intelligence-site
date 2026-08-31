@@ -5,6 +5,10 @@
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const arr=v=>Array.isArray(v)?v:[];
   const title=s=>String(s||'').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase());
+  const providerMissing=run=>String(run?.execution_error||'').includes('AI_GATEWAY_NOT_CONFIGURED');
+  const executionMessage=run=>providerMissing(run)
+    ? 'Automatic diagnosis is not connected yet because the Nexus AI Gateway credential has not been configured. Your transcript and supporting files are still saved. Configure AI_GATEWAY_API_KEY before running this diagnosis again.'
+    : String(run?.execution_error||'');
 
   function ensureModal(){
     let modal=document.getElementById('diagnosisReviewModal');
@@ -38,11 +42,13 @@
     const questions=cards(arr(r.follow_up_questions),x=>`<div class="diagnosis-review-item"><b>${esc(x.question)}</b><p>${esc(x.reason||'')}</p></div>`);
     const pilot=r.smallest_safe_pilot||{};
     const pilotMarkup=`<div class="diagnosis-pilot"><div class="kicker">Smallest safe pilot</div><h3>${esc(pilot.title||'Pilot not defined')}</h3><p>${esc(pilot.summary||'')}</p><div class="diagnosis-list-pair"><div><b>In scope</b><ul>${arr(pilot.scope_in).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div><div><b>Out of scope</b><ul>${arr(pilot.scope_out).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div><b>Acceptance criteria</b><ul>${arr(pilot.acceptance_criteria).map(x=>`<li>${esc(x)}</li>`).join('')}</ul><b>Human controls</b><ul>${arr(pilot.human_controls).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
-    const error=run.execution_error?`<div class="note error"><b>Execution issue:</b> ${esc(run.execution_error)}</div>`:'';
+    const error=run.execution_error?`<div class="note error"><b>${providerMissing(run)?'Provider setup required':'Execution issue'}:</b> ${esc(executionMessage(run))}</div>`:'';
     const orchestration=run.orchestrated_at?`<div class="diagnosis-generated"><div class="kicker">Generated after approval</div><div class="diagnosis-counts">${Object.entries(run.orchestration_summary||{}).map(([k,v])=>`<span><b>${esc(v)}</b>${esc(title(k))}</span>`).join('')}</div><div class="actions"><button class="btn secondary diagnosis-goto" data-section="overview" type="button">Today →</button><button class="btn secondary diagnosis-goto" data-section="tasks" type="button">Action Items →</button><button class="btn secondary diagnosis-goto" data-section="timeline" type="button">Projects →</button></div></div>`:'';
     const canReview=run.status==='ready_for_review';
     const actions=canReview?`<div class="diagnosis-review-actions"><div class="field"><label>Review note <span class="small">(optional for approval; required for revision/block)</span></label><textarea id="diagnosisReviewNote" placeholder="Record the reason for this decision or what needs to change."></textarea></div><div class="actions"><button class="btn primary" data-diagnosis-action="approve" data-id="${esc(run.id)}" type="button">Approve diagnosis →</button><button class="btn secondary" data-diagnosis-action="revision" data-id="${esc(run.id)}" type="button">Request revision</button><button class="btn secondary" data-diagnosis-action="block" data-id="${esc(run.id)}" type="button">Block</button><button class="btn secondary" data-diagnosis-action="archive" data-id="${esc(run.id)}" type="button">Archive</button></div><p class="small">Approval creates controlled downstream workspace records once. No external action is taken automatically.</p></div>`:'';
-    return `${error}${summary}${section('Facts',factual,true)}${section('Client statements',statements)}${section('Inferences',inferences)}${section('Unknowns',unknowns)}${section('Current-state process map',process,true)}${section('Bottlenecks',bottlenecks,true)}${section('Baseline gaps',gaps)}${section('Ranked AI / automation opportunities',opps,true)}${section('Risks and controls',risks)}${section('Follow-up questions',questions)}${pilotMarkup}${orchestration}${actions}`;
+    const retry=['failed','blocked','revision_requested','ready_for_analysis'].includes(run.status)&&!providerMissing(run)?`<div class="diagnosis-review-actions"><div class="actions"><button class="btn primary diagnosis-retry-btn" data-id="${esc(run.id)}" type="button">Run secured diagnosis →</button></div></div>`:'';
+    const providerHelp=providerMissing(run)?'<div class="diagnosis-review-actions"><p class="small"><b>No evidence was lost.</b> The diagnosis remains attached to this client. Automatic analysis will become available after the AI Gateway credential is configured.</p></div>':'';
+    return `${error}${providerHelp}${summary}${section('Facts',factual,true)}${section('Client statements',statements)}${section('Inferences',inferences)}${section('Unknowns',unknowns)}${section('Current-state process map',process,true)}${section('Bottlenecks',bottlenecks,true)}${section('Baseline gaps',gaps)}${section('Ranked AI / automation opportunities',opps,true)}${section('Risks and controls',risks)}${section('Follow-up questions',questions)}${pilotMarkup}${orchestration}${retry}${actions}`;
   }
 
   async function loadRun(id){
@@ -58,7 +64,14 @@
   async function execute(id){
     toast?.('Diagnosis analysis started.');
     const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:id}});
-    if(error||data?.ok===false)throw new Error(data?.error||error?.message||'Diagnosis execution failed.');
+    if(error||data?.ok===false){
+      const message=data?.error||error?.message||'Diagnosis execution failed.';
+      if(String(message).includes('AI_GATEWAY_NOT_CONFIGURED')){
+        await openReview(id);
+        throw new Error('Automatic diagnosis is not connected yet. Your transcript and files are saved; configure the Nexus AI Gateway before retrying.');
+      }
+      throw new Error(message);
+    }
     toast?.('Diagnosis is ready for review.'); await openReview(id); window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));
   }
   async function decision(action,id){

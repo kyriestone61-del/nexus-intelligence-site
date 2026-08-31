@@ -32,7 +32,8 @@
       sessionStorage.setItem('nexus_reopen_intake','1');
       setTimeout(()=>location.reload(),450);
     }catch(error){
-      toast?.(error.message||'Diagnosis could not be completed.');
+      const message=String(error?.message||'Diagnosis could not be completed.');
+      toast?.(message.includes('AI_GATEWAY_NOT_CONFIGURED')?'Automatic diagnosis is not connected yet. Your transcript and files are saved.':message);
       if(button){button.disabled=false;button.textContent='Queue diagnosis →'}
       normalizeCards();
     }
@@ -56,7 +57,8 @@
         else if(status==='analyzing')html='<span class="small">Analyzing authorized evidence…</span>';
         else if(['ready_for_review','in_review'].includes(status))html=`<button class="btn primary diagnosis-review-btn" data-id="${esc(id)}" type="button">Review diagnosis →</button>`;
         else if(status==='approved')html=`<button class="btn secondary diagnosis-review-btn" data-id="${esc(id)}" type="button">Open approved diagnosis →</button>`;
-        else if(['blocked','failed','revision_requested'].includes(status))html=`<button class="btn secondary diagnosis-retry-btn" data-id="${esc(id)}" type="button">Retry diagnosis →</button>`;
+        else if(status==='failed')html=`<button class="btn secondary diagnosis-review-btn" data-id="${esc(id)}" type="button">Review diagnosis issue →</button>`;
+        else if(['blocked','revision_requested'].includes(status))html=`<button class="btn secondary diagnosis-retry-btn" data-id="${esc(id)}" type="button">Retry diagnosis →</button>`;
         else html='<span class="small">Archived</span>';
         setHTML(action,html);
       });
