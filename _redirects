@@ -1,3 +1,9 @@
 # Cloudflare Pages route rewrites for dynamic detail views.
 # Service detail pages now use real /services/<slug>/index.html routes so the selected slug cannot be lost by pretty-URL canonicalization.
 /industries/* /industries.html 200
+
+# Nexus Fit Call — use the live Google Calendar appointment schedule.
+# Keep this as a temporary redirect so Nexus can later move back to an embedded first-party booking experience without breaking inbound links.
+/book https://calendar.app.google/Tf4mfbREYbdR51BV7 302
+/book/ https://calendar.app.google/Tf4mfbREYbdR51BV7 302
+/book.html https://calendar.app.google/Tf4mfbREYbdR51BV7 302
