@@ -1,10 +1,6 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260831-shell-reset2';
+const BUILD='20260831-qaqc3';
 
-// The portal must never expose an intermediate workspace. portal-client and
-// portal-ops both build useful base UI, but admins should only see the final
-// Client Journey navigation after identity, company context, operations data,
-// intake, diagnosis, and Journey routing are ready.
 window.__nexusPortalBooting=true;
 document.body.classList.add('nexus-runtime-booting');
 
@@ -28,135 +24,38 @@ bootOverlay.id='nexusPortalBootOverlay';
 bootOverlay.innerHTML='<div class="nexus-boot-card"><div class="nexus-boot-mark">N</div><h2>Loading Nexus workspace…</h2><p>Confirming your account, client workspace, and final navigation.</p><div class="nexus-boot-line"></div></div>';
 document.body.appendChild(bootOverlay);
 
-const styleAssets=[
-  'portal-layout-fix.css',
-  'portal-simplify.css',
-  'portal-admin-intake.css',
-  'portal-diagnosis-v2.css',
-  'portal-action-workflow.css',
-  'portal-action-execution-v2.css',
-  'portal-guided-ops.css',
-  'portal-admin-journey.css',
-  'portal-journey-qaqc.css'
-];
-const styleLoads=styleAssets.map(file=>new Promise(resolve=>{
-  const link=document.createElement('link');
-  link.rel='stylesheet';
-  link.href=asset(`${file}?v=${BUILD}`);
-  link.onload=resolve;
-  link.onerror=resolve;
-  document.head.appendChild(link);
-}));
+const styleAssets=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css'];
+const styleLoads=styleAssets.map(file=>new Promise(resolve=>{const link=document.createElement('link');link.rel='stylesheet';link.href=asset(`${file}?v=${BUILD}`);link.onload=resolve;link.onerror=resolve;document.head.appendChild(link)}));
 await Promise.all(styleLoads);
 
-function setBootMessage(title,message){
-  const card=bootOverlay.querySelector('.nexus-boot-card');
-  if(!card)return;
-  const h=card.querySelector('h2'),p=card.querySelector('p');
-  if(h)h.textContent=title;
-  if(p)p.textContent=message;
-}
-function clearBootLock(){
-  window.__nexusPortalBooting=false;
-  document.body.classList.add('nexus-shell-ready');
-  const app=document.getElementById('portalApp');
-  if(app)app.style.visibility='';
-  document.body.classList.remove('nexus-runtime-booting');
-  bootOverlay.remove();
-  bootStyle.remove();
-}
-function showCoreLoadFailure(error){
-  console.error('Nexus core portal failed to initialize.',error);
-  window.__nexusPortalBooting=false;
-  const app=document.getElementById('portalApp');
-  if(app)app.style.visibility='hidden';
-  document.body.classList.remove('nexus-runtime-booting');
-  setBootMessage('Nexus could not finish loading.', 'Refresh this page. If the problem continues, sign out and sign back in.');
-  const line=bootOverlay.querySelector('.nexus-boot-line');
-  if(line)line.style.display='none';
-}
+function setBootMessage(title,message){const card=bootOverlay.querySelector('.nexus-boot-card');if(!card)return;const h=card.querySelector('h2'),p=card.querySelector('p');if(h)h.textContent=title;if(p)p.textContent=message}
+function clearBootLock(){window.__nexusPortalBooting=false;document.body.classList.add('nexus-shell-ready');const app=document.getElementById('portalApp');if(app)app.style.visibility='';document.body.classList.remove('nexus-runtime-booting');bootOverlay.remove();bootStyle.remove()}
+function showCoreLoadFailure(error){console.error('Nexus core portal failed to initialize.',error);window.__nexusPortalBooting=false;const app=document.getElementById('portalApp');if(app)app.style.visibility='hidden';document.body.classList.remove('nexus-runtime-booting');setBootMessage('Nexus could not finish loading.','Refresh this page. If the problem continues, sign out and sign back in.');const line=bootOverlay.querySelector('.nexus-boot-line');if(line)line.style.display='none'}
+async function optionalImport(url){try{return await import(url)}catch(error){console.error(`Optional Nexus portal module failed to load: ${url}`,error);return null}}
+async function importWithoutRecurringIntervals(url,blockedDelays=[]){const nativeSetInterval=window.setInterval;window.setInterval=(fn,delay,...args)=>blockedDelays.includes(Number(delay))?0:nativeSetInterval(fn,delay,...args);try{return await import(url)}finally{window.setInterval=nativeSetInterval}}
+async function optionalImportWithoutRecurringIntervals(url,blockedDelays=[]){try{return await importWithoutRecurringIntervals(url,blockedDelays)}catch(error){console.error(`Optional Nexus portal module failed to load: ${url}`,error);return null}}
+async function waitFor(test,{timeout=5000,step=70}={}){const start=Date.now();while(Date.now()-start<timeout){try{if(test())return true}catch{}await new Promise(resolve=>setTimeout(resolve,step))}return false}
 
-async function optionalImport(url){
-  try{return await import(url)}
-  catch(error){console.error(`Optional Nexus portal module failed to load: ${url}`,error);return null}
-}
-async function importWithoutRecurringIntervals(url,blockedDelays=[]){
-  const nativeSetInterval=window.setInterval;
-  window.setInterval=(fn,delay,...args)=>blockedDelays.includes(Number(delay))?0:nativeSetInterval(fn,delay,...args);
-  try{return await import(url)}finally{window.setInterval=nativeSetInterval}
-}
-async function optionalImportWithoutRecurringIntervals(url,blockedDelays=[]){
-  try{return await importWithoutRecurringIntervals(url,blockedDelays)}
-  catch(error){console.error(`Optional Nexus portal module failed to load: ${url}`,error);return null}
-}
-async function waitFor(test,{timeout=5000,step=70}={}){
-  const start=Date.now();
-  while(Date.now()-start<timeout){
-    try{if(test())return true}catch{}
-    await new Promise(resolve=>setTimeout(resolve,step));
-  }
-  return false;
-}
+try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180])}catch(error){showCoreLoadFailure(error);throw error}
+const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Nexus portal context is unavailable.'));throw new Error('Nexus portal context is unavailable.')}
+const isSignedIn=!!portal.state?.user,isAdmin=!!portal.state?.admin;
 
-try{
-  // portal-client imports portal-ops. Suppress only the legacy 180ms ops setup
-  // timer during this import. That timer can observe state.user before the admin
-  // role query finishes and build the client navigation shown in the reported
-  // flicker. Operations are initialized deliberately after identity resolves.
-  await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180]);
-}catch(error){showCoreLoadFailure(error);throw error}
-
-const portal=window.NexusPortal;
-if(!portal){showCoreLoadFailure(new Error('Nexus portal context is unavailable.'));throw new Error('Nexus portal context is unavailable.')}
-const isSignedIn=!!portal.state?.user;
-const isAdmin=!!portal.state?.admin;
-
-// Reinitialize the operations module only after portal-client has completed the
-// identity + company bootstrap. This makes role resolution deterministic.
 if(isSignedIn&&portal.state?.companyId){
   const opsModule=await optionalImport(asset(`portal-ops.js?v=${BUILD}`));
-  if(opsModule?.initOps){
-    window.__nexusOpsInit=false;
-    await opsModule.initOps({
-      sb:portal.sb,
-      state:portal.state,
-      $:portal.$,
-      toast:portal.toast,
-      workspace:portal.workspace,
-      log:portal.log
-    });
-    // portal-ops intentionally performs its setup on a short timer. Wait for
-    // that hidden base layer to complete before any final navigation is built.
-    await waitFor(()=>document.getElementById('opsTodayRoot'),{timeout:2200,step:60});
-  }
+  if(opsModule?.initOps){window.__nexusOpsInit=false;await opsModule.initOps({sb:portal.sb,state:portal.state,$:portal.$,toast:portal.toast,workspace:portal.workspace,log:portal.log});await waitFor(()=>document.getElementById('opsTodayRoot'),{timeout:2200,step:60})}
 }
-
-// Client-friendly relabeling is only used for client accounts. Admin accounts
-// never run it, so it cannot overwrite the Client Journey navigation.
-if(isSignedIn&&!isAdmin){
-  await optionalImportWithoutRecurringIntervals(asset(`portal-simplify.js?v=${BUILD}`),[1200]);
-}
+if(isSignedIn&&!isAdmin)await optionalImportWithoutRecurringIntervals(asset(`portal-simplify.js?v=${BUILD}`),[1200]);
 
 if(isSignedIn&&isAdmin){
-  // Admin intake has explicit reconciliation hooks. Suppress only its retired
-  // whole-document MutationObserver while it initializes.
   const NativeMutationObserver=window.MutationObserver;
-  window.MutationObserver=class NexusPortalNoopObserver{
-    constructor(){}
-    observe(){}
-    disconnect(){}
-    takeRecords(){return []}
-  };
-  try{await import(asset(`portal-admin-intake.js?v=${BUILD}`))}
-  catch(error){console.error('Optional Nexus portal module failed to load: portal-admin-intake.js',error)}
-  finally{window.MutationObserver=NativeMutationObserver}
-
+  window.MutationObserver=class NexusPortalNoopObserver{constructor(){}observe(){}disconnect(){}takeRecords(){return []}};
+  try{await import(asset(`portal-admin-intake.js?v=${BUILD}`))}catch(error){console.error('Optional Nexus portal module failed to load: portal-admin-intake.js',error)}finally{window.MutationObserver=NativeMutationObserver}
+  await optionalImport(asset(`portal-diagnosis-execution-ux.js?v=${BUILD}`));
   await optionalImport(asset(`portal-diagnosis-v2.js?v=${BUILD}`));
   await optionalImport(asset(`portal-diagnosis-manual-fallback.js?v=${BUILD}`));
   await optionalImport(asset(`portal-diagnosis-recovery.js?v=${BUILD}`));
 }
 
-// Shared action/work records load for both account types.
 if(isSignedIn){
   await optionalImportWithoutRecurringIntervals(asset(`portal-action-workflow.js?v=${BUILD}`),[1200]);
   await optionalImportWithoutRecurringIntervals(asset(`portal-action-execution-v2.js?v=${BUILD}`),[900]);
@@ -167,30 +66,13 @@ if(isSignedIn){
 if(isSignedIn&&isAdmin){
   await optionalImport(asset(`portal-admin-journey.js?v=${BUILD}`));
   await optionalImport(asset(`portal-admin-journey-router.js?v=${BUILD}`));
-  await optionalImport(asset(`portal-diagnosis-controller.js?v=${BUILD}`));
+  await optionalImport(asset(`portal-diagnosis-controller-v2.js?v=${BUILD}`));
+  await optionalImport(asset(`portal-diagnosis-release-queue.js?v=${BUILD}`));
   await optionalImport(asset(`portal-diagnosis-review-ux.js?v=${BUILD}`));
   await optionalImport(asset(`portal-journey-task-guard.js?v=${BUILD}`));
 
-  const finalAdminReady=await waitFor(()=>{
-    const nav=document.querySelector('.side-nav');
-    const labels=[...nav?.querySelectorAll('button')||[]].map(x=>x.textContent.trim());
-    return document.querySelector('.journey-primary')&&
-      document.querySelector('#adminJourneyRoot .journey-step')&&
-      labels.includes('Client Journey')&&
-      labels.includes('Discovery & Diagnosis');
-  },{timeout:5200,step:70});
-
-  if(!finalAdminReady){
-    showCoreLoadFailure(new Error('Final Nexus admin navigation did not initialize.'));
-    throw new Error('Final Nexus admin navigation did not initialize.');
-  }
-
-  await window.NexusDiagnosisController?.refreshJourneyLabels?.();
-  window.NexusDiagnosisController?.normalizeIntake?.();
-  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const finalAdminReady=await waitFor(()=>{const nav=document.querySelector('.side-nav');const labels=[...nav?.querySelectorAll('button')||[]].map(x=>x.textContent.trim());return document.querySelector('.journey-primary')&&document.querySelector('#adminJourneyRoot .journey-step')&&labels.includes('Client Journey')&&labels.includes('Discovery & Diagnosis')},{timeout:5200,step:70});
+  if(!finalAdminReady){showCoreLoadFailure(new Error('Final Nexus admin navigation did not initialize.'));throw new Error('Final Nexus admin navigation did not initialize.')}
+  await window.NexusDiagnosisController?.refreshJourneyLabels?.({force:true});window.NexusDiagnosisController?.normalizeIntake?.();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 }
-
-// For signed-out visitors, portal-client has already selected the auth view.
-// For client users, operations setup is the final workspace. For admins, the
-// checks above guarantee the Client Journey navigation exists before reveal.
 clearBootLock();
