@@ -1,8 +1,9 @@
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Nexus portal context is unavailable.');
 const {sb,state,toast}=portal;
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 let memoryBusy=false,memoryScheduled=false,engagementBusy=false;
+const terminalProject=p=>['complete','cancelled'].includes(String(p?.status||'').toLowerCase());
 
 // Preserve compatibility with existing modules that still consume state.projects[0], but make
 // index 0 a projection of the explicit active-engagement identity instead of insertion order.
@@ -15,7 +16,7 @@ Object.defineProperty(state,'projects',{
     const rows=Array.isArray(next)?[...next]:[];
     const id=state.activeProjectId;
     if(id){
-      const idx=rows.findIndex(p=>p?.id===id);
+      const idx=rows.findIndex(p=>p?.id===id&&!terminalProject(p));
       if(idx>0){const [active]=rows.splice(idx,1);rows.unshift(active)}
     }
     projectRows=rows;
@@ -23,14 +24,39 @@ Object.defineProperty(state,'projects',{
 });
 state.projects=projectRows;
 
-function openProjects(){return (state.projects||[]).filter(p=>!['complete','cancelled'].includes(String(p.status||'').toLowerCase()))}
+function openProjects(){return (state.projects||[]).filter(p=>!terminalProject(p))}
 function activeProject(){
   const explicit=state.activeProjectId&&state.projects?.find(p=>p.id===state.activeProjectId);
-  if(explicit)return explicit;
+  if(explicit&&!terminalProject(explicit))return explicit;
   const open=openProjects();
   return open.length===1?open[0]:null;
 }
 portal.activeProject=activeProject;
+
+// portal-ops still contains an old shared raw Company Memory SELECT. Production RLS correctly
+// denies that table to clients, but issuing a known-denied request is noisy and misleading.
+// Give only the operations module a client-scoped adapter that turns that obsolete query into a
+// local null result. renderClientMemory() below is the single client owner and uses the safe RPC.
+function createOpsClient(base){
+  if(state.admin)return base;
+  const memoryNoop=()=>{
+    const query={
+      select(){return query},
+      eq(){return query},
+      maybeSingle(){return Promise.resolve({data:null,error:null})},
+      single(){return Promise.resolve({data:null,error:null})}
+    };
+    return query;
+  };
+  return new Proxy(base,{
+    get(target,prop,receiver){
+      if(prop==='from')return table=>table==='nexus_company_memory'?memoryNoop():target.from(table);
+      const value=Reflect.get(target,prop,receiver);
+      return typeof value==='function'?value.bind(target):value;
+    }
+  });
+}
+const opsClient=createOpsClient(sb);
 
 async function syncActiveEngagement(){
   if(engagementBusy||!state.user||!state.companyId)return activeProject();
@@ -152,4 +178,4 @@ for(const ms of [0,180,600])setTimeout(async()=>{
   scheduleMemory();
 },ms);
 
-window.NexusFoundationHardening={activeProject,syncActiveEngagement,renderClientMemory};
+window.NexusFoundationHardening={activeProject,syncActiveEngagement,renderClientMemory,opsClient,terminalProject};
