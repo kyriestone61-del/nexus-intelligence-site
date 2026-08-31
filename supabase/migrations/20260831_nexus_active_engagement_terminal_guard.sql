@@ -31,11 +31,18 @@ BEGIN
   DELETE FROM public.nexus_active_engagements
   WHERE company_id=NEW.company_id AND project_id=NEW.id;
 
-  SELECT count(*),min(id)
-  INTO v_count,v_remaining
+  SELECT count(*) INTO v_count
   FROM public.nexus_projects p
   WHERE p.company_id=NEW.company_id
     AND p.status NOT IN ('complete','cancelled');
+
+  IF v_count=1 THEN
+    SELECT p.id INTO v_remaining
+    FROM public.nexus_projects p
+    WHERE p.company_id=NEW.company_id
+      AND p.status NOT IN ('complete','cancelled')
+    LIMIT 1;
+  END IF;
 
   IF v_count=1 AND v_remaining IS NOT NULL THEN
     v_actor:=coalesce(auth.uid(),NEW.created_by);
