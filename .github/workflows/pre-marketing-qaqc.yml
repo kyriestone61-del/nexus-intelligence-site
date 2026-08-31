@@ -5,10 +5,30 @@ on:
     branches: [main]
     paths:
       - 'portal-app.js'
-      - 'portal-diagnosis-override.js'
+      - 'portal-diagnosis-controller.js'
       - 'portal-diagnosis-v2.js'
+      - 'portal-diagnosis-manual-fallback.js'
+      - 'portal-diagnosis-review-ux.js'
       - 'portal-diagnosis-v2.css'
-      - 'portal-launch-control.js'
+      - 'launch-readiness.js'
+      - 'snapshot-lifecycle-patch.js'
+      - 'book.html'
+      - 'booking-manage.html'
+      - 'assessment.html'
+      - 'services.html'
+      - 'industries.html'
+      - '_redirects'
+      - 'functions/**'
+      - 'supabase/functions/nexus-diagnosis-execute/**'
+      - '.github/workflows/pre-marketing-qaqc.yml'
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-diagnosis-controller.js'
+      - 'portal-diagnosis-v2.js'
+      - 'portal-diagnosis-manual-fallback.js'
+      - 'portal-diagnosis-review-ux.js'
+      - 'portal-diagnosis-v2.css'
       - 'launch-readiness.js'
       - 'snapshot-lifecycle-patch.js'
       - 'book.html'
@@ -38,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in portal-app.js portal-diagnosis-override.js portal-diagnosis-v2.js portal-launch-control.js launch-readiness.js snapshot-lifecycle-patch.js functions/_middleware.js functions/sitemap.xml.js functions/robots.txt.js functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js functions/api/opportunity-snapshot.js; do
+          for f in portal-app.js portal-diagnosis-controller.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js functions/portal.js functions/_middleware.js functions/sitemap.xml.js functions/robots.txt.js functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js functions/api/opportunity-snapshot.js; do
             echo "Checking $f"
             node --input-type=module --check < "$f"
           done
@@ -47,21 +67,52 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "status:'queued'" portal-diagnosis-override.js
-          grep -Fq "nexus-diagnosis-execute" portal-diagnosis-override.js
+          grep -Fq "status:'queued'" portal-diagnosis-controller.js
+          grep -Fq "nexus-diagnosis-execute" portal-diagnosis-controller.js
+          grep -Fq "resolveTranscriptId" portal-diagnosis-controller.js
+          grep -Fq "syncTranscriptSelection" portal-diagnosis-controller.js
           grep -Fq "ready_for_review" portal-diagnosis-v2.js
           grep -Fq "nexus_approve_diagnosis" portal-diagnosis-v2.js
           grep -Fq "nexus_request_diagnosis_revision" portal-diagnosis-v2.js
           grep -Fq "nexus_block_diagnosis" portal-diagnosis-v2.js
           grep -Fq "nexus_archive_diagnosis" portal-diagnosis-v2.js
-          grep -Fq "portal-diagnosis-override.js" portal-app.js
+          grep -Fq "portal-diagnosis-controller.js" portal-app.js
           grep -Fq "portal-diagnosis-v2.js" portal-app.js
+          grep -Fq "portal-diagnosis-manual-fallback.js" portal-app.js
+          if grep -Fq "portal-diagnosis-override.js" portal-app.js; then
+            echo 'Retired diagnosis override is being loaded beside the centralized controller.' >&2
+            exit 1
+          fi
+          if grep -Fq "portal-diagnosis-state-labels.js" portal-app.js; then
+            echo 'Retired diagnosis state-label patch is being loaded beside the centralized controller.' >&2
+            exit 1
+          fi
           grep -Fq 'x-nexus-worker-token' supabase/functions/nexus-diagnosis-execute/index.ts
           grep -Fq 'diagnosis_worker' supabase/functions/nexus-diagnosis-execute/index.ts
           grep -Fq 'npm:unpdf@' supabase/functions/nexus-diagnosis-execute/index.ts
           grep -Fq 'AI_GATEWAY_API_KEY' supabase/functions/nexus-diagnosis-execute/index.ts
           grep -Fq 'human_review_required:true' supabase/functions/nexus-diagnosis-execute/index.ts
           grep -Fq 'ready_for_review' supabase/functions/nexus-diagnosis-execute/index.ts
+
+      - name: Stable portal runtime contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'nexus-runtime-booting' portal-app.js
+          grep -Fq 'exact code packaged in this Cloudflare deployment' functions/portal.js
+          grep -Fq 'jsdelivr' functions/portal.js
+          if grep -Fq 'portal-journey-reliability.js' portal-app.js; then
+            echo 'Retired Journey reliability patch is being loaded in the stabilized portal.' >&2
+            exit 1
+          fi
+          if grep -Fq 'portal-launch-control.js' portal-app.js; then
+            echo 'Launch Control is being injected into Client Delivery instead of remaining in the Admin Console.' >&2
+            exit 1
+          fi
+          if grep -Fq 'cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main' portal-app.js; then
+            echo 'Portal runtime is loading mutable main-branch assets.' >&2
+            exit 1
+          fi
 
       - name: Booking contract
         shell: bash
@@ -87,7 +138,6 @@ jobs:
           grep -Fq "nexus_analytics_events" launch-readiness.js
           grep -Fq "utm_campaign" launch-readiness.js
           grep -Fq "nexus_analytics_consent" launch-readiness.js
-          grep -Fq "portal-launch-control.js" portal-app.js
 
       - name: SEO and private-indexing contract
         shell: bash
@@ -105,7 +155,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|NEXUS_EMAIL_FROM|AI_GATEWAY_API_KEY' portal-diagnosis-override.js portal-diagnosis-v2.js portal-launch-control.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html; then
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|NEXUS_EMAIL_FROM|AI_GATEWAY_API_KEY' portal-diagnosis-controller.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html; then
             echo 'Server-only credential reference found in browser-delivered source.' >&2
             exit 1
           fi
@@ -114,7 +164,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -Rni 'statecraft' portal-diagnosis-override.js portal-diagnosis-v2.js portal-launch-control.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js supabase/functions/nexus-diagnosis-execute/index.ts; then
+          if grep -Rni 'statecraft' portal-diagnosis-controller.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js supabase/functions/nexus-diagnosis-execute/index.ts; then
             echo 'Statecraft reference found in Nexus pre-marketing implementation.' >&2
             exit 1
           fi
