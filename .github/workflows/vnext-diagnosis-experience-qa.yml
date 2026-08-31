@@ -1,0 +1,65 @@
+name: Nexus vNext Diagnosis Experience QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-vnext-experience.js'
+      - 'portal-vnext-experience.css'
+      - 'supabase/functions/nexus-diagnosis-execute/**'
+      - 'supabase/functions/nexus-diagnosis-report-pdf/**'
+      - 'supabase/functions/nexus-sms-worker/**'
+      - 'supabase/migrations/20260831_nexus_diagnosis_release_qa_inbox.sql'
+      - 'qa/contracts/vnext-diagnosis-experience.test.mjs'
+      - '.github/workflows/vnext-diagnosis-experience-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  vnext-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Portal module syntax
+        run: |
+          node --input-type=module --check < portal-vnext-experience.js
+          node --input-type=module --check < portal-app.js
+      - name: vNext product and security contract
+        shell: bash
+        run: |
+          set +e
+          node qa/contracts/vnext-diagnosis-experience.test.mjs > vnext-contract-output.txt 2>&1
+          code=$?
+          cat vnext-contract-output.txt
+          exit $code
+      - name: Preserve vNext contract diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vnext-contract-diagnostics
+          path: vnext-contract-output.txt
+          if-no-files-found: error
+      - name: Frozen diagnosis schema check
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='supabase/functions/nexus-diagnosis-execute/index.ts'
+          for key in facts client_statements inferences unknowns process_map bottlenecks baseline_gaps baseline_measurements opportunity_backlog risks follow_up_questions smallest_safe_pilot nexus_actions client_action_items document_requests decision_items executive_summary; do
+            grep -q "$key" "$file"
+          done
+          grep -q 'Evidence Analyst' "$file"
+          grep -q 'Process & Opportunity Analyst' "$file"
+          grep -q 'Independent QA / Governance Verifier' "$file"
+          grep -q 'Final Diagnosis Composer' "$file"
+      - name: Client privacy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "status='released'" supabase/migrations/20260831_nexus_diagnosis_release_qa_inbox.sql
+          grep -q "nexus_is_company_member(company_id)" supabase/migrations/20260831_nexus_diagnosis_release_qa_inbox.sql
+          grep -q "Only an approved diagnosis can be released" supabase/migrations/20260831_nexus_diagnosis_release_qa_inbox.sql
+          grep -q "sms_enabled boolean NOT NULL DEFAULT false" supabase/migrations/20260831_nexus_diagnosis_release_qa_inbox.sql
