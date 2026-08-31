@@ -64,15 +64,52 @@ $function$;
 revoke all on function public.nexus_set_active_engagement(uuid,uuid) from public,anon;
 grant execute on function public.nexus_set_active_engagement(uuid,uuid) to authenticated,service_role;
 
--- 2) Client-safe Company Memory projection. The existing base table remains internal-capable.
--- security_invoker ensures the underlying nexus_company_memory RLS policy still applies.
-create or replace view public.nexus_company_memory_client
-with (security_invoker=true)
-as
-select company_id,goals,systems,terminology,updated_at
-from public.nexus_company_memory;
+-- 2) Client-safe Company Memory boundary.
+-- The raw table contains internal operating context and internal decision notes. Clients must not
+-- retain direct row visibility to that base record. Admins keep base-table read access through RLS;
+-- clients receive only approved safe fields through a membership-checked SECURITY DEFINER RPC.
+drop policy if exists "nexus members view company memory" on public.nexus_company_memory;
 
-grant select on public.nexus_company_memory_client to authenticated;
+create policy "nexus admins view company memory"
+on public.nexus_company_memory
+for select to authenticated
+using (public.nexus_is_platform_admin());
+
+create or replace function public.nexus_get_company_memory_client(p_company_id uuid)
+returns table(
+  company_id uuid,
+  goals text,
+  systems text,
+  terminology text,
+  updated_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path to ''
+as $function$
+begin
+  if not (
+    public.nexus_is_platform_admin()
+    or public.nexus_is_company_member(p_company_id)
+  ) then
+    raise exception 'Company membership required';
+  end if;
+
+  return query
+  select m.company_id,m.goals,m.systems,m.terminology,m.updated_at
+  from public.nexus_company_memory m
+  where m.company_id=p_company_id;
+end
+$function$;
+
+revoke all on function public.nexus_get_company_memory_client(uuid) from public,anon;
+grant execute on function public.nexus_get_company_memory_client(uuid) to authenticated,service_role;
+
+-- Required frontend contract after this migration:
+-- * admins may continue reading nexus_company_memory directly;
+-- * clients must call rpc('nexus_get_company_memory_client',{p_company_id: ...});
+-- * no client UI should receive operating_context, decision_notes, or updated_by by default.
 
 -- 3) Atomic and idempotent self-service onboarding.
 -- One call creates company + owner membership + initial discovery project + active-engagement record.
