@@ -7,7 +7,8 @@ import{renderTutor}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hl
 import{renderMastery}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=learning.js';
 import{renderCapabilityQuiz}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=capability.js';
 import{renderMissions,renderLabs,renderResearch,renderSources}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=operations.js';
-import{renderFrontier,renderOpportunities,renderLeverage}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=strategy.js';
+import{renderFrontier,renderOpportunities}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=strategy.js';
+import{renderLeverage}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=leverage-v2.js';
 import{renderOwner,renderEmpire,renderAccount}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=owner.js';
 import{initExperience}from'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/hlo-app?asset=experience-v2.js';
 
