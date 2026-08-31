@@ -1,0 +1,27 @@
+name: Nexus Parallel Resilience QA
+
+on:
+  pull_request:
+    paths:
+      - 'qa/contracts/workspace-state.mjs'
+      - 'qa/contracts/workspace-state.test.mjs'
+      - '.github/workflows/parallel-resilience-qaqc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  workspace-state-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check qa/contracts/workspace-state.mjs
+          node --check qa/contracts/workspace-state.test.mjs
+      - name: Stale response and explicit failure tests
+        run: node --test qa/contracts/workspace-state.test.mjs
