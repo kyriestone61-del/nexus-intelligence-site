@@ -1,0 +1,52 @@
+name: Nexus Service Detail QA
+
+on:
+  pull_request:
+    paths:
+      - 'service-detail.html'
+      - 'services.html'
+      - '_redirects'
+      - 'app.js'
+      - '.github/workflows/service-detail-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  service-detail-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Route contract
+        run: |
+          set -euo pipefail
+          grep -Fq '/services/* /service-detail.html 200' _redirects
+          grep -Fq "fetch('/services.html'" service-detail.html
+          grep -Fq "doc.getElementById('tpl-'+slug)" service-detail.html
+          grep -Fq 'serviceDetailRoot' service-detail.html
+      - name: All six service detail templates exist
+        run: |
+          set -euo pipefail
+          for slug in ai-opportunity-assessment implementation-sprint ai-enablement-training managed-ai-operations business-transformation fractional-ai-director; do
+            grep -Fq "id=\"tpl-$slug\"" services.html
+          done
+      - name: Review button targets supported deep routes
+        run: |
+          set -euo pipefail
+          grep -Fq 'href="/services/${x.slug}"' app.js
+          grep -Fq "slug:'ai-opportunity-assessment'" app.js
+          grep -Fq "slug:'implementation-sprint'" app.js
+          grep -Fq "slug:'ai-enablement-training'" app.js
+          grep -Fq "slug:'managed-ai-operations'" app.js
+          grep -Fq "slug:'business-transformation'" app.js
+          grep -Fq "slug:'fractional-ai-director'" app.js
+      - name: Browser source safety
+        run: |
+          set -euo pipefail
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' service-detail.html; then
+            echo 'Server-only credential reference found in service detail page.' >&2
+            exit 1
+          fi
