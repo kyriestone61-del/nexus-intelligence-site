@@ -1,5 +1,4 @@
 const SUPABASE_URL='https://dmdgkjksouhhsuojthav.supabase.co';
-const SUPABASE_KEY='sb_publishable_-bZLK1vmL0eUMz65A6EUsw_I20LBq2B';
 const jsonHeaders={'content-type':'application/json','cache-control':'no-store'};
 const clean=(value,max)=>String(value??'').trim().slice(0,max);
 const allowed={
@@ -19,6 +18,8 @@ const boundedObject=(value,max=6000)=>{
 };
 
 export async function onRequestPost(context){
+  const serviceKey=context.env?.SUPABASE_SERVICE_ROLE_KEY;
+  if(!serviceKey) return new Response(JSON.stringify({ok:false,error:'Snapshot submission is temporarily unavailable.'}),{status:503,headers:jsonHeaders});
   try{
     const body=await context.request.json();
     if(body.website_field) return new Response(JSON.stringify({ok:true}),{status:200,headers:jsonHeaders});
@@ -40,18 +41,12 @@ export async function onRequestPost(context){
     const primary_opportunity=clean(body.primary_opportunity,30);
     const opportunity_score=Number(body.opportunity_score);
     const opportunity_areas=Array.isArray(body.opportunity_areas)?body.opportunity_areas.map(x=>clean(x,30)).filter(Boolean):[];
-    const top_opportunities=Array.isArray(body.top_opportunities)?body.top_opportunities.slice(0,3).map((x,i)=>({
-      key:clean(x?.key,30),label:clean(x?.label,120),rank:i+1
-    })):[];
+    const top_opportunities=Array.isArray(body.top_opportunities)?body.top_opportunities.slice(0,3).map((x,i)=>({key:clean(x?.key,30),label:clean(x?.label,120),rank:i+1})):[];
 
     if(!first_name||!email.includes('@')) return new Response(JSON.stringify({ok:false,error:'Please enter your first name and a valid email.'}),{status:400,headers:jsonHeaders});
     if(sms_opt_in&&!phone) return new Response(JSON.stringify({ok:false,error:'A mobile number is required for text consent.'}),{status:400,headers:jsonHeaders});
-    if(!allowed.business_type.has(business_type)||!allowed.team_size.has(team_size)||!allowed.priority_goal.has(priority_goal)||!allowed.frequency.has(frequency)||!allowed.burden.has(burden)||!allowed.systems.has(systems)||!allowed.authority.has(authority)||!allowed.timeline.has(timeline)||!allowed.opportunity.has(primary_opportunity)){
-      return new Response(JSON.stringify({ok:false,error:'One or more Snapshot answers are invalid. Please refresh and try again.'}),{status:400,headers:jsonHeaders});
-    }
-    if(opportunity_areas.length<1||opportunity_areas.length>3||opportunity_areas.some(x=>!allowed.opportunity.has(x))||top_opportunities.length<1||top_opportunities.some(x=>!allowed.opportunity.has(x.key))||!Number.isInteger(opportunity_score)||opportunity_score<0||opportunity_score>100){
-      return new Response(JSON.stringify({ok:false,error:'The Snapshot result could not be validated. Please refresh and try again.'}),{status:400,headers:jsonHeaders});
-    }
+    if(!allowed.business_type.has(business_type)||!allowed.team_size.has(team_size)||!allowed.priority_goal.has(priority_goal)||!allowed.frequency.has(frequency)||!allowed.burden.has(burden)||!allowed.systems.has(systems)||!allowed.authority.has(authority)||!allowed.timeline.has(timeline)||!allowed.opportunity.has(primary_opportunity)) return new Response(JSON.stringify({ok:false,error:'One or more Snapshot answers are invalid. Please refresh and try again.'}),{status:400,headers:jsonHeaders});
+    if(opportunity_areas.length<1||opportunity_areas.length>3||opportunity_areas.some(x=>!allowed.opportunity.has(x))||top_opportunities.length<1||top_opportunities.some(x=>!allowed.opportunity.has(x.key))||!Number.isInteger(opportunity_score)||opportunity_score<0||opportunity_score>100) return new Response(JSON.stringify({ok:false,error:'The Snapshot result could not be validated. Please refresh and try again.'}),{status:400,headers:jsonHeaders});
 
     let snapshot_data={};
     if(body.snapshot_data&&typeof body.snapshot_data==='object'&&!Array.isArray(body.snapshot_data)){
@@ -60,11 +55,11 @@ export async function onRequestPost(context){
     }
     const first_touch=boundedObject(body.first_touch);
     const last_touch=boundedObject(body.last_touch);
-
     const payload={first_name,email,phone,sms_opt_in,marketing_opt_in,company_name,business_type,team_size,priority_goal,opportunity_areas,frequency,burden,systems,authority,timeline,opportunity_score,primary_opportunity,top_opportunities,snapshot_data,first_touch,last_touch};
+
     const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_nexus_opportunity_snapshot`,{
       method:'POST',
-      headers:{'content-type':'application/json','apikey':SUPABASE_KEY,'cache-control':'no-store'},
+      headers:{'content-type':'application/json','apikey':serviceKey,'authorization':`Bearer ${serviceKey}`,'cache-control':'no-store'},
       body:JSON.stringify({payload})
     });
     if(!response.ok){
