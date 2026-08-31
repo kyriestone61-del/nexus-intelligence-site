@@ -58,7 +58,7 @@ BEGIN
       'Nexus answered your report question',
       'Nexus answered a question you submitted about your diagnosis report. Open your secure workspace to read the answer.',
       v_action,'diagnosis_report_question',v_q.id,
-      'diagnosis_answer:'||v_q.id::text||':'||encode(digest(v_answer,'sha256'),'hex')
+      'diagnosis_answer:'||v_q.id::text||':'||encode(extensions.digest(v_answer,'sha256'),'hex')
     ) ON CONFLICT(dedupe_key) DO NOTHING;
   END IF;
 
@@ -69,7 +69,7 @@ BEGIN
       v_q.company_id,v_q.asked_by,v_phone,'diagnosis_answer',
       'Nexus Intelligence: an answer to your diagnosis report question is available in your secure workspace.',
       v_action,'diagnosis_report_question',v_q.id,
-      'diagnosis_answer:'||v_q.id::text||':'||encode(digest(v_answer,'sha256'),'hex')
+      'diagnosis_answer:'||v_q.id::text||':'||encode(extensions.digest(v_answer,'sha256'),'hex')
     ) ON CONFLICT(dedupe_key) DO NOTHING;
   END IF;
 
