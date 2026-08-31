@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260831-runtime-reset1';
+const BUILD='20260831-diagnosis-recovery1';
 
 // Keep authenticated workspace chrome hidden until the final role-specific
 // navigation and controllers have initialized. This prevents users from seeing
@@ -90,11 +90,12 @@ if(isAdmin){
   catch(error){console.error('Optional Nexus portal module failed to load: portal-admin-intake.js',error)}
   finally{window.MutationObserver=NativeMutationObserver}
 
-  // One secured diagnosis renderer + one manual fallback + one controller.
-  // The old diagnosis override, label patch, and Journey reliability patch are
-  // intentionally not loaded; they previously competed for the same DOM state.
+  // One secured diagnosis renderer + one manual fallback + one recovery guard.
+  // The recovery guard owns Queue Diagnosis when an unresolved run already exists,
+  // so the portal opens the recovery UI instead of scrolling and creating duplicates.
   await optionalImport(asset(`portal-diagnosis-v2.js?v=${BUILD}`));
   await optionalImport(asset(`portal-diagnosis-manual-fallback.js?v=${BUILD}`));
+  await optionalImport(asset(`portal-diagnosis-recovery.js?v=${BUILD}`));
 }
 
 // Shared action/work records load for both account types.
@@ -108,8 +109,7 @@ if(isAdmin){
   await optionalImport(asset(`portal-admin-journey-router.js?v=${BUILD}`));
   await optionalImport(asset(`portal-diagnosis-controller.js?v=${BUILD}`));
 
-  // Keep the compact diagnosis presentation, but the controller now owns
-  // Journey routing and stops the old review module from competing for it.
+  // Keep the compact diagnosis presentation, but the controller owns Journey routing.
   await optionalImport(asset(`portal-diagnosis-review-ux.js?v=${BUILD}`));
   await optionalImport(asset(`portal-journey-task-guard.js?v=${BUILD}`));
 
