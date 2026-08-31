@@ -1,0 +1,27 @@
+name: Nexus Parallel Contract QA
+
+on:
+  pull_request:
+    paths:
+      - 'qa/contracts/**'
+      - '.github/workflows/parallel-contracts-qaqc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check qa/contracts/journey-state.mjs
+          node --check qa/contracts/visibility.mjs
+          node --check qa/contracts/journey-state.test.mjs
+      - name: Canonical journey and visibility contracts
+        run: node --test qa/contracts/*.test.mjs
