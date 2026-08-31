@@ -1,0 +1,74 @@
+name: Nexus Parallel Browser QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Target URL (production or reset preview)'
+        required: false
+        default: 'https://nexusintelligence.live'
+      enforce_reset:
+        description: 'Enforce post-reset acceptance requirements'
+        required: false
+        default: 'false'
+  pull_request:
+    paths:
+      - 'qa/playwright/**'
+      - '.github/workflows/parallel-browser-e2e.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  non-mutating-browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: qa/playwright
+    env:
+      NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexusintelligence.live' }}
+      NEXUS_QA_ENFORCE_RESET: ${{ github.event.inputs.enforce_reset == 'true' && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:smoke
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: nexus-browser-smoke-report
+          path: qa/playwright/playwright-report
+          if-no-files-found: ignore
+
+  role-boundary-browser-qa:
+    if: ${{ secrets.NEXUS_QA_ADMIN_EMAIL != '' && secrets.NEXUS_QA_CLIENT_EMAIL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: qa/playwright
+    env:
+      NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexusintelligence.live' }}
+      NEXUS_QA_ADMIN_EMAIL: ${{ secrets.NEXUS_QA_ADMIN_EMAIL }}
+      NEXUS_QA_ADMIN_PASSWORD: ${{ secrets.NEXUS_QA_ADMIN_PASSWORD }}
+      NEXUS_QA_CLIENT_EMAIL: ${{ secrets.NEXUS_QA_CLIENT_EMAIL }}
+      NEXUS_QA_CLIENT_PASSWORD: ${{ secrets.NEXUS_QA_CLIENT_PASSWORD }}
+      NEXUS_QA_COMPANY_NAME: ${{ vars.NEXUS_QA_COMPANY_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:roles
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: nexus-role-boundary-report
+          path: qa/playwright/playwright-report
+          if-no-files-found: ignore
