@@ -1,0 +1,39 @@
+name: Nexus Parallel Backend Readiness QA
+
+on:
+  pull_request:
+    paths:
+      - 'qa/proposed-migrations/**'
+      - 'qa/scripts/proposed-backend-contract-audit.mjs'
+      - '.github/workflows/parallel-backend-readiness-qaqc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proposal-contract-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Proposal must remain outside deployment migrations
+        run: |
+          set -euo pipefail
+          test -f qa/proposed-migrations/post_reset_foundation.sql
+          test ! -f supabase/migrations/post_reset_foundation.sql
+      - name: Backend contract audit
+        run: node qa/scripts/proposed-backend-contract-audit.mjs
+      - name: Reject destructive or credential-bearing proposal patterns
+        run: |
+          set -euo pipefail
+          if grep -Ein '^[[:space:]]*(drop[[:space:]]+table|truncate)[[:space:]]' qa/proposed-migrations/post_reset_foundation.sql; then
+            echo 'Destructive table operation found in proposal.' >&2
+            exit 1
+          fi
+          if grep -Ein '(service_role_key|SUPABASE_SERVICE|RESEND_API_KEY|AI_GATEWAY_API_KEY)' qa/proposed-migrations/post_reset_foundation.sql; then
+            echo 'Credential identifier found in proposed migration.' >&2
+            exit 1
+          fi
