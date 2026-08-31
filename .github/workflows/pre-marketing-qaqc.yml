@@ -21,6 +21,25 @@ on:
       - 'functions/**'
       - 'supabase/functions/nexus-diagnosis-execute/**'
       - '.github/workflows/pre-marketing-qaqc.yml'
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-diagnosis-controller.js'
+      - 'portal-diagnosis-v2.js'
+      - 'portal-diagnosis-manual-fallback.js'
+      - 'portal-diagnosis-review-ux.js'
+      - 'portal-diagnosis-v2.css'
+      - 'launch-readiness.js'
+      - 'snapshot-lifecycle-patch.js'
+      - 'book.html'
+      - 'booking-manage.html'
+      - 'assessment.html'
+      - 'services.html'
+      - 'industries.html'
+      - '_redirects'
+      - 'functions/**'
+      - 'supabase/functions/nexus-diagnosis-execute/**'
+      - '.github/workflows/pre-marketing-qaqc.yml'
   workflow_dispatch:
 
 permissions:
