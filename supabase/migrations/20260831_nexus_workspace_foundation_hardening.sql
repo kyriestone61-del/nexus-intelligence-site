@@ -42,12 +42,16 @@ USING (public.nexus_is_platform_admin())
 WITH CHECK (public.nexus_is_platform_admin());
 
 -- Backfill only when a company has exactly one open project. Never guess between multiple projects.
+WITH open_projects AS (
+  SELECT p.company_id,p.id AS project_id,p.created_by,
+         count(*) OVER (PARTITION BY p.company_id) AS open_count
+  FROM public.nexus_projects p
+  WHERE p.status NOT IN ('complete','cancelled')
+)
 INSERT INTO public.nexus_active_engagements(company_id,project_id,updated_by,updated_at)
-SELECT p.company_id,min(p.id),min(p.created_by),now()
-FROM public.nexus_projects p
-WHERE p.status NOT IN ('complete','cancelled')
-GROUP BY p.company_id
-HAVING count(*) = 1
+SELECT company_id,project_id,created_by,now()
+FROM open_projects
+WHERE open_count=1
 ON CONFLICT (company_id) DO NOTHING;
 
 CREATE OR REPLACE FUNCTION public.nexus_set_active_engagement(p_company_id uuid,p_project_id uuid)
@@ -133,6 +137,7 @@ DECLARE
   v_project uuid;
   v_name text:=nullif(btrim(p_name),'');
   v_memberships integer:=0;
+  v_open_projects integer:=0;
 BEGIN
   IF v_user IS NULL THEN RAISE EXCEPTION 'Authentication required'; END IF;
   IF v_name IS NULL THEN RAISE EXCEPTION 'Company name is required'; END IF;
@@ -140,8 +145,7 @@ BEGIN
   -- Serialize retries from the same signed-in user.
   PERFORM pg_advisory_xact_lock(hashtextextended(v_user::text,0));
 
-  SELECT count(*),min(m.company_id)
-  INTO v_memberships,v_company
+  SELECT count(*) INTO v_memberships
   FROM public.nexus_company_members m
   WHERE m.user_id=v_user AND m.active IS TRUE;
 
@@ -150,26 +154,32 @@ BEGIN
   END IF;
 
   IF v_memberships = 1 THEN
+    SELECT m.company_id INTO v_company
+    FROM public.nexus_company_members m
+    WHERE m.user_id=v_user AND m.active IS TRUE
+    LIMIT 1;
+
     SELECT ae.project_id INTO v_project
     FROM public.nexus_active_engagements ae
     WHERE ae.company_id=v_company;
 
     IF v_project IS NULL THEN
-      SELECT min(p.id) INTO v_project
+      SELECT count(*) INTO v_open_projects
       FROM public.nexus_projects p
       WHERE p.company_id=v_company
-        AND p.status NOT IN ('complete','cancelled')
-      HAVING count(*)=1;
+        AND p.status NOT IN ('complete','cancelled');
 
-      IF v_project IS NOT NULL THEN
+      IF v_open_projects = 1 THEN
+        SELECT p.id INTO v_project
+        FROM public.nexus_projects p
+        WHERE p.company_id=v_company
+          AND p.status NOT IN ('complete','cancelled')
+        LIMIT 1;
+
         INSERT INTO public.nexus_active_engagements(company_id,project_id,updated_by)
         VALUES(v_company,v_project,v_user)
         ON CONFLICT(company_id) DO NOTHING;
-      ELSIF EXISTS(
-        SELECT 1 FROM public.nexus_projects p
-        WHERE p.company_id=v_company
-          AND p.status NOT IN ('complete','cancelled')
-      ) THEN
+      ELSIF v_open_projects > 1 THEN
         RAISE EXCEPTION 'Existing workspace has multiple open projects; Nexus must select the active engagement.';
       END IF;
     END IF;
