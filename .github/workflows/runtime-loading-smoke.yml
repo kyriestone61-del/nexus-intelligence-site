@@ -1,0 +1,108 @@
+name: Nexus Runtime Loading Smoke
+
+on:
+  push:
+    branches:
+      - qa/runtime-loading-20260830
+
+permissions:
+  contents: read
+
+jobs:
+  production-runtime-qaqc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROD_ORIGIN: https://nexus-intelligence-site.pages.dev
+      DEPLOY_ORIGIN: https://1ce19f12.nexus-intelligence-site.pages.dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: HTTP reachability and timing
+        shell: bash
+        run: |
+          set -euo pipefail
+          for origin in "$PROD_ORIGIN" "$DEPLOY_ORIGIN"; do
+            for path in / /portal /services /book /styles.css /portal-app.js /portal-client.js /portal-diagnosis-v2.js /portal-admin-journey.js; do
+              url="${origin}${path}"
+              echo "=== $url ==="
+              curl --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 30 \
+                -sS -o /tmp/body -D /tmp/headers \
+                -w 'status=%{http_code} dns=%{time_namelookup} connect=%{time_connect} tls=%{time_appconnect} ttfb=%{time_starttransfer} total=%{time_total} bytes=%{size_download}\n' \
+                "$url"
+              status=$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}' /tmp/headers)
+              if [ -z "$status" ] || [ "$status" -ge 500 ]; then
+                echo "Server failure for $url: $status" >&2
+                exit 1
+              fi
+            done
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install browser harness
+        run: npm install --no-save --no-package-lock puppeteer-core@24.16.0
+
+      - name: Real-browser load QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME=$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)
+          if [ -z "$CHROME" ]; then
+            echo 'No Chromium/Chrome executable found on runner.' >&2
+            exit 1
+          fi
+          export CHROME
+          node <<'NODE'
+          const puppeteer = require('puppeteer-core');
+          const origins = [process.env.PROD_ORIGIN, process.env.DEPLOY_ORIGIN];
+          const routes = [
+            {path:'/', expect:'h1'},
+            {path:'/services', expect:'h1'},
+            {path:'/book', expect:'h1'},
+            {path:'/portal', expect:'#signInForm'}
+          ];
+          const browser = await puppeteer.launch({headless:true, executablePath:process.env.CHROME, args:['--no-sandbox','--disable-dev-shm-usage']});
+          let failed = false;
+          try {
+            for (const origin of origins) {
+              for (const route of routes) {
+                const page = await browser.newPage();
+                const pageErrors=[]; const consoleErrors=[]; const requestFailures=[]; const badResponses=[];
+                page.on('pageerror', e=>pageErrors.push(String(e.stack||e.message||e)));
+                page.on('console', m=>{ if(m.type()==='error') consoleErrors.push(m.text()); });
+                page.on('requestfailed', r=>requestFailures.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||'failed'}`));
+                page.on('response', r=>{ if(r.status()>=400 && r.url().startsWith(origin)) badResponses.push(`${r.status()} ${r.url()}`); });
+                const url=origin+route.path;
+                const started=Date.now();
+                let response;
+                try {
+                  response = await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+                  await new Promise(r=>setTimeout(r,5000));
+                  await page.waitForSelector(route.expect,{timeout:10000});
+                } catch(e) {
+                  console.error(`NAV/RENDER FAILURE ${url}: ${e.stack||e}`);
+                  failed=true;
+                }
+                const result = await page.evaluate(() => ({
+                  title: document.title,
+                  readyState: document.readyState,
+                  bodyChars: document.body?.innerText?.length || 0,
+                  h1: document.querySelector('h1')?.innerText || '',
+                  authDisplay: document.querySelector('#authView') ? getComputedStyle(document.querySelector('#authView')).display : null,
+                  appDisplay: document.querySelector('#portalApp') ? getComputedStyle(document.querySelector('#portalApp')).display : null,
+                  scripts: [...document.scripts].map(s=>s.src).filter(Boolean),
+                  resources: performance.getEntriesByType('resource').map(r=>({name:r.name, duration:Math.round(r.duration), size:r.transferSize||0})).sort((a,b)=>b.duration-a.duration).slice(0,12)
+                })).catch(()=>({}));
+                console.log(JSON.stringify({url,status:response?.status?.(),elapsedMs:Date.now()-started,result,pageErrors,consoleErrors,requestFailures,badResponses},null,2));
+                const criticalConsole = consoleErrors.filter(x=>!/favicon|analytics|Failed to load resource.*404/i.test(x));
+                const criticalBad = badResponses.filter(x=>!/favicon/i.test(x));
+                if (!response || response.status()>=500 || (result.bodyChars||0)<80 || pageErrors.length || criticalConsole.length || criticalBad.length) failed=true;
+                await page.close();
+              }
+            }
+          } finally { await browser.close(); }
+          if (failed) process.exit(1);
+          NODE
