@@ -1,0 +1,33 @@
+name: Nexus Parallel Runtime Contract QA
+
+on:
+  pull_request:
+    paths:
+      - 'qa/contracts/module-loader.mjs'
+      - 'qa/contracts/module-loader.test.mjs'
+      - 'qa/contracts/bootstrap-coordinator.mjs'
+      - 'qa/contracts/bootstrap-coordinator.test.mjs'
+      - '.github/workflows/parallel-runtime-contract-qaqc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  module-boundary-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check qa/contracts/module-loader.mjs
+          node --check qa/contracts/module-loader.test.mjs
+          node --check qa/contracts/bootstrap-coordinator.mjs
+          node --check qa/contracts/bootstrap-coordinator.test.mjs
+      - name: Required module behavior
+        run: node --test qa/contracts/module-loader.test.mjs
+      - name: Deterministic boot sequencing
+        run: node --test qa/contracts/bootstrap-coordinator.test.mjs
