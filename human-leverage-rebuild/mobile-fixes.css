@@ -1,0 +1,100 @@
+/* Human OS mobile and state-layer hardening */
+body:not(.app-ready) #appShell,
+body:not(.app-ready) .tutor-fab{display:none!important}
+body.app-ready #authGate{display:none!important}
+
+@media (max-width:760px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  body{padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+  button,a,input,select,textarea{max-width:100%}
+  input,select,textarea{font-size:16px!important}
+
+  /* Public landing page */
+  .marketing-gate{min-height:100svh;overflow-x:hidden}
+  .marketing-nav{padding:16px 18px;gap:12px;align-items:center;position:relative;z-index:5}
+  .marketing-brand b{font-size:15px;letter-spacing:.02em}
+  .marketing-brand span{font-size:11px}
+  .marketing-nav nav{gap:8px;margin-left:auto}
+  .marketing-nav nav>a{display:none}
+  .marketing-nav #marketingStart{display:none}
+  .marketing-nav .btn{min-height:42px;padding:9px 12px;white-space:nowrap}
+  .marketing-main{padding:20px 18px 56px}
+  .marketing-hero{grid-template-columns:1fr;gap:28px;padding:30px 0 46px;align-items:start}
+  .marketing-hero h1{font-size:clamp(43px,13vw,58px);line-height:.98;letter-spacing:-.05em;margin:10px 0 20px;overflow-wrap:normal;word-break:normal}
+  .marketing-hero p{font-size:17px;line-height:1.6;margin-bottom:22px}
+  .hero-actions{display:grid!important;grid-template-columns:1fr;gap:10px;width:100%}
+  .hero-actions .btn{width:100%;min-height:54px;font-size:16px;padding:13px 16px}
+  .trust-strip{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+  .trust-strip span{margin:0;text-align:center;padding:8px 7px;font-size:11px;line-height:1.3}
+  .marketing-preview{display:none}
+  .marketing-section{padding:42px 0}
+  .marketing-section .grid.three,.marketing-section .grid.two,.pricing-grid,.split-section{grid-template-columns:1fr!important;gap:14px!important}
+  .section-heading{margin-bottom:20px}
+  .section-heading h2,.marketing-section h2{font-size:30px;line-height:1.1;letter-spacing:-.025em}
+  .tag-cloud,.trust-points{gap:7px}
+  .marketing-footer{padding:24px 18px 34px;gap:18px;flex-direction:column;align-items:flex-start}
+  .marketing-footer>div:last-child{display:flex;gap:14px;flex-wrap:wrap}
+
+  /* Authentication sheet */
+  .auth-panel{position:fixed!important;inset:0!important;z-index:1000!important;padding:12px!important;background:rgba(5,7,10,.94)!important;overflow-y:auto!important;align-items:flex-end!important;justify-content:center!important}
+  .auth-panel .auth-box{width:100%!important;max-width:520px!important;max-height:calc(100svh - 24px);overflow-y:auto;border-radius:18px 18px 12px 12px;padding:22px 18px calc(18px + env(safe-area-inset-bottom))!important;margin:auto 0 0!important}
+  .auth-panel .form-grid{grid-template-columns:1fr!important;gap:12px!important}
+  .auth-tabs{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}
+  .auth-close{width:44px;height:44px}
+
+  /* Signed-in / preview application */
+  body.app-ready .shell{display:block!important;min-height:100svh;width:100%}
+  body.app-ready .main{width:100%;max-width:none;padding:0 16px calc(36px + env(safe-area-inset-bottom));margin:0;overflow-x:hidden}
+  .mobile-bar{display:grid!important;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:10px;position:sticky;top:0;z-index:90;background:rgba(10,12,15,.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top));margin:0 -16px 22px;width:calc(100% + 32px);min-height:68px}
+  .mobile-bar>div{display:grid;min-width:0;line-height:1.1}
+  .mobile-bar b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mobile-bar span{display:block;margin-top:4px;font-size:11px;color:var(--tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mobile-bar .btn{min-height:44px;padding:9px 14px;white-space:nowrap}
+  #mobileMenu{width:48px;min-width:48px;height:48px;padding:0;display:grid;place-items:center;font-size:22px}
+  .topbar{display:none!important}
+  .tutor-fab{display:none!important}
+
+  .sidebar{position:fixed!important;inset:0 auto 0 0;width:min(82vw,320px)!important;height:100svh!important;z-index:140!important;transform:translateX(-105%);transition:transform .2s ease;overflow-y:auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));box-shadow:20px 0 60px rgba(0,0,0,.45)}
+  body.nav-open .sidebar{transform:translateX(0)}
+  .mobile-backdrop{position:fixed!important;inset:0!important;z-index:130!important;background:rgba(0,0,0,.56)!important;display:block}
+  .mobile-backdrop.hidden{display:none!important}
+
+  .today-hero{display:block;margin:4px 0 18px}
+  .today-copy h2{font-size:32px;line-height:1.08;margin-bottom:8px}
+  .today-status{margin-top:12px}
+  .next-action-panel{grid-template-columns:1fr!important;align-items:start;gap:18px;padding:22px 18px;border-radius:15px;margin-bottom:18px}
+  .next-action-panel h1{font-size:32px;line-height:1.05;margin:6px 0 10px}
+  .next-action-panel .btn{width:100%}
+  .dashboard-metrics{grid-template-columns:1fr!important;margin-bottom:24px}
+  .metric{min-height:auto;padding:16px}
+  .dashboard-lower{grid-template-columns:1fr!important;gap:22px}
+  .evidence-grid{grid-template-columns:1fr 1fr!important;gap:10px}
+
+  .grid.two,.grid.three,.hero,.form-grid,.choices{grid-template-columns:1fr!important}
+  .card{padding:17px;border-radius:12px;max-width:100%;overflow-wrap:anywhere}
+  .card h2{font-size:27px;line-height:1.12}
+  .card h3{font-size:20px;line-height:1.2}
+  .account-row,.section-head{align-items:flex-start;flex-direction:column}
+  .account-row>.btn,.section-head>.btn{width:100%}
+  .toolbar{width:100%}
+  .toolbar>.btn{flex:1 1 160px}
+  .module-card{grid-template-columns:44px minmax(0,1fr);gap:12px;padding:14px 0}
+  .module-card>.btn{grid-column:1/-1;width:100%}
+  .lesson-body{max-width:100%}
+  .lesson-section{padding:19px 0}
+  .video-card{grid-template-columns:1fr;gap:10px}
+  .quiz-option{white-space:normal}
+  .score{font-size:40px}
+  .research-item a{overflow-wrap:anywhere}
+  .path-result{padding:17px}
+}
+
+@media (max-width:390px){
+  .marketing-main{padding-left:16px;padding-right:16px}
+  .marketing-hero h1{font-size:42px}
+  .trust-strip{grid-template-columns:1fr}
+  body.app-ready .main{padding-left:14px;padding-right:14px}
+  .mobile-bar{margin-left:-14px;margin-right:-14px;width:calc(100% + 28px);grid-template-columns:46px minmax(0,1fr) auto;padding-left:10px;padding-right:10px}
+  .mobile-bar .btn{padding-left:11px;padding-right:11px}
+  .evidence-grid{grid-template-columns:1fr!important}
+}
