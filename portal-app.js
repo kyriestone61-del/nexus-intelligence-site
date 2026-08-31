@@ -114,8 +114,8 @@ if(isAdmin){
   await optionalImport(asset(`portal-journey-task-guard.js?v=${BUILD}`));
 
   await waitFor(()=>document.querySelector('.journey-primary')&&document.querySelector('#adminJourneyRoot .journey-step'));
-  await portal?.NexusDiagnosisController?.refreshJourneyLabels?.();
-  portal?.NexusDiagnosisController?.normalizeIntake?.();
+  await window.NexusDiagnosisController?.refreshJourneyLabels?.();
+  window.NexusDiagnosisController?.normalizeIntake?.();
   await new Promise(resolve=>setTimeout(resolve,120));
 }
 
