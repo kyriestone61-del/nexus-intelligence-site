@@ -17,18 +17,18 @@ export function assertClientMemorySafe(memory){
   };
 }
 
-export function projectDecision(decision,role='client'){
-  if(!decision||typeof decision!=='object')return null;
-  if(role==='admin')return {...decision};
-  if(!decision.client_visible)return null;
-  const {id,title,decision,confidence,status,decided_at,evidence_refs}=decision;
+export function projectDecision(record,role='client'){
+  if(!record||typeof record!=='object')return null;
+  if(role==='admin')return {...record};
+  if(!record.client_visible)return null;
+  const {id,title,decision,confidence,status,decided_at,evidence_refs}=record;
   return {id,title,decision,confidence,status,decided_at,evidence_refs};
 }
 
-export function projectEvidence(evidence,role='client'){
-  if(!evidence||typeof evidence!=='object')return null;
-  if(role==='admin')return {...evidence};
-  if(!evidence.client_visible)return null;
-  const {id,title,evidence_type,source_ref,observation_start,observation_end,supports_claim,confidence,limitations}=evidence;
+export function projectEvidence(record,role='client'){
+  if(!record||typeof record!=='object')return null;
+  if(role==='admin')return {...record};
+  if(!record.client_visible)return null;
+  const {id,title,evidence_type,source_ref,observation_start,observation_end,supports_claim,confidence,limitations}=record;
   return {id,title,evidence_type,source_ref,observation_start,observation_end,supports_claim,confidence,limitations};
 }
