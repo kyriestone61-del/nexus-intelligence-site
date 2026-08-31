@@ -1,4 +1,3 @@
 # Cloudflare Pages route rewrites for dynamic detail views.
-# Static extensionless routes such as /portal and /quick-scan are served automatically.
-/services/* /service-detail.html 200
+# Service detail pages now use real /services/<slug>/index.html routes so the selected slug cannot be lost by pretty-URL canonicalization.
 /industries/* /industries.html 200
