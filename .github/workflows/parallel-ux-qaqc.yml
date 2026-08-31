@@ -1,0 +1,30 @@
+name: Nexus Parallel UX QA
+
+on:
+  pull_request:
+    paths:
+      - 'qa/RESET_ACCEPTANCE_MATRIX.md'
+      - 'qa/scripts/accessibility-static-audit.py'
+      - '.github/workflows/parallel-ux-qaqc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  accessibility-static-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Portal accessibility audit
+        run: python qa/scripts/accessibility-static-audit.py portal.html
+      - name: Acceptance matrix completeness
+        shell: bash
+        run: |
+          set -euo pipefail
+          for section in 'Runtime / boot ownership' 'Company / tenant isolation' 'Canonical engagement identity' 'Client Journey behavior' 'Diagnosis' 'Accessibility / mobile' 'Behavioral E2E acceptance' 'Post-reset extension readiness'; do
+            grep -Fq "$section" qa/RESET_ACCEPTANCE_MATRIX.md
+          done
