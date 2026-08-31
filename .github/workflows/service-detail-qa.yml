@@ -25,7 +25,7 @@ jobs:
           set -euo pipefail
           grep -Fq '/services/* /service-detail.html 200' _redirects
           grep -Fq "fetch('/services.html'" service-detail.html
-          grep -Fq "document.getElementById('tpl-'+slug)" service-detail.html
+          grep -Fq "doc.getElementById('tpl-'+slug)" service-detail.html
           grep -Fq 'serviceDetailRoot' service-detail.html
       - name: All six service detail templates exist
         run: |
