@@ -108,3 +108,33 @@ jobs:
             if (failed) process.exit(1);
           })().catch(err=>{console.error(err);process.exit(1)});
           NODE
+
+      - name: Synthetic authenticated-workspace responsiveness QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME=$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)
+          export CHROME
+          node <<'NODE'
+          const puppeteer = require('puppeteer-core');
+          (async()=>{
+            const browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+            const page=await browser.newPage();
+            page.on('pageerror',e=>console.error('PAGEERROR',String(e.stack||e)));
+            await page.goto(process.env.PROD_ORIGIN+'/portal',{waitUntil:'networkidle2',timeout:30000});
+            const inject=page.evaluate(()=>{
+              const card=document.createElement('article');
+              card.className='diagnosis-run-card';
+              card.innerHTML='<span class="diagnosis-status ready_for_review">ready for review</span><div class="diagnosis-run-actions"><select class="diagnosis-status-select" data-id="synthetic-run"><option value="ready_for_review" selected>Ready</option></select><button class="copy-agent-packet" data-id="synthetic-run">Copy</button></div>';
+              document.body.appendChild(card);
+              return 'injected';
+            });
+            const injected=await Promise.race([inject,new Promise(r=>setTimeout(()=>r('timeout'),2500))]);
+            console.log('synthetic diagnosis card:',injected);
+            const probe=page.evaluate(()=>new Promise(resolve=>setTimeout(()=>resolve({ok:true,html:document.querySelector('.diagnosis-secure-action')?.innerHTML||''}),500)));
+            const responsiveness=await Promise.race([probe,new Promise(r=>setTimeout(()=>r({ok:false,reason:'main-thread-starvation'}),3000))]);
+            console.log('responsiveness:',JSON.stringify(responsiveness));
+            await browser.close().catch(()=>{});
+            if(injected==='timeout'||!responsiveness.ok){process.exit(1)}
+          })().catch(err=>{console.error(err);process.exit(1)});
+          NODE
