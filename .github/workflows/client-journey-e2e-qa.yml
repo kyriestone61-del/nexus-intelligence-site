@@ -5,7 +5,8 @@ on:
     paths:
       - 'portal-admin-journey.js'
       - 'portal-admin-intake.js'
-      - 'portal-diagnosis-controller.js'
+      - 'portal-diagnosis-controller-v2.js'
+      - 'portal-diagnosis-execution-ux.js'
       - 'portal-diagnosis-v2.js'
       - 'portal-diagnosis-manual-fallback.js'
       - 'portal-diagnosis-review-ux.js'
@@ -33,7 +34,8 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-admin-intake.js
-          node --input-type=module --check < portal-diagnosis-controller.js
+          node --input-type=module --check < portal-diagnosis-controller-v2.js
+          node --input-type=module --check < portal-diagnosis-execution-ux.js
           node --input-type=module --check < portal-diagnosis-v2.js
           node --input-type=module --check < portal-diagnosis-manual-fallback.js
           node --input-type=module --check < portal-diagnosis-review-ux.js
@@ -49,19 +51,20 @@ jobs:
           grep -Fq 'Send Client Checklist (optional)' portal-admin-journey.js
           grep -Fq "['intake','Discovery & Diagnosis']" portal-admin-journey.js
           grep -Fq "section.id='section-intake'" portal-admin-intake.js
-          grep -Fq "category==='Discovery Transcript'" portal-diagnosis-controller.js
-          grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller.js
-          grep -Fq 'resolveTranscriptId' portal-diagnosis-controller.js
+          grep -Fq "category==='Discovery Transcript'" portal-diagnosis-controller-v2.js
+          grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller-v2.js
+          grep -Fq 'resolveTranscriptId' portal-diagnosis-controller-v2.js
       - name: Step 3 diagnosis assertions
         run: |
           set -euo pipefail
           grep -Fq "title:'Diagnose'" portal-admin-journey.js
           grep -Fq 'diagnosisApproved' portal-admin-journey.js
           grep -Fq 'analysis_result' portal-admin-journey.js
-          grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller.js
-          grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller.js
-          grep -Fq 'Review Diagnosis' portal-diagnosis-controller.js
-          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller.js
+          grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller-v2.js
+          grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller-v2.js
+          grep -Fq 'Review Diagnosis' portal-diagnosis-controller-v2.js
+          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
+          grep -Fq 'existingRunForTranscript' portal-diagnosis-controller-v2.js
           grep -Fq 'ready_for_review' portal-diagnosis-v2.js
           grep -Fq 'Approve diagnosis →' portal-diagnosis-v2.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
@@ -76,8 +79,9 @@ jobs:
           grep -Fq 'No action items were created' portal-admin-journey.js
           grep -Fq 'Starting…' portal-admin-journey.js
           grep -Fq 'journey-inline-notice.error' portal-journey-qaqc.css
-          grep -Fq 'event.stopImmediatePropagation' portal-diagnosis-controller.js
-          grep -Fq 'reusableProviderFailure' portal-diagnosis-controller.js
+          grep -Fq 'event.stopImmediatePropagation' portal-diagnosis-controller-v2.js
+          grep -Fq 'Diagnosis execution failed.' portal-diagnosis-controller-v2.js
+          grep -Fq 'already exists for this transcript' portal-diagnosis-controller-v2.js
       - name: Task dependency and exception assertions
         run: |
           set -euo pipefail
@@ -95,7 +99,9 @@ jobs:
           grep -Fq 'portal-action-execution-v2-forms.js' portal-app.js
           grep -Fq 'portal-journey-task-guard.js' portal-app.js
           grep -Fq 'portal-journey-qaqc.css' portal-app.js
-          grep -Fq 'portal-diagnosis-controller.js' portal-app.js
+          grep -Fq 'portal-diagnosis-controller-v2.js' portal-app.js
+          grep -Fq 'portal-diagnosis-execution-ux.js' portal-app.js
+          grep -Fq 'portal-diagnosis-release-queue.js' portal-app.js
           grep -Fq 'portal-diagnosis-v2.js' portal-app.js
           grep -Fq 'portal-diagnosis-v2.css' portal-app.js
           grep -Fq 'portal-diagnosis-manual-fallback.js' portal-app.js
@@ -108,7 +114,7 @@ jobs:
       - name: Browser security assertions
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-admin-journey.js portal-admin-intake.js portal-diagnosis-controller.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-journey-task-guard.js portal-journey-qaqc.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-admin-journey.js portal-admin-intake.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-journey-task-guard.js portal-journey-qaqc.css; then
             echo 'Privileged credential reference found in browser-delivered journey files.' >&2
             exit 1
           fi
