@@ -6,8 +6,11 @@ on:
       - 'portal-admin-journey.js'
       - 'portal-admin-journey-router.js'
       - 'portal-admin-journey.css'
+      - 'portal-admin-intake.js'
+      - 'portal-journey-reliability.js'
       - 'portal-diagnosis-override.js'
       - 'portal-diagnosis-v2.js'
+      - 'portal-diagnosis-manual-fallback.js'
       - 'portal-app.js'
       - '.github/workflows/admin-journey-qa.yml'
 
@@ -29,8 +32,11 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-admin-journey-router.js
+          node --input-type=module --check < portal-admin-intake.js
+          node --input-type=module --check < portal-journey-reliability.js
           node --input-type=module --check < portal-diagnosis-override.js
           node --input-type=module --check < portal-diagnosis-v2.js
+          node --input-type=module --check < portal-diagnosis-manual-fallback.js
           node --input-type=module --check < portal-app.js
       - name: Seven-stage workflow assertions
         run: |
@@ -46,7 +52,7 @@ jobs:
           grep -Fq 'Client Journey' portal-admin-journey.js
           grep -Fq 'Tools & records' portal-admin-journey.js
           grep -Fq 'ready_to_finish' portal-admin-journey.js
-      - name: Methodology and secured diagnosis gate assertions
+      - name: Methodology and diagnosis gate assertions
         run: |
           set -euo pipefail
           grep -Fq "package:'client_discovery'" portal-admin-journey.js
@@ -58,6 +64,7 @@ jobs:
           grep -Fq 'nexus:diagnosis-changed' portal-admin-journey.js
           grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-v2.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
+          grep -Fq 'Finish Step 3 with ChatGPT' portal-diagnosis-manual-fallback.js
           grep -Fq "package:'solution_design'" portal-admin-journey.js
           grep -Fq "package:'implementation_launch'" portal-admin-journey.js
           grep -Fq "package:'training_handoff'" portal-admin-journey.js
@@ -65,12 +72,15 @@ jobs:
           grep -Fq 'nexus_assign_action_package' portal-admin-journey.js
           grep -Fq "status:'complete'" portal-admin-journey.js
           grep -Fq 'Mark Engagement Complete' portal-admin-journey.js
-      - name: Client selection routing assertion
+      - name: Client selection and intake routing assertions
         run: |
           set -euo pipefail
           grep -Fq '.open-client' portal-admin-journey-router.js
           grep -Fq '.journey-primary' portal-admin-journey-router.js
           grep -Fq 'portal-admin-journey-router.js' portal-app.js
+          grep -Fq 'ensureAdminIntake' portal-journey-reliability.js
+          grep -Fq "activateSection('intake')" portal-journey-reliability.js
+          grep -Fq "section.id='section-intake'" portal-admin-intake.js
       - name: Frontend-only repository assertion
         run: |
           set -euo pipefail
@@ -84,19 +94,26 @@ jobs:
       - name: Browser security assertion
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-admin-journey.js portal-admin-journey-router.js portal-admin-journey.css portal-diagnosis-override.js portal-diagnosis-v2.js; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-admin-journey.js portal-admin-journey-router.js portal-admin-journey.css portal-admin-intake.js portal-journey-reliability.js portal-diagnosis-override.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js; then
             echo 'Privileged credential reference found in browser-delivered admin journey.' >&2
             exit 1
           fi
-      - name: Responsive and loader assertions
+      - name: Responsive and atomic loader assertions
         run: |
           set -euo pipefail
           grep -Fq '@media(max-width:900px)' portal-admin-journey.css
           grep -Fq 'portal-admin-journey.css' portal-app.js
-          grep -Fq 'portal-admin-journey.js?v=20260830-3' portal-app.js
-          grep -Fq 'portal-diagnosis-override.js?v=20260830-2' portal-app.js
-          grep -Fq 'portal-diagnosis-v2.js?v=20260830-1' portal-app.js
+          grep -Fq 'portal-admin-journey.js' portal-app.js
+          grep -Fq 'portal-diagnosis-override.js' portal-app.js
+          grep -Fq 'portal-diagnosis-v2.js' portal-app.js
+          grep -Fq 'portal-diagnosis-manual-fallback.js' portal-app.js
+          grep -Fq 'portal-journey-reliability.js' portal-app.js
+          grep -Fq "const asset=path=>\`/" portal-app.js
+          if grep -Fq 'cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main' portal-app.js; then
+            echo 'Admin Journey assets must come from the exact deployed build, not mutable main.' >&2
+            exit 1
+          fi
           if grep -Fq 'portal-diagnosis-result-capture.js' portal-app.js; then
-            echo 'Retired manual diagnosis capture must not be loaded.' >&2
+            echo 'Retired diagnosis result-capture module must not be loaded.' >&2
             exit 1
           fi
