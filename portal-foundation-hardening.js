@@ -1,7 +1,7 @@
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Nexus portal context is unavailable.');
 const {sb,state,toast}=portal;
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let memoryBusy=false,memoryScheduled=false,engagementBusy=false;
 const terminalProject=p=>['complete','cancelled'].includes(String(p?.status||'').toLowerCase());
 
