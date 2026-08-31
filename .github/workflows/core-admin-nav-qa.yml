@@ -1,0 +1,50 @@
+name: Nexus Core Admin Navigation QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-admin-journey-router.js'
+      - 'portal-admin-journey.js'
+      - 'portal-admin-intake.js'
+      - '.github/workflows/core-admin-nav-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  core-admin-nav-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-admin-journey-router.js
+          node --input-type=module --check < portal-admin-journey.js
+          node --input-type=module --check < portal-admin-intake.js
+      - name: Core navigation visibility contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'promoteCoreNav' portal-admin-journey-router.js
+          grep -Fq 'button[data-section="intake"]' portal-admin-journey-router.js
+          grep -Fq "intake.textContent='Discovery & Diagnosis'" portal-admin-journey-router.js
+          grep -Fq "journey.insertAdjacentElement('afterend',intake)" portal-admin-journey-router.js
+          grep -Fq "section.id='section-intake'" portal-admin-intake.js
+          grep -Fq "['intake','Discovery & Diagnosis']" portal-admin-journey.js
+      - name: No hidden-core regression
+        run: |
+          set -euo pipefail
+          if grep -Fq "intake.textContent='Discovery & Diagnosis'" portal-admin-journey-router.js && ! grep -Fq "journey.insertAdjacentElement('afterend',intake)" portal-admin-journey-router.js; then
+            echo 'Discovery & Diagnosis is labeled but not promoted to top-level admin navigation.' >&2
+            exit 1
+          fi
+      - name: Browser secret safety
+        run: |
+          set -euo pipefail
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|AI_GATEWAY_API_KEY|RESEND_API_KEY|SECRET_KEY' portal-admin-journey-router.js; then
+            echo 'Server-only credential reference found in admin navigation runtime.' >&2
+            exit 1
+          fi
