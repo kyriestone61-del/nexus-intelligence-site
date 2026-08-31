@@ -6,10 +6,12 @@ on:
       - 'portal-app.js'
       - 'portal-admin-journey.js'
       - 'portal-admin-intake.js'
-      - 'portal-journey-reliability.js'
+      - 'portal-diagnosis-controller.js'
       - 'portal-diagnosis-v2.js'
       - 'portal-diagnosis-manual-fallback.js'
+      - 'portal-diagnosis-review-ux.js'
       - 'portal-journey-task-guard.js'
+      - 'functions/portal.js'
       - '.github/workflows/journey-runtime-routing-qa.yml'
 
 permissions:
@@ -29,53 +31,70 @@ jobs:
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-admin-intake.js
-          node --input-type=module --check < portal-journey-reliability.js
+          node --input-type=module --check < portal-diagnosis-controller.js
           node --input-type=module --check < portal-diagnosis-v2.js
           node --input-type=module --check < portal-diagnosis-manual-fallback.js
+          node --input-type=module --check < portal-diagnosis-review-ux.js
           node --input-type=module --check < portal-journey-task-guard.js
-      - name: Step 2 and Step 3 routing contract
+          node --check functions/portal.js
+      - name: Single-owner runtime contract
         run: |
           set -euo pipefail
-          grep -Fq "key:'discovery'" portal-admin-journey.js
-          grep -Fq "key:'diagnosis'" portal-admin-journey.js
-          grep -Fq "data-open=\"intake\"" portal-admin-journey.js
-          grep -Fq "section.id='section-intake'" portal-admin-intake.js
-          grep -Fq "clickTargetsIntake" portal-journey-reliability.js
-          grep -Fq "requestAdminIntakeReconcile" portal-journey-reliability.js
-          grep -Fq "activateSection('intake')" portal-journey-reliability.js
-      - name: Diagnosis provider fallback contract
+          grep -Fq 'nexus-runtime-booting' portal-app.js
+          grep -Fq 'portal-diagnosis-controller.js' portal-app.js
+          grep -Fq 'portal-diagnosis-v2.js' portal-app.js
+          grep -Fq 'portal-diagnosis-manual-fallback.js' portal-app.js
+          if grep -Fq 'portal-diagnosis-override.js' portal-app.js; then
+            echo 'Legacy diagnosis override must not load beside the centralized controller.' >&2
+            exit 1
+          fi
+          if grep -Fq 'portal-diagnosis-state-labels.js' portal-app.js; then
+            echo 'Legacy diagnosis label patch must not load beside the centralized controller.' >&2
+            exit 1
+          fi
+          if grep -Fq 'portal-journey-reliability.js' portal-app.js; then
+            echo 'Legacy Journey reliability patch must not load beside the centralized controller.' >&2
+            exit 1
+          fi
+          if grep -Fq 'portal-launch-control.js' portal-app.js; then
+            echo 'Launch Control must remain in the Admin Console and not inject a late portal nav item.' >&2
+            exit 1
+          fi
+      - name: Transcript persistence and queue contract
         run: |
           set -euo pipefail
-          grep -Fq 'AI_GATEWAY_NOT_CONFIGURED' portal-diagnosis-manual-fallback.js
+          grep -Fq "category==='Discovery Transcript'" portal-diagnosis-controller.js
+          grep -Fq 'resolveTranscriptId' portal-diagnosis-controller.js
+          grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller.js
+          grep -Fq 'selectedTranscript' portal-diagnosis-controller.js
+          grep -Fq 'docs[0]?.id' portal-diagnosis-controller.js
+          grep -Fq 'No diagnosis evidence was found' portal-diagnosis-controller.js
+          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller.js
+      - name: Step 3 routing and fallback contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller.js
+          grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller.js
+          grep -Fq 'Review Diagnosis' portal-diagnosis-controller.js
+          grep -Fq 'reusableProviderFailure' portal-diagnosis-controller.js
+          grep -Fq 'AI_GATEWAY_NOT_CONFIGURED' portal-diagnosis-controller.js
           grep -Fq 'Finish Step 3 with ChatGPT' portal-diagnosis-manual-fallback.js
-          grep -Fq 'Copy diagnosis prompt' portal-diagnosis-manual-fallback.js
           grep -Fq "status:'ready_for_review'" portal-diagnosis-manual-fallback.js
-          grep -Fq 'nexus:diagnosis-changed' portal-diagnosis-manual-fallback.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
-      - name: Steps 4 through 7 package contract
-        run: |
-          set -euo pipefail
-          grep -Fq "package:'solution_design'" portal-admin-journey.js
-          grep -Fq "package:'implementation_launch'" portal-admin-journey.js
-          grep -Fq "package:'training_handoff'" portal-admin-journey.js
-          grep -Fq "package:'monthly_optimization'" portal-admin-journey.js
-          grep -Fq 'nexus_assign_action_package' portal-admin-journey.js
-          grep -Fq 'nexus_admin_set_task_status' portal-journey-task-guard.js
-          grep -Fq 'Complete engagement' portal-admin-journey.js
-      - name: Atomic portal asset contract
+      - name: Deterministic deployed assets
         run: |
           set -euo pipefail
           grep -Fq "const asset=path=>\`/" portal-app.js
-          grep -Fq 'portal-journey-reliability.js' portal-app.js
-          grep -Fq 'portal-diagnosis-manual-fallback.js' portal-app.js
+          grep -Fq 'jsdelivr' functions/portal.js
+          grep -Fq 'exact code packaged in this Cloudflare deployment' functions/portal.js
           if grep -Fq 'cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main' portal-app.js; then
-            echo 'Portal is loading mutable main-branch CDN assets instead of the exact deployed build.' >&2
+            echo 'Portal app is loading mutable main-branch assets.' >&2
             exit 1
           fi
       - name: Browser secret safety
         run: |
           set -euo pipefail
-          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-journey-reliability.js portal-diagnosis-manual-fallback.js; then
-            echo 'Server-only credential reference found in browser-delivered Journey repair.' >&2
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-diagnosis-controller.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js; then
+            echo 'Server-only credential reference found in browser-delivered Journey runtime.' >&2
             exit 1
           fi

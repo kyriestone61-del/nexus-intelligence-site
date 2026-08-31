@@ -7,11 +7,12 @@ on:
       - 'portal-admin-journey-router.js'
       - 'portal-admin-journey.css'
       - 'portal-admin-intake.js'
-      - 'portal-journey-reliability.js'
-      - 'portal-diagnosis-override.js'
+      - 'portal-diagnosis-controller.js'
       - 'portal-diagnosis-v2.js'
       - 'portal-diagnosis-manual-fallback.js'
+      - 'portal-diagnosis-review-ux.js'
       - 'portal-app.js'
+      - 'functions/portal.js'
       - '.github/workflows/admin-journey-qa.yml'
 
 permissions:
@@ -33,11 +34,12 @@ jobs:
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-admin-journey-router.js
           node --input-type=module --check < portal-admin-intake.js
-          node --input-type=module --check < portal-journey-reliability.js
-          node --input-type=module --check < portal-diagnosis-override.js
+          node --input-type=module --check < portal-diagnosis-controller.js
           node --input-type=module --check < portal-diagnosis-v2.js
           node --input-type=module --check < portal-diagnosis-manual-fallback.js
+          node --input-type=module --check < portal-diagnosis-review-ux.js
           node --input-type=module --check < portal-app.js
+          node --check functions/portal.js
       - name: Seven-stage workflow assertions
         run: |
           set -euo pipefail
@@ -58,11 +60,11 @@ jobs:
           grep -Fq "package:'client_discovery'" portal-admin-journey.js
           grep -Fq 'diagnosisApproved' portal-admin-journey.js
           grep -Fq 'analysis_result' portal-admin-journey.js
-          grep -Fq 'Open Diagnosis Review' portal-admin-journey.js
-          grep -Fq 'Secured diagnosis' portal-admin-journey.js
           grep -Fq 'ready_for_review' portal-admin-journey.js
           grep -Fq 'nexus:diagnosis-changed' portal-admin-journey.js
-          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-v2.js
+          grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller.js
+          grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller.js
+          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
           grep -Fq 'Finish Step 3 with ChatGPT' portal-diagnosis-manual-fallback.js
           grep -Fq "package:'solution_design'" portal-admin-journey.js
@@ -78,39 +80,42 @@ jobs:
           grep -Fq '.open-client' portal-admin-journey-router.js
           grep -Fq '.journey-primary' portal-admin-journey-router.js
           grep -Fq 'portal-admin-journey-router.js' portal-app.js
-          grep -Fq 'ensureAdminIntake' portal-journey-reliability.js
-          grep -Fq "activateSection('intake')" portal-journey-reliability.js
           grep -Fq "section.id='section-intake'" portal-admin-intake.js
-      - name: Frontend-only repository assertion
+          grep -Fq 'openIntake' portal-diagnosis-controller.js
+          grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller.js
+      - name: Runtime reset scope assertion
         run: |
           set -euo pipefail
           git fetch origin "${{ github.base_ref }}" --depth=1
           changed="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
           echo "$changed"
-          if echo "$changed" | grep -E '^(functions/|supabase/|migrations/|schema/|database/|.*\.sql$)'; then
-            echo 'This PR should contain browser-delivered workflow changes only; production DB migrations were applied through Supabase separately.' >&2
+          forbidden="$(echo "$changed" | grep -E '^(supabase/|migrations/|schema/|database/|.*\.sql$)' || true)"
+          extra_functions="$(echo "$changed" | grep '^functions/' | grep -v '^functions/portal.js$' || true)"
+          if [ -n "$forbidden" ] || [ -n "$extra_functions" ]; then
+            echo 'Runtime reset may change browser portal files and functions/portal.js only; no DB or other server changes are allowed.' >&2
             exit 1
           fi
       - name: Browser security assertion
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-admin-journey.js portal-admin-journey-router.js portal-admin-journey.css portal-admin-intake.js portal-journey-reliability.js portal-diagnosis-override.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-admin-journey.js portal-admin-journey-router.js portal-admin-journey.css portal-admin-intake.js portal-diagnosis-controller.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js; then
             echo 'Privileged credential reference found in browser-delivered admin journey.' >&2
             exit 1
           fi
-      - name: Responsive and atomic loader assertions
+      - name: Responsive and deterministic loader assertions
         run: |
           set -euo pipefail
           grep -Fq '@media(max-width:900px)' portal-admin-journey.css
           grep -Fq 'portal-admin-journey.css' portal-app.js
           grep -Fq 'portal-admin-journey.js' portal-app.js
-          grep -Fq 'portal-diagnosis-override.js' portal-app.js
+          grep -Fq 'portal-diagnosis-controller.js' portal-app.js
           grep -Fq 'portal-diagnosis-v2.js' portal-app.js
           grep -Fq 'portal-diagnosis-manual-fallback.js' portal-app.js
-          grep -Fq 'portal-journey-reliability.js' portal-app.js
+          grep -Fq 'nexus-runtime-booting' portal-app.js
           grep -Fq "const asset=path=>\`/" portal-app.js
-          if grep -Fq 'cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main' portal-app.js; then
-            echo 'Admin Journey assets must come from the exact deployed build, not mutable main.' >&2
+          grep -Fq 'exact code packaged in this Cloudflare deployment' functions/portal.js
+          if grep -Fq 'portal-diagnosis-override.js' portal-app.js || grep -Fq 'portal-diagnosis-state-labels.js' portal-app.js || grep -Fq 'portal-journey-reliability.js' portal-app.js || grep -Fq 'portal-launch-control.js' portal-app.js; then
+            echo 'Legacy competing portal runtime modules must not load.' >&2
             exit 1
           fi
           if grep -Fq 'portal-diagnosis-result-capture.js' portal-app.js; then
