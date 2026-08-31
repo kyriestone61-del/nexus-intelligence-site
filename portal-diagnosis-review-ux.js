@@ -37,11 +37,11 @@ function ensureStyles(){
 }
 
 const text=v=>String(v||'').trim();
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hasResult=run=>{
   const r=run?.analysis_result;
   return !!r&&(typeof r==='string'?!!r.trim():Object.keys(r||{}).length>0);
 };
-const providerMissing=run=>String(run?.execution_error||'').includes('AI_GATEWAY_NOT_CONFIGURED');
 
 function diagnosisJourneyButton(button){
   if(!button?.closest?.('#adminJourneyRoot'))return false;
@@ -133,9 +133,9 @@ function compactFallback(panel){
   const textarea=panel.querySelector('[data-manual-result]');
   const id=copy?.dataset.manualCopy||download?.dataset.manualDownload||save?.dataset.manualSave||textarea?.dataset.manualResult;
   if(!id)return;
-  const hasDownload=!!download;
+  const safeId=esc(id),hasDownload=!!download;
   panel.classList.add('diagnosis-compact-fallback');
-  panel.innerHTML=`<span class="diagnosis-compact-fallback-marker" hidden></span><div class="kicker">Next action</div><h3>Finish diagnosis with ChatGPT</h3><p class="small">Use the saved transcript and prepared prompt, then paste the diagnosis result below.</p><div class="actions">${hasDownload?`<button class="btn secondary" data-manual-download="${id}" type="button">Download transcript</button>`:''}<button class="btn secondary" data-manual-copy="${id}" type="button">Copy prompt</button></div><div class="field"><label>Paste diagnosis result</label><textarea data-manual-result="${id}" rows="6" placeholder="Paste the ChatGPT diagnosis here..."></textarea></div><div class="actions"><button class="btn primary" data-manual-save="${id}" type="button">Save for review →</button></div>`;
+  panel.innerHTML=`<span class="diagnosis-compact-fallback-marker" hidden></span><div class="kicker">Next action</div><h3>Finish diagnosis with ChatGPT</h3><p class="small">Use the saved transcript and prepared prompt, then paste the diagnosis result below.</p><div class="actions">${hasDownload?`<button class="btn secondary" data-manual-download="${safeId}" type="button">Download transcript</button>`:''}<button class="btn secondary" data-manual-copy="${safeId}" type="button">Copy prompt</button></div><div class="field"><label>Paste diagnosis result</label><textarea data-manual-result="${safeId}" rows="6" placeholder="Paste the ChatGPT diagnosis here..."></textarea></div><div class="actions"><button class="btn primary" data-manual-save="${safeId}" type="button">Save for review →</button></div>`;
 }
 
 function compactIssue(body){
@@ -171,7 +171,7 @@ function compactResult(body){
   if(bottleneckTitle||opportunityTitle||pilotTitle){
     const highlights=document.createElement('div');
     highlights.className='diagnosis-compact-highlights';
-    highlights.innerHTML=`${bottleneckTitle?`<div class="diagnosis-compact-highlight"><div class="kicker">Primary issue</div><b>${bottleneckTitle}</b>${bottleneckCopy?`<p>${bottleneckCopy}</p>`:''}</div>`:''}${opportunityTitle?`<div class="diagnosis-compact-highlight"><div class="kicker">Best opportunity</div><b>${opportunityTitle}</b>${opportunityCopy?`<p>${opportunityCopy}</p>`:''}</div>`:''}${pilotTitle?`<div class="diagnosis-compact-highlight"><div class="kicker">Recommended first move</div><b>${pilotTitle}</b>${pilotCopy?`<p>${pilotCopy}</p>`:''}</div>`:''}`;
+    highlights.innerHTML=`${bottleneckTitle?`<div class="diagnosis-compact-highlight"><div class="kicker">Primary issue</div><b>${esc(bottleneckTitle)}</b>${bottleneckCopy?`<p>${esc(bottleneckCopy)}</p>`:''}</div>`:''}${opportunityTitle?`<div class="diagnosis-compact-highlight"><div class="kicker">Best opportunity</div><b>${esc(opportunityTitle)}</b>${opportunityCopy?`<p>${esc(opportunityCopy)}</p>`:''}</div>`:''}${pilotTitle?`<div class="diagnosis-compact-highlight"><div class="kicker">Recommended first move</div><b>${esc(pilotTitle)}</b>${pilotCopy?`<p>${esc(pilotCopy)}</p>`:''}</div>`:''}`;
     const executive=body.querySelector('.diagnosis-executive');
     executive?.after(highlights);
     if(!executive)body.querySelector('.diagnosis-review-meta')?.after(highlights);
