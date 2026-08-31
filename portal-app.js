@@ -49,7 +49,8 @@ if(isSignedIn&&portal.state?.companyId){
   const opsModule=await requiredImport(asset(`portal-ops.js?v=${BUILD}`),'operations workspace');
   if(!opsModule?.initOps){const error=new Error('Nexus operations module did not expose initOps.');showCoreLoadFailure(error);throw error}
   window.__nexusOpsInit=false;
-  await opsModule.initOps({sb:portal.sb,state:portal.state,$:portal.$,toast:portal.toast,workspace:portal.workspace,log:portal.log});
+  const opsClient=window.NexusFoundationHardening?.opsClient||portal.sb;
+  await opsModule.initOps({sb:opsClient,state:portal.state,$:portal.$,toast:portal.toast,workspace:portal.workspace,log:portal.log});
   await waitFor(()=>document.getElementById('opsTodayRoot'),{timeout:2200,step:60});
 }
 if(isSignedIn&&!isAdmin)await optionalImportWithoutRecurringIntervals(asset(`portal-simplify.js?v=${BUILD}`),[1200]);
