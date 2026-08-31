@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260831-discovery-capture1';
+const BUILD='20260831-vnext-runtime2';
 
 window.__nexusPortalBooting=true;
 document.body.classList.add('nexus-runtime-booting');
@@ -85,5 +85,6 @@ if(isSignedIn&&isAdmin){
   await window.NexusDiagnosisController?.refreshJourneyLabels?.({force:true});window.NexusDiagnosisController?.normalizeIntake?.();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 }
 
+if(isSignedIn)await requiredImport(asset(`portal-vnext-runtime-router.js?v=${BUILD}`),'vNext delivery runtime router');
 if(isSignedIn)await requiredImport(asset(`portal-vnext-experience.js?v=${BUILD}`),'vNext diagnosis and client report experience');
 clearBootLock();
