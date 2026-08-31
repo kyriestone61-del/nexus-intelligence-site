@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260831-final-boot-lock1';
+const BUILD='20260831-shell-reset2';
 
 // The portal must never expose an intermediate workspace. portal-client and
 // portal-ops both build useful base UI, but admins should only see the final
@@ -58,6 +58,7 @@ function setBootMessage(title,message){
 }
 function clearBootLock(){
   window.__nexusPortalBooting=false;
+  document.body.classList.add('nexus-shell-ready');
   const app=document.getElementById('portalApp');
   if(app)app.style.visibility='';
   document.body.classList.remove('nexus-runtime-booting');
