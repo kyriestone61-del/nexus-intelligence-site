@@ -125,11 +125,11 @@ async function securedQueue(){
   queueBusy=true;if(button){button.disabled=true;button.textContent='Analyzing…'}
   let created=null;
   try{
-    const {data,error}=await sb.from('nexus_diagnosis_runs').insert(row).select('id').single();if(error)throw error;created=data;
+    const {data:createdRow,error}=await sb.from('nexus_diagnosis_runs').insert(row).select('id').single();if(error)throw error;created=createdRow;
     toast?.('Diagnosis queued.');
     const result=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:created.id}});
-    const invokeError=result.error;const data=result.data;
-    if(invokeError||data?.ok===false)throw new Error(data?.error||invokeError?.message||'Diagnosis execution failed.');
+    const invokeError=result.error;const invocationData=result.data;
+    if(invokeError||invocationData?.ok===false)throw new Error(invocationData?.error||invokeError?.message||'Diagnosis execution failed.');
     sessionStorage.setItem('nexus_diagnosis_open_after_reload',created.id);
     window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));
     toast?.('Diagnosis ready for review.');
@@ -246,7 +246,7 @@ document.addEventListener('click',event=>{
     latestRun().then(openRun).catch(error=>toast?.(error.message||'Diagnosis could not be opened.'));
     return;
   }
-  if(button?.dataset?.section==='intake'||button?.closest?.('.side-nav')?.querySelector){setTimeout(scheduleNormalize,60)}
+  if(button?.dataset?.section==='intake'||button?.closest?.('.side-nav'))setTimeout(scheduleNormalize,60);
 },true);
 
 byId('companySelect')?.addEventListener('change',()=>{setTimeout(()=>{normalizeIntake();refreshJourneyLabels()},220)});
