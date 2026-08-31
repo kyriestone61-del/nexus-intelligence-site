@@ -1,0 +1,6 @@
+.capture-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.capture-status{flex:1;min-width:240px;color:var(--nx-muted);font-size:12px;line-height:1.45}
+.capture-status.saved{color:#bfe8c9}
+.discovery-capture-card{border-color:rgba(100,210,145,.28);background:rgba(100,210,145,.035)}
+.diagnosis-status.draft{border-color:rgba(100,210,145,.38)}
+@media(max-width:760px){.capture-actions{align-items:stretch}.capture-actions .btn{width:100%}.capture-status{min-width:0}}

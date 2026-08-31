@@ -1,7 +1,16 @@
+import {
+  buildDiscoveryCapturePayload,
+  buildDiscoveryPacket,
+  chooseNewestDraft,
+  draftFromDiagnosisRun,
+  hasDiscoveryContext,
+  normalizeDiscoveryDraft
+} from './portal-discovery-capture.js';
+
 const portal=window.NexusPortal;
 if(!portal) throw new Error('Nexus portal context is unavailable.');
 
-const {sb,state,$,toast,workspace}=portal;
+const {sb,state,$,toast,workspace,log}=portal;
 const BUCKET='nexus-client-documents';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dt=v=>v?new Date(v).toLocaleString():'—';
@@ -67,11 +76,17 @@ const safeName=name=>String(name||'file').replace(/[^a-zA-Z0-9._-]/g,'_');
 const formatBytes=v=>{const n=Number(v||0);if(!n)return '';if(n<1024)return `${n} B`;if(n<1048576)return `${(n/1024).toFixed(1)} KB`;return `${(n/1048576).toFixed(1)} MB`};
 const draftKey=()=>`nexus_admin_intake_draft_${state.companyId||'none'}`;
 
-function getDraft(){try{return JSON.parse(localStorage.getItem(draftKey())||'{}')}catch{return {}}}
+function capturedRun(){
+  const projectId=project()?.id;
+  return diagnosisRuns.find(run=>run.status==='draft'&&(!projectId||run.project_id===projectId))||null;
+}
+function localDraft(){try{return JSON.parse(localStorage.getItem(draftKey())||'{}')}catch{return {}}}
+function getDraft(){return chooseNewestDraft(localDraft(),capturedRun())}
 function saveDraft(){
   if(!state.admin||!state.companyId)return;
-  const draft={meeting_date:$('intakeMeetingDate')?.value||'',participants:$('intakeParticipants')?.value||'',notes:$('intakeNotes')?.value||'',transcript:$('intakeTranscriptText')?.value?.slice(0,120000)||''};
+  const draft=normalizeDiscoveryDraft({meeting_date:$('intakeMeetingDate')?.value||'',participants:$('intakeParticipants')?.value||'',notes:$('intakeNotes')?.value||'',transcript:$('intakeTranscriptText')?.value||'',updated_at:new Date().toISOString()});
   localStorage.setItem(draftKey(),JSON.stringify(draft));
+  return draft;
 }
 function clearDraft(){localStorage.removeItem(draftKey())}
 
@@ -124,12 +139,13 @@ function transcriptOptions(){
 function runMarkup(run){
   const manifest=Array.isArray(run.analysis_packet?.evidence_manifest)?run.analysis_packet.evidence_manifest:[];
   const result=run.analysis_result&&Object.keys(run.analysis_result).length?'<span class="pill">Result stored</span>':'';
-  return `<article class="diagnosis-run-card"><div class="diagnosis-run-head"><div><span class="pill">Client Diagnosis Agent</span> ${result}<h3>${esc(company()?.name||'Client')} · ${dt(run.created_at)}</h3></div><span class="diagnosis-status ${esc(run.status)}">${esc(String(run.status||'ready_for_analysis').replaceAll('_',' '))}</span></div><p class="small">${run.meeting_date?`Meeting ${esc(run.meeting_date)} · `:''}${esc(run.participants||'Participants not recorded')}</p><p>${esc(run.discovery_notes||'No separate discovery notes were saved.')}</p><div class="diagnosis-manifest">${manifest.slice(0,6).map(x=>`<span>${esc(x.file_name||'Evidence')}</span>`).join('')}${manifest.length>6?`<span>+${manifest.length-6} more</span>`:''}</div><div class="diagnosis-run-actions"><button class="btn secondary copy-agent-packet" type="button" data-id="${run.id}">Copy agent packet</button><select class="diagnosis-status-select" data-id="${run.id}">${[['ready_for_analysis','Ready for analysis'],['in_review','In review'],['blocked','Blocked'],['approved','Approved'],['archived','Archived']].map(([v,l])=>`<option value="${v}" ${run.status===v?'selected':''}>${l}</option>`).join('')}</select></div></article>`;
+  const captured=run.status==='draft';
+  return `<article class="diagnosis-run-card ${captured?'discovery-capture-card':''}"><div class="diagnosis-run-head"><div><span class="pill">${captured?'Meeting record':'Client Diagnosis Agent'}</span> ${result}<h3>${esc(company()?.name||'Client')} · ${dt(run.updated_at||run.created_at)}</h3></div><span class="diagnosis-status ${esc(run.status)}">${captured?'context captured':esc(String(run.status||'ready_for_analysis').replaceAll('_',' '))}</span></div><p class="small">${run.meeting_date?`Meeting ${esc(run.meeting_date)} · `:''}${esc(run.participants||'Participants not recorded')}</p><p>${esc(run.discovery_notes||'No separate discovery notes were saved.')}</p><div class="diagnosis-manifest">${manifest.slice(0,6).map(x=>`<span>${esc(x.file_name||'Evidence')}</span>`).join('')}${manifest.length>6?`<span>+${manifest.length-6} more</span>`:''}</div><div class="diagnosis-run-actions">${captured?'<span class="small">Saved to this client engagement. Add evidence, then queue diagnosis when ready.</span>':`<button class="btn secondary copy-agent-packet" type="button" data-id="${run.id}">Copy agent packet</button><select class="diagnosis-status-select" data-id="${run.id}">${[['ready_for_analysis','Ready for analysis'],['in_review','In review'],['blocked','Blocked'],['approved','Approved'],['archived','Archived']].map(([v,l])=>`<option value="${v}" ${run.status===v?'selected':''}>${l}</option>`).join('')}</select>`}</div></article>`;
 }
 
 function renderAdminIntake(){
   const root=$('section-intake');if(!root||!state.admin)return;
-  const c=company(),draft=getDraft();
+  const c=company(),draft=getDraft(),captured=capturedRun();
   root.innerHTML=`
     <div class="admin-intake-banner"><div><div class="eyebrow">ADMIN ONLY · INTERNAL WORKSPACE</div><h1>Discovery Intake & Diagnosis</h1><p>This is where you put the Teams transcript, your meeting notes, and client-provided evidence after discovery. Client accounts cannot see diagnosis-run records or this page.</p></div><a class="btn secondary" href="/operations">Open Admin Console →</a></div>
     <div class="intake-flow"><span><b>1</b> Run discovery</span><span><b>2</b> Add transcript</span><span><b>3</b> Add evidence</span><span><b>4</b> Queue diagnosis</span><span><b>5</b> Review output</span></div>
@@ -137,21 +153,50 @@ function renderAdminIntake(){
       <section class="box intake-card"><div class="kicker">Selected client</div><h2>${esc(c?.name||'No company selected')}</h2><p class="small">The company selector in the top bar controls which client record receives the transcript, documents, and diagnosis run.</p><div class="note"><b>Role boundary:</b> Admin intake is internal Nexus work. The client portal remains for client actions, requested information, approvals, delivery plan, and results.</div></section>
       <section class="box intake-card"><div class="toolbar"><div><div class="kicker">Reusable template</div><h2>General Discovery Questions</h2></div><button id="copyDiscoveryQuestions" class="btn secondary" type="button">Copy questions</button></div><details class="intake-questions"><summary>Open the discovery guide</summary><div class="intake-question-grid">${questionsMarkup()}</div></details></section>
     </div>
-    <section class="box intake-card"><div class="kicker">Step 1 · Meeting record</div><h2>Capture the discovery context</h2><div class="form-grid"><div class="field"><label>Meeting date</label><input id="intakeMeetingDate" type="date" value="${esc(draft.meeting_date||'')}"></div><div class="field"><label>Participants</label><input id="intakeParticipants" placeholder="Names / roles" value="${esc(draft.participants||'')}"></div></div><div class="field"><label>Admin notes</label><textarea id="intakeNotes" placeholder="Key goals, pain points, constraints, follow-ups, observations, or anything that may not be obvious from the transcript.">${esc(draft.notes||'')}</textarea></div><div class="field"><label>Paste transcript text <span class="small">(optional if you upload a file)</span></label><textarea id="intakeTranscriptText" class="transcript-text" placeholder="Paste the Teams transcript here for a self-contained diagnosis packet. You can also upload TXT, SRT, VTT, PDF, or DOCX below.">${esc(draft.transcript||'')}</textarea></div><p class="small">This draft is saved locally in your browser for the selected client until you queue the diagnosis.</p></section>
+    <section class="box intake-card"><div class="kicker">Step 1 · Meeting record</div><h2>Capture the discovery context</h2><div class="form-grid"><div class="field"><label for="intakeMeetingDate">Meeting date</label><input id="intakeMeetingDate" type="date" value="${esc(draft.meeting_date||'')}"></div><div class="field"><label for="intakeParticipants">Participants</label><input id="intakeParticipants" placeholder="Names / roles" value="${esc(draft.participants||'')}"></div></div><div class="field"><label for="intakeNotes">Admin notes</label><textarea id="intakeNotes" placeholder="Key goals, pain points, constraints, follow-ups, observations, or anything that may not be obvious from the transcript.">${esc(draft.notes||'')}</textarea></div><div class="field"><label for="intakeTranscriptText">Paste transcript text <span class="small">(optional if you upload a file)</span></label><textarea id="intakeTranscriptText" class="transcript-text" placeholder="Paste the Teams transcript here for a self-contained diagnosis packet. You can also upload TXT, SRT, VTT, PDF, or DOCX below.">${esc(draft.transcript||'')}</textarea></div><div class="capture-actions"><button id="captureDiscoveryContextBtn" class="btn primary" type="button">${captured?'Update captured context':'Capture discovery context →'}</button><span id="discoveryCaptureStatus" class="capture-status ${captured?'saved':''}" role="status" aria-live="polite">${captured?`Captured ${esc(dt(captured.updated_at||captured.created_at))} · linked to ${esc(project()?.name||'active engagement')}`:'Not captured yet. Browser autosave protects your typing, but this button saves it to the client engagement.'}</span></div></section>
     <div class="intake-grid">
       <section class="box intake-card"><div class="kicker">Step 2 · Transcript</div><h2>Upload the meeting transcript</h2><form id="adminTranscriptForm"><div class="field"><label>Transcript file</label><input id="adminTranscriptFile" type="file" required accept=".txt,.srt,.vtt,.pdf,.docx"></div><div class="field"><label>Context note</label><input id="adminTranscriptNote" placeholder="Example: Initial discovery call, 45 minutes"></div><div class="actions"><button class="btn primary" type="submit">Upload transcript →</button></div></form><p class="small">TXT, SRT, and VTT files are also read into the internal diagnosis packet. PDF and DOCX are stored securely and referenced as evidence.</p></section>
       <section class="box intake-card"><div class="kicker">Step 3 · Supporting evidence</div><h2>Add client documents</h2><form id="adminEvidenceForm"><div class="field"><label>Client-provided file</label><input id="adminEvidenceFile" type="file" required accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg"></div><div class="field"><label>Type</label><select id="adminEvidenceCategory"><option>Client Source</option><option>Process Document</option><option>Measurement</option><option>Report</option><option>General</option></select></div><div class="field"><label>Context note</label><input id="adminEvidenceNote" placeholder="What is it and what does it help explain?"></div><div class="actions"><button class="btn primary" type="submit">Upload evidence →</button></div></form></section>
     </div>
     <section class="box intake-card"><div class="kicker">Step 4 · Diagnosis packet</div><h2>Choose the evidence and queue the Client Diagnosis Agent</h2><p class="small">This creates an internal, auditable diagnosis run in <b>shadow / draft-only mode</b>. It prepares the evidence packet and analysis instruction. It does not send emails, modify client systems, or take external action.</p><div class="field"><label>Primary transcript file</label><select id="diagnosisTranscriptDoc">${transcriptOptions()}</select></div><div class="field"><label>Supporting documents</label><div id="diagnosisEvidenceList" class="intake-evidence-list">${evidenceOptions()}</div></div><div class="actions"><button id="queueDiagnosisBtn" class="btn primary" type="button">Queue diagnosis →</button></div><div class="note admin-intake-help"><b>Current execution boundary:</b> Nexus stores and structures the source packet here. “Copy agent packet” gives you the exact Client Diagnosis Agent instruction for the current shadow-mode workflow. Automated model execution is not shown as live until a secured model endpoint is connected.</div></section>
-    <section class="box intake-card"><div class="toolbar"><div><div class="kicker">Step 5 · Internal queue</div><h2>Diagnosis runs</h2></div><a class="btn secondary" href="/operations">Admin Console →</a></div><div id="diagnosisRunList" class="diagnosis-run-list">${diagnosisRuns.length?diagnosisRuns.map(runMarkup).join(''):'<div class="empty">No diagnosis run has been queued for this company yet.</div>'}</div></section>`;
+    <section class="box intake-card"><div class="toolbar"><div><div class="kicker">Step 5 · Internal queue</div><h2>Captured context & diagnosis runs</h2></div><a class="btn secondary" href="/operations">Admin Console →</a></div><div id="diagnosisRunList" class="diagnosis-run-list">${diagnosisRuns.length?diagnosisRuns.map(runMarkup).join(''):'<div class="empty">No meeting context has been captured and no diagnosis run has been queued for this company yet.</div>'}</div></section>`;
 
   ['intakeMeetingDate','intakeParticipants','intakeNotes','intakeTranscriptText'].forEach(id=>$(id)?.addEventListener('input',saveDraft));
+  $('captureDiscoveryContextBtn')?.addEventListener('click',event=>captureDiscoveryContext({button:event.currentTarget}));
   $('copyDiscoveryQuestions')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(allQuestionsText());toast('Discovery questions copied.')}catch{toast('Copy failed. Select and copy the questions manually.')}});
   $('adminTranscriptForm')?.addEventListener('submit',uploadTranscript);
   $('adminEvidenceForm')?.addEventListener('submit',uploadSupportingEvidence);
   $('queueDiagnosisBtn')?.addEventListener('click',queueDiagnosis);
   root.querySelectorAll('.copy-agent-packet').forEach(b=>b.addEventListener('click',()=>copyAgentPacket(b.dataset.id)));
   root.querySelectorAll('.diagnosis-status-select').forEach(s=>s.addEventListener('change',()=>updateRunStatus(s.dataset.id,s.value)));
+}
+
+async function captureDiscoveryContext({button=null,silent=false,refresh=true}={}){
+  if(!state.admin||!state.companyId)throw new Error('Select a client company before capturing discovery context.');
+  const activeProject=project();
+  if(!activeProject?.id){const error=new Error('Set the active client engagement before capturing discovery context.');if(!silent)toast(error.message);throw error}
+  const draft=saveDraft()||getDraft();
+  if(!hasDiscoveryContext(draft)){const error=new Error('Enter a meeting date, participants, notes, or transcript text before capturing.');if(!silent)toast(error.message);throw error}
+  const existing=capturedRun(),capturedAt=existing?.analysis_packet?.capture?.captured_at||existing?.created_at||new Date().toISOString();
+  const evidence=(state.docs||[]).filter(item=>item.category==='Discovery Transcript'||item.source_role==='client');
+  const payload=buildDiscoveryCapturePayload({draft,company:company(),project:activeProject,evidence,userId:state.user.id,capturedAt});
+  const original=button?.textContent;if(button){button.disabled=true;button.textContent=existing?'Updating…':'Capturing…'}
+  try{
+    let result;
+    if(existing){
+      const update={...payload};delete update.company_id;delete update.project_id;delete update.created_by;
+      const {data,error}=await sb.from('nexus_diagnosis_runs').update(update).eq('id',existing.id).eq('status','draft').select('*').single();if(error)throw error;result=data;
+    }else{
+      const {data,error}=await sb.from('nexus_diagnosis_runs').insert(payload).select('*').single();if(error)throw error;result=data;
+    }
+    localStorage.setItem(draftKey(),JSON.stringify({...draft,updated_at:result.updated_at||capturedAt}));
+    try{await log(existing?'discovery_context_updated':'discovery_context_captured','diagnosis',result.id,`${existing?'Updated':'Captured'} discovery meeting context for ${company()?.name||'client'} and linked it to ${activeProject.name}.`)}catch{}
+    if(refresh){await loadRuns();renderAdminIntake()}
+    window.dispatchEvent(new CustomEvent('nexus:discovery-context-captured',{detail:{companyId:state.companyId,projectId:activeProject.id,runId:result.id,updated:!!existing}}));
+    if(!silent)toast(existing?'Discovery context updated in the client engagement.':'Discovery context captured in the client engagement.');
+    return result;
+  }catch(error){if(!silent)toast(error.message||'Discovery context could not be captured.');throw error}
+  finally{if(button?.isConnected){button.disabled=false;button.textContent=original||'Capture discovery context →'}}
 }
 
 async function uploadDocument(file,category,note,{readText=false}={}){
@@ -172,7 +217,7 @@ async function uploadTranscript(e){
   const button=e.submitter;button.disabled=true;button.textContent='Uploading…';
   try{
     const {text}=await uploadDocument(file,'Discovery Transcript',$('adminTranscriptNote').value.trim()||'Discovery meeting transcript',{readText:true});
-    if(text){const draft=getDraft();draft.transcript=text;localStorage.setItem(draftKey(),JSON.stringify(draft))}
+    if(text){const draft=getDraft();draft.transcript=text;draft.updated_at=new Date().toISOString();localStorage.setItem(draftKey(),JSON.stringify(draft))}
     toast(text?'Transcript uploaded and added to the diagnosis draft.':'Transcript uploaded securely.');e.target.reset();await workspace();await loadRuns();renderAdminIntake();
   }catch(error){toast(error.message||'Transcript upload failed.')}
   finally{button.disabled=false;button.textContent='Upload transcript →'}
@@ -186,21 +231,26 @@ async function uploadSupportingEvidence(e){
 }
 
 async function queueDiagnosis(){
-  if(!state.admin||!state.companyId)return;saveDraft();const draft=getDraft();
+  if(!state.admin||!state.companyId)return;const draft=saveDraft()||getDraft();
   const transcriptId=$('diagnosisTranscriptDoc')?.value||null;
   const selected=[...document.querySelectorAll('.diagnosis-supporting-doc:checked')].map(x=>x.value);if(transcriptId&&!selected.includes(transcriptId))selected.unshift(transcriptId);
   if(!transcriptId&&!draft.transcript&&!draft.notes)return toast('Add a transcript, paste transcript text, or enter discovery notes before queueing a diagnosis.');
   const c=company(),p=project(),docs=(state.docs||[]).filter(d=>selected.includes(d.id));
-  const packet={version:1,company:{id:c?.id||state.companyId,name:c?.name||'',industry:c?.industry||'',website:c?.website||''},project:{id:p?.id||null,name:p?.name||'',service_type:p?.service_type||''},agent:{code:'client_diagnosis',mode:'shadow',permission_level:'draft_only'},meeting:{date:draft.meeting_date||null,participants:draft.participants||null},discovery_notes:draft.notes||null,transcript_text:draft.transcript||null,evidence_manifest:docs.map(d=>({id:d.id,file_name:d.file_name,category:d.category,note:d.note||null,created_at:d.created_at})),required_output:['facts','client_statements','inferences','unknowns','process_map','baseline_gaps','opportunity_backlog','smallest_pilot'],prohibited_actions:['send emails','contact anyone','modify client systems','make purchases','publish content','change permissions','take external action without explicit approval']};
-  const row={company_id:state.companyId,project_id:p?.id||null,agent_code:'client_diagnosis',status:'ready_for_analysis',transcript_document_id:transcriptId,supporting_document_ids:selected,meeting_date:draft.meeting_date||null,participants:draft.participants||null,discovery_notes:draft.notes||null,analysis_packet:packet,created_by:state.user.id,updated_at:new Date().toISOString()};
   const button=$('queueDiagnosisBtn');button.disabled=true;button.textContent='Queueing…';
-  try{const {error}=await sb.from('nexus_diagnosis_runs').insert(row);if(error)throw error;clearDraft();toast('Diagnosis packet queued for internal review.');await loadRuns();renderAdminIntake()}
+  try{
+    const captured=await captureDiscoveryContext({silent:true,refresh:false});
+    const packet=buildDiscoveryPacket({draft,company:c,project:p,evidence:docs,mode:'shadow',capturedAt:captured.analysis_packet?.capture?.captured_at||captured.created_at});
+    const {error}=await sb.from('nexus_diagnosis_runs').update({status:'ready_for_analysis',transcript_document_id:transcriptId,supporting_document_ids:selected,analysis_packet:packet,updated_at:new Date().toISOString()}).eq('id',captured.id).eq('status','draft');if(error)throw error;
+    clearDraft();toast('Diagnosis packet queued for internal review.');window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await loadRuns();renderAdminIntake();
+  }
   catch(error){toast(error.message||'Diagnosis could not be queued.')}
+  finally{if(button?.isConnected){button.disabled=false;button.textContent='Queue diagnosis →'}}
 }
 
 async function loadRuns(){
   if(!state.admin||!state.companyId){diagnosisRuns=[];return}
-  const {data,error}=await sb.from('nexus_diagnosis_runs').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}).limit(50);
+  const activeProject=project();if(!activeProject?.id){diagnosisRuns=[];return}
+  const {data,error}=await sb.from('nexus_diagnosis_runs').select('*').eq('company_id',state.companyId).eq('project_id',activeProject.id).order('created_at',{ascending:false}).limit(50);
   if(error){console.error('Diagnosis queue load failed',error);diagnosisRuns=[];return}diagnosisRuns=data||[];
 }
 
@@ -216,6 +266,8 @@ async function reconcile(force=false){
   ensureModeChrome();ensureAdminIntake();
   if(state.admin&&state.companyId&&(force||state.companyId!==lastCompanyId)){lastCompanyId=state.companyId;await loadRuns();renderAdminIntake()}
 }
+
+window.NexusAdminIntake={captureDiscoveryContext,getCapturedRun:capturedRun,getDraft,clearDraft,loadRuns};
 
 $('companySelect')?.addEventListener('change',()=>setTimeout(()=>reconcile(true),160));
 sb.auth.onAuthStateChange(()=>setTimeout(()=>reconcile(true),160));

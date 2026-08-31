@@ -7,6 +7,8 @@ on:
       - 'portal-admin-journey-router.js'
       - 'portal-admin-journey.css'
       - 'portal-admin-intake.js'
+      - 'portal-discovery-capture.js'
+      - 'portal-discovery-capture.css'
       - 'portal-diagnosis-controller-v2.js'
       - 'portal-diagnosis-execution-ux.js'
       - 'portal-diagnosis-v2.js'
@@ -37,6 +39,7 @@ jobs:
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-admin-journey-router.js
           node --input-type=module --check < portal-admin-intake.js
+          node --input-type=module --check < portal-discovery-capture.js
           node --input-type=module --check < portal-diagnosis-controller-v2.js
           node --input-type=module --check < portal-diagnosis-execution-ux.js
           node --input-type=module --check < portal-diagnosis-v2.js
@@ -67,6 +70,9 @@ jobs:
           grep -Fq 'analysis_result' portal-admin-journey.js
           grep -Fq 'ready_for_review' portal-admin-journey.js
           grep -Fq 'nexus:diagnosis-changed' portal-admin-journey.js
+          grep -Fq 'nexus:discovery-context-captured' portal-admin-journey.js
+          grep -Fq 'captureDiscoveryContextBtn' portal-admin-intake.js
+          grep -Fq "eq('status','draft')" portal-diagnosis-controller-v2.js
           grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller-v2.js
           grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller-v2.js
           grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
@@ -110,7 +116,7 @@ jobs:
       - name: Browser security assertion
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-admin-journey.js portal-admin-journey-router.js portal-admin-journey.css portal-admin-intake.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-release-queue.js; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-admin-journey.js portal-admin-journey-router.js portal-admin-journey.css portal-admin-intake.js portal-discovery-capture.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-release-queue.js; then
             echo 'Privileged credential reference found in browser-delivered admin journey.' >&2
             exit 1
           fi

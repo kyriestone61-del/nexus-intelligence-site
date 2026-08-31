@@ -5,6 +5,8 @@ on:
     paths:
       - 'portal-admin-journey.js'
       - 'portal-admin-intake.js'
+      - 'portal-discovery-capture.js'
+      - 'portal-discovery-capture.css'
       - 'portal-diagnosis-controller-v2.js'
       - 'portal-diagnosis-execution-ux.js'
       - 'portal-diagnosis-v2.js'
@@ -34,6 +36,7 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-admin-intake.js
+          node --input-type=module --check < portal-discovery-capture.js
           node --input-type=module --check < portal-diagnosis-controller-v2.js
           node --input-type=module --check < portal-diagnosis-execution-ux.js
           node --input-type=module --check < portal-diagnosis-v2.js
@@ -54,6 +57,9 @@ jobs:
           grep -Fq "category==='Discovery Transcript'" portal-diagnosis-controller-v2.js
           grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller-v2.js
           grep -Fq 'resolveTranscriptId' portal-diagnosis-controller-v2.js
+          grep -Fq 'Capture discovery context' portal-admin-intake.js
+          grep -Fq 'buildDiscoveryCapturePayload' portal-admin-intake.js
+          grep -Fq 'nexus:discovery-context-captured' portal-admin-journey.js
       - name: Step 3 diagnosis assertions
         run: |
           set -euo pipefail
@@ -114,7 +120,7 @@ jobs:
       - name: Browser security assertions
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-admin-journey.js portal-admin-intake.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-journey-task-guard.js portal-journey-qaqc.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-admin-journey.js portal-admin-intake.js portal-discovery-capture.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-journey-task-guard.js portal-journey-qaqc.css; then
             echo 'Privileged credential reference found in browser-delivered journey files.' >&2
             exit 1
           fi

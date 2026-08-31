@@ -26,7 +26,14 @@ test.describe('authenticated role boundaries',()=>{
       await select.selectOption({label:qaCompany});
     }
     await expect(page.getByRole('button',{name:'Client Journey',exact:true})).toBeVisible();
-    await expect(page.getByRole('button',{name:'Discovery & Diagnosis',exact:true})).toBeVisible();
+    const intakeNav=page.getByRole('button',{name:'Discovery & Diagnosis',exact:true});
+    await expect(intakeNav).toBeVisible();
+    await intakeNav.click();
+    await expect(page.getByRole('button',{name:/capture discovery context/i})).toBeVisible();
+    await expect(page.locator('#discoveryCaptureStatus')).toContainText(/captured|not captured/i);
+    await page.setViewportSize({width:390,height:844});
+    const dims=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
+    expect(dims.scrollWidth).toBeLessThanOrEqual(dims.clientWidth+1);
     await page.waitForTimeout(1000);
     await expect(page.getByRole('button',{name:'Client Journey',exact:true})).toBeVisible();
     expect(consoleErrors.filter(x=>!/favicon|analytics/i.test(x))).toEqual([]);

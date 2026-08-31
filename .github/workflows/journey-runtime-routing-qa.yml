@@ -6,6 +6,8 @@ on:
       - 'portal-app.js'
       - 'portal-admin-journey.js'
       - 'portal-admin-intake.js'
+      - 'portal-discovery-capture.js'
+      - 'portal-discovery-capture.css'
       - 'portal-diagnosis-controller-v2.js'
       - 'portal-diagnosis-execution-ux.js'
       - 'portal-diagnosis-v2.js'
@@ -33,6 +35,7 @@ jobs:
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-admin-journey.js
           node --input-type=module --check < portal-admin-intake.js
+          node --input-type=module --check < portal-discovery-capture.js
           node --input-type=module --check < portal-diagnosis-controller-v2.js
           node --input-type=module --check < portal-diagnosis-execution-ux.js
           node --input-type=module --check < portal-diagnosis-v2.js
@@ -77,6 +80,16 @@ jobs:
           grep -Fq 'No diagnosis evidence was found' portal-diagnosis-controller-v2.js
           grep -Fq 'existingRunForTranscript' portal-diagnosis-controller-v2.js
           grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
+      - name: Step 1 capture and promotion contract
+        run: |
+          set -euo pipefail
+          grep -Fiq 'Capture discovery context' portal-admin-intake.js
+          grep -Fq 'captureDiscoveryContext' portal-admin-intake.js
+          grep -Fq 'discovery_context_captured' portal-admin-intake.js
+          grep -Fq "DISCOVERY_CAPTURE_STATUS='draft'" portal-discovery-capture.js
+          grep -Fq ".eq('id',captured.id).eq('status','draft')" portal-diagnosis-controller-v2.js
+          grep -Fq "status:'queued'" portal-diagnosis-controller-v2.js
+          grep -Fq 'nexus:discovery-context-captured' portal-admin-journey.js
       - name: Step 3 routing and fallback contract
         run: |
           set -euo pipefail
@@ -102,7 +115,7 @@ jobs:
       - name: Browser secret safety
         run: |
           set -euo pipefail
-          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js portal-diagnosis-release-queue.js; then
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY' portal-discovery-capture.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js portal-diagnosis-release-queue.js; then
             echo 'Server-only credential reference found in browser-delivered Journey runtime.' >&2
             exit 1
           fi

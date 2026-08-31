@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260831-shell-reset2';
+const BUILD='20260831-discovery-capture1';
 
 window.__nexusPortalBooting=true;
 document.body.classList.add('nexus-runtime-booting');
@@ -24,7 +24,7 @@ bootOverlay.id='nexusPortalBootOverlay';
 bootOverlay.innerHTML='<div class="nexus-boot-card"><div class="nexus-boot-mark">N</div><h2>Loading Nexus workspace…</h2><p>Confirming your account, client workspace, and final navigation.</p><div class="nexus-boot-line"></div></div>';
 document.body.appendChild(bootOverlay);
 
-const styleAssets=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css'];
+const styleAssets=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css'];
 const styleLoads=styleAssets.map(file=>new Promise(resolve=>{const link=document.createElement('link');link.rel='stylesheet';link.href=asset(`${file}?v=${BUILD}`);link.onload=resolve;link.onerror=resolve;document.head.appendChild(link)}));
 await Promise.all(styleLoads);
 

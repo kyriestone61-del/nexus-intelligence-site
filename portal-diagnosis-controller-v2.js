@@ -1,3 +1,5 @@
+import {buildDiscoveryPacket,normalizeDiscoveryDraft} from './portal-discovery-capture.js';
+
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Nexus portal context is unavailable.');
 
@@ -9,7 +11,7 @@ let queueBusy=false;
 let intakeObserver=null;
 let normalizeScheduled=false;
 let journeyScheduled=false;
-let latestCache={companyId:null,run:null,at:0};
+let latestCache={companyId:null,projectId:null,run:null,at:0};
 const CACHE_MS=1800;
 
 const company=()=>state.companies?.find(c=>c.id===state.companyId)||null;
@@ -37,7 +39,7 @@ function setText(node,text){if(node&&node.textContent!==text)node.textContent=te
 function normalizeCards(){
   document.querySelectorAll('.diagnosis-run-card').forEach(card=>{
     const statusEl=card.querySelector('.diagnosis-status');if(!statusEl)return;
-    const status=[...statusEl.classList].find(x=>['queued','analyzing','ready_for_review','revision_requested','blocked','approved','failed','archived','ready_for_analysis','in_review'].includes(x))||String(statusEl.textContent||'').trim().toLowerCase().replaceAll(' ','_');
+    const status=[...statusEl.classList].find(x=>['draft','queued','analyzing','ready_for_review','revision_requested','blocked','approved','failed','archived','ready_for_analysis','in_review'].includes(x))||String(statusEl.textContent||'').trim().toLowerCase().replaceAll(' ','_');
     const select=card.querySelector('.diagnosis-status-select');
     const id=select?.dataset.id||card.querySelector('[data-id]')?.dataset.id;
     select?.remove();card.querySelectorAll('.copy-agent-packet').forEach(x=>x.remove());
@@ -45,7 +47,8 @@ function normalizeCards(){
     if(!action&&id){action=document.createElement('div');action.className='diagnosis-secure-action';card.querySelector('.diagnosis-run-actions')?.appendChild(action)}
     if(!action)return;
     let html='';
-    if(status==='queued')html='<span class="small">Queued for diagnosis analysis.</span>';
+    if(status==='draft')html='<span class="small">Meeting context captured. Add transcript/evidence, then queue diagnosis when ready.</span>';
+    else if(status==='queued')html='<span class="small">Queued for diagnosis analysis.</span>';
     else if(status==='analyzing')html='<span class="small">Analyzing authorized evidence…</span>';
     else if(status==='ready_for_analysis')html=`<button class="btn primary diagnosis-retry-btn" data-id="${esc(id)}" type="button">Run diagnosis →</button>`;
     else if(['ready_for_review','in_review'].includes(status))html=`<button class="btn primary diagnosis-review-btn" data-id="${esc(id)}" type="button">Review diagnosis →</button>`;
@@ -59,19 +62,22 @@ function normalizeCards(){
 function normalizeIntake(){syncTranscriptSelection();normalizeCards();attachIntakeObserver()}
 function scheduleNormalize(){if(normalizeScheduled)return;normalizeScheduled=true;requestAnimationFrame(()=>{normalizeScheduled=false;normalizeIntake()})}
 
-function invalidateLatest(){latestCache={companyId:null,run:null,at:0}}
+function invalidateLatest(){latestCache={companyId:null,projectId:null,run:null,at:0}}
 async function latestRun({force=false}={}){
   if(!state.admin||!state.companyId)return null;
-  if(!force&&latestCache.companyId===state.companyId&&Date.now()-latestCache.at<CACHE_MS)return latestCache.run;
-  const {data,error}=await sb.from('nexus_diagnosis_runs').select('id,status,analysis_result,execution_error,transcript_document_id,created_at').eq('company_id',state.companyId).neq('status','archived').order('created_at',{ascending:false}).limit(1);
+  const activeProject=project();if(!activeProject?.id)return null;
+  if(!force&&latestCache.companyId===state.companyId&&latestCache.projectId===activeProject.id&&Date.now()-latestCache.at<CACHE_MS)return latestCache.run;
+  const {data,error}=await sb.from('nexus_diagnosis_runs').select('id,status,analysis_result,execution_error,transcript_document_id,created_at').eq('company_id',state.companyId).eq('project_id',activeProject.id).neq('status','archived').neq('status','draft').order('created_at',{ascending:false}).limit(1);
   if(error)throw error;
-  const run=data?.[0]||null;latestCache={companyId:state.companyId,run,at:Date.now()};return run;
+  const run=data?.[0]||null;latestCache={companyId:state.companyId,projectId:activeProject.id,run,at:Date.now()};return run;
 }
 async function existingRunForTranscript(transcriptId){
   if(!transcriptId||!state.companyId)return null;
+  const activeProject=project();if(!activeProject?.id)return null;
   const {data,error}=await sb.from('nexus_diagnosis_runs')
     .select('id,status,analysis_result,execution_error,transcript_document_id,created_at')
     .eq('company_id',state.companyId)
+    .eq('project_id',activeProject.id)
     .eq('transcript_document_id',transcriptId)
     .neq('status','archived')
     .order('created_at',{ascending:false})
@@ -98,12 +104,15 @@ async function securedQueue(){
   }
 
   const c=company(),p=project(),docs=(state.docs||[]).filter(d=>selected.includes(d.id));
-  const packet={version:5,company:{id:c?.id||state.companyId,name:c?.name||'',industry:c?.industry||'',website:c?.website||''},project:{id:p?.id||null,name:p?.name||'',service_type:p?.service_type||''},agent:{code:'client_diagnosis',mode:'secured_execution',permission_level:'draft_only'},meeting:{date:byId('intakeMeetingDate')?.value||null,participants:byId('intakeParticipants')?.value?.trim()||null},discovery_notes:notes||null,transcript_text:transcript||null,evidence_manifest:docs.map(d=>({id:d.id,file_name:d.file_name,category:d.category,note:d.note||null,created_at:d.created_at})),required_output:['facts','client_statements','inferences','unknowns','process_map','bottlenecks','baseline_gaps','baseline_measurements','opportunity_backlog','risks','follow_up_questions','smallest_safe_pilot','nexus_actions','client_action_items','document_requests','decision_items'],prohibited_actions:['send emails','contact anyone','modify client systems','make purchases','publish content','change permissions','take external action without explicit approval']};
-  const row={company_id:state.companyId,project_id:p?.id||null,agent_code:'client_diagnosis',status:'queued',queued_at:new Date().toISOString(),transcript_document_id:transcriptId,supporting_document_ids:selected,meeting_date:packet.meeting.date,participants:packet.meeting.participants,discovery_notes:notes||null,analysis_packet:packet,created_by:state.user.id,updated_at:new Date().toISOString()};
+  const draft=normalizeDiscoveryDraft({meeting_date:byId('intakeMeetingDate')?.value||'',participants:byId('intakeParticipants')?.value||'',notes,transcript});
   const button=byId('queueDiagnosisBtn');queueBusy=true;if(button){button.disabled=true;button.textContent='Analyzing…'}
   let created=null;
   try{
-    const {data:createdRow,error}=await sb.from('nexus_diagnosis_runs').insert(row).select('id').single();if(error)throw error;created=createdRow;invalidateLatest();toast?.('Diagnosis queued. Analyzing authorized evidence…');
+    const captured=await window.NexusAdminIntake?.captureDiscoveryContext?.({silent:true,refresh:false});
+    if(!captured?.id)throw new Error('Capture the discovery context before queueing diagnosis.');
+    const packet=buildDiscoveryPacket({draft,company:c,project:p,evidence:docs,mode:'secured_execution',capturedAt:captured.analysis_packet?.capture?.captured_at||captured.created_at});
+    const now=new Date().toISOString();
+    const {data:createdRow,error}=await sb.from('nexus_diagnosis_runs').update({status:'queued',queued_at:now,transcript_document_id:transcriptId,supporting_document_ids:selected,meeting_date:packet.meeting.date,participants:packet.meeting.participants,discovery_notes:notes||null,analysis_packet:packet,updated_at:now}).eq('id',captured.id).eq('status','draft').select('id').single();if(error)throw error;created=createdRow;window.NexusAdminIntake?.clearDraft?.();invalidateLatest();toast?.('Diagnosis queued. Analyzing authorized evidence…');
     const result=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:created.id}});
     if(result.error||result.data?.ok===false)throw new Error(result.data?.error||result.error?.message||'Diagnosis execution failed.');
     sessionStorage.setItem('nexus_diagnosis_open_after_reload',created.id);invalidateLatest();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));toast?.('Diagnosis ready for review.');setTimeout(()=>location.reload(),220);
