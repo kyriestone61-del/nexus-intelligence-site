@@ -1,0 +1,70 @@
+name: Portal Hard Reset Patch
+
+on:
+  push:
+    branches:
+      - fix/portal-hard-reset-shell-final
+    paths:
+      - '.github/workflows/portal-hard-reset-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-portal-shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/portal-hard-reset-shell-final
+      - name: Patch portal shell and localize assets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('portal.html')
+          s=p.read_text()
+          build='20260831-shell-reset2'
+
+          s=s.replace('https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/styles.css?v=20260831-security1',f'/styles.css?v={build}')
+          s=s.replace('https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-ops.css?v=20260831-security1',f'/portal-ops.css?v={build}')
+          s=s.replace('https://cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-v2.css?v=20260831-security1',f'/portal-v2.css?v={build}')
+
+          s=re.sub(r'<script type="importmap">.*?</script>\s*','',s,flags=re.S)
+
+          preboot='''<style id="nexus-shell-preboot">\n#portalApp{visibility:hidden!important}\nbody.nexus-shell-ready #portalApp{visibility:visible!important}\n</style>\n'''
+          if 'id="nexus-shell-preboot"' not in s:
+              s=s.replace('</head>',preboot+'</head>')
+
+          s=re.sub(r'<script src="https://cdn\.jsdelivr\.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-security-hardening\.js\?v=[^"]+"></script>',f'<script src="/portal-security-hardening.js?v={build}"></script>',s)
+          s=re.sub(r'<script type="module" src="https://cdn\.jsdelivr\.net/gh/kyriestone61-del/nexus-intelligence-site@main/portal-app\.js\?v=[^"]+"></script>',f'<script type="module" src="/portal-app.js?v={build}"></script>',s)
+          p.write_text(s)
+
+          a=Path('portal-app.js')
+          x=a.read_text()
+          x=re.sub(r"const BUILD='[^']+';",f"const BUILD='{build}';",x,count=1)
+          if "document.body.classList.add('nexus-shell-ready');" not in x:
+              x=x.replace("function clearBootLock(){\n  window.__nexusPortalBooting=false;", "function clearBootLock(){\n  window.__nexusPortalBooting=false;\n  document.body.classList.add('nexus-shell-ready');")
+          a.write_text(x)
+
+          # Contract checks for the reset itself.
+          h=p.read_text(); j=a.read_text()
+          assert 'cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main' not in h
+          assert 'id="nexus-shell-preboot"' in h
+          assert '#portalApp{visibility:hidden!important}' in h
+          assert 'body.nexus-shell-ready #portalApp{visibility:visible!important}' in h
+          assert f'/portal-app.js?v={build}' in h
+          assert f'/portal-security-hardening.js?v={build}' in h
+          assert "document.body.classList.add('nexus-shell-ready');" in j
+          assert f"const BUILD='{build}'" in j
+          print('Portal shell reset applied.')
+          PY
+      - name: Commit patched shell
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portal.html portal-app.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Hard reset portal shell startup"
+          git push origin HEAD:fix/portal-hard-reset-shell-final
