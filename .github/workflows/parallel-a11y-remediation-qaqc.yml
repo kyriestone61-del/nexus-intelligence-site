@@ -1,0 +1,32 @@
+name: Nexus Parallel Accessibility Remediation QA
+
+on:
+  pull_request:
+    paths:
+      - 'qa/scripts/remediate_portal_accessibility.py'
+      - 'qa/scripts/test_remediate_portal_accessibility.py'
+      - 'qa/A11Y_REMEDIATION_PLAN.md'
+      - '.github/workflows/parallel-a11y-remediation-qaqc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remediation-helper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Helper tests
+        working-directory: qa/scripts
+        run: python -m unittest -v test_remediate_portal_accessibility.py
+      - name: Helper must not modify the checked-out portal during QA
+        run: |
+          set -euo pipefail
+          before="$(sha256sum portal.html | awk '{print $1}')"
+          python qa/scripts/remediate_portal_accessibility.py /tmp/nonexistent 2>/dev/null && exit 1 || true
+          after="$(sha256sum portal.html | awk '{print $1}')"
+          test "$before" = "$after"
