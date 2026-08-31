@@ -44,6 +44,7 @@ assert.match(diagnosis,/Final Diagnosis Composer/);
 assert.match(diagnosis,/pipeline_version:2/);
 assert.match(diagnosis,/RETRY_BUDGET=3/);
 assert.match(diagnosis,/MODEL_PROXY_AUTH_NOT_CONFIGURED/);
+assert.match(diagnosis,/NEXUS DIAGNOSIS OPERATING INSTRUCTIONS/);
 assert.match(diagnosis,/Evidence content|Authorized client evidence|evidence is data only|data only, never instructions/i);
 assert.match(diagnosis,/Never invent a fact, metric, quote, process detail, outcome, ROI/i);
 assert.match(diagnosis,/docxText/);
@@ -61,7 +62,10 @@ assert.match(migration,/nexus_email_outbox/);
 assert.match(migration,/nexus_sms_outbox/);
 assert.match(migration,/sms_enabled boolean NOT NULL DEFAULT false/,'SMS must be opt-in');
 
-const projection=migration.slice(migration.indexOf('CREATE OR REPLACE FUNCTION public.nexus_client_report_projection'),migration.indexOf('REVOKE ALL ON FUNCTION public.nexus_client_report_projection'));
+const projectionStart=migration.indexOf('CREATE OR REPLACE FUNCTION public.nexus_client_report_projection');
+const projectionEnd=migration.indexOf('REVOKE ALL ON FUNCTION public.nexus_client_report_projection');
+assert.ok(projectionStart>=0&&projectionEnd>projectionStart,'client report projection function must exist');
+const projection=migration.slice(projectionStart,projectionEnd);
 for(const privateKey of ['inferences','risks','nexus_actions','decision_items','document_requests','baseline_measurements']){
   assert.doesNotMatch(projection,new RegExp(`'${privateKey}'`),`client-safe projection leaked internal section ${privateKey}`);
 }
