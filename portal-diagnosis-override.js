@@ -6,6 +6,10 @@
   const byId=id=>document.getElementById(id);
   const selectedEvidence=()=>[...document.querySelectorAll('.diagnosis-supporting-doc:checked')].map(x=>x.value);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const observerOptions={childList:true,subtree:true};
+  let observer=null,normalizationScheduled=false;
+
+  function setHTML(node,html){if(node&&node.innerHTML!==html)node.innerHTML=html}
 
   async function securedQueue(){
     if(!state.admin||!state.companyId)return toast?.('Select a client company first.');
@@ -24,6 +28,7 @@
       const {data,error:invokeError}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:created.id}});
       if(invokeError||data?.ok===false)throw new Error(data?.error||invokeError?.message||'Diagnosis execution failed.');
       toast?.('Diagnosis is ready for review.');
+      window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));
       sessionStorage.setItem('nexus_reopen_intake','1');
       setTimeout(()=>location.reload(),450);
     }catch(error){
@@ -34,24 +39,40 @@
   }
 
   function normalizeCards(){
-    document.querySelectorAll('.diagnosis-run-card').forEach(card=>{
-      const statusEl=card.querySelector('.diagnosis-status');if(!statusEl)return;
-      const status=[...statusEl.classList].find(x=>['queued','analyzing','ready_for_review','revision_requested','blocked','approved','failed','archived','ready_for_analysis','in_review'].includes(x))||String(statusEl.textContent||'').trim().toLowerCase().replaceAll(' ','_');
-      const select=card.querySelector('.diagnosis-status-select');const id=select?.dataset.id||card.querySelector('[data-id]')?.dataset.id;
-      select?.remove();
-      card.querySelectorAll('.copy-agent-packet').forEach(x=>x.remove());
-      let action=card.querySelector('.diagnosis-secure-action');
-      if(!action&&id){action=document.createElement('div');action.className='diagnosis-secure-action';card.querySelector('.diagnosis-run-actions')?.appendChild(action)}
-      if(!action)return;
-      if(['queued','ready_for_analysis'].includes(status))action.innerHTML='<span class="small">Queued for secured analysis.</span>';
-      else if(status==='analyzing')action.innerHTML='<span class="small">Analyzing authorized evidence…</span>';
-      else if(['ready_for_review','in_review'].includes(status))action.innerHTML=`<button class="btn primary diagnosis-review-btn" data-id="${esc(id)}" type="button">Review diagnosis →</button>`;
-      else if(status==='approved')action.innerHTML=`<button class="btn secondary diagnosis-review-btn" data-id="${esc(id)}" type="button">Open approved diagnosis →</button>`;
-      else if(['blocked','failed','revision_requested'].includes(status))action.innerHTML=`<button class="btn secondary diagnosis-retry-btn" data-id="${esc(id)}" type="button">Retry diagnosis →</button>`;
-      else action.innerHTML='<span class="small">Archived</span>';
-    });
-    const help=document.querySelector('.admin-intake-help');if(help)help.innerHTML='<b>Execution boundary:</b> The secured Client Diagnosis Agent reads only the evidence selected here. Its output remains an internal draft until a Nexus admin reviews it. Approval may generate controlled workspace records; it never sends external communications or changes client systems automatically.';
-    const step4=[...document.querySelectorAll('.intake-card')].find(x=>x.querySelector('.kicker')?.textContent?.includes('Step 4'));if(step4){const p=step4.querySelector('h2 + p');if(p)p.innerHTML='Queueing starts secured analysis of the selected authorized evidence. The result is stored as a structured internal draft for human review.'}
+    observer?.disconnect();
+    try{
+      document.querySelectorAll('.diagnosis-run-card').forEach(card=>{
+        const statusEl=card.querySelector('.diagnosis-status');if(!statusEl)return;
+        const status=[...statusEl.classList].find(x=>['queued','analyzing','ready_for_review','revision_requested','blocked','approved','failed','archived','ready_for_analysis','in_review'].includes(x))||String(statusEl.textContent||'').trim().toLowerCase().replaceAll(' ','_');
+        const select=card.querySelector('.diagnosis-status-select');const id=select?.dataset.id||card.querySelector('[data-id]')?.dataset.id;
+        select?.remove();
+        card.querySelectorAll('.copy-agent-packet').forEach(x=>x.remove());
+        let action=card.querySelector('.diagnosis-secure-action');
+        if(!action&&id){action=document.createElement('div');action.className='diagnosis-secure-action';card.querySelector('.diagnosis-run-actions')?.appendChild(action)}
+        if(!action)return;
+        let html='';
+        if(status==='queued')html='<span class="small">Queued for secured analysis.</span>';
+        else if(status==='ready_for_analysis')html=`<button class="btn primary diagnosis-retry-btn" data-id="${esc(id)}" type="button">Run secured diagnosis →</button>`;
+        else if(status==='analyzing')html='<span class="small">Analyzing authorized evidence…</span>';
+        else if(['ready_for_review','in_review'].includes(status))html=`<button class="btn primary diagnosis-review-btn" data-id="${esc(id)}" type="button">Review diagnosis →</button>`;
+        else if(status==='approved')html=`<button class="btn secondary diagnosis-review-btn" data-id="${esc(id)}" type="button">Open approved diagnosis →</button>`;
+        else if(['blocked','failed','revision_requested'].includes(status))html=`<button class="btn secondary diagnosis-retry-btn" data-id="${esc(id)}" type="button">Retry diagnosis →</button>`;
+        else html='<span class="small">Archived</span>';
+        setHTML(action,html);
+      });
+      const help=document.querySelector('.admin-intake-help');
+      setHTML(help,'<b>Execution boundary:</b> The secured Client Diagnosis Agent reads only the evidence selected here. Its output remains an internal draft until a Nexus admin reviews it. Approval may generate controlled workspace records; it never sends external communications or changes client systems automatically.');
+      const step4=[...document.querySelectorAll('.intake-card')].find(x=>x.querySelector('.kicker')?.textContent?.includes('Step 4'));
+      if(step4){const p=step4.querySelector('h2 + p');setHTML(p,'Queueing starts secured analysis of the selected authorized evidence. The result is stored as a structured internal draft for human review.')}
+    }finally{
+      observer?.observe(document.body,observerOptions);
+    }
+  }
+
+  function scheduleNormalize(){
+    if(normalizationScheduled)return;
+    normalizationScheduled=true;
+    requestAnimationFrame(()=>{normalizationScheduled=false;normalizeCards()});
   }
 
   document.addEventListener('click',e=>{
@@ -59,7 +80,8 @@
     e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();securedQueue();
   },true);
 
-  const observer=new MutationObserver(()=>normalizeCards());observer.observe(document.body,{childList:true,subtree:true});
+  observer=new MutationObserver(scheduleNormalize);
+  observer.observe(document.body,observerOptions);
   normalizeCards();
   if(sessionStorage.getItem('nexus_reopen_intake')==='1'){
     sessionStorage.removeItem('nexus_reopen_intake');
