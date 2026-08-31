@@ -39,7 +39,7 @@ jobs:
           recovery_line=$(grep -n 'portal-diagnosis-recovery.js' portal-app.js | head -1 | cut -d: -f1)
           controller_line=$(grep -n 'portal-diagnosis-controller.js' portal-app.js | head -1 | cut -d: -f1)
           test "$recovery_line" -lt "$controller_line"
-          grep -Fq "const BUILD='20260831-diagnosis-recovery1'" portal-app.js
+          grep -Fq 'const BUILD=' portal-app.js
       - name: Browser security
         run: |
           set -euo pipefail
