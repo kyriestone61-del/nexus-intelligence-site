@@ -3,7 +3,7 @@ if(!portal)throw new Error('Nexus portal context is unavailable.');
 
 const {sb,state,toast}=portal;
 const byId=id=>document.getElementById(id);
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let queueBusy=false;
 let intakeObserver=null;
@@ -63,9 +63,21 @@ function invalidateLatest(){latestCache={companyId:null,run:null,at:0}}
 async function latestRun({force=false}={}){
   if(!state.admin||!state.companyId)return null;
   if(!force&&latestCache.companyId===state.companyId&&Date.now()-latestCache.at<CACHE_MS)return latestCache.run;
-  const {data,error}=await sb.from('nexus_diagnosis_runs').select('id,status,analysis_result,execution_error,transcript_document_id,created_at').eq('company_id',state.companyId).order('created_at',{ascending:false}).limit(1);
+  const {data,error}=await sb.from('nexus_diagnosis_runs').select('id,status,analysis_result,execution_error,transcript_document_id,created_at').eq('company_id',state.companyId).neq('status','archived').order('created_at',{ascending:false}).limit(1);
   if(error)throw error;
   const run=data?.[0]||null;latestCache={companyId:state.companyId,run,at:Date.now()};return run;
+}
+async function existingRunForTranscript(transcriptId){
+  if(!transcriptId||!state.companyId)return null;
+  const {data,error}=await sb.from('nexus_diagnosis_runs')
+    .select('id,status,analysis_result,execution_error,transcript_document_id,created_at')
+    .eq('company_id',state.companyId)
+    .eq('transcript_document_id',transcriptId)
+    .neq('status','archived')
+    .order('created_at',{ascending:false})
+    .limit(8);
+  if(error)throw error;
+  return (data||[]).find(run=>['queued','analyzing','ready_for_analysis','ready_for_review','in_review','revision_requested','blocked','failed','approved'].includes(run.status))||null;
 }
 
 async function securedQueue(){
@@ -75,8 +87,18 @@ async function securedQueue(){
   const transcriptId=resolveTranscriptId(),selected=selectedEvidence();if(transcriptId&&!selected.includes(transcriptId))selected.unshift(transcriptId);
   const notes=byId('intakeNotes')?.value?.trim()||'',transcript=byId('intakeTranscriptText')?.value?.trim()||'';
   if(!transcriptId&&!transcript&&!notes)return toast?.('No diagnosis evidence was found. Add a transcript or discovery notes first.');
+
+  const existing=await existingRunForTranscript(transcriptId);
+  if(existing){
+    invalidateLatest();
+    if(['queued','analyzing'].includes(existing.status))toast?.('A diagnosis for this transcript is already running. Opening its current status instead of creating a duplicate.');
+    else if(['ready_for_review','in_review','approved'].includes(existing.status)||hasResult(existing))toast?.('A diagnosis already exists for this transcript. Opening the existing result instead of creating a duplicate.');
+    else toast?.('This transcript already has a diagnosis record. Opening it so you can resolve or retry the existing run.');
+    return openRun(existing);
+  }
+
   const c=company(),p=project(),docs=(state.docs||[]).filter(d=>selected.includes(d.id));
-  const packet={version:4,company:{id:c?.id||state.companyId,name:c?.name||'',industry:c?.industry||'',website:c?.website||''},project:{id:p?.id||null,name:p?.name||'',service_type:p?.service_type||''},agent:{code:'client_diagnosis',mode:'secured_execution',permission_level:'draft_only'},meeting:{date:byId('intakeMeetingDate')?.value||null,participants:byId('intakeParticipants')?.value?.trim()||null},discovery_notes:notes||null,transcript_text:transcript||null,evidence_manifest:docs.map(d=>({id:d.id,file_name:d.file_name,category:d.category,note:d.note||null,created_at:d.created_at})),required_output:['facts','client_statements','inferences','unknowns','process_map','bottlenecks','baseline_gaps','baseline_measurements','opportunity_backlog','risks','follow_up_questions','smallest_safe_pilot','nexus_actions','client_action_items','document_requests','decision_items'],prohibited_actions:['send emails','contact anyone','modify client systems','make purchases','publish content','change permissions','take external action without explicit approval']};
+  const packet={version:5,company:{id:c?.id||state.companyId,name:c?.name||'',industry:c?.industry||'',website:c?.website||''},project:{id:p?.id||null,name:p?.name||'',service_type:p?.service_type||''},agent:{code:'client_diagnosis',mode:'secured_execution',permission_level:'draft_only'},meeting:{date:byId('intakeMeetingDate')?.value||null,participants:byId('intakeParticipants')?.value?.trim()||null},discovery_notes:notes||null,transcript_text:transcript||null,evidence_manifest:docs.map(d=>({id:d.id,file_name:d.file_name,category:d.category,note:d.note||null,created_at:d.created_at})),required_output:['facts','client_statements','inferences','unknowns','process_map','bottlenecks','baseline_gaps','baseline_measurements','opportunity_backlog','risks','follow_up_questions','smallest_safe_pilot','nexus_actions','client_action_items','document_requests','decision_items'],prohibited_actions:['send emails','contact anyone','modify client systems','make purchases','publish content','change permissions','take external action without explicit approval']};
   const row={company_id:state.companyId,project_id:p?.id||null,agent_code:'client_diagnosis',status:'queued',queued_at:new Date().toISOString(),transcript_document_id:transcriptId,supporting_document_ids:selected,meeting_date:packet.meeting.date,participants:packet.meeting.participants,discovery_notes:notes||null,analysis_packet:packet,created_by:state.user.id,updated_at:new Date().toISOString()};
   const button=byId('queueDiagnosisBtn');queueBusy=true;if(button){button.disabled=true;button.textContent='Analyzing…'}
   let created=null;
@@ -138,4 +160,4 @@ window.addEventListener('focus',()=>setTimeout(()=>refreshJourneyLabels(),160));
 for(const ms of [0,120,350,800])setTimeout(()=>{attachIntakeObserver();normalizeIntake();refreshJourneyLabels()},ms);
 setTimeout(handlePendingOpen,700);
 
-window.NexusDiagnosisController={normalizeIntake,refreshJourneyLabels,latestRun,openRun,securedQueue,invalidateLatest};
+window.NexusDiagnosisController={normalizeIntake,refreshJourneyLabels,latestRun,openRun,securedQueue,invalidateLatest,existingRunForTranscript};
