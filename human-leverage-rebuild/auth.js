@@ -11,17 +11,18 @@ function setMode(m){
  if(pass)pass.autocomplete=m==='signup'?'new-password':'current-password';
  msg(m==='signup'?'Create your account. Your curriculum and progress will sync across devices.':'Use your Human OS account credentials.');
 }
+function setAppReady(ready){document.body.classList.toggle('app-ready',!!ready);document.body.classList.toggle('marketing-ready',!ready)}
 function showPanel(m='login'){
- setMode(m);
+ setMode(m);setAppReady(false);
  const panel=el('authPanel');
  if(panel){panel.classList.remove('hidden');setTimeout(()=>el('authEmail')?.focus(),20);return}
  const gate=el('authGate');if(gate)gate.classList.remove('hidden');
 }
 function hidePanel(){const panel=el('authPanel');if(panel)panel.classList.add('hidden')}
-function openPreview(){hidePanel();el('authGate')?.classList.add('hidden');S.offline=true;if(el('cloudStatus'))el('cloudStatus').textContent='Local preview';toast('Local preview opened')}
+function openPreview(){hidePanel();el('authGate')?.classList.add('hidden');S.offline=true;setAppReady(true);if(el('cloudStatus'))el('cloudStatus').textContent='Local preview';toast('Local preview opened')}
 function bind(id,fn){const node=el(id);if(node)node.onclick=fn}
 export function initAuth(){
- setMode('login');
+ setAppReady(false);setMode('login');
  bind('loginTab',()=>setMode('login'));bind('signupTab',()=>setMode('signup'));bind('authSubmit',submit);bind('offlineBtn',openPreview);
  ['marketingSignIn','footerSignIn'].forEach(id=>bind(id,()=>showPanel('login')));
  ['marketingStart','heroStart','planFree','planPlus'].forEach(id=>bind(id,()=>showPanel('signup')));
@@ -31,7 +32,7 @@ export function initAuth(){
  el('authPanel')?.addEventListener('click',e=>{if(e.target===el('authPanel'))hidePanel()});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el('authPanel')?.classList.contains('hidden'))hidePanel()});
 }
-export function openAfterAuth(){if(S.user){hidePanel();el('authGate')?.classList.add('hidden')}}
+export function openAfterAuth(){if(S.user){hidePanel();el('authGate')?.classList.add('hidden');setAppReady(true)}}
 async function forgotPassword(){const email=el('authEmail')?.value.trim()||'';if(!email.includes('@'))return msg('Enter your email first, then choose Forgot password.');try{msg('Sending password reset…');const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});if(error)return msg(error.message);msg('Password reset email sent.')}catch(e){msg('Could not send reset email. '+(e?.message||e))}}
 async function submit(){
  const email=el('authEmail')?.value.trim()||'',password=el('authPassword')?.value||'',name=el('authName')?.value.trim()||'';
