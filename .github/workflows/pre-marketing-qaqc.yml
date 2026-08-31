@@ -22,6 +22,7 @@ on:
       - '_redirects'
       - 'functions/**'
       - 'supabase/functions/nexus-diagnosis-execute/**'
+      - 'supabase/functions/nexus-email-worker/**'
       - '.github/workflows/pre-marketing-qaqc.yml'
   pull_request:
     paths:
@@ -43,6 +44,7 @@ on:
       - '_redirects'
       - 'functions/**'
       - 'supabase/functions/nexus-diagnosis-execute/**'
+      - 'supabase/functions/nexus-email-worker/**'
       - '.github/workflows/pre-marketing-qaqc.yml'
   workflow_dispatch:
 
@@ -111,6 +113,17 @@ jobs:
           grep -Fq 'NEXUS DIAGNOSIS OPERATING INSTRUCTIONS' supabase/functions/nexus-diagnosis-execute/index.ts
           grep -Fq 'human_review_required:true' supabase/functions/nexus-diagnosis-execute/index.ts
           grep -Fq 'ready_for_review' supabase/functions/nexus-diagnosis-execute/index.ts
+
+      - name: Transactional email contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'x-nexus-worker-token' supabase/functions/nexus-email-worker/index.ts
+          grep -Fq 'RESEND_API_KEY' supabase/functions/nexus-email-worker/index.ts
+          grep -Fq 'nexus_claim_email_batch' supabase/functions/nexus-email-worker/index.ts
+          grep -Fq 'nexus_email_outbox' supabase/functions/nexus-email-worker/index.ts
+          grep -Fq 'contact@nexusintelligence.live' supabase/functions/nexus-email-worker/index.ts
+          grep -Fq 'X-Entity-Ref-ID' supabase/functions/nexus-email-worker/index.ts
 
       - name: Stable portal runtime contract
         shell: bash
@@ -182,7 +195,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -Rni 'statecraft' portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-release-queue.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js supabase/functions/nexus-diagnosis-execute/index.ts; then
+          if grep -Rni 'statecraft' portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-release-queue.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js supabase/functions/nexus-diagnosis-execute/index.ts supabase/functions/nexus-email-worker/index.ts; then
             echo 'Statecraft reference found in Nexus pre-marketing implementation.' >&2
             exit 1
           fi
