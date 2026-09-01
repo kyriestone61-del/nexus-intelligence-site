@@ -73,7 +73,7 @@ if(isSignedIn&&isAdmin){
 
 if(isSignedIn){
   await requiredImportWithoutRecurringIntervals(asset(`portal-action-workflow.js?v=${BUILD}`),[1200],'action workflow');
-  await requiredImportWithoutRecurringIntervals(asset(`portal-action-execution-v2.js?v=${BUILD}`),[900],'action execution');
+  await requiredImport(asset(`portal-action-execution-v2.js?v=${BUILD}`),'action execution');
   await optionalImport(asset(`portal-action-execution-v2-forms.js?v=${BUILD}`));
   await optionalImport(asset(`portal-guided-ops.js?v=${BUILD}`));
 }
