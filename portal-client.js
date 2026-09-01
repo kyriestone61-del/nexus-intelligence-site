@@ -7,7 +7,7 @@ const SUPABASE_KEY='sb_publishable_-bZLK1vmL0eUMz65A6EUsw_I20LBq2B';
 const BUCKET='nexus-client-documents';
 const sb=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id);
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 const date=v=>v?new Date(v+'T00:00:00').toLocaleDateString():'—';
 const dt=v=>v?new Date(v).toLocaleString():'—';
 const state={user:null,admin:false,companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[],notificationPrefs:null,emailConfigured:false};
@@ -50,7 +50,19 @@ $('signInForm')?.addEventListener('submit',async e=>{
 });
 
 async function ensureProfile(){const {data}=await sb.from('nexus_profiles').select('user_id').eq('user_id',state.user.id).maybeSingle();if(!data)await sb.from('nexus_profiles').insert({user_id:state.user.id,full_name:state.user.user_metadata?.full_name||''})}
-async function identity(){state.user=(await sb.auth.getUser()).data.user;if(!state.user){show('auth');return}await ensureProfile();state.admin=!!(await sb.from('nexus_platform_admins').select('user_id').eq('user_id',state.user.id).maybeSingle()).data;await companies()}
+async function identity(){
+  state.user=(await sb.auth.getUser()).data.user;if(!state.user){show('auth');return}
+  await ensureProfile();
+  try{
+    const {data:admin,error:adminError}=await sb.rpc('nexus_is_platform_admin');
+    if(adminError)throw adminError;
+    state.admin=admin===true;
+  }catch(error){
+    console.warn('Canonical Nexus administrator check failed; using compatibility fallback.',error?.message||error);
+    state.admin=!!(await sb.from('nexus_platform_admins').select('user_id').eq('user_id',state.user.id).maybeSingle()).data;
+  }
+  await companies();
+}
 
 async function companies(){
   if(state.admin){const {data,error}=await sb.from('nexus_companies').select('*').order('created_at',{ascending:false});if(error)throw error;state.companies=data||[]}
