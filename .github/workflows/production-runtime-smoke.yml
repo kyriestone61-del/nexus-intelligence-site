@@ -1,0 +1,82 @@
+name: Nexus Production Runtime Smoke
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/production-runtime-smoke.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe live Nexus production
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin='https://nexusintelligence.live'
+          supabase='https://dmdgkjksouhhsuojthav.supabase.co/functions/v1'
+          report='production-smoke-report.txt'
+          : > "$report"
+
+          probe_get() {
+            local name="$1" url="$2" expect="$3"
+            local body code
+            body="$(mktemp)"
+            code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' "$url")"
+            echo "$name http=$code" | tee -a "$report"
+            if [ "$code" != "200" ]; then
+              echo "$name expected HTTP 200" >&2
+              cat "$body" >&2
+              exit 1
+            fi
+            if ! grep -Fq "$expect" "$body"; then
+              echo "$name missing expected live marker: $expect" >&2
+              head -c 2000 "$body" >&2
+              exit 1
+            fi
+          }
+
+          probe_unauth_post() {
+            local name="$1" url="$2" header_name="${3:-}" header_value="${4:-}"
+            local body code
+            body="$(mktemp)"
+            if [ -n "$header_name" ]; then
+              code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' --request POST --header 'Content-Type: application/json' --header "$header_name: $header_value" --data '{}' "$url")"
+            else
+              code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' --request POST --header 'Content-Type: application/json' --data '{}' "$url")"
+            fi
+            echo "$name http=$code body=$(tr '\n' ' ' < "$body" | head -c 500)" | tee -a "$report"
+            if [ "$code" != "401" ]; then
+              echo "$name expected HTTP 401 from the live protected route" >&2
+              cat "$body" >&2
+              exit 1
+            fi
+          }
+
+          probe_get 'portal-app' "$origin/portal-app.js" 'portal-vnext-runtime-router.js'
+          probe_get 'runtime-router' "$origin/portal-vnext-runtime-router.js" '/api/diagnosis-report-pdf'
+          probe_get 'runtime-router-sms' "$origin/portal-vnext-runtime-router.js" "status:'scheduled'"
+
+          # The PDF route must exist without a Cloudflare service-role secret and reject anonymous callers.
+          probe_unauth_post 'diagnosis-report-pdf' "$origin/api/diagnosis-report-pdf"
+
+          # The consolidated Supabase notification worker must be deployed and enforce its worker-token boundary.
+          probe_unauth_post 'notification-worker' "$supabase/nexus-email-worker" 'x-nexus-worker-token' 'invalid-smoke-token'
+
+          echo 'PRODUCTION_RUNTIME_SMOKE=PASS' | tee -a "$report"
+
+      - name: Upload production smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-production-runtime-smoke
+          path: production-smoke-report.txt
+          retention-days: 30
