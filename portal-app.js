@@ -1,7 +1,10 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-client-shell-refactor1';
+const BUILD='20260901-client-shell-refactor2';
 
 window.__nexusPortalBooting=true;
+/* portal-client.js still calls initOps for legacy compatibility. Keep that bootstrap dormant;
+ * real admin Operations is initialized deliberately after authorization is resolved below. */
+window.__nexusOpsInit=true;
 document.body.classList.add('nexus-runtime-booting');
 
 const bootStyle=document.createElement('style');
@@ -37,7 +40,8 @@ async function waitFor(test,{timeout=5000,step=70}={}){const start=Date.now();wh
 
 try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180])}catch(error){showCoreLoadFailure(error);throw error}
 const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Nexus portal context is unavailable.'));throw new Error('Nexus portal context is unavailable.')}
-const isSignedIn=!!portal.state?.user,isAdmin=!!portal.state?.admin;
+const platformAdmin=!!portal.state?.admin;
+const isSignedIn=!!portal.state?.user,isAdmin=platformAdmin;
 
 await requiredImport(asset(`portal-accessibility.js?v=${BUILD}`),'portal accessibility');
 
