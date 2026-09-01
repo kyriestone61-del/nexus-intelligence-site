@@ -5,6 +5,59 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 let memoryBusy=false,memoryScheduled=false,engagementBusy=false;
 const terminalProject=p=>['complete','cancelled'].includes(String(p?.status||'').toLowerCase());
 
+function ensureMobileHardening(){
+  if(document.getElementById('nexusMobileHardening'))return;
+  const link=document.createElement('link');
+  link.id='nexusMobileHardening';
+  link.rel='stylesheet';
+  link.href='/portal-mobile-hardening.css?v=20260901-mobile1';
+  document.head.appendChild(link);
+}
+ensureMobileHardening();
+
+function activateInbox(button){
+  const section=document.getElementById('section-notifications');
+  if(!section)return toast?.('Inbox is unavailable in this workspace.');
+  document.querySelectorAll('.section').forEach(node=>node.classList.toggle('active',node===section));
+  document.querySelectorAll('.side-nav button').forEach(node=>node.classList.toggle('active',node===button||node.dataset.section==='notifications'));
+  window.scrollTo({top:0,left:0,behavior:'auto'});
+}
+function normalizeInbox(){
+  const section=document.getElementById('section-notifications');
+  const unifiedInboxReady=!!document.getElementById('nexusInboxRoot')||!!section?.querySelector('.nexus-inbox-controls');
+  if(section&&!unifiedInboxReady){
+    const heading=section.querySelector('h1');
+    if(heading&&heading.textContent!=='Inbox')heading.textContent='Inbox';
+    const eyebrow=section.querySelector('.eyebrow');
+    if(eyebrow&&eyebrow.textContent!=='Messages & alerts')eyebrow.textContent='Messages & alerts';
+    const copy=section.querySelector('p.small');
+    const inboxCopy='See client updates, report notifications, questions, answers, and other items that need your attention.';
+    if(copy&&copy.textContent!==inboxCopy)copy.textContent=inboxCopy;
+  }
+  const nav=document.querySelector('.side-nav');
+  if(!nav)return;
+  let button=nav.querySelector('button[data-section="notifications"]');
+  if(button){
+    if(button.textContent!=='Inbox')button.textContent='Inbox';
+    button.dataset.nexusInbox='1';
+    return;
+  }
+  if(!section)return;
+  button=document.createElement('button');
+  button.type='button';
+  button.dataset.section='notifications';
+  button.dataset.nexusInbox='1';
+  button.textContent='Inbox';
+  button.addEventListener('click',()=>activateInbox(button));
+  const clients=nav.querySelector('button[data-section="clients"]');
+  const journey=nav.querySelector('.journey-primary');
+  if(clients)clients.after(button);else if(journey)journey.after(button);else nav.prepend(button);
+}
+const inboxNav=document.querySelector('.side-nav');
+const inboxObserver=new MutationObserver(()=>normalizeInbox());
+if(inboxNav)inboxObserver.observe(inboxNav,{childList:true,subtree:true});
+for(const ms of [0,120,450,1200])setTimeout(normalizeInbox,ms);
+
 // Preserve compatibility with existing modules that still consume state.projects[0], but make
 // index 0 a projection of the explicit active-engagement identity instead of insertion order.
 let projectRows=Array.isArray(state.projects)?state.projects:[];
@@ -168,6 +221,7 @@ companySelect?.addEventListener('change',()=>setTimeout(async()=>{
   // data is reloaded against the explicit active project.
   if(project&&before&&before!==project.id)await portal.workspace();
   scheduleMemory();
+  normalizeInbox();
 },180));
 
 window.addEventListener('nexus:diagnosis-changed',()=>setTimeout(syncActiveEngagement,100));
@@ -176,6 +230,7 @@ for(const ms of [0,180,600])setTimeout(async()=>{
   const project=await syncActiveEngagement();
   if(ms===180&&project&&before&&before!==project.id)await portal.workspace();
   scheduleMemory();
+  normalizeInbox();
 },ms);
 
-window.NexusFoundationHardening={activeProject,syncActiveEngagement,renderClientMemory,opsClient,terminalProject};
+window.NexusFoundationHardening={activeProject,syncActiveEngagement,renderClientMemory,opsClient,terminalProject,normalizeInbox,activateInbox};

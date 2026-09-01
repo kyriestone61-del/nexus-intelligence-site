@@ -1,0 +1,84 @@
+/* Nexus mobile/phone hardening — 2026-09-01 */
+.portal-body *, .portal-body *::before, .portal-body *::after{box-sizing:border-box}
+.portal-body img,.portal-body svg,.portal-body video,.portal-body canvas{max-width:100%;height:auto}
+.portal-body input,.portal-body select,.portal-body textarea,.portal-body button{max-width:100%}
+.portal-body .main,.portal-body .section,.portal-body .toolbar,.portal-body .toolbar>*,.portal-body .box,.portal-body .panel,.portal-body .row,.portal-body .grow,.portal-body .list,.portal-body .metrics,.portal-body .stats,.portal-body .two,.portal-body .requirement-grid,.portal-body .data-room-stack,.portal-body .ops-grid,.portal-body .admin-journey-hero,.portal-body .journey-step,.portal-body .diagnosis-review-card,.portal-body .diagnosis-review-content,.portal-body .diagnosis-review-item{min-width:0}
+.portal-body .row,.portal-body .box,.portal-body .panel,.portal-body .note,.portal-body .small,.portal-body p,.portal-body h1,.portal-body h2,.portal-body h3,.portal-body h4,.portal-body label,.portal-body button,.portal-body a{overflow-wrap:anywhere;word-break:normal}
+.portal-body pre,.portal-body code{max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.portal-body table{max-width:100%}
+.portal-body .nexus-scroll-x{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.portal-body .diagnosis-review-modal.open{display:flex!important;align-items:center;justify-content:center}
+.portal-body .diagnosis-review-card{width:min(920px,100%);max-width:100%;max-height:min(90dvh,900px);overflow:auto;overscroll-behavior:contain}
+.portal-body .diagnosis-review-card>.toolbar{position:sticky;top:-1px;z-index:4;background:linear-gradient(180deg,rgba(21,19,31,.99),rgba(21,19,31,.95));padding:4px 0 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.portal-body .diagnosis-review-actions .actions{display:flex;gap:8px;flex-wrap:wrap}
+.portal-body .diagnosis-review-loading{display:grid;gap:12px;place-items:center;min-height:180px;padding:28px;text-align:center}
+.portal-body .diagnosis-review-spinner{width:30px;height:30px;border:3px solid rgba(255,255,255,.12);border-top-color:var(--nx-citron,#d9ff72);border-radius:50%;animation:nexusSpin .7s linear infinite}
+@keyframes nexusSpin{to{transform:rotate(360deg)}}
+
+@media(max-width:1020px){
+  .portal-body .workspace{grid-template-columns:minmax(0,1fr)!important}
+  .portal-body .sidebar{width:100%;max-width:100%;overflow:hidden}
+  .portal-body .side-nav{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;overflow:visible!important}
+  .portal-body .side-nav>.ops-nav-group,.portal-body .side-nav>.admin-journey-only-note,.portal-body .side-nav>details{grid-column:1/-1}
+  .portal-body .side-nav button{white-space:normal!important;min-height:44px;text-align:center!important;display:flex;align-items:center;justify-content:center}
+  .portal-body .admin-tool-buttons{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .portal-body .admin-tool-buttons button{width:100%}
+}
+
+@media(max-width:760px){
+  html,body{max-width:100%;overflow-x:hidden}
+  .portal-body{width:100%;overflow-x:hidden!important}
+  .portal-body .topbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:10px max(10px,env(safe-area-inset-right)) 10px max(10px,env(safe-area-inset-left))}
+  .portal-body .topbar .brand{min-width:0;margin:0!important;overflow:hidden}
+  .portal-body .topbar .brand span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .portal-body .topbar .pill{justify-self:end}
+  .portal-body .topbar .company-select{grid-column:1/-1;order:initial!important;width:100%!important;max-width:100%!important}
+  .portal-body .topbar #alertsBtn,.portal-body .topbar #signOutBtn{width:100%;min-height:44px}
+  .portal-body .workspace{display:block!important;width:100%;max-width:100%}
+  .portal-body .sidebar{padding:12px 10px;border-right:0!important;border-bottom:1px solid var(--nx-line)}
+  .portal-body #companyMini{padding:2px 4px 10px!important}
+  .portal-body .side-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .portal-body .side-nav button{font-size:13px;padding:10px 8px!important}
+  .portal-body .admin-tool-drawer summary{padding:11px 4px;cursor:pointer}
+  .portal-body .admin-tool-buttons{grid-template-columns:1fr!important}
+  .portal-body .main{width:100%;max-width:100%;padding:16px 10px calc(90px + env(safe-area-inset-bottom))!important;overflow:hidden}
+  .portal-body .toolbar{align-items:stretch!important;gap:10px!important}
+  .portal-body .toolbar>div{width:100%}
+  .portal-body .toolbar>.btn,.portal-body .toolbar>button,.portal-body .toolbar>a{width:100%;min-height:44px}
+  .portal-body .actions{display:grid!important;grid-template-columns:1fr;gap:8px;width:100%}
+  .portal-body .actions>.btn,.portal-body .actions>button,.portal-body .actions>a{width:100%;min-height:44px;justify-content:center;text-align:center}
+  .portal-body .row{display:grid!important;grid-template-columns:minmax(0,1fr);gap:9px!important;width:100%}
+  .portal-body .row>.btn,.portal-body .row>button{width:100%}
+  .portal-body .stats,.portal-body .metrics,.portal-body .two,.portal-body .form-grid,.portal-body .requirement-grid,.portal-body .data-room-help,.portal-body .pref-grid,.portal-body .ops-grid,.portal-body .diagnosis-review-grid,.portal-body .diagnosis-list-pair,.portal-body .diagnosis-compact-highlights{grid-template-columns:minmax(0,1fr)!important}
+  .portal-body .stat,.portal-body .metric-card,.portal-body .box,.portal-body .panel,.portal-body .requirement-card,.portal-body .ops-panel,.portal-body .journey-step{width:100%;max-width:100%;padding-left:14px!important;padding-right:14px!important}
+  .portal-body h1{font-size:clamp(28px,8vw,36px)!important;line-height:1.05!important}
+  .portal-body h2{font-size:clamp(22px,6.8vw,30px)!important;line-height:1.12!important}
+  .portal-body h3{max-width:100%}
+  .portal-body .data-room-hero{padding:16px!important}
+  .portal-body .data-room-hero:after{display:none}
+  .portal-body .data-room-meter{grid-template-columns:1fr!important;gap:8px}
+  .portal-body .requirement-head{display:grid!important;grid-template-columns:1fr;gap:8px}
+  .portal-body .req-actions{display:grid!important;grid-template-columns:1fr;width:100%}
+  .portal-body .req-actions>*{width:100%}
+  .portal-body .modal,.portal-body .diagnosis-review-modal.open{align-items:flex-start!important;padding:6px!important;padding-top:max(6px,env(safe-area-inset-top))!important;padding-bottom:max(6px,env(safe-area-inset-bottom))!important;overflow:hidden}
+  .portal-body .modal-card,.portal-body .diagnosis-review-card{width:100%!important;max-width:100%!important;max-height:calc(100dvh - max(12px,env(safe-area-inset-top)) - max(12px,env(safe-area-inset-bottom)))!important;border-radius:12px!important;padding:12px!important;margin:0!important;overflow:auto!important}
+  .portal-body .diagnosis-review-card>.toolbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:start!important;gap:8px!important;padding-top:2px!important}
+  .portal-body #closeDiagnosisReview{width:auto!important;min-width:76px;min-height:44px;position:sticky;top:0}
+  .portal-body .diagnosis-review-meta{display:flex;flex-wrap:wrap;gap:7px}
+  .portal-body .diagnosis-review-section>summary{padding:12px 4px}
+  .portal-body .diagnosis-review-item{padding:12px!important}
+  .portal-body .toast{left:10px!important;right:10px!important;bottom:calc(10px + env(safe-area-inset-bottom))!important;max-width:none!important}
+  .portal-body textarea{min-height:110px}
+  .portal-body input,.portal-body select,.portal-body textarea{width:100%!important;font-size:16px!important}
+  .portal-body .admin-journey-hero,.portal-body .admin-journey-client{display:block!important;width:100%!important;max-width:100%!important}
+  .portal-body [style*="min-width"],.portal-body [style*="width:"]{max-width:100%}
+}
+
+@media(max-width:390px){
+  .portal-body .topbar{grid-template-columns:1fr 1fr}
+  .portal-body .topbar .brand{grid-column:1/-1}
+  .portal-body .topbar .pill{justify-self:start}
+  .portal-body .side-nav{grid-template-columns:1fr!important}
+  .portal-body .main{padding-left:8px!important;padding-right:8px!important}
+  .portal-body .panel,.portal-body .box,.portal-body .requirement-card,.portal-body .journey-step{border-radius:12px!important}
+}
