@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const schema=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_01_schema.sql','utf8');
 const logic=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_02_logic.sql','utf8');
 const agents=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_03_agents.sql','utf8');
+const controls=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_04_release_controls.sql','utf8');
 const worker=fs.readFileSync('supabase/functions/nexus-email-worker/index.ts','utf8');
 
 // Canonical internal pipeline data + admin-only RLS.
@@ -39,11 +40,17 @@ assert.match(logic,/website_opportunity_snapshot/);
 assert.match(logic,/source_snapshot_lead_id/);
 
 // Human approval gate and 3-day follow-up sequencing are hard requirements.
-assert.match(logic,/nexus_admin_approve_outreach_packet/);
-assert.match(logic,/qa_status='passed'/,'human cannot approve a packet that failed independent QA');
-assert.match(logic,/status<>'approved_ready'/,'send marking must require explicit approval');
-assert.match(logic,/now\(\)\+interval '3 days'/,'Email 2 becomes due three days after Email 1 is sent');
-assert.match(logic,/step_no=2 and status='waiting'/);
+assert.match(controls,/nexus_revenue_lead_contactable/);
+assert.match(controls,/not l\.do_not_contact/);
+assert.match(controls,/nullif\(btrim\(l\.business_email\),''\) is not null/);
+assert.match(controls,/contact_provenance/);
+assert.match(controls,/e\.severity in \('high','critical'\)/);
+assert.match(controls,/qa_status='passed'/,'human cannot approve a packet that failed independent QA');
+assert.match(controls,/nexus_admin_approve_outreach_step/,'follow-up needs its own explicit approval path');
+assert.match(controls,/status <> 'pending_approval'/);
+assert.match(controls,/status <> 'approved_ready'/,'send marking must require explicit approval');
+assert.match(controls,/now\(\)\+interval '3 days'/,'Email 2 becomes due three days after Email 1 is sent');
+assert.match(controls,/step_no=2 and status='waiting'/);
 assert.match(logic,/security_invoker=true/,'operations view must preserve caller RLS');
 
 // Agent system coverage.
@@ -53,7 +60,6 @@ for(const agent of [
 ]) assert.ok(agents.includes(`'${agent}'`),`missing agent ${agent}`);
 for(const existing of ['solution_architect','managed_operations','client_success','roi_measurement','ai_ops_observer','qa_governance','executive_orchestrator']) assert.ok(agents.includes(existing),`retainer/control workflow must coordinate existing ${existing}`);
 for(const flow of ['revenue_lead_intake_scoring','qualified_outreach_packet','revenue_exception_triage','retainer_fulfillment_loop','revenue_flywheel_control_review']) assert.ok(agents.includes(`'${flow}'`),`missing workflow ${flow}`);
-assert.ok(!agents.includes("'qualified_outreach_packet','Qualified Lead → Personalized Outreach Packet'"+'x')); // parse guard
 assert.match(agents,/'qualified_outreach_packet'[\s\S]*?'ai_assisted','testing'/);
 assert.match(agents,/'retainer_fulfillment_loop'[\s\S]*?'ai_assisted','testing'/);
 assert.match(agents,/\$2,500–\$5,000\/mo/);
@@ -73,16 +79,14 @@ assert.match(worker,/Evidence Strategist/);
 assert.match(worker,/Hyper-Personalized Outreach Drafter/);
 assert.match(worker,/Independent Outreach QA \/ Governance Verifier/);
 assert.match(worker,/Final Outreach Composer/);
+assert.match(worker,/Final Packet Independent Verifier/,'final repaired packet must be independently verified');
+assert.match(worker,/finalVerification/);
+assert.match(worker,/qa_status:finalVerification\?\.pass===true\?'passed':'failed'/);
 assert.match(worker,/publishable=eq\.true&evidence_complete=eq\.true&client_authorized=eq\.true/,'Nexus proof must be publishable, evidence complete and client authorized');
 assert.match(worker,/Never invent a form submission, response time, review, workflow detail, decision maker, email, employee count, revenue, revenue loss, Nexus client result, metric, quote or source/);
 assert.match(worker,/NO_VERIFIED_PERSONALIZATION_HOOK/);
 assert.match(worker,/status:'pending_approval'/);
 assert.match(worker,/step_no:2,status:'waiting'/);
 assert.ok(!/nexus_outreach_sequence_steps[\s\S]{0,300}resend\.com/i.test(worker),'revenue sequence must not be auto-sent by the generation worker');
-
-// Current implementation must have an explicit final-packet verification marker before release.
-assert.match(worker,/Final Packet Independent Verifier/,'final repaired packet must be independently verified');
-assert.match(worker,/finalVerification/);
-assert.match(worker,/qa_status:finalVerification\?\.pass===true\?'passed':'failed'/);
 
 console.log('Nexus revenue flywheel contract QA passed.');
