@@ -8,6 +8,9 @@ const controls=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywh
 const ops=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_05_ops_handoffs.sql','utf8');
 const economics=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_06_targeting_economics.sql','utf8');
 const worker=fs.readFileSync('supabase/functions/nexus-email-worker/index.ts','utf8');
+const revenueUi=fs.readFileSync('portal-revenue-engine.js','utf8');
+const portalApp=fs.readFileSync('portal-app.js','utf8');
+const revenueCss=fs.readFileSync('portal-revenue-engine.css','utf8');
 
 for(const table of [
   'nexus_revenue_leads','nexus_lead_research_evidence','nexus_revenue_agent_jobs',
@@ -53,7 +56,6 @@ assert.match(ops,/'pipeline'/);
 assert.match(ops,/outreach_packet:/);
 assert.match(ops,/No prospect contact occurs automatically/);
 
-// Target profile and economic output are explicit and evidence-backed.
 assert.match(economics,/nexus_revenue_lead_fit_v/);
 for(const phrase of ['local service','legal','real estate','e-commerce','logistics','healthcare','clinic']) assert.ok(economics.toLowerCase().includes(phrase),`target profile missing ${phrase}`);
 assert.match(economics,/>= 1000000/);
@@ -98,5 +100,19 @@ assert.match(worker,/NO_VERIFIED_PERSONALIZATION_HOOK/);
 assert.match(worker,/status:'pending_approval'/);
 assert.match(worker,/step_no:2,status:'waiting'/);
 assert.ok(!/nexus_outreach_sequence_steps[\s\S]{0,300}resend\.com/i.test(worker),'revenue sequence must not be auto-sent by the generation worker');
+
+// Admin Revenue Engine must make the backend usable without weakening authority boundaries.
+assert.match(portalApp,/portal-revenue-engine\.css/);
+assert.match(portalApp,/portal-revenue-engine\.js/);
+assert.match(portalApp,/labels\.includes\('Revenue Engine'\)/);
+assert.match(revenueUi,/state\?\.admin/,'revenue console must be admin-only');
+for(const rpc of ['nexus_admin_upsert_revenue_lead','nexus_recalculate_revenue_lead_score','nexus_admin_approve_outreach_packet','nexus_admin_approve_outreach_step','nexus_admin_mark_outreach_sent']) assert.ok(revenueUi.includes(rpc),`revenue console missing ${rpc}`);
+for(const table of ['nexus_revenue_leads','nexus_lead_research_evidence','nexus_outreach_packets','nexus_outreach_sequence_steps','nexus_lead_exceptions','nexus_founder_decision_queue']) assert.ok(revenueUi.includes(table),`revenue console missing ${table}`);
+assert.match(revenueUi,/navigator\.clipboard\.writeText/,'human must be able to copy outreach without automatic send');
+assert.match(revenueUi,/Nothing was sent automatically/);
+assert.match(revenueUi,/only continue if you actually sent this email/i);
+assert.ok(!/resend\.com|nexus_email_outbox|twilio/i.test(revenueUi),'admin console must not contain an autonomous delivery path');
+assert.match(revenueCss,/@media\(max-width:720px\)/,'Revenue Engine must include mobile layout rules');
+assert.match(revenueCss,/overflow-x:auto/,'wide lead table must remain usable on small screens');
 
 console.log('Nexus revenue flywheel contract QA passed.');
