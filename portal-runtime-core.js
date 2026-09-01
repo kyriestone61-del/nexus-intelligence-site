@@ -192,18 +192,39 @@ export function createEventRegistry() {
     const cleanups = new Set();
     const timers = new Set();
     let destroyed = false;
+
+    function track(cleanup, element) {
+      cleanups.add(cleanup);
+      const modal = element instanceof Element ? element.closest('.nexus-client-modal,.modal,[role="dialog"]') : null;
+      let lifecycleCleanup = null;
+      if (modal && element !== modal) {
+        const onClosed = () => {
+          cleanup();
+          cleanups.delete(cleanup);
+          if (lifecycleCleanup) cleanups.delete(lifecycleCleanup);
+        };
+        modal.addEventListener('nexus:modal-closed', onClosed, { once: true });
+        lifecycleCleanup = () => modal.removeEventListener('nexus:modal-closed', onClosed);
+        cleanups.add(lifecycleCleanup);
+      }
+      return () => {
+        cleanup();
+        cleanups.delete(cleanup);
+        if (lifecycleCleanup) {
+          lifecycleCleanup();
+          cleanups.delete(lifecycleCleanup);
+        }
+      };
+    }
+
     const api = {
       bind(element, type, key, handler, options) {
         if (destroyed) return () => {};
-        const cleanup = bind(element, type, `${name}:${key}`, handler, options);
-        cleanups.add(cleanup);
-        return () => { cleanup(); cleanups.delete(cleanup); };
+        return track(bind(element, type, `${name}:${key}`, handler, options), element);
       },
       delegate(element, type, key, selector, handler, options) {
         if (destroyed) return () => {};
-        const cleanup = delegate(element, type, `${name}:${key}`, selector, handler, options);
-        cleanups.add(cleanup);
-        return () => { cleanup(); cleanups.delete(cleanup); };
+        return track(delegate(element, type, `${name}:${key}`, selector, handler, options), element);
       },
       timeout(handler, delay) {
         if (destroyed) return 0;
