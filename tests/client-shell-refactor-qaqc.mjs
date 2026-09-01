@@ -33,6 +33,12 @@ assert.equal(ctx.primaryAction.taskId,'ready','Home must choose exactly one prim
 assert.equal(ctx.secondaryActionable.length,1,'only other dependency-cleared actions belong in UP NEXT');
 assert.equal(ctx.next.length,1,'blocked future task must live in Next');
 
+const hiddenParentChild={...child,id:'hidden-parent-child',dependency_task_id:'internal-parent'};
+const rpcMock={rpc:async(name,args)=>({data:name==='nexus_get_client_action_context'?[{task_id:'hidden-parent-child',canonical_state:'WAITING_ON_YOU',prerequisites_satisfied:true,blocked_by_title:null,cycle_detected:false}]:[],error:null})};
+const rpcContext=await core.getWorkspaceCurrentActionContext('c',{sb:rpcMock,tasks:[hiddenParentChild]});
+assert.equal(rpcContext.primaryAction?.taskId,'hidden-parent-child','server dependency state must unlock a client task even when its internal Nexus parent is hidden from the browser');
+assert.equal(rpcContext.next.length,0,'server-cleared hidden dependency must not remain Upcoming');
+
 const notifications=[
   {id:'n1',notification_type:'document_request',title:'Square pilot-month transaction export',message:'Financial export',created_at:'2026-09-01T01:00:00Z',read_at:null},
   {id:'n2',notification_type:'document_request',title:'Novo pilot-month statement',message:'Bank records',created_at:'2026-09-01T02:00:00Z',read_at:null},
