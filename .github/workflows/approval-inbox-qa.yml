@@ -45,13 +45,23 @@ jobs:
       - name: Consequential action enforcement
         run: |
           set -euo pipefail
-          f=supabase/migrations/20260831_nexus_approval_chain_enforcement.sql
+          f=supabase/migrations/20260831_z_nexus_approval_chain_enforcement.sql
           grep -Fq "nexus_require_entity_chain_approved('diagnosis_report_release'" "$f"
           grep -Fq "nexus_require_entity_chain_approved('outreach_packet'" "$f"
           grep -Fq "nexus_require_entity_chain_approved('outreach_step'" "$f"
+          grep -Fq 'nexus_default_platform_admin_user' "$f"
+          grep -Fq 'AFTER UPDATE OF status ON public.nexus_diagnosis_runs' "$f"
           grep -Fq "nexus_require_entity_chain_approved('client_task_release'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
           grep -Fq "nexus_require_entity_chain_approved('document_request_release'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
           grep -Fq 'DROP POLICY IF EXISTS "nexus members decide approvals"' supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+      - name: Migration ordering contract
+        run: |
+          set -euo pipefail
+          test -f supabase/migrations/20260831_000_nexus_revenue_approval_actor.sql
+          test -f supabase/migrations/20260831_001_nexus_global_admin_notifications.sql
+          test -f supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          test -f supabase/migrations/20260831_z_nexus_approval_chain_enforcement.sql
+          grep -Fq 'intentionally moved' supabase/migrations/20260831_nexus_approval_chain_enforcement.sql
       - name: Unified Inbox contract
         run: |
           set -euo pipefail
