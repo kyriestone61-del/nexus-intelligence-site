@@ -1,0 +1,83 @@
+name: Nexus Client Shell Refactor QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-core.js'
+      - 'portal-client-core.d.ts'
+      - 'portal-client-shell.js'
+      - 'portal-client-shell.css'
+      - 'tests/client-shell-refactor-qaqc.mjs'
+      - '.github/workflows/client-shell-refactor-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-core.js'
+      - 'portal-client-core.d.ts'
+      - 'portal-client-shell.js'
+      - 'portal-client-shell.css'
+      - 'tests/client-shell-refactor-qaqc.mjs'
+      - '.github/workflows/client-shell-refactor-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  client-shell-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-client-core.js
+          node --input-type=module --check < portal-client-shell.js
+      - name: Canonical state and architecture tests
+        run: node tests/client-shell-refactor-qaqc.mjs
+      - name: Client shell source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "['home', 'Home']" portal-client-shell.js
+          grep -Fq "['files', 'Files']" portal-client-shell.js
+          grep -Fq "['reports', 'Reports']" portal-client-shell.js
+          grep -Fq "['progress', 'Progress']" portal-client-shell.js
+          grep -Fq "['help', 'Help']" portal-client-shell.js
+          grep -Fq 'YOUR NEXT STEP' portal-client-shell.js
+          grep -Fq 'Complete this step →' portal-client-shell.js
+          grep -Fq 'UP NEXT —' portal-client-shell.js
+          grep -Fq 'Needs action' portal-client-shell.js
+          grep -Fq 'Updates' portal-client-shell.js
+          grep -Fq 'Available after Nexus completes' portal-client-shell.js
+          grep -Fq 'Financial pilot information requested' portal-client-core.js
+          grep -Fq 'serializeReleasedClientReport' portal-client-core.js
+          grep -Fq "event.key === 'Escape'" portal-client-shell.js
+          grep -Fq 'restoreLastFocus' portal-client-shell.js
+          if grep -Fq 'new MutationObserver' portal-client-shell.js; then
+            echo 'Client Shell must not introduce MutationObserver rewrite loops.' >&2
+            exit 1
+          fi
+      - name: Mobile contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '@media(max-width:760px)' portal-client-shell.css
+          grep -Fq '@media(max-width:390px)' portal-client-shell.css
+          grep -Fq 'min-height:44px' portal-client-shell.css
+          grep -Fq 'env(safe-area-inset-bottom)' portal-client-shell.css
+          grep -Fq 'overflow-x:hidden' portal-client-shell.css
+          grep -Fq 'font-size:16px!important' portal-client-shell.css
+      - name: Browser-delivered secret scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET|SECRET_KEY' portal-app.js portal-client-core.js portal-client-shell.js portal-client-shell.css; then
+            echo 'Privileged server credential reference found in client shell files.' >&2
+            exit 1
+          fi
