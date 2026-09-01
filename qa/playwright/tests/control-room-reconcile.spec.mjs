@@ -5,6 +5,7 @@ const adminPassword=process.env.NEXUS_QA_ADMIN_PASSWORD;
 const clientEmail=process.env.NEXUS_QA_CLIENT_EMAIL;
 const clientPassword=process.env.NEXUS_QA_CLIENT_PASSWORD;
 const qaCompany=process.env.NEXUS_QA_COMPANY_NAME;
+const clientTabs=[['overview','Today'],['data-room','Data Room'],['action-queue','Actions'],['projects','Projects'],['ledger','Improvements'],['notifications','Notifications']];
 
 function meaningfulConsoleErrors(messages){return messages.filter(text=>!/favicon|cloudflareinsights|analytics|ResizeObserver loop/i.test(text));}
 async function signIn(page,email,password){
@@ -39,34 +40,45 @@ test('public Control Room header links remain reachable and touch safe',async({p
   await assertNoOverflow(page);
 });
 
-test.describe('authenticated client control room',()=>{
+test.describe('authenticated Level Two client control room',()=>{
   test.skip(!clientEmail||!clientPassword,'Dedicated Nexus QA client credentials are required.');
 
-  test('client sees exactly three primary surfaces and working utilities',async({page})=>{
+  test('client sees six coherent tabs and passes the self-healing health matrix',async({page})=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
     await signIn(page,clientEmail,clientPassword);
     const nav=page.locator('#nexusClientPrimaryNav [data-client-view]');
-    await expect(nav).toHaveCount(3);
-    expect(await nav.allTextContents()).toEqual(['01 Today','02 Secure Data Room','03 Improvement Record']);
-    await expect(page.locator('#nexus-client-today')).toBeVisible();
-    await nav.nth(1).click();await expect(page.locator('#nexus-client-files')).toBeVisible();await expect(page.locator('#uploadForm')).toBeVisible();
-    await nav.nth(2).click();await expect(page.locator('#nexus-client-improvement')).toBeVisible();
-    await expect(page.locator('#nexusClientReportsButton')).toBeVisible();await expect(page.locator('#nexusClientHelpButton')).toBeVisible();await expect(page.locator('#nexusClientInboxButton')).toBeVisible();
-    await page.locator('#nexusClientReportsButton').click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
-    await page.locator('#nexusClientInboxButton').click();await expect(page.locator('#nexusClientInboxDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientInboxDrawer')).not.toHaveClass(/show/);
-    await page.locator('#nexusClientHelpButton').click();await expect(page.locator('#nexusClientGuideDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');
-    await assertNoOverflow(page);expect(meaningfulConsoleErrors(errors)).toEqual([]);
+    await expect(nav).toHaveCount(6);
+    expect(await nav.allTextContents()).toEqual(clientTabs.map(([,label])=>label));
+    for(const [index,[key]] of clientTabs.entries()){
+      await nav.nth(index).click();
+      await expect(page.locator(`#nexus-client-${key}`)).toBeVisible();
+      await expect(nav.nth(index)).toHaveAttribute('aria-selected','true');
+    }
+    await page.locator('[data-client-view="overview"]').click();
+    await expect(page.getByRole('heading',{name:'Your Next Single Step'})).toBeVisible();
+    await page.locator('[data-client-view="data-room"]').click();
+    await expect(page.locator('[data-room-dropzone]')).toBeVisible();
+    await expect(page.locator('#uploadForm')).toBeVisible();
+    await expect.poll(async()=>await page.evaluate(()=>typeof window.__NEXUS_HEALTH_CHECK)).toBe('function');
+    const report=await page.evaluate(()=>window.__NEXUS_HEALTH_CHECK());
+    expect(report.status,JSON.stringify(report.matrix.filter(row=>row.result==='FAILED'))).toBe('PASSED');
+    expect(report.failed).toBe(0);
+    expect(report.passed).toBe(report.total);
+    await assertNoOverflow(page);
+    expect(meaningfulConsoleErrors(errors)).toEqual([]);
   });
 
-  test('company selector refreshes one coherent client workspace',async({page})=>{
+  test('company selector refreshes one coherent client workspace without page reload',async({page})=>{
     await signIn(page,clientEmail,clientPassword);
     const select=page.locator('#companySelect'),optionCount=await select.locator('option').count();
     if(qaCompany)expect(await select.locator('option').allTextContents()).toContain(qaCompany);
     if(optionCount>1){
-      const second=await select.locator('option').nth(1).getAttribute('value');
+      const first=await select.inputValue();
+      const second=await select.locator('option').filter({hasNot:page.locator(`option[value="${first}"]`)}).first().getAttribute('value').catch(()=>null) || await select.locator('option').nth(1).getAttribute('value');
       await select.selectOption(second);
-      await expect.poll(async()=>await page.locator('#nexusClientMiniContext b').textContent()).not.toBe('');
-      await expect(page.locator('#nexus-client-today')).toBeVisible();
+      await expect.poll(async()=>await page.evaluate(()=>window.NexusPortal?.state?.companyId)).toBe(second);
+      await expect(page.locator('#nexusClientMiniContext b')).not.toHaveText('');
+      await expect(page.locator('#nexus-client-overview')).toBeVisible();
     }
   });
 });
@@ -82,7 +94,7 @@ test.describe('administrator and client-preview boundaries',()=>{
     await switcher.locator('[data-perspective="client"]').click();
     await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:25_000});
     await expect(page.getByText('Nexus could not finish loading.',{exact:true})).toHaveCount(0);
-    await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(3);
+    await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(6);
     expect(meaningfulConsoleErrors(errors)).toEqual([]);
   });
 
