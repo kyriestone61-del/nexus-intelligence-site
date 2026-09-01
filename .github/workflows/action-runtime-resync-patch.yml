@@ -1,0 +1,37 @@
+name: One-shot Action Items runtime resync patch
+on:
+  push:
+    branches:
+      - fix/action-items-rich-runtime-resync-20260901
+    paths:
+      - .github/workflows/action-runtime-resync-patch.yml
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/action-items-rich-runtime-resync-20260901
+          fetch-depth: 0
+      - name: Patch portal boot contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('portal-app.js')
+          s=p.read_text()
+          old="await requiredImportWithoutRecurringIntervals(asset(`portal-action-execution-v2.js?v=${BUILD}`),[900],'action execution');"
+          new="await requiredImport(asset(`portal-action-execution-v2.js?v=${BUILD}`),'action execution');"
+          assert s.count(old)==1, f'expected one exact Action Items import, found {s.count(old)}'
+          p.write_text(s.replace(old,new))
+          PY
+          node --test qa/contracts/action-items-rich-runtime-resync.test.mjs
+      - name: Remove one-shot workflow and commit patch
+        run: |
+          rm .github/workflows/action-runtime-resync-patch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portal-app.js qa/contracts/action-items-rich-runtime-resync.test.mjs .github/workflows/action-runtime-resync-patch.yml
+          git commit -m "Restore rich Action Items runtime after workspace refresh"
+          git push origin HEAD:fix/action-items-rich-runtime-resync-20260901
