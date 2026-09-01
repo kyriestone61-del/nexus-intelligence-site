@@ -77,6 +77,51 @@ export function createSafeStorage(storage = window.localStorage) {
   });
 }
 
+function stableEvent(event) {
+  if (!(event instanceof Event)) return event;
+  const currentTarget = event.currentTarget || event.target || null;
+  const target = event.target || currentTarget;
+  const submitter = event.submitter || null;
+  return Object.freeze({
+    type: event.type,
+    target,
+    currentTarget,
+    submitter,
+    dataTransfer: event.dataTransfer || null,
+    key: event.key,
+    shiftKey: !!event.shiftKey,
+    preventDefault() {},
+    stopPropagation() {},
+    stopImmediatePropagation() {}
+  });
+}
+
+function showRetryToast(message, retry, label = 'action') {
+  if (typeof document === 'undefined') return false;
+  const el = document.getElementById('toast');
+  if (!el || typeof retry !== 'function') return false;
+  const text = document.createElement('span');
+  text.textContent = String(message || 'Nexus could not complete that action.');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'nexus-toast-retry';
+  button.textContent = 'Retry';
+  button.setAttribute('aria-label', `Retry ${label}`);
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    button.textContent = 'Retrying…';
+    try { await retry(); }
+    finally { button.disabled = false; button.textContent = 'Retry'; }
+  }, { once: true });
+  el.replaceChildren(text, button);
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.classList.add('show');
+  clearTimeout(el.__nexusRetryTimer);
+  el.__nexusRetryTimer = window.setTimeout(() => el.classList.remove('show'), 8000);
+  return true;
+}
+
 export function createAsyncBoundary({ notify } = {}) {
   const messageFor = error => error?.message || 'Nexus could not complete that action.';
   async function run(label, operation, options = {}) {
@@ -84,15 +129,19 @@ export function createAsyncBoundary({ notify } = {}) {
     catch (error) {
       console.error(`Nexus ${label} failed`, error);
       if (!options.silent) {
+        const message = options.message || messageFor(error);
         const retry = options.retry === false ? null : async () => run(label, operation, { ...options, retry: false });
-        notify?.(options.message || messageFor(error), { retry, label });
+        if (!showRetryToast(message, retry, label)) notify?.(message);
       }
       if (options.rethrow) throw error;
       return options.fallback;
     }
   }
   function wrap(label, handler, options = {}) {
-    return async (...args) => run(label, () => handler(...args), options);
+    return async (...args) => {
+      const stableArgs = args.map(stableEvent);
+      return run(label, () => handler(...stableArgs), options);
+    };
   }
   return Object.freeze({ run, wrap });
 }
