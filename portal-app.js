@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-control-room-reconcile4';
+const BUILD='20260901-control-room-reconcile5';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
