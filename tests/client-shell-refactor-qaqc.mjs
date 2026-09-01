@@ -50,6 +50,7 @@ assert.match(app,/preparePerspective\?\.\(portal\)[\s\S]*const useClientShell=is
 assert.match(app,/portal-client-shell-v2\.css/);assert.match(app,/portal-client-upload-service\.js/);assert.match(app,/portal-client-shell-v2\.js/);
 const clientBranch=app.match(/if\(useClientShell\)\{([\s\S]*?)\}\s*else if\(useAdminShell\)/)?.[1]||'';assert.ok(clientBranch);
 for(const legacy of ['portal-client-shell.js','portal-simplify.js','portal-action-workflow.js','portal-vnext-experience.js','portal-approval-inbox.js','portal-workflow-cohesion.js','portal-buildingblok-cohesion.js','portal-client-guide.js','portal-ux-refinement.js'])assert.equal(clientBranch.includes(legacy),false,`client branch must not load ${legacy}`);
+assert.ok(clientBranch.indexOf('portal-client-upload-service.js')<clientBranch.indexOf('portal-client-shell-v2.js'),'upload service must load before V2 shell');
 
 assert.match(client,/createPortalRuntime/);assert.match(client,/stateController\.patch/);assert.match(client,/workspaceRequests\.begin\(\)/);assert.match(client,/workspaceRequests\.isCurrent\(token\)/);assert.match(client,/nexus_activate_client_workspace/);
 assert.equal(client.includes("from '/portal-ops.js'"),false,'base portal must not import Operations');assert.equal(client.includes('initOps('),false,'base portal must not initialize Operations');
@@ -61,7 +62,10 @@ assert.match(shell,/PRIMARY_VIEWS=\[\['today','01 Today'\],\['files','02 Secure 
 assert.match(shell,/YOUR NEXT STEP/);assert.match(shell,/Complete this step →/);assert.match(shell,/UP NEXT —/);assert.match(shell,/Reports/);assert.match(shell,/Help/);assert.match(shell,/Inbox/);
 assert.equal(shell.includes('new MutationObserver'),false);assert.equal(/\.onclick\s*=/.test(shell),false);assert.equal(/\.onchange\s*=/.test(shell),false);
 assert.match(shell,/runtime/);assert.match(shell,/events\.bind/);assert.match(shell,/boundary\.run|boundary\.wrap/);assert.match(shell,/modals\.open/);
+assert.match(shell,/portal\.prepareUpload\?\.\(\{requestId,title\}\)/,'V2 shell must use the explicit upload facade');
 assert.match(upload,/event\.stopImmediatePropagation\(\)/);assert.match(upload,/request_id:selection\.requestId/);assert.match(upload,/remove\(\[path\]\)/);
+assert.match(upload,/portal\.services\.clientUpload=service/,'upload service must remain the single upload owner');
+assert.match(upload,/Object\.defineProperty\(portal,'prepareUpload',\{value:prepare/,'upload facade must delegate to the upload owner');
 assert.match(css,/min-height:44px/);assert.match(css,/env\(safe-area-inset-bottom\)/);assert.match(css,/overflow-x:hidden/);assert.match(css,/@media\(max-width:760px\)/);assert.match(css,/@media\(max-width:390px\)/);
 
 console.log('NEXUS CONTROL ROOM RECONCILIATION QAQC PASS');
