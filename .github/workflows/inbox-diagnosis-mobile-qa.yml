@@ -58,10 +58,10 @@ jobs:
           from pathlib import Path
           js=Path('portal-diagnosis-controller-v2.js').read_text()
           start=js.index('async function openRun(run){')
-          direct=js.index('window.NexusDiagnosisReviewRuntime?.openReview',start)
-          intake=js.index('openIntake()',start)
-          assert direct < intake, 'Reviewable diagnosis must open before any Discovery & Diagnosis navigation.'
-          print('Reviewable diagnosis opens directly without exposing intake first.')
+          direct=js.index('if(canOpenDirectly(run)&&window.NexusDiagnosisReviewRuntime?.openReview)',start)
+          intake=js.index('if(!await openIntake())',start)
+          assert direct < intake, 'Existing reviewable diagnosis must open before Discovery & Diagnosis navigation.'
+          print('Existing reviewable diagnosis opens directly; intake remains only a fallback/status route.')
           PY
       - name: Diagnosis top-layer contract
         run: |
