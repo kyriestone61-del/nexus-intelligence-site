@@ -62,6 +62,7 @@ if(isSignedIn&&isAdmin){
   try{await requiredImport(asset(`portal-admin-intake.js?v=${BUILD}`),'admin intake')}finally{window.MutationObserver=NativeMutationObserver}
   await requiredImport(asset(`portal-diagnosis-execution-ux.js?v=${BUILD}`),'diagnosis execution UX');
   await requiredImport(asset(`portal-diagnosis-v2.js?v=${BUILD}`),'diagnosis review runtime');
+  await requiredImport(asset(`portal-diagnosis-approval-ux.js?v=${BUILD}`),'diagnosis approval UX');
   await optionalImport(asset(`portal-diagnosis-manual-fallback.js?v=${BUILD}`));
   await optionalImport(asset(`portal-diagnosis-recovery.js?v=${BUILD}`));
 }
