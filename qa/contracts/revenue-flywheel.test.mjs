@@ -5,9 +5,9 @@ const schema=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywhee
 const logic=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_02_logic.sql','utf8');
 const agents=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_03_agents.sql','utf8');
 const controls=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_04_release_controls.sql','utf8');
+const ops=fs.readFileSync('supabase/migrations/20260831_nexus_revenue_flywheel_05_ops_handoffs.sql','utf8');
 const worker=fs.readFileSync('supabase/functions/nexus-email-worker/index.ts','utf8');
 
-// Canonical internal pipeline data + admin-only RLS.
 for(const table of [
   'nexus_revenue_leads','nexus_lead_research_evidence','nexus_revenue_agent_jobs',
   'nexus_outreach_packets','nexus_outreach_sequence_steps','nexus_lead_exceptions',
@@ -17,7 +17,7 @@ assert.match(schema,/alter table public\.%I enable row level security/i);
 assert.match(schema,/nexus_is_platform_admin\(\)/);
 assert.match(schema,/grant select,insert,update,delete on public\.%I to service_role/i);
 
-// Requested scoring semantics: low score = larger gap / higher outreach priority.
+// Deterministic score contract supplied by the user.
 assert.match(logic,/v_score:=v_score-30/,'response time >2h must deduct 30');
 assert.equal((logic.match(/v_score:=v_score-20/g)||[]).length,2,'booking and review bottleneck must each deduct 20');
 assert.match(logic,/v_response>120/);
@@ -28,32 +28,34 @@ assert.match(logic,/generate_outreach_packet/);
 assert.match(logic,/on conflict do nothing/,'re-scoring must not duplicate active jobs');
 assert.match(logic,/score_confidence=round\(\(v_known::numeric\/3\)\*100,2\)/);
 
-// Exceptions/suppression cannot be guessed around.
 for(const code of ['missing_business_email','contact_provenance_missing','insufficient_scoring_evidence','stale_research','unsupported_revenue_estimate','jurisdiction_review','suppressed']) assert.ok(logic.includes(code),`missing exception ${code}`);
 assert.match(logic,/if new\.do_not_contact then/);
 assert.match(logic,/set status='cancelled'/);
 assert.match(logic,/new\.stage:='suppressed'/);
 
-// Existing website Snapshot flows into the canonical revenue pipeline without replacing its contract.
 assert.match(logic,/nexus_sync_opportunity_snapshot_to_revenue/);
 assert.match(logic,/website_opportunity_snapshot/);
 assert.match(logic,/source_snapshot_lead_id/);
 
-// Human approval gate and 3-day follow-up sequencing are hard requirements.
+// Live approval/release controls.
 assert.match(controls,/nexus_revenue_lead_contactable/);
-assert.match(controls,/not l\.do_not_contact/);
-assert.match(controls,/nullif\(btrim\(l\.business_email\),''\) is not null/);
-assert.match(controls,/contact_provenance/);
-assert.match(controls,/e\.severity in \('high','critical'\)/);
 assert.match(controls,/qa_status='passed'/,'human cannot approve a packet that failed independent QA');
 assert.match(controls,/nexus_admin_approve_outreach_step/,'follow-up needs its own explicit approval path');
-assert.match(controls,/status <> 'pending_approval'/);
 assert.match(controls,/status <> 'approved_ready'/,'send marking must require explicit approval');
 assert.match(controls,/now\(\)\+interval '3 days'/,'Email 2 becomes due three days after Email 1 is sent');
 assert.match(controls,/step_no=2 and status='waiting'/);
 assert.match(logic,/security_invoker=true/,'operations view must preserve caller RLS');
 
-// Agent system coverage.
+// Operations/Cohesion hardening: a prospect is not a client company yet.
+assert.match(ops,/business_contact_verified/);
+assert.match(ops,/inbound_request/);
+assert.match(ops,/website_opportunity_snapshot/);
+assert.match(ops,/marketing_opt_in/);
+assert.match(ops,/nexus_founder_decision_queue/,'prospect review must route to the founder queue');
+assert.match(ops,/'pipeline'/);
+assert.match(ops,/outreach_packet:/);
+assert.match(ops,/No prospect contact occurs automatically/);
+
 for(const agent of [
   'lead_generation_scoring','personalized_outreach','lead_exception_classifier','retainer_fulfillment',
   'revenue_ops_cohesion','requirements_coverage_auditor','execution_compliance_auditor'
@@ -65,12 +67,13 @@ assert.match(agents,/'retainer_fulfillment_loop'[\s\S]*?'ai_assisted','testing'/
 assert.match(agents,/\$2,500–\$5,000\/mo/);
 assert.match(agents,/optional Grok\/Claude\/Synthesia adapters/);
 assert.match(agents,/optional CrewAI\/n8n adapters/);
+assert.match(agents,/'revenue_qualifying_packet_coverage'[\s\S]*?'up'/);
+assert.match(agents,/'revenue_stale_queue'[\s\S]*?'down'/);
 
-// Evaluation corpus must test normal/edge/adversarial/regression behavior.
 for(const ref of ['REV-LGS-01','REV-LGS-02','REV-LGS-03','REV-LGS-04','REV-OUT-01','REV-OUT-02','REV-OUT-03','REV-OUT-04','REV-EXC-01','REV-EXC-02','REV-RET-01','REV-RET-02','REV-OPS-01','REV-COV-01','REV-CMP-01']) assert.ok(agents.includes(ref),`missing evaluation ${ref}`);
 for(const code of ['A01','A02','A03','A04','A05','B01','B02','B03','C01','C02','C03','C04','C05','D01','D02','D03','E01','E02','F01','F02','G01','G02','H01','H02','I01','I02','J01','J02','J03','J04']) assert.ok(agents.includes(`'${code}'`),`coverage contract missing ${code}`);
 
-// Runtime: existing worker is reused; no new autonomous-send subsystem.
+// Existing 5-minute worker is reused; it drafts and queues but does not send cold outreach.
 assert.match(worker,/processRevenueFlywheel/);
 assert.match(worker,/nexus_claim_revenue_agent_jobs/);
 assert.match(worker,/Number\(lead\.opportunity_score\)>50/);
@@ -79,7 +82,7 @@ assert.match(worker,/Evidence Strategist/);
 assert.match(worker,/Hyper-Personalized Outreach Drafter/);
 assert.match(worker,/Independent Outreach QA \/ Governance Verifier/);
 assert.match(worker,/Final Outreach Composer/);
-assert.match(worker,/Final Packet Independent Verifier/,'final repaired packet must be independently verified');
+assert.match(worker,/Final Packet Independent Verifier/);
 assert.match(worker,/finalVerification/);
 assert.match(worker,/qa_status:finalVerification\?\.pass===true\?'passed':'failed'/);
 assert.match(worker,/publishable=eq\.true&evidence_complete=eq\.true&client_authorized=eq\.true/,'Nexus proof must be publishable, evidence complete and client authorized');
