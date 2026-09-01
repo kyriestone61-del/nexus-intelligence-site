@@ -24,7 +24,7 @@ bootOverlay.id='nexusPortalBootOverlay';
 bootOverlay.innerHTML='<div class="nexus-boot-card"><div class="nexus-boot-mark">N</div><h2>Loading Nexus workspace…</h2><p>Confirming your account, client workspace, and final navigation.</p><div class="nexus-boot-line"></div></div>';
 document.body.appendChild(bootOverlay);
 
-const styleAssets=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css'];
+const styleAssets=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css'];
 const styleLoads=styleAssets.map(file=>new Promise(resolve=>{const link=document.createElement('link');link.rel='stylesheet';link.href=asset(`${file}?v=${BUILD}`);link.onload=resolve;link.onerror=resolve;document.head.appendChild(link)}));
 await Promise.all(styleLoads);
 
@@ -92,4 +92,5 @@ if(isSignedIn)await requiredImport(asset(`portal-vnext-runtime-router.js?v=${BUI
 if(isSignedIn)await requiredImport(asset(`portal-vnext-experience.js?v=${BUILD}`),'vNext diagnosis and client report experience');
 if(isSignedIn)await requiredImport(asset(`portal-approval-inbox.js?v=${BUILD}`),'approval chains and Inbox');
 if(isSignedIn)await requiredImport(asset(`portal-workflow-cohesion.js?v=${BUILD}`),'workflow cohesion');
+if(isSignedIn&&!isAdmin)await requiredImport(asset(`portal-client-guide.js?v=${BUILD}`),'simple client experience and Nexus Guide');
 clearBootLock();
