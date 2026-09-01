@@ -1,0 +1,61 @@
+/* Nexus workflow cohesion — settings, requests, actions */
+.nexus-settings-section{max-width:980px}
+.nexus-settings-section> .toolbar{margin-bottom:16px}
+.nexus-settings-account{padding:16px 18px;border:1px solid var(--nx-line);border-radius:14px;background:rgba(255,255,255,.025);margin-bottom:16px;display:grid;gap:5px}
+.nexus-settings-preferences{display:grid;gap:16px;width:100%;max-width:100%}
+.nexus-settings-preferences>.email-control,.nexus-settings-preferences>.vnext-channel-settings{margin:0!important;width:100%;max-width:100%}
+.nexus-settings-preferences>.email-control .kicker:first-child::after{content:' · email routing'}
+.nexus-settings-preferences>.vnext-channel-settings .kicker:first-child::after{content:' · reports & Q&A'}
+
+.nexus-notification-setup-prompt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:18px;border:1px solid rgba(217,255,114,.28);border-radius:16px;background:linear-gradient(135deg,rgba(217,255,114,.07),rgba(156,124,255,.06));margin:0 0 16px}
+.nexus-notification-setup-prompt p{margin:6px 0 0;max-width:680px;color:var(--nx-muted)}
+
+.nexus-client-request-manager{grid-column:1/-1!important;margin:0!important;overflow:hidden}
+.nexus-client-request-manager>h2{margin:6px 0 6px}
+.nexus-request-manager-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:16px;margin-top:18px;align-items:start}
+.nexus-new-request,.nexus-request-drafts,.nexus-request-editor{border:1px solid var(--nx-line);border-radius:15px;background:rgba(255,255,255,.018);min-width:0}
+.nexus-new-request>summary{cursor:pointer;list-style:none;padding:16px 18px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nexus-new-request>summary::-webkit-details-marker{display:none}
+.nexus-new-request>summary::after{content:'+';font-size:22px;line-height:1;color:var(--nx-muted)}
+.nexus-new-request[open]>summary::after{content:'−'}
+.nexus-new-request>form{padding:0 18px 18px;border-top:1px solid var(--nx-line)}
+.nexus-new-request .field:first-child{margin-top:16px}
+.nexus-request-drafts{padding:16px}
+.nexus-request-drafts>.toolbar{margin-bottom:10px}
+.nexus-request-drafts>.toolbar h3{margin:4px 0}
+.nexus-request-draft-list{display:grid;gap:8px;max-height:310px;overflow:auto;padding-right:2px}
+.nexus-request-draft-row{appearance:none;width:100%;border:1px solid var(--nx-line);border-radius:12px;background:rgba(255,255,255,.025);padding:12px 13px;color:inherit;text-align:left;display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;cursor:pointer;min-width:0}
+.nexus-request-draft-row:hover,.nexus-request-draft-row:focus-visible{border-color:rgba(217,255,114,.38);background:rgba(217,255,114,.045)}
+.nexus-request-draft-row.selected{border-color:rgba(217,255,114,.52);box-shadow:inset 3px 0 0 var(--nx-citron,#d9ff72)}
+.nexus-request-draft-row>span:first-child{display:grid;gap:4px;min-width:0}
+.nexus-request-draft-row b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nexus-request-draft-row small{color:var(--nx-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nexusRequestDraftEditor{margin-top:12px}
+.nexus-request-editor{padding:16px}
+.nexus-request-editor>.toolbar{margin-bottom:8px}
+.nexus-request-editor textarea,#nexusNewRequestForm textarea{min-height:90px}
+.nexus-request-empty-selection{padding:18px!important;border:1px dashed var(--nx-line);border-radius:12px}
+.nexus-legacy-request-editor{display:none!important}
+
+.ops-action[data-cohesion-action="1"]>span:last-child{font-weight:800;color:var(--nx-citron,#d9ff72)}
+.nexus-inbox-actions button{min-width:140px}
+
+@media(max-width:900px){
+  .nexus-request-manager-grid{grid-template-columns:minmax(0,1fr)}
+  .nexus-request-draft-list{max-height:260px}
+}
+@media(max-width:760px){
+  .nexus-notification-setup-prompt{grid-template-columns:minmax(0,1fr);padding:14px}
+  .nexus-notification-setup-prompt .btn{width:100%;min-height:44px}
+  .nexus-settings-account{padding:14px}
+  .nexus-client-request-manager{padding:14px!important}
+  .nexus-request-manager-grid{gap:12px;margin-top:14px}
+  .nexus-new-request>summary{padding:14px}
+  .nexus-new-request>form{padding:0 14px 14px}
+  .nexus-request-drafts,.nexus-request-editor{padding:13px}
+  .nexus-request-draft-row{grid-template-columns:minmax(0,1fr) auto;padding:12px}
+  .nexus-request-draft-row>span:last-child{display:none}
+  .nexus-request-draft-row b,.nexus-request-draft-row small{white-space:normal;overflow-wrap:anywhere}
+  .nexus-request-editor .actions,#nexusNewRequestForm .actions{grid-template-columns:minmax(0,1fr)!important}
+  .nexus-request-editor .actions>* ,#nexusNewRequestForm .actions>*{width:100%}
+}
