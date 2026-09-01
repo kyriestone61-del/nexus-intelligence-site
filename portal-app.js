@@ -1,9 +1,9 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-client-shell-refactor2';
+const BUILD='20260901-client-shell-refactor3';
 
 window.__nexusPortalBooting=true;
 /* portal-client.js still calls initOps for legacy compatibility. Keep that bootstrap dormant;
- * real admin Operations is initialized deliberately after authorization is resolved below. */
+ * real admin Operations is initialized deliberately after authorization and view mode resolve. */
 window.__nexusOpsInit=true;
 document.body.classList.add('nexus-runtime-booting');
 
@@ -41,21 +41,33 @@ async function waitFor(test,{timeout=5000,step=70}={}){const start=Date.now();wh
 try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180])}catch(error){showCoreLoadFailure(error);throw error}
 const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Nexus portal context is unavailable.'));throw new Error('Nexus portal context is unavailable.')}
 const platformAdmin=!!portal.state?.admin;
-const isSignedIn=!!portal.state?.user,isAdmin=platformAdmin;
+const isSignedIn=!!portal.state?.user;
+let perspectiveModule=null;
 
 await requiredImport(asset(`portal-accessibility.js?v=${BUILD}`),'portal accessibility');
 
-if(isSignedIn&&!isAdmin){
+/* Resolve authorization and current perspective BEFORE selecting a runtime.
+ * An administrator in Client View remains authorized as an administrator, but must load
+ * the read-only Client Shell rather than the admin/diagnosis stack. */
+if(isSignedIn&&platformAdmin){
+  await loadStyles(['perspective-switcher.css']);
+  perspectiveModule=await requiredImport(asset(`portal-perspective-switcher.js?v=${BUILD}`),'perspective switcher');
+  await perspectiveModule.preparePerspective?.(portal);
+}
+
+const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='client');
+const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell;
+
+if(useClientShell){
   await loadStyles(['portal-client-shell.css']);
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
   await requiredImport(asset(`portal-client-shell.js?v=${BUILD}`),'consolidated client shell');
+  if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
-}else if(isSignedIn&&isAdmin){
-  const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','perspective-switcher.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css'];
+}else if(useAdminShell){
+  const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css'];
   await loadStyles(adminStyles);
 
-  let perspectiveModule=await requiredImport(asset(`portal-perspective-switcher.js?v=${BUILD}`),'perspective switcher');
-  await perspectiveModule.preparePerspective?.(portal);
   await requiredImport(asset(`portal-foundation-hardening.js?v=${BUILD}`),'workspace foundation hardening');
   await requiredImport(asset(`portal-active-engagement-cohesion.js?v=${BUILD}`),'active engagement cohesion');
   await requiredImport(asset(`portal-approval-bridge.js?v=${BUILD}`),'approval routing bridge');
