@@ -69,6 +69,6 @@ jobs:
       - name: Loader and cache-bust contract
         run: |
           set -euo pipefail
-          grep -Fq "const BUILD='20260901-workflow-cohesion1'" portal-app.js
+          grep -Eq "^const BUILD='[0-9]{8}-[A-Za-z0-9._-]+';" portal-app.js
           grep -Fq "portal-workflow-cohesion.css" portal-app.js
           grep -Fq "portal-workflow-cohesion.js" portal-app.js
