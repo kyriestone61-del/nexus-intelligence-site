@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-control-room-reconcile3';
+const BUILD='20260901-level2-reconcile';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -55,10 +55,11 @@ const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='clie
 const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell;
 
 if(useClientShell){
-  await loadStyles(['portal-client-shell-v2.css']);
+  await loadStyles(['portal-client-shell.css']);
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
   await requiredImport(asset(`portal-client-upload-service.js?v=${BUILD}`),'client upload service');
-  await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
+  await requiredImport(asset(`portal-client-shell.js?v=${BUILD}`),'Level Two client shell');
+  await requiredImport(asset(`portal-health-check.js?v=${BUILD}`),'client health check');
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
 }else if(useAdminShell){
