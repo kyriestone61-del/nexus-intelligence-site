@@ -22,6 +22,7 @@ on:
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
       - 'portal-perspective-switcher.js'
+      - 'portal-approval-inbox.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
@@ -39,6 +40,7 @@ on:
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
       - 'portal-perspective-switcher.js'
+      - 'portal-approval-inbox.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
@@ -72,12 +74,23 @@ jobs:
         run: |
           if [ -n "${NEXUS_QA_ADMIN_EMAIL:-}" ] && [ -n "${NEXUS_QA_ADMIN_PASSWORD:-}" ] && [ -n "${NEXUS_QA_CLIENT_EMAIL:-}" ] && [ -n "${NEXUS_QA_CLIENT_PASSWORD:-}" ]; then
             echo 'AUTHENTICATED_CONTROL_ROOM_QA=ENABLED'
+            echo 'NEXUS_AUTH_QA_READY=1' >> "$GITHUB_ENV"
           else
-            echo '::warning::Authenticated Control Room cases will be skipped because dedicated QA credentials are not configured. Public cross-browser checks still run.'
-            echo 'AUTHENTICATED_CONTROL_ROOM_QA=SKIPPED'
+            echo '::warning::Dedicated Nexus QA credentials are not configured. Authenticated cases will be skipped, and production-branch QA will be marked incomplete.'
+            echo 'AUTHENTICATED_CONTROL_ROOM_QA=NOT_CONFIGURED'
+            echo 'NEXUS_AUTH_QA_READY=0' >> "$GITHUB_ENV"
           fi
       - name: Run desktop Chrome, Android Chrome, and iOS WebKit paths
         run: npx playwright test --config=control-room.config.mjs
+      - name: Enforce authenticated coverage for production
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          if [ "${NEXUS_AUTH_QA_READY:-0}" != '1' ]; then
+            echo '::error::Production Control Room QA is incomplete. Configure dedicated NEXUS_QA_ADMIN_* and NEXUS_QA_CLIENT_* GitHub Actions secrets; do not use a personal production password.'
+            exit 1
+          fi
+          echo 'AUTHENTICATED_CONTROL_ROOM_QA=REQUIRED_AND_PASSED'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
