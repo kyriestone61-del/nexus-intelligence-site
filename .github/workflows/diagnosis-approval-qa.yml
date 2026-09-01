@@ -1,0 +1,47 @@
+name: Nexus Diagnosis Approval QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-diagnosis-approval-ux.js'
+      - 'supabase/migrations/20260901_nexus_diagnosis_approval_qualitative_baseline_fix.sql'
+      - '.github/workflows/diagnosis-approval-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnosis-approval-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-diagnosis-approval-ux.js
+      - name: Approval feedback contract
+        run: |
+          set -euo pipefail
+          grep -Fq "[data-diagnosis-action=\"approve\"]" portal-diagnosis-approval-ux.js
+          grep -Fq "button.textContent='Approving…'" portal-diagnosis-approval-ux.js
+          grep -Fq "sb.rpc('nexus_approve_diagnosis'" portal-diagnosis-approval-ux.js
+          grep -Fq "Approval was not saved:" portal-diagnosis-approval-ux.js
+          grep -Fq "diagnosis-decision-feedback" portal-diagnosis-approval-ux.js
+          grep -Fq "body.diagnosis-review-open .toast{z-index:2147483646!important}" portal-diagnosis-approval-ux.js
+          grep -Fq "portal-diagnosis-approval-ux.js" portal-app.js
+      - name: Qualitative baseline contract
+        run: |
+          set -euo pipefail
+          SQL='supabase/migrations/20260901_nexus_diagnosis_approval_qualitative_baseline_fix.sql'
+          grep -Fq "private.nexus_try_numeric(item->''baseline_value'')" "$SQL"
+          grep -Fq "concat(''Qualitative baseline: '',item->>''baseline_value'')" "$SQL"
+          grep -Fq "revoke all on function private.nexus_try_numeric(jsonb) from public, anon, authenticated" "$SQL"
+          if grep -Fq "v_new_value text := 'nullif(item->>''baseline_value'','''')::numeric'" "$SQL"; then
+            echo 'Regression: approval still forces baseline_value through numeric cast.' >&2
+            exit 1
+          fi
