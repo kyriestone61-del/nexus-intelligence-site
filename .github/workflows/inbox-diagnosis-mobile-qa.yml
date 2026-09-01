@@ -1,0 +1,55 @@
+name: Nexus Inbox Diagnosis Mobile QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-foundation-hardening.js'
+      - 'portal-diagnosis-v2.js'
+      - 'portal-mobile-hardening.css'
+      - '.github/workflows/inbox-diagnosis-mobile-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inbox-diagnosis-mobile-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-foundation-hardening.js
+          node --input-type=module --check < portal-diagnosis-v2.js
+      - name: Inbox contract
+        run: |
+          set -euo pipefail
+          grep -Fq "heading.textContent!=='Inbox'" portal-foundation-hardening.js
+          grep -Fq "button.dataset.section='notifications'" portal-foundation-hardening.js
+          grep -Fq "button.textContent='Inbox'" portal-foundation-hardening.js
+          grep -Fq "section-notifications" portal-foundation-hardening.js
+      - name: Cancellable diagnosis review contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'const LOAD_TIMEOUT_MS=5000' portal-diagnosis-v2.js
+          grep -Fq 'activeReviewAbort?.abort()' portal-diagnosis-v2.js
+          grep -Fq "event.key==='Escape'" portal-diagnosis-v2.js
+          grep -Fq 'data-diagnosis-review-reload' portal-diagnosis-v2.js
+          grep -Fq 'data-diagnosis-review-close' portal-diagnosis-v2.js
+          grep -Fq "select('id,status,analysis_result,execution_error,analysis_completed_at,orchestrated_at,orchestration_summary')" portal-diagnosis-v2.js
+          if grep -Fq ".select('*').eq('id',id).single()" portal-diagnosis-v2.js; then
+            echo 'Diagnosis review regressed to full-row fetch.' >&2
+            exit 1
+          fi
+      - name: Mobile overflow contract
+        run: |
+          set -euo pipefail
+          grep -Fq '@media(max-width:760px)' portal-mobile-hardening.css
+          grep -Fq '@media(max-width:390px)' portal-mobile-hardening.css
+          grep -Fq 'overflow-x:hidden' portal-mobile-hardening.css
+          grep -Fq 'max-height:calc(100dvh' portal-mobile-hardening.css
+          grep -Fq 'grid-template-columns:1fr!important' portal-mobile-hardening.css
+          grep -Fq 'font-size:16px!important' portal-mobile-hardening.css
