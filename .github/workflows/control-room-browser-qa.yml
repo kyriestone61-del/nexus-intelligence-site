@@ -1,0 +1,72 @@
+name: Nexus Control Room Browser QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Portal base URL'
+        required: false
+        default: 'https://nexus-intelligence-site.pages.dev'
+  push:
+    branches: [main]
+    paths:
+      - 'portal.html'
+      - 'portal-app.js'
+      - 'portal-client.js'
+      - 'portal-auth.js'
+      - 'portal-runtime-core.js'
+      - 'portal-client-core.js'
+      - 'portal-client-upload-service.js'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - 'portal-perspective-switcher.js'
+      - 'qa/playwright/control-room.config.mjs'
+      - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
+      - '.github/workflows/control-room-browser-qa.yml'
+  pull_request:
+    paths:
+      - 'portal.html'
+      - 'portal-app.js'
+      - 'portal-client.js'
+      - 'portal-auth.js'
+      - 'portal-runtime-core.js'
+      - 'portal-client-core.js'
+      - 'portal-client-upload-service.js'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - 'portal-perspective-switcher.js'
+      - 'qa/playwright/control-room.config.mjs'
+      - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  cross-browser-control-room:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: qa/playwright
+    env:
+      NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
+      NEXUS_QA_ADMIN_EMAIL: ${{ secrets.NEXUS_QA_ADMIN_EMAIL }}
+      NEXUS_QA_ADMIN_PASSWORD: ${{ secrets.NEXUS_QA_ADMIN_PASSWORD }}
+      NEXUS_QA_CLIENT_EMAIL: ${{ secrets.NEXUS_QA_CLIENT_EMAIL }}
+      NEXUS_QA_CLIENT_PASSWORD: ${{ secrets.NEXUS_QA_CLIENT_PASSWORD }}
+      NEXUS_QA_COMPANY_NAME: ${{ vars.NEXUS_QA_COMPANY_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Run desktop Chrome, Android Chrome, and iOS WebKit paths
+        run: npx playwright test --config=control-room.config.mjs
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: nexus-control-room-browser-report
+          path: qa/playwright/control-room-report
+          if-no-files-found: ignore
