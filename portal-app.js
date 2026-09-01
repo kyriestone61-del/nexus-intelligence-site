@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260831-vnext-runtime2';
+const BUILD='20260831-discovery-capture1';
 
 window.__nexusPortalBooting=true;
 document.body.classList.add('nexus-runtime-booting');
