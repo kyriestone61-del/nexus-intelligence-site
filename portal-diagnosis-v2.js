@@ -14,8 +14,9 @@
   let activeReviewAbort=null;
   let activeReviewId=null;
   const reviewCache=new Map();
-  const CACHE_MS=15000;
-  const LOAD_TIMEOUT_MS=5000;
+  const prefetching=new Set();
+  const CACHE_MS=30000;
+  const LOAD_TIMEOUT_MS=4000;
 
   function closeReview({clear=false}={}){
     reviewRequestToken+=1;
@@ -29,20 +30,38 @@
     if(clear){const body=document.getElementById('diagnosisReviewBody');if(body)body.innerHTML=''}
   }
 
+  function bindModalControls(modal){
+    if(!modal)return;
+    const close=modal.querySelector('#closeDiagnosisReview');
+    if(close&&close.dataset.reviewCloseBound!=='1'){
+      close.dataset.reviewCloseBound='1';
+      close.setAttribute('data-diagnosis-review-close','');
+      close.addEventListener('click',event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        closeReview({clear:true});
+      });
+    }
+    if(modal.dataset.reviewBackdropBound!=='1'){
+      modal.dataset.reviewBackdropBound='1';
+      modal.addEventListener('click',event=>{if(event.target===modal)closeReview({clear:true})});
+    }
+  }
+
   function ensureModal(){
     let modal=document.getElementById('diagnosisReviewModal');
-    if(modal)return modal;
-    modal=document.createElement('div');
-    modal.id='diagnosisReviewModal';
-    modal.className='modal diagnosis-review-modal';
-    modal.setAttribute('role','dialog');
-    modal.setAttribute('aria-modal','true');
-    modal.setAttribute('aria-hidden','true');
-    modal.setAttribute('aria-labelledby','diagnosisReviewTitle');
-    modal.innerHTML='<div class="modal-card diagnosis-review-card"><div class="toolbar"><div><div class="eyebrow">Internal Nexus review</div><h2 id="diagnosisReviewTitle" style="margin:5px 0">Client Diagnosis</h2></div><button class="btn secondary" id="closeDiagnosisReview" type="button" aria-label="Close diagnosis review">Close</button></div><div id="diagnosisReviewBody"></div></div>';
-    document.body.appendChild(modal);
-    modal.querySelector('#closeDiagnosisReview')?.addEventListener('click',()=>closeReview({clear:true}));
-    modal.addEventListener('click',e=>{if(e.target===modal)closeReview({clear:true})});
+    if(!modal){
+      modal=document.createElement('div');
+      modal.id='diagnosisReviewModal';
+      modal.className='modal diagnosis-review-modal';
+      modal.setAttribute('role','dialog');
+      modal.setAttribute('aria-modal','true');
+      modal.setAttribute('aria-hidden','true');
+      modal.setAttribute('aria-labelledby','diagnosisReviewTitle');
+      modal.innerHTML='<div class="modal-card diagnosis-review-card"><div class="toolbar"><div><div class="eyebrow">Internal Nexus review</div><h2 id="diagnosisReviewTitle" style="margin:5px 0">Client Diagnosis</h2></div><button class="btn secondary" id="closeDiagnosisReview" type="button" aria-label="Close diagnosis review">Close</button></div><div id="diagnosisReviewBody"></div></div>';
+      document.body.appendChild(modal);
+    }
+    bindModalControls(modal);
     return modal;
   }
 
@@ -99,6 +118,19 @@
     return cached.run;
   }
 
+  async function prefetchReview(id){
+    if(!id||cachedRun(id)||prefetching.has(id))return;
+    prefetching.add(id);
+    try{
+      const run=await loadRun(id);
+      reviewCache.set(id,{run,at:Date.now()});
+    }catch{}finally{prefetching.delete(id)}
+  }
+
+  function prefetchVisibleReviews(){
+    document.querySelectorAll('.diagnosis-review-btn[data-id]').forEach(button=>prefetchReview(button.dataset.id));
+  }
+
   async function openReview(id,{force=false}={}){
     if(!id)return;
     activeReviewAbort?.abort();
@@ -117,21 +149,29 @@
 
     body.innerHTML='<div class="diagnosis-review-loading"><div class="diagnosis-review-spinner" aria-hidden="true"></div><div><b>Loading diagnosis…</b><p class="small">This should only take a moment. You can close this window at any time and reopen Review Diagnosis to start again.</p></div></div>';
     let timedOut=false;
-    const timeout=setTimeout(()=>{timedOut=true;controller.abort()},LOAD_TIMEOUT_MS);
+    let timeoutId=null;
+    const timeoutPromise=new Promise((_,reject)=>{
+      timeoutId=setTimeout(()=>{
+        timedOut=true;
+        controller.abort();
+        const error=new Error('DIAGNOSIS_LOAD_TIMEOUT');
+        error.code='DIAGNOSIS_LOAD_TIMEOUT';
+        reject(error);
+      },LOAD_TIMEOUT_MS);
+    });
     try{
-      const run=await loadRun(id,controller.signal);
+      const run=await Promise.race([loadRun(id,controller.signal),timeoutPromise]);
       if(token!==reviewRequestToken||!modal.classList.contains('open'))return null;
-      clearTimeout(timeout);
       reviewCache.set(id,{run,at:Date.now()});
       renderRun(body,run);
       return run;
     }catch(e){
-      clearTimeout(timeout);
       if(token!==reviewRequestToken||controller.signal.aborted&&!timedOut)return null;
-      const message=timedOut?'Diagnosis is taking longer than expected. Close this window and try again, or tap Retry now.':(e.message||'Diagnosis could not be loaded.');
+      const message=timedOut?'Diagnosis is taking longer than expected. The request was stopped so you can retry immediately or close this window.':(e.message||'Diagnosis could not be loaded.');
       body.innerHTML=`<div class="note error"><b>${timedOut?'Diagnosis load timed out.':'Diagnosis could not be loaded.'}</b><p>${esc(message)}</p><div class="actions"><button class="btn primary" data-diagnosis-review-reload="${esc(id)}" type="button">Retry now</button><button class="btn secondary" data-diagnosis-review-close type="button">Close</button></div></div>`;
       return null;
     }finally{
+      if(timeoutId)clearTimeout(timeoutId);
       if(activeReviewAbort===controller)activeReviewAbort=null;
     }
   }
@@ -179,5 +219,9 @@
     const go=e.target.closest?.('.diagnosis-goto');if(go){closeReview({clear:true});document.querySelector(`.side-nav button[data-section="${go.dataset.section}"]`)?.click()}
   });
 
-  window.NexusDiagnosisReviewRuntime={openReview,closeReview,loadRun,cachedRun};
+  const prefetchObserver=new MutationObserver(()=>prefetchVisibleReviews());
+  prefetchObserver.observe(document.body,{childList:true,subtree:true});
+  for(const ms of [200,700,1600])setTimeout(prefetchVisibleReviews,ms);
+
+  window.NexusDiagnosisReviewRuntime={openReview,closeReview,loadRun,cachedRun,prefetchReview};
 })();
