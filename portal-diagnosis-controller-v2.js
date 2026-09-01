@@ -19,6 +19,7 @@ const project=()=>state.projects?.[0]||null;
 const transcriptDocs=()=>[...(state.docs||[])].filter(d=>d.category==='Discovery Transcript').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
 const selectedEvidence=()=>[...document.querySelectorAll('.diagnosis-supporting-doc:checked')].map(x=>x.value);
 const hasResult=run=>{const r=run?.analysis_result;return !!r&&(typeof r==='string'?!!r.trim():Object.keys(r||{}).length>0)};
+const canOpenDirectly=run=>!!run&&(['ready_for_analysis','ready_for_review','in_review','revision_requested','blocked','failed','approved'].includes(run.status)||hasResult(run));
 
 function resolveTranscriptId(){
   const selected=selectedEvidence(),docs=transcriptDocs(),explicit=byId('diagnosisTranscriptDoc')?.value||'';
@@ -132,15 +133,30 @@ async function openIntake(){
 }
 async function loadRun(id){const {data,error}=await sb.from('nexus_diagnosis_runs').select('id,status,analysis_result,execution_error,transcript_document_id,created_at').eq('id',id).single();if(error)throw error;return data}
 async function openRun(run){
-  if(!run)return openIntake();if(!await openIntake())return;normalizeIntake();const id=CSS.escape(run.id);
+  if(!run)return openIntake();
+  if(canOpenDirectly(run)&&window.NexusDiagnosisReviewRuntime?.openReview){
+    await window.NexusDiagnosisReviewRuntime.openReview(run.id);
+    return true;
+  }
+  if(!await openIntake())return false;
+  normalizeIntake();
+  const id=CSS.escape(run.id);
   for(let i=0;i<25;i++){
     normalizeIntake();
-    if(run.status==='ready_for_analysis'){const retry=document.querySelector(`.diagnosis-retry-btn[data-id="${id}"]`);if(retry){retry.click();return}}
-    if(['failed','blocked','revision_requested','ready_for_review','in_review','approved'].includes(run.status)||hasResult(run)){const review=document.querySelector(`.diagnosis-review-btn[data-id="${id}"]`);if(review){review.click();return}}
-    const card=[...document.querySelectorAll('.diagnosis-run-card')].find(x=>x.querySelector(`[data-id="${id}"]`));if(card&&['queued','analyzing'].includes(run.status)){card.scrollIntoView({block:'center'});return}
+    if(run.status==='ready_for_analysis'){
+      const retry=document.querySelector(`.diagnosis-retry-btn[data-id="${id}"]`);
+      if(retry){retry.click();return true}
+    }
+    if(canOpenDirectly(run)){
+      const review=document.querySelector(`.diagnosis-review-btn[data-id="${id}"]`);
+      if(review){review.click();return true}
+    }
+    const card=[...document.querySelectorAll('.diagnosis-run-card')].find(x=>x.querySelector(`[data-id="${id}"]`));
+    if(card&&['queued','analyzing'].includes(run.status)){card.scrollIntoView({block:'center'});return true}
     await delay(100);
   }
   toast?.('The diagnosis record is saved, but its review control did not finish loading. Refresh once and reopen Diagnosis.');
+  return false;
 }
 function diagnosisJourneyButton(button){if(!button?.closest?.('#adminJourneyRoot'))return false;const step=button.closest('.journey-step');if(step?.querySelector('h3')?.textContent?.trim()==='Diagnose')return true;const focus=button.closest('.journey-focus');return /Step\s*3\s*of\s*7/i.test(focus?.querySelector('.kicker')?.textContent||'')}
 function labelFor(run){if(!run)return 'Start Diagnosis →';if(run.status==='approved'&&hasResult(run))return 'View Diagnosis →';if(['queued','analyzing'].includes(run.status))return 'View Diagnosis Status →';if(run.status==='ready_for_analysis')return 'Run Diagnosis →';if(['failed','blocked','revision_requested'].includes(run.status))return 'Resolve Diagnosis Issue →';if(['ready_for_review','in_review'].includes(run.status)||hasResult(run))return 'Review Diagnosis →';return 'Open Diagnosis →'}
