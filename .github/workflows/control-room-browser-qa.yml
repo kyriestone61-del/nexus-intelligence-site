@@ -68,11 +68,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ln -sf portal.html ../../portal
           python3 -m http.server 4173 --directory ../.. >/tmp/nexus-http.log 2>&1 &
           echo $! >/tmp/nexus-http.pid
           for i in {1..20}; do
-            if curl -fsS http://127.0.0.1:4173/portal >/dev/null; then exit 0; fi
+            if curl -fsS http://127.0.0.1:4173/portal.html >/dev/null; then exit 0; fi
             sleep 0.5
           done
           cat /tmp/nexus-http.log
