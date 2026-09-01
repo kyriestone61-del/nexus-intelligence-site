@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-operating-model3';
+const BUILD='20260901-workflow-cohesion1';
 
 window.__nexusPortalBooting=true;
 document.body.classList.add('nexus-runtime-booting');
