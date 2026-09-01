@@ -1,9 +1,9 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-client-shell-refactor3';
+const BUILD='20260901-control-room-reconcile1';
 
 window.__nexusPortalBooting=true;
-/* portal-client.js still calls initOps for legacy compatibility. Keep that bootstrap dormant;
- * real admin Operations is initialized deliberately after authorization and view mode resolve. */
+/* The application loader is the sole owner of runtime selection. Admin Operations is
+ * initialized deliberately only after authorization and perspective resolution. */
 window.__nexusOpsInit=true;
 document.body.classList.add('nexus-runtime-booting');
 
@@ -24,10 +24,10 @@ document.head.appendChild(bootStyle);
 
 const bootOverlay=document.createElement('div');
 bootOverlay.id='nexusPortalBootOverlay';
-bootOverlay.innerHTML='<div class="nexus-boot-card"><div class="nexus-boot-mark">N</div><h2>Loading Nexus workspace…</h2><p>Confirming your account, client workspace, and final navigation.</p><div class="nexus-boot-line"></div></div>';
+bootOverlay.innerHTML='<div class="nexus-boot-card"><div class="nexus-boot-mark">N</div><h2>Loading Nexus workspace…</h2><p>Confirming your account and opening the correct workspace.</p><div class="nexus-boot-line"></div></div>';
 document.body.appendChild(bootOverlay);
 
-function loadStyle(file){return new Promise(resolve=>{const link=document.createElement('link');link.rel='stylesheet';link.href=asset(`${file}?v=${BUILD}`);link.onload=resolve;link.onerror=resolve;document.head.appendChild(link)})}
+function loadStyle(file){return new Promise(resolve=>{const link=document.createElement('link');link.rel='stylesheet';link.href=asset(`${file}?v=${BUILD}`);link.onload=resolve;link.onerror=()=>{console.error(`Nexus stylesheet failed to load: ${file}`);resolve()};document.head.appendChild(link)})}
 async function loadStyles(files){await Promise.all(files.map(loadStyle))}
 function setBootMessage(title,message){const card=bootOverlay.querySelector('.nexus-boot-card');if(!card)return;const h=card.querySelector('h2'),p=card.querySelector('p');if(h)h.textContent=title;if(p)p.textContent=message}
 function clearBootLock(){window.__nexusPortalBooting=false;document.body.classList.add('nexus-shell-ready');const app=document.getElementById('portalApp');if(app)app.style.visibility='';document.body.classList.remove('nexus-runtime-booting');bootOverlay.remove();bootStyle.remove()}
@@ -46,9 +46,6 @@ let perspectiveModule=null;
 
 await requiredImport(asset(`portal-accessibility.js?v=${BUILD}`),'portal accessibility');
 
-/* Resolve authorization and current perspective BEFORE selecting a runtime.
- * An administrator in Client View remains authorized as an administrator, but must load
- * the read-only Client Shell rather than the admin/diagnosis stack. */
 if(isSignedIn&&platformAdmin){
   await loadStyles(['perspective-switcher.css']);
   perspectiveModule=await requiredImport(asset(`portal-perspective-switcher.js?v=${BUILD}`),'perspective switcher');
@@ -59,9 +56,9 @@ const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='clie
 const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell;
 
 if(useClientShell){
-  await loadStyles(['portal-client-shell.css']);
+  await loadStyles(['portal-client-shell-v2.css']);
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
-  await requiredImport(asset(`portal-client-shell.js?v=${BUILD}`),'consolidated client shell');
+  await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
 }else if(useAdminShell){
