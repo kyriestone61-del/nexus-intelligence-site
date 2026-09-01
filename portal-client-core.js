@@ -188,30 +188,38 @@ function actionAfter(task, evaluated, allEvaluated) {
   return 'Nexus will update the workspace when the next step becomes available.';
 }
 
-export function buildWorkspaceContextFromTasks(tasks) {
-  const evaluated = evaluateClientActionState(tasks);
-  const clientTasks = evaluated.filter(x => String(x.task.assignee || '').toLowerCase() === 'client');
+function buildWorkspaceContextFromEvaluated(evaluated) {
+  const rows = Array.isArray(evaluated) ? evaluated : [];
+  const clientTasks = rows.filter(x => String(x.task.assignee || '').toLowerCase() === 'client');
   const now = clientTasks.filter(x => x.state === 'WAITING_ON_YOU').sort(taskSort);
   const next = clientTasks.filter(x => x.state === 'UPCOMING').sort(taskSort);
   const done = clientTasks.filter(x => x.state === 'COMPLETE').sort((a, b) => String(b.task.completed_at || b.task.updated_at || '').localeCompare(String(a.task.completed_at || a.task.updated_at || '')));
-  const nexusWorking = evaluated.filter(x => String(x.task.assignee || '').toLowerCase() === 'nexus' && x.state !== 'COMPLETE').sort(taskSort);
+  const nexusWorking = rows.filter(x => String(x.task.assignee || '').toLowerCase() === 'nexus' && x.state !== 'COMPLETE').sort(taskSort);
   const primary = now[0] || null;
-  const primaryAction = primary ? { taskId: primary.task.id, title: primary.task.title, why: actionWhy(primary.task), provide: actionProvide(primary.task), afterward: actionAfter(primary.task, primary, evaluated), dueDate: primary.task.due_date || null, taskType: primary.task.task_type || null, raw: primary.task } : null;
-  return { evaluated, now, next, done, nexusWorking, primaryAction, secondaryActionable: now.slice(1) };
+  const primaryAction = primary ? { taskId: primary.task.id, title: primary.task.title, why: actionWhy(primary.task), provide: actionProvide(primary.task), afterward: actionAfter(primary.task, primary, rows), dueDate: primary.task.due_date || null, taskType: primary.task.task_type || null, raw: primary.task } : null;
+  return { evaluated: rows, now, next, done, nexusWorking, primaryAction, secondaryActionable: now.slice(1) };
+}
+
+export function buildWorkspaceContextFromTasks(tasks) {
+  return buildWorkspaceContextFromEvaluated(evaluateClientActionState(tasks));
 }
 
 /**
  * Single asynchronous consumer for Home, Inbox, Guide, email jobs, and mobile notification producers.
+ * The database RPC is authoritative for dependency state so hidden Nexus prerequisites do not need
+ * to be exposed to the client browser merely to evaluate whether a client task is ready.
  */
 export async function getWorkspaceCurrentActionContext(clientId, options = {}) {
   const sb = options.sb || window.NexusPortal?.sb;
   if (!clientId) throw new Error('Client/company id is required.');
   if (!sb && !Array.isArray(options.tasks)) throw new Error('Nexus data client is unavailable.');
   let tasks = Array.isArray(options.tasks) ? options.tasks : null;
+  let canonicalRows = null;
   if (sb) {
     try {
-      const { error } = await sb.rpc('nexus_get_client_action_context', { p_company_id: clientId });
+      const { data, error } = await sb.rpc('nexus_get_client_action_context', { p_company_id: clientId });
       if (error) console.warn('Canonical dependency RPC unavailable; evaluating locally.', error.message);
+      else canonicalRows = Array.isArray(data) ? data : [];
     } catch (error) { console.warn('Canonical dependency RPC unavailable; evaluating locally.', error); }
   }
   if (!tasks && sb) {
@@ -219,7 +227,22 @@ export async function getWorkspaceCurrentActionContext(clientId, options = {}) {
     if (error) throw error;
     tasks = data || [];
   }
-  return buildWorkspaceContextFromTasks(tasks || []);
+  let evaluated = evaluateClientActionState(tasks || []);
+  if (canonicalRows?.length) {
+    const canonicalById = new Map(canonicalRows.map(row => [String(row.task_id), row]));
+    evaluated = evaluated.map(item => {
+      const canonical = canonicalById.get(String(item.task.id));
+      if (!canonical) return item;
+      return {
+        ...item,
+        state: canonical.canonical_state || item.state,
+        prerequisitesSatisfied: typeof canonical.prerequisites_satisfied === 'boolean' ? canonical.prerequisites_satisfied : item.prerequisitesSatisfied,
+        blockedByTitle: canonical.blocked_by_title ?? null,
+        cycleDetected: typeof canonical.cycle_detected === 'boolean' ? canonical.cycle_detected : item.cycleDetected
+      };
+    });
+  }
+  return buildWorkspaceContextFromEvaluated(evaluated);
 }
 
 const CLIENT_REPORT_ALLOWED_KEYS = new Set(['title', 'executive_summary', 'summary', 'overview', 'findings', 'recommendations', 'priorities', 'opportunities', 'risks', 'next_steps', 'implementation_plan', 'expected_outcomes', 'metrics', 'baseline', 'client_actions', 'nexus_actions', 'appendix', 'generated_at', 'report_date']);
