@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-full-reconcile1';
+const BUILD='20260901-full-reconcile2';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -41,7 +41,30 @@ try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[
 const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Nexus portal context is unavailable.'));throw new Error('Nexus portal context is unavailable.')}
 const platformAdmin=!!portal.state?.admin;
 const isSignedIn=!!portal.state?.user;
+const bootUserId=portal.state?.user?.id||null;
 let perspectiveModule=null;
+let authTransitionReloading=false;
+
+function restoreBootOverlay(title,message){
+  window.__nexusPortalBooting=true;
+  document.body.classList.add('nexus-runtime-booting');
+  if(!document.head.contains(bootStyle))document.head.appendChild(bootStyle);
+  if(!document.body.contains(bootOverlay))document.body.appendChild(bootOverlay);
+  setBootMessage(title,message);
+}
+function installAuthTransitionReboot(){
+  const controller=portal.stateController;
+  if(!controller?.subscribe)return;
+  controller.subscribe(snapshot=>{
+    const nextUserId=snapshot?.user?.id||null;
+    if(authTransitionReloading||nextUserId===bootUserId)return;
+    authTransitionReloading=true;
+    if(nextUserId)restoreBootOverlay('Opening your Nexus workspace…','Sign-in confirmed. Loading the correct workspace and permissions.');
+    else restoreBootOverlay('Signing you out…','Closing the current workspace securely.');
+    window.setTimeout(()=>window.location.reload(),0);
+  });
+}
+installAuthTransitionReboot();
 
 await requiredImport(asset(`portal-accessibility.js?v=${BUILD}`),'portal accessibility');
 await requiredImport(asset(`portal-nexus-store.js?v=${BUILD}`),'unified NexusStore');
