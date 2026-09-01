@@ -3,7 +3,7 @@ if(!portal)throw new Error('Nexus portal context is unavailable.');
 const {sb,state,$,toast}=portal;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dt=v=>v?new Date(v).toLocaleString():'—';
-let items=[],activeFilter='action',selectedChain=null,loading=false,renderQueued=false;
+let items=[],activeFilter='action',selectedChain=null,loading=false;
 
 function inboxSection(){return $('section-notifications')}
 function navButton(){return document.querySelector('.side-nav button[data-section="notifications"]')}
@@ -110,12 +110,13 @@ async function decide(step,decision){
 }
 async function resubmit(){const note=$('approvalResubmitNote')?.value.trim()||'';try{const {error}=await sb.rpc('nexus_resubmit_approval_chain',{p_chain_id:selectedChain,p_note:note||null});if(error)throw error;toast?.('Approval resubmitted.');await loadInbox(true);await openChain(selectedChain);window.dispatchEvent(new CustomEvent('nexus:approval-changed'))}catch(error){toast?.(error.message||'Approval could not be resubmitted.')}}
 
-function schedule(){if(renderQueued)return;renderQueued=true;requestAnimationFrame(()=>{renderQueued=false;ensureShell();loadInbox()})}
+let refreshTimer=0;
+function queueInboxRefresh(delay=120){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>loadInbox(),delay)}
 document.addEventListener('click',e=>{if(e.target.closest?.('.side-nav button[data-section="notifications"]'))setTimeout(()=>loadInbox(true),80)},true);
 $('companySelect')?.addEventListener('change',()=>setTimeout(()=>loadInbox(true),250));
-window.addEventListener('nexus:diagnosis-changed',()=>setTimeout(()=>loadInbox(true),160));
-window.addEventListener('nexus:approval-changed',()=>setTimeout(()=>loadInbox(true),120));
-const observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true});
+window.addEventListener('nexus:workspace-ready',()=>queueInboxRefresh(120));
+window.addEventListener('nexus:diagnosis-changed',()=>queueInboxRefresh(160));
+window.addEventListener('nexus:approval-changed',()=>queueInboxRefresh(120));
 setTimeout(()=>{ensureShell();loadInbox(true);const p=new URLSearchParams(location.search);if(p.get('view')==='inbox'){activate();if(p.get('approval_chain'))setTimeout(()=>openChain(p.get('approval_chain')),320)}},180);
 
 window.NexusApprovalInbox={activate,loadInbox,openChain};
