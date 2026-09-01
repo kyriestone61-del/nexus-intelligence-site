@@ -42,7 +42,11 @@ jobs:
           grep -q "company=" operations-perspective-switcher.js
       - name: Authorization stays separate from view mode
         run: |
-          grep -q "const platformAdmin=!!portal.state?.admin" portal-app.js
+          set -euo pipefail
+          grep -q "nexus_is_platform_admin" portal-app.js
+          grep -q "portal.stateController.patch({admin:platformAdmin},'boot:authorization')" portal-app.js
+          grep -q "const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='client')" portal-app.js
+          grep -q "const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell" portal-app.js
           grep -q "state.platformAdmin=platformAdmin" portal-perspective-switcher.js
           grep -q "state.admin=false" portal-perspective-switcher.js
           grep -q "Switching perspective never changes your real Nexus administrator authorization" portal-perspective-switcher.js
