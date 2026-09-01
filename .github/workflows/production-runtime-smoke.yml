@@ -22,6 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           origin='https://nexusintelligence.live'
+          supabase='https://dmdgkjksouhhsuojthav.supabase.co/functions/v1'
           report='production-smoke-report.txt'
           : > "$report"
 
@@ -44,13 +45,17 @@ jobs:
           }
 
           probe_unauth_post() {
-            local name="$1" url="$2"
+            local name="$1" url="$2" header_name="${3:-}" header_value="${4:-}"
             local body code
             body="$(mktemp)"
-            code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' --request POST --header 'Content-Type: application/json' --data '{}' "$url")"
+            if [ -n "$header_name" ]; then
+              code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' --request POST --header 'Content-Type: application/json' --header "$header_name: $header_value" --data '{}' "$url")"
+            else
+              code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' --request POST --header 'Content-Type: application/json' --data '{}' "$url")"
+            fi
             echo "$name http=$code body=$(tr '\n' ' ' < "$body" | head -c 500)" | tee -a "$report"
             if [ "$code" != "401" ]; then
-              echo "$name expected HTTP 401 from the live authenticated route" >&2
+              echo "$name expected HTTP 401 from the live protected route" >&2
               cat "$body" >&2
               exit 1
             fi
@@ -58,23 +63,13 @@ jobs:
 
           probe_get 'portal-app' "$origin/portal-app.js" 'portal-vnext-runtime-router.js'
           probe_get 'runtime-router' "$origin/portal-vnext-runtime-router.js" '/api/diagnosis-report-pdf'
-          grep -Fq '/api/sms-dispatch' <(curl --silent --show-error --location "$origin/portal-vnext-runtime-router.js")
-          echo 'runtime-router sms-marker=present' | tee -a "$report"
+          probe_get 'runtime-router-sms' "$origin/portal-vnext-runtime-router.js" "status:'scheduled'"
 
+          # The PDF route must exist without a Cloudflare service-role secret and reject anonymous callers.
           probe_unauth_post 'diagnosis-report-pdf' "$origin/api/diagnosis-report-pdf"
-          probe_unauth_post 'sms-dispatch' "$origin/api/sms-dispatch"
 
-          email_body="$(mktemp)"
-          email_code="$(curl --silent --show-error --location --output "$email_body" --write-out '%{http_code}' --request POST --header 'Content-Type: application/json' --data '{}' "$origin/api/email-dispatch")"
-          if [ "$email_code" = '401' ]; then
-            echo 'email-dispatch http=401 configuration=ready auth-boundary=working' | tee -a "$report"
-          elif [ "$email_code" = '503' ]; then
-            echo "email-dispatch http=503 configuration=missing body=$(tr '\n' ' ' < "$email_body" | head -c 500)" | tee -a "$report"
-          else
-            echo "email-dispatch unexpected-http=$email_code" | tee -a "$report"
-            cat "$email_body" >&2
-            exit 1
-          fi
+          # The consolidated Supabase notification worker must be deployed and enforce its worker-token boundary.
+          probe_unauth_post 'notification-worker' "$supabase/nexus-email-worker" 'x-nexus-worker-token' 'invalid-smoke-token'
 
           echo 'PRODUCTION_RUNTIME_SMOKE=PASS' | tee -a "$report"
 
