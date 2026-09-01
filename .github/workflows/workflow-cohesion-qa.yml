@@ -1,0 +1,74 @@
+name: Nexus Workflow Cohesion QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-workflow-cohesion.js'
+      - 'portal-workflow-cohesion.css'
+      - 'portal-diagnosis-v2.js'
+      - 'portal-app.js'
+      - '.github/workflows/workflow-cohesion-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  workflow-cohesion-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-workflow-cohesion.js
+          node --input-type=module --check < portal-diagnosis-v2.js
+          node --input-type=module --check < portal-app.js
+      - name: Unified Inbox compatibility contract
+        run: |
+          set -euo pipefail
+          grep -Fq "sink.id='notificationList'" portal-workflow-cohesion.js
+          grep -Fq "legacyNotificationSink" portal-workflow-cohesion.js
+          grep -Fq "nexusInboxRoot" portal-workflow-cohesion.js
+      - name: Settings consolidation contract
+        run: |
+          set -euo pipefail
+          grep -Fq "section-settings" portal-workflow-cohesion.js
+          grep -Fq "nexusSettingsPreferencesHost" portal-workflow-cohesion.js
+          grep -Fq "host.appendChild(panel)" portal-workflow-cohesion.js
+          grep -Fq "preferencesSaved()" portal-workflow-cohesion.js
+          grep -Fq "One-time setup" portal-workflow-cohesion.js
+          grep -Fq "Open settings →" portal-workflow-cohesion.js
+      - name: Request review workflow contract
+        run: |
+          set -euo pipefail
+          grep -Fq "Step 2 · Client requests" portal-workflow-cohesion.js
+          grep -Fq "nexusNewRequestTemplate" portal-workflow-cohesion.js
+          grep -Fq "nexus-request-draft-row" portal-workflow-cohesion.js
+          grep -Fq "nexus_release_document_request" portal-workflow-cohesion.js
+          grep -Fq "Send request to client →" portal-workflow-cohesion.js
+          grep -Fq "nexus-legacy-request-editor{display:none!important}" portal-workflow-cohesion.css
+      - name: Action routing contract
+        run: |
+          set -euo pipefail
+          grep -Fq "Review decision →" portal-workflow-cohesion.js
+          grep -Fq "Open evidence request →" portal-workflow-cohesion.js
+          grep -Fq "kind==='Client question'" portal-workflow-cohesion.js
+          grep -Fq "activateSection(section)" portal-workflow-cohesion.js
+      - name: Diagnosis close and timeout contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'const LOAD_TIMEOUT_MS=4000' portal-diagnosis-v2.js
+          grep -Fq 'function bindModalControls(modal)' portal-diagnosis-v2.js
+          grep -Fq "close.setAttribute('data-diagnosis-review-close','')" portal-diagnosis-v2.js
+          grep -Fq 'Promise.race([loadRun(id,controller.signal),timeoutPromise])' portal-diagnosis-v2.js
+          grep -Fq 'function prefetchReview(id)' portal-diagnosis-v2.js
+          grep -Fq 'prefetchVisibleReviews' portal-diagnosis-v2.js
+      - name: Loader and cache-bust contract
+        run: |
+          set -euo pipefail
+          grep -Fq "const BUILD='20260901-workflow-cohesion1'" portal-app.js
+          grep -Fq "portal-workflow-cohesion.css" portal-app.js
+          grep -Fq "portal-workflow-cohesion.js" portal-app.js
