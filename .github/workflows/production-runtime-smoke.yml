@@ -15,9 +15,24 @@ on:
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
+      - 'portal-perspective-switcher.js'
+      - 'portal-approval-inbox.js'
       - '.github/workflows/production-runtime-smoke.yml'
   pull_request:
     paths:
+      - 'portal.html'
+      - 'portal-app.js'
+      - 'portal-client.js'
+      - 'portal-auth.js'
+      - 'portal-runtime-core.js'
+      - 'portal-runtime-hardening.css'
+      - 'portal-accessibility.js'
+      - 'portal-client-core.js'
+      - 'portal-client-upload-service.js'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - 'portal-perspective-switcher.js'
+      - 'portal-approval-inbox.js'
       - '.github/workflows/production-runtime-smoke.yml'
   workflow_dispatch:
   schedule:
@@ -42,6 +57,13 @@ jobs:
           report='production-smoke-report.txt'
           : > "$report"
 
+          expected_build="$(sed -n "s/^const BUILD='\([^']*\)';$/\1/p" portal-app.js | head -1)"
+          if [ -z "$expected_build" ]; then
+            echo 'Could not derive portal BUILD from repository source.' >&2
+            exit 1
+          fi
+          echo "expected_build=$expected_build" | tee -a "$report"
+
           probe_get() {
             local name="$1" url="$2" expect="$3"
             local body code attempt
@@ -56,6 +78,24 @@ jobs:
               sleep 10
             done
             echo "$name failed: expected HTTP 200 and live marker: $expect" >&2
+            head -c 2400 "$body" >&2 || true
+            exit 1
+          }
+
+          probe_absent() {
+            local name="$1" url="$2" forbidden="$3"
+            local body code attempt
+            body="$(mktemp)"
+            for attempt in 1 2 3 4 5 6 7 8; do
+              code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' "$url" || true)"
+              if [ "$code" = "200" ] && ! grep -Fq "$forbidden" "$body"; then
+                echo "$name http=$code forbidden_marker=absent attempt=$attempt" | tee -a "$report"
+                return 0
+              fi
+              echo "$name attempt=$attempt http=${code:-curl_error} forbidden_marker_present='$forbidden'" | tee -a "$report"
+              sleep 10
+            done
+            echo "$name failed: forbidden live marker is present: $forbidden" >&2
             head -c 2400 "$body" >&2 || true
             exit 1
           }
@@ -88,12 +128,13 @@ jobs:
             fi
           }
 
-          # Client Control Room V2: verify the deployed asset graph, not only repository source.
+          # Client Control Room V2: verify deployed production matches repository source.
           probe_get 'pages-portal' "$pages/portal" 'CONTROL ROOM'
           probe_headers 'pages-portal-security-headers' "$pages/portal"
-          probe_get 'pages-portal-app-build' "$pages/portal-app.js" '20260901-control-room-reconcile3'
+          probe_get 'pages-portal-app-build' "$pages/portal-app.js" "$expected_build"
           probe_get 'pages-portal-app-shell-v2' "$pages/portal-app.js" 'portal-client-shell-v2.js'
           probe_get 'pages-portal-app-upload-service' "$pages/portal-app.js" 'portal-client-upload-service.js'
+          probe_get 'pages-portal-fail-open' "$pages/portal-app.js" 'clearBootLock();'
           probe_get 'pages-runtime-core' "$pages/portal-runtime-core.js" 'createPortalRuntime'
           probe_get 'pages-shell-today' "$pages/portal-client-shell-v2.js" '01 Today'
           probe_get 'pages-shell-data-room' "$pages/portal-client-shell-v2.js" '02 Secure Data Room'
@@ -104,20 +145,27 @@ jobs:
           probe_get 'pages-upload-facade-owner' "$pages/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
           probe_get 'pages-upload-request-linkage' "$pages/portal-client-upload-service.js" 'request_id:selection.requestId'
 
-          # Custom production domain must serve the same reconciled portal runtime.
+          # Regression guard for the September 1 lockout: Inbox refresh must be explicit/debounced,
+          # never driven by a body-wide MutationObserver that can retrigger itself on render.
+          probe_get 'pages-inbox-refresh-guard' "$pages/portal-approval-inbox.js" 'queueInboxRefresh'
+          probe_absent 'pages-inbox-no-self-observer' "$pages/portal-approval-inbox.js" 'new MutationObserver'
+          probe_absent 'pages-inbox-no-body-observer' "$pages/portal-approval-inbox.js" 'observer.observe(document.body'
+
+          # Custom production domain must serve the same runtime and same lockout fix.
+          probe_get 'custom-portal-app-build' "$origin/portal-app.js" "$expected_build"
           probe_get 'custom-portal-app-shell-v2' "$origin/portal-app.js" 'portal-client-shell-v2.js'
           probe_get 'custom-shell-improvement-record' "$origin/portal-client-shell-v2.js" '03 Improvement Record'
           probe_get 'custom-shell-upload-facade' "$origin/portal-client-shell-v2.js" 'portal.prepareUpload'
           probe_get 'custom-upload-facade-owner' "$origin/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
+          probe_get 'custom-inbox-refresh-guard' "$origin/portal-approval-inbox.js" 'queueInboxRefresh'
+          probe_absent 'custom-inbox-no-self-observer' "$origin/portal-approval-inbox.js" 'new MutationObserver'
 
           # Existing administrator/runtime safety probes remain required.
           probe_get 'runtime-router' "$origin/portal-vnext-runtime-router.js" '/api/diagnosis-report-pdf'
           probe_get 'runtime-router-sms' "$origin/portal-vnext-runtime-router.js" "status:'scheduled'"
 
-          # The PDF route must exist without a Cloudflare service-role secret and reject anonymous callers.
+          # Protected server-side surfaces must reject anonymous callers.
           probe_unauth_post 'diagnosis-report-pdf' "$origin/api/diagnosis-report-pdf"
-
-          # The consolidated Supabase notification worker must be deployed and enforce its worker-token boundary.
           probe_unauth_post 'notification-worker' "$supabase/nexus-email-worker" 'x-nexus-worker-token' 'invalid-smoke-token'
 
           echo 'PRODUCTION_RUNTIME_SMOKE=PASS' | tee -a "$report"
