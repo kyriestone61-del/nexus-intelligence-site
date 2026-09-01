@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-full-reconcile2';
+const BUILD='20260901-full-reconcile3';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -52,16 +52,40 @@ function restoreBootOverlay(title,message){
   if(!document.body.contains(bootOverlay))document.body.appendChild(bootOverlay);
   setBootMessage(title,message);
 }
+async function confirmStoredSession(expectedUserId){
+  for(let attempt=0;attempt<12;attempt++){
+    try{
+      const result=await portal.sb.auth.getSession();
+      if(result.error)throw result.error;
+      if((result.data?.session?.user?.id||null)===expectedUserId)return true;
+    }catch(error){
+      console.warn('Nexus session confirmation attempt failed.',error?.message||error);
+    }
+    await new Promise(resolve=>setTimeout(resolve,100));
+  }
+  return false;
+}
 function installAuthTransitionReboot(){
-  const controller=portal.stateController;
-  if(!controller?.subscribe)return;
-  controller.subscribe(snapshot=>{
-    const nextUserId=snapshot?.user?.id||null;
+  const auth=portal.sb?.auth;
+  if(!auth?.onAuthStateChange)return;
+  auth.onAuthStateChange((event,session)=>{
+    if(event!=='SIGNED_IN'&&event!=='SIGNED_OUT')return;
+    const nextUserId=session?.user?.id||null;
     if(authTransitionReloading||nextUserId===bootUserId)return;
     authTransitionReloading=true;
-    if(nextUserId)restoreBootOverlay('Opening your Nexus workspace…','Sign-in confirmed. Loading the correct workspace and permissions.');
+    if(nextUserId)restoreBootOverlay('Opening your Nexus workspace…','Sign-in confirmed. Securing your session before the workspace opens.');
     else restoreBootOverlay('Signing you out…','Closing the current workspace securely.');
-    window.setTimeout(()=>window.location.reload(),0);
+    window.setTimeout(async()=>{
+      if(nextUserId){
+        const confirmed=await confirmStoredSession(nextUserId);
+        if(!confirmed){
+          authTransitionReloading=false;
+          showCoreLoadFailure(new Error('Authenticated session was not retained after sign-in.'));
+          return;
+        }
+      }
+      window.location.reload();
+    },250);
   });
 }
 installAuthTransitionReboot();
