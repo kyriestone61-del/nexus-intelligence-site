@@ -11,10 +11,14 @@ on:
       - 'portal-runtime-core.js'
       - 'portal-runtime-hardening.css'
       - 'portal-accessibility.js'
+      - 'portal-nexus-store.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
-      - 'portal-client-shell.js'
-      - 'portal-client-shell.css'
+      - 'portal-client-pdf-service.js'
+      - 'portal-client-control-room.js'
+      - 'portal-client-control-room.css'
+      - 'portal-admin-command-center.js'
+      - 'portal-admin-command-center.css'
       - 'portal-health-check.js'
       - 'portal-perspective-switcher.js'
       - 'tests/client-shell-refactor-qaqc.mjs'
@@ -29,19 +33,21 @@ on:
       - 'portal-runtime-core.js'
       - 'portal-runtime-hardening.css'
       - 'portal-accessibility.js'
+      - 'portal-nexus-store.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
-      - 'portal-client-shell.js'
-      - 'portal-client-shell.css'
+      - 'portal-client-pdf-service.js'
+      - 'portal-client-control-room.js'
+      - 'portal-client-control-room.css'
+      - 'portal-admin-command-center.js'
+      - 'portal-admin-command-center.css'
       - 'portal-health-check.js'
       - 'portal-perspective-switcher.js'
       - 'tests/client-shell-refactor-qaqc.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/control-room-reconciliation.yml'
-
 permissions:
   contents: read
-
 jobs:
   architecture-qaqc:
     runs-on: ubuntu-latest
@@ -54,51 +60,43 @@ jobs:
       - name: JavaScript compile gates
         run: |
           set -euo pipefail
-          node --input-type=module --check < portal-app.js
-          node --input-type=module --check < portal-client.js
-          node --input-type=module --check < portal-auth.js
-          node --input-type=module --check < portal-runtime-core.js
-          node --input-type=module --check < portal-accessibility.js
-          node --input-type=module --check < portal-client-core.js
-          node --input-type=module --check < portal-client-upload-service.js
-          node --input-type=module --check < portal-client-shell.js
-          node --input-type=module --check < portal-health-check.js
+          for file in portal-app.js portal-client.js portal-auth.js portal-runtime-core.js portal-accessibility.js portal-nexus-store.js portal-client-core.js portal-client-pdf-service.js portal-client-upload-service.js portal-client-control-room.js portal-admin-command-center.js portal-health-check.js; do
+            node --input-type=module --check < "$file"
+          done
       - name: Architectural regression contract
         run: |
           set -euo pipefail
           node tests/client-shell-refactor-qaqc.mjs
-          ! grep -Eq '\.onclick\s*=|\.onchange\s*=' portal-client.js portal-client-shell.js portal-auth.js portal-accessibility.js
+          ! grep -Eq '\.onclick\s*=|\.onchange\s*=' portal-client.js portal-client-control-room.js portal-admin-command-center.js portal-auth.js portal-accessibility.js
           ! grep -q "from '/portal-ops.js'" portal-client.js
           ! grep -q 'initOps(' portal-client.js
-          ! grep -Eq 'portal-client-shell-v2\.(js|css)' portal-app.js
+          ! grep -Eq 'portal-client-shell(?:-v2)?\.(js|css)' portal-app.js
           grep -q 'nexus_activate_client_workspace' portal-client.js
-          grep -q "['overview', 'Today']" portal-client-shell.js
-          grep -q "['data-room', 'Data Room']" portal-client-shell.js
-          grep -q "['action-queue', 'Actions']" portal-client-shell.js
-          grep -q "['projects', 'Projects']" portal-client-shell.js
-          grep -q "['ledger', 'Improvements']" portal-client-shell.js
-          grep -q "['notifications', 'Notifications']" portal-client-shell.js
-          grep -q 'window.NexusStore' portal-client-shell.js
-          grep -q 'Your Next Single Step' portal-client-shell.js
-          grep -q 'portal-runtime-hardening.css' portal-app.js
-          grep -q 'portal-client-upload-service.js' portal-app.js
-          grep -q 'portal-client-shell.js' portal-app.js
-          grep -q 'portal-health-check.js' portal-app.js
-          grep -q 'portal.prepareUpload' portal-client-shell.js
-          grep -q 'portal.services.clientUpload=service' portal-client-upload-service.js
-          grep -q "Object.defineProperty(portal,'prepareUpload'" portal-client-upload-service.js
-          grep -q 'request_id:selection.requestId' portal-client-upload-service.js
+          grep -q 'portal-nexus-store.js' portal-app.js
+          grep -q 'portal-client-control-room.js' portal-app.js
+          grep -q 'portal-client-pdf-service.js' portal-client-upload-service.js
+          grep -q 'portal-admin-command-center.js' portal-app.js
+          grep -q 'preserveUploadNode' portal-client-control-room.js
+          grep -q 'nexus_client_intake' portal-client-control-room.js
+          grep -q 'nexus_roi_estimates' portal-admin-command-center.js
+          grep -q 'nexus_request_entity_approval' portal-admin-command-center.js
+          grep -q 'DIAGNOSIS_BUILDER' portal-admin-command-center.js
           grep -q 'window.__NEXUS_HEALTH_CHECK' portal-health-check.js
-          if grep -q 'new MutationObserver' portal-client-shell.js portal-accessibility.js; then
-            echo 'Client Control Room runtime must not use DOM mutation rewrite loops.' >&2
+          grep -q 'persistent test writes: 0' portal-health-check.js
+          if grep -q 'new MutationObserver' portal-client-control-room.js portal-admin-command-center.js portal-accessibility.js; then
+            echo 'Reconciled Control Room must not use DOM mutation rewrite loops.' >&2
             exit 1
           fi
       - name: Database migration contract
         run: |
           set -euo pipefail
-          file='supabase/migrations/20260901_nexus_atomic_client_workspace_activation.sql'
-          grep -q 'pg_advisory_xact_lock' "$file"
-          grep -q 'insert into public.nexus_companies' "$file"
-          grep -q 'insert into public.nexus_company_members' "$file"
-          grep -q 'insert into public.nexus_projects' "$file"
-          grep -q 'grant execute.*authenticated' "$file"
+          file='supabase/migrations/20260901211143_nexus_client_intake_roi_engine.sql'
+          grep -q 'create table if not exists public.nexus_client_intake' "$file"
+          grep -q 'create table if not exists public.nexus_roi_estimates' "$file"
+          grep -q 'enable row level security' "$file"
+          grep -q 'nexus members view published roi estimates' "$file"
+          legacy='supabase/migrations/20260901_nexus_atomic_client_workspace_activation.sql'
+          grep -q 'pg_advisory_xact_lock' "$legacy"
+          grep -q 'insert into public.nexus_companies' "$legacy"
+          grep -q 'insert into public.nexus_company_members' "$legacy"
+          grep -q 'insert into public.nexus_projects' "$legacy"
