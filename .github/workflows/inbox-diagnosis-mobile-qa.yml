@@ -53,3 +53,14 @@ jobs:
           grep -Fq 'max-height:calc(100dvh' portal-mobile-hardening.css
           grep -Fq 'grid-template-columns:1fr!important' portal-mobile-hardening.css
           grep -Fq 'font-size:16px!important' portal-mobile-hardening.css
+      - name: Mobile Inbox preference control contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'input:not([type="checkbox"]):not([type="radio"])' portal-mobile-hardening.css
+          grep -Fq 'input[type="checkbox"],.portal-body input[type="radio"]{width:20px!important;height:20px!important' portal-mobile-hardening.css
+          grep -Fq '.portal-body .pref-toggle{display:grid!important;grid-template-columns:20px minmax(0,1fr)!important' portal-mobile-hardening.css
+          grep -Fq '.portal-body #emailPreferencePanel{width:100%;max-width:100%;min-width:0;overflow:hidden}' portal-mobile-hardening.css
+          if grep -Fq '.portal-body input,.portal-body select,.portal-body textarea{width:100%!important' portal-mobile-hardening.css; then
+            echo 'Generic mobile input rule would stretch checkboxes/radios full width.' >&2
+            exit 1
+          fi
