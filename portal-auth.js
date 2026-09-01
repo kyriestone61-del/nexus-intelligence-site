@@ -1,175 +1,109 @@
-export async function initAuthUX({sb,$,pane,show}){
+export async function initAuthUX({sb,$,pane,show,runtime}){
   const createForm=$('createForm');
   const createPane=$('createPane');
   const signInForm=$('signInForm');
   const pendingFlag='nexus_verification_expected';
+  const storage=runtime?.storage||fallbackStorage();
+  const events=runtime?.events||fallbackEvents();
+  const boundary=runtime?.boundary||fallbackBoundary();
+  const modals=runtime?.modals||null;
 
-  // The current operations module relabels legacy secure-file sections. Keep the new
-  // preparation checklist outside that legacy relabeling path while preserving its
-  // requested-files and shared-files labels.
   document.getElementById('dataRoomRequirements')?.closest('.secure-doc-section')?.classList.remove('secure-doc-section');
 
-  // Make the verification requirement obvious before submission.
-  if(createPane && createForm && !document.getElementById('portalVerificationPreflight')){
-    const note=document.createElement('div');
+  if(createPane&&createForm&&!document.getElementById('portalVerificationPreflight')){
+    const note=document.createElement('details');
     note.id='portalVerificationPreflight';
-    note.className='portal-verify-preflight';
-    note.innerHTML='<b>Important: verify your email after creating the account.</b><br>We will send you a confirmation link. Open that email and click the link once. Nexus will then show you a confirmation screen and bring you back to sign in.';
+    note.className='portal-verify-preflight nexus-progressive-help';
+    note.innerHTML='<summary>Email verification</summary><p><b>After creating your account, verify your email once.</b> Open the confirmation message from Nexus, click the verification link, then return here to sign in.</p>';
     createForm.appendChild(note);
   }
 
-  // Password recovery is intentionally implemented through Supabase Auth rather than
-  // custom tokens. The response is generic so the UI never confirms whether an email
-  // address belongs to an account.
   if(signInForm&&!document.getElementById('forgotPasswordBtn')){
     const row=document.createElement('div');
-    row.className='small';
-    row.style.marginTop='12px';
-    row.innerHTML='<button id="forgotPasswordBtn" type="button" class="btn secondary" style="min-height:40px">Forgot password?</button>';
+    row.className='small';row.style.marginTop='12px';
+    row.innerHTML='<button id="forgotPasswordBtn" type="button" class="btn secondary" style="min-height:44px">Forgot password?</button>';
     signInForm.appendChild(row);
-    document.getElementById('forgotPasswordBtn')?.addEventListener('click',()=>showRecoveryRequestOverlay());
+    events.bind(document.getElementById('forgotPasswordBtn'),'click','auth:forgot-password',()=>showRecoveryRequestOverlay());
   }
 
-  createForm?.addEventListener('submit',()=>{
-    localStorage.setItem(pendingFlag,'1');
-  },true);
+  events.bind(createForm,'submit','auth:verification-expected',()=>storage.set(pendingFlag,'1'),true);
 
   const search=new URLSearchParams(location.search);
   const hash=new URLSearchParams((location.hash||'').replace(/^#/,''));
   const authError=search.get('error_description')||search.get('error')||hash.get('error_description')||hash.get('error');
   const recoveryReturn=search.get('mode')==='recovery'||search.get('type')==='recovery'||hash.get('type')==='recovery';
-  const looksLikeAuthReturn=
-    search.has('code')||search.has('token_hash')||search.has('type')||
-    hash.has('access_token')||hash.has('refresh_token')||hash.has('type');
+  const looksLikeAuthReturn=search.has('code')||search.has('token_hash')||search.has('type')||hash.has('access_token')||hash.has('refresh_token')||hash.has('type');
 
   let session=null;
-  try{session=(await sb.auth.getSession()).data.session}catch{}
+  try{const result=await sb.auth.getSession();session=result.data?.session||null;if(result.error)console.warn('Nexus auth session check failed',result.error)}catch(error){console.warn('Nexus auth session check failed',error)}
 
-  // Recovery takes precedence over the generic verification-return UX. This prevents
-  // a stale signup flag from misclassifying a password-reset callback as verification.
   if(recoveryReturn){
-    localStorage.removeItem(pendingFlag);
-    if(authError||!session?.user){
-      showVerificationOverlay(false,'That password-recovery link is invalid or has expired. Request a new recovery email and try again.');
-      return;
-    }
-    showRecoveryResetOverlay();
-    return;
+    storage.remove(pendingFlag);
+    if(authError||!session?.user){showVerificationOverlay(false,'That password-recovery link is invalid or has expired. Request a new recovery email and try again.');return}
+    showRecoveryResetOverlay();return;
   }
 
-  const expected=localStorage.getItem(pendingFlag)==='1';
-  if(authError){
-    showVerificationOverlay(false,decodeURIComponent(String(authError).replace(/\+/g,' ')));
-    return;
-  }
+  const expected=storage.get(pendingFlag)==='1';
+  if(authError){showVerificationOverlay(false,decodeURIComponent(String(authError).replace(/\+/g,' ')));return}
+  if((looksLikeAuthReturn||expected)&&session?.user){storage.remove(pendingFlag);showVerificationOverlay(true)}
 
-  if((looksLikeAuthReturn||expected) && session?.user){
-    localStorage.removeItem(pendingFlag);
-    showVerificationOverlay(true);
+  function appendOverlay(overlay,focusSelector){
+    document.body.appendChild(overlay);
+    if(modals){modals.open(overlay,document.activeElement)}
+    else setTimeout(()=>overlay.querySelector(focusSelector||'button,input')?.focus(),0);
+  }
+  function removeOverlay(overlay){
+    if(!overlay)return;
+    if(modals)modals.close(overlay);
+    setTimeout(()=>overlay.remove(),0);
   }
 
   function showRecoveryRequestOverlay(){
     if(document.getElementById('portalRecoveryOverlay'))return;
-    const overlay=document.createElement('div');
-    overlay.id='portalRecoveryOverlay';
-    overlay.className='portal-verified-overlay';
+    const overlay=document.createElement('div');overlay.id='portalRecoveryOverlay';overlay.className='portal-verified-overlay';overlay.tabIndex=-1;
     const suggested=$('signInEmail')?.value?.trim()||'';
-    overlay.innerHTML=`<div class="portal-verified-card" role="dialog" aria-modal="true" aria-labelledby="portalRecoveryTitle"><div class="eyebrow">Account recovery</div><h1 id="portalRecoveryTitle">Reset your password.</h1><p>Enter the email address you use for Nexus. If it matches an account, Nexus will send a secure recovery link.</p><form id="portalRecoveryRequestForm"><div class="field"><label for="portalRecoveryEmail">Email</label><input id="portalRecoveryEmail" type="email" autocomplete="email" required value="${escapeHtml(suggested)}"></div><p id="portalRecoveryMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoverySend" class="btn primary" type="submit">Send recovery email →</button><button id="portalRecoveryCancel" class="btn secondary" type="button">Cancel</button></div></form></div>`;
-    document.body.appendChild(overlay);
+    overlay.innerHTML=`<div class="portal-verified-card" aria-labelledby="portalRecoveryTitle"><div class="eyebrow">Account recovery</div><h1 id="portalRecoveryTitle">Reset your password.</h1><p>Enter your Nexus email. If it matches an account, we will send a secure recovery link.</p><form id="portalRecoveryRequestForm"><div class="field"><label for="portalRecoveryEmail">Email</label><input id="portalRecoveryEmail" type="email" autocomplete="email" required value="${escapeHtml(suggested)}"></div><p id="portalRecoveryMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoverySend" class="btn primary" type="submit">Send recovery email →</button><button id="portalRecoveryCancel" class="btn secondary" type="button">Cancel</button></div></form></div>`;
+    appendOverlay(overlay,'#portalRecoveryEmail');
     const email=document.getElementById('portalRecoveryEmail');
-    setTimeout(()=>email?.focus(),0);
-    document.getElementById('portalRecoveryCancel')?.addEventListener('click',()=>overlay.remove());
-    document.getElementById('portalRecoveryRequestForm')?.addEventListener('submit',async event=>{
-      event.preventDefault();
-      const button=document.getElementById('portalRecoverySend');
-      const message=document.getElementById('portalRecoveryMessage');
-      const address=email?.value?.trim()||'';
-      if(!address)return;
-      if(button){button.disabled=true;button.textContent='Sending…'}
-      if(message)message.textContent='';
-      try{
-        const {error}=await sb.auth.resetPasswordForEmail(address,{redirectTo:`${location.origin}/portal?mode=recovery`});
-        if(error)throw error;
-        if(message)message.textContent='If that email matches a Nexus account, a recovery link has been sent. Check your inbox and spam folder.';
-        if(button)button.style.display='none';
-        document.getElementById('portalRecoveryCancel').textContent='Close';
-      }catch(error){
-        console.error('Nexus password recovery request failed',error);
-        if(message)message.textContent='The recovery request could not be completed right now. Try again in a few minutes.';
-        if(button){button.disabled=false;button.textContent='Send recovery email →'}
-      }
-    });
+    events.bind(document.getElementById('portalRecoveryCancel'),'click','recovery:cancel',()=>removeOverlay(overlay));
+    events.bind(document.getElementById('portalRecoveryRequestForm'),'submit','recovery:request',boundary.wrap('password recovery request',async event=>{
+      event.preventDefault();const button=document.getElementById('portalRecoverySend'),message=document.getElementById('portalRecoveryMessage'),address=email?.value?.trim()||'';if(!address)return;
+      if(button){button.disabled=true;button.textContent='Sending…'}if(message)message.textContent='';
+      try{const {error}=await sb.auth.resetPasswordForEmail(address,{redirectTo:`${location.origin}/portal?mode=recovery`});if(error)throw error;if(message)message.textContent='If that email matches a Nexus account, a recovery link has been sent. Check your inbox and spam folder.';if(button)button.hidden=true;const cancel=document.getElementById('portalRecoveryCancel');if(cancel)cancel.textContent='Close'}
+      catch(error){console.error('Nexus password recovery request failed',error);if(message)message.textContent='The recovery request could not be completed right now. Try again in a few minutes.';if(button){button.disabled=false;button.textContent='Send recovery email →'}}
+    },{silent:true}));
   }
 
   function showRecoveryResetOverlay(){
     if(document.getElementById('portalRecoveryOverlay'))return;
     show?.('auth');
-    const overlay=document.createElement('div');
-    overlay.id='portalRecoveryOverlay';
-    overlay.className='portal-verified-overlay';
-    overlay.innerHTML='<div class="portal-verified-card" role="dialog" aria-modal="true" aria-labelledby="portalRecoveryResetTitle"><div class="eyebrow">Secure password reset</div><h1 id="portalRecoveryResetTitle">Create a new password.</h1><p>Use at least 12 characters with both letters and numbers.</p><form id="portalRecoveryResetForm"><div class="field"><label for="portalRecoveryPassword">New password</label><input id="portalRecoveryPassword" type="password" minlength="12" autocomplete="new-password" required></div><div class="field"><label for="portalRecoveryConfirm">Confirm new password</label><input id="portalRecoveryConfirm" type="password" minlength="12" autocomplete="new-password" required></div><p id="portalRecoveryResetMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoveryReset" class="btn primary" type="submit">Update password →</button></div></form></div>';
-    document.body.appendChild(overlay);
-    const password=document.getElementById('portalRecoveryPassword');
-    const confirm=document.getElementById('portalRecoveryConfirm');
-    setTimeout(()=>password?.focus(),0);
-    document.getElementById('portalRecoveryResetForm')?.addEventListener('submit',async event=>{
-      event.preventDefault();
-      const value=password?.value||'';
-      const confirmation=confirm?.value||'';
-      const message=document.getElementById('portalRecoveryResetMessage');
-      const button=document.getElementById('portalRecoveryReset');
-      if(value.length<12||!/[A-Za-z]/.test(value)||!/[0-9]/.test(value)){
-        if(message)message.textContent='Use at least 12 characters with both letters and numbers.';
-        return;
-      }
+    const overlay=document.createElement('div');overlay.id='portalRecoveryOverlay';overlay.className='portal-verified-overlay';overlay.tabIndex=-1;
+    overlay.innerHTML='<div class="portal-verified-card" aria-labelledby="portalRecoveryResetTitle"><div class="eyebrow">Secure password reset</div><h1 id="portalRecoveryResetTitle">Create a new password.</h1><p>Use at least 12 characters with both letters and numbers.</p><form id="portalRecoveryResetForm"><div class="field"><label for="portalRecoveryPassword">New password</label><input id="portalRecoveryPassword" type="password" minlength="12" autocomplete="new-password" required></div><div class="field"><label for="portalRecoveryConfirm">Confirm new password</label><input id="portalRecoveryConfirm" type="password" minlength="12" autocomplete="new-password" required></div><p id="portalRecoveryResetMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoveryReset" class="btn primary" type="submit">Update password →</button></div></form></div>';
+    appendOverlay(overlay,'#portalRecoveryPassword');
+    const password=document.getElementById('portalRecoveryPassword'),confirm=document.getElementById('portalRecoveryConfirm');
+    events.bind(document.getElementById('portalRecoveryResetForm'),'submit','recovery:reset',boundary.wrap('password update',async event=>{
+      event.preventDefault();const value=password?.value||'',confirmation=confirm?.value||'',message=document.getElementById('portalRecoveryResetMessage'),button=document.getElementById('portalRecoveryReset');
+      if(value.length<12||!/[A-Za-z]/.test(value)||!/[0-9]/.test(value)){if(message)message.textContent='Use at least 12 characters with both letters and numbers.';return}
       if(value!==confirmation){if(message)message.textContent='The passwords do not match.';return}
       if(button){button.disabled=true;button.textContent='Updating…'}
-      try{
-        const {error}=await sb.auth.updateUser({password:value});
-        if(error)throw error;
-        if(message)message.textContent='Password updated. Returning to sign in…';
-        await sb.auth.signOut();
-        history.replaceState({},'',location.pathname);
-        setTimeout(()=>{
-          overlay.remove();
-          show?.('auth');
-          pane?.('signInPane');
-          const authMessage=document.getElementById('authMessage');
-          if(authMessage){authMessage.textContent='Password updated. Sign in with your new password.';authMessage.style.color='var(--nx-muted)'}
-        },500);
-      }catch(error){
-        console.error('Nexus password update failed',error);
-        if(message)message.textContent='The password could not be updated. Request a fresh recovery link and try again.';
-        if(button){button.disabled=false;button.textContent='Update password →'}
-      }
-    });
+      try{const {error}=await sb.auth.updateUser({password:value});if(error)throw error;if(message)message.textContent='Password updated. Returning to sign in…';await sb.auth.signOut();history.replaceState({},'',location.pathname);setTimeout(()=>{removeOverlay(overlay);show?.('auth');pane?.('signInPane');const authMessage=document.getElementById('authMessage');if(authMessage){authMessage.textContent='Password updated. Sign in with your new password.';authMessage.style.color='var(--nx-muted)'}},350)}
+      catch(error){console.error('Nexus password update failed',error);if(message)message.textContent='The password could not be updated. Request a fresh recovery link and try again.';if(button){button.disabled=false;button.textContent='Update password →'}}
+    },{silent:true}));
   }
 
   function showVerificationOverlay(ok,message=''){
     if(document.getElementById('portalVerifiedOverlay'))return;
-    const overlay=document.createElement('div');
-    overlay.id='portalVerifiedOverlay';
-    overlay.className='portal-verified-overlay';
+    const overlay=document.createElement('div');overlay.id='portalVerifiedOverlay';overlay.className='portal-verified-overlay';overlay.tabIndex=-1;
     overlay.innerHTML=ok
-      ? `<div class="portal-verified-card" role="dialog" aria-modal="true"><div class="portal-verified-icon">✓</div><div class="eyebrow">Email verification complete</div><h1>Your email is verified.</h1><p>Your Nexus account is active. You can continue to your workspace now, or return to the sign-in screen.</p><div class="actions"><button id="verifiedContinue" class="btn primary" type="button">Continue to Nexus →</button><button id="verifiedSignIn" class="btn secondary" type="button">Return to Sign In</button></div></div>`
-      : `<div class="portal-verified-card error" role="dialog" aria-modal="true"><div class="portal-verified-icon">!</div><div class="eyebrow">Verification problem</div><h1>We could not confirm that link.</h1><p>${escapeHtml(message||'The verification link may have expired or already been used. Return to Nexus and try signing in. If needed, create a fresh confirmation request.')}</p><div class="actions"><button id="verifiedSignIn" class="btn primary" type="button">Return to Sign In</button><a class="btn secondary" href="/">Main Website</a></div></div>`;
-    document.body.appendChild(overlay);
-
-    document.getElementById('verifiedContinue')?.addEventListener('click',()=>{
-      overlay.remove();
-      history.replaceState({},'',location.pathname);
-      if(session?.user){location.reload();}
-    });
-    document.getElementById('verifiedSignIn')?.addEventListener('click',async()=>{
-      overlay.remove();
-      history.replaceState({},'',location.pathname);
-      try{await sb.auth.signOut()}catch{}
-      show?.('auth');
-      pane?.('signInPane');
-    });
+      ? `<div class="portal-verified-card"><div class="portal-verified-icon">✓</div><div class="eyebrow">Email verification complete</div><h1>Your email is verified.</h1><p>Your Nexus account is active.</p><div class="actions"><button id="verifiedContinue" class="btn primary" type="button">Continue to Nexus →</button><button id="verifiedSignIn" class="btn secondary" type="button">Return to Sign In</button></div></div>`
+      : `<div class="portal-verified-card error"><div class="portal-verified-icon">!</div><div class="eyebrow">Verification problem</div><h1>We could not confirm that link.</h1><p>${escapeHtml(message||'The verification link may have expired or already been used. Return to Nexus and try signing in.')}</p><div class="actions"><button id="verifiedSignIn" class="btn primary" type="button">Return to Sign In</button><a class="btn secondary" href="/">Main Website</a></div></div>`;
+    appendOverlay(overlay,ok?'#verifiedContinue':'#verifiedSignIn');
+    events.bind(document.getElementById('verifiedContinue'),'click','verification:continue',()=>{removeOverlay(overlay);history.replaceState({},'',location.pathname);if(session?.user)location.reload()});
+    events.bind(document.getElementById('verifiedSignIn'),'click','verification:signin',boundary.wrap('verification sign out',async()=>{removeOverlay(overlay);history.replaceState({},'',location.pathname);try{await sb.auth.signOut()}catch(error){console.warn('Verification sign-out cleanup failed',error)}show?.('auth');pane?.('signInPane')},{silent:true}));
   }
 }
 
-function escapeHtml(value){
-  return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+function fallbackStorage(){return{get:(key,fallback=null)=>{try{return localStorage.getItem(key)??fallback}catch{return fallback}},set:(key,value)=>{try{localStorage.setItem(key,String(value));return true}catch{return false}},remove:key=>{try{localStorage.removeItem(key);return true}catch{return false}}}}
+function fallbackEvents(){return{bind:(element,type,_key,handler,options)=>{element?.addEventListener(type,handler,options);return()=>element?.removeEventListener(type,handler,options)}}}
+function fallbackBoundary(){return{wrap:(_label,handler)=>async(...args)=>{try{return await handler(...args)}catch(error){console.error(error)}}}}
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
