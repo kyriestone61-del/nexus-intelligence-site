@@ -1,0 +1,113 @@
+/* Nexus UX refinement: simplify visual hierarchy without changing business rules. */
+:root{--nx-control-h:46px;--nx-radius-sm:10px;--nx-radius-md:14px;--nx-radius-lg:18px}
+body.nexus-ux-refined{--nx-content-max:1220px}
+body.nexus-ux-refined .topbar{position:sticky;top:0;z-index:1050;min-height:68px;gap:10px;padding:10px clamp(12px,2vw,24px);backdrop-filter:blur(16px);background:rgba(9,8,15,.92);border-bottom:1px solid rgba(229,224,255,.09)}
+body.nexus-ux-refined .topbar .brand{margin-right:4px}
+body.nexus-ux-refined .topbar .pill{font-size:9px;letter-spacing:.08em;opacity:.72}
+body.nexus-ux-refined .topbar .btn,body.nexus-ux-refined .topbar select{min-height:42px}
+body.nexus-ux-refined .workspace{min-height:calc(100vh - 68px)}
+body.nexus-ux-refined .sidebar{padding:18px 14px 28px;border-right-color:rgba(229,224,255,.08)}
+body.nexus-ux-refined .side-nav{display:grid;gap:5px}
+body.nexus-ux-refined .side-nav button{min-height:44px;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.25}
+body.nexus-ux-refined .side-nav button:not(.active):not(.journey-primary){color:#bbb5c8}
+body.nexus-ux-refined .side-nav button:hover{transform:none;background:rgba(255,255,255,.035)}
+body.nexus-ux-refined .ops-nav-group{margin:8px 10px 3px;font-size:9px;letter-spacing:.11em;color:#7f798e}
+body.nexus-ux-refined .admin-journey-only-note{padding:9px 11px 7px;line-height:1.4}
+body.nexus-ux-refined .admin-tool-drawer{margin-top:5px;padding-top:5px}
+body.nexus-ux-refined .admin-tool-drawer summary{min-height:42px;display:flex;align-items:center;justify-content:space-between;border-radius:9px;padding:9px 11px}
+body.nexus-ux-refined .admin-tool-drawer[open] summary{background:rgba(255,255,255,.025)}
+body.nexus-ux-refined .main{width:100%;max-width:var(--nx-content-max);margin:0 auto;padding:clamp(18px,2.6vw,34px)}
+body.nexus-ux-refined .section{animation:none}
+body.nexus-ux-refined .section h1{letter-spacing:-.025em}
+body.nexus-ux-refined .section h2{letter-spacing:-.012em}
+body.nexus-ux-refined .eyebrow,body.nexus-ux-refined .kicker{letter-spacing:.08em}
+body.nexus-ux-refined .box,body.nexus-ux-refined .panel,body.nexus-ux-refined .metric-card{border-radius:var(--nx-radius-md);border-color:rgba(229,224,255,.09);box-shadow:none}
+body.nexus-ux-refined .box{padding:18px}
+body.nexus-ux-refined .toolbar{gap:16px;margin-bottom:16px}
+body.nexus-ux-refined .toolbar>div:first-child p{max-width:760px}
+body.nexus-ux-refined .btn{min-height:var(--nx-control-h);border-radius:10px;padding:0 14px;font-weight:800;line-height:1.15;box-shadow:none}
+body.nexus-ux-refined .btn.primary{box-shadow:0 8px 22px rgba(156,124,255,.12)}
+body.nexus-ux-refined .btn.secondary{background:rgba(255,255,255,.025);border-color:rgba(229,224,255,.12)}
+body.nexus-ux-refined input,body.nexus-ux-refined select,body.nexus-ux-refined textarea{min-height:var(--nx-control-h);border-radius:10px;border-color:rgba(229,224,255,.13);background:rgba(7,6,12,.72)}
+body.nexus-ux-refined textarea{min-height:112px;padding-top:12px}
+body.nexus-ux-refined .field label{margin-bottom:7px;font-size:12px}
+body.nexus-ux-refined .row{border-color:rgba(229,224,255,.07);padding:13px 0}
+body.nexus-ux-refined .pill{border-color:rgba(229,224,255,.12)}
+
+/* Persistent, low-noise context bar: current client + view + one next-step shortcut. */
+.nexus-context-bar{display:flex;align-items:center;gap:12px;min-height:52px;margin:0 0 18px;padding:9px 11px;border:1px solid rgba(229,224,255,.09);border-radius:12px;background:rgba(255,255,255,.018)}
+.nexus-context-bar .nexus-context-copy{display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden}
+.nexus-context-bar .nexus-context-copy span{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#888196;white-space:nowrap}
+.nexus-context-bar .nexus-context-copy b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nexus-context-sep{width:1px;height:18px;background:rgba(229,224,255,.1)}
+.nexus-context-bar .btn{min-height:36px;padding:0 11px;font-size:12px}
+
+/* Admin: make the journey the page, not a dashboard full of equal-weight objects. */
+body.nexus-ux-refined.portal-admin-mode .admin-journey-section{max-width:none}
+body.nexus-ux-refined.portal-admin-mode .admin-journey-hero{margin-bottom:14px;gap:18px}
+body.nexus-ux-refined.portal-admin-mode .admin-journey-hero h1{font-size:clamp(30px,3.3vw,44px);margin-top:4px}
+body.nexus-ux-refined.portal-admin-mode .admin-journey-client{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.018)}
+body.nexus-ux-refined.portal-admin-mode .journey-focus{padding:18px;margin-bottom:14px;border-radius:15px}
+body.nexus-ux-refined.portal-admin-mode .journey-focus h2{font-size:23px}
+body.nexus-ux-refined.portal-admin-mode .journey-focus-actions{margin-top:13px}
+body.nexus-ux-refined.portal-admin-mode .journey-summary-grid{gap:8px;margin-bottom:14px}
+body.nexus-ux-refined.portal-admin-mode .journey-summary-card{padding:11px 13px;border-radius:11px;background:rgba(255,255,255,.014)}
+body.nexus-ux-refined.portal-admin-mode .journey-summary-card b{font-size:20px}
+body.nexus-ux-refined.portal-admin-mode .journey-step{grid-template-columns:46px minmax(0,1fr) auto;padding:14px;border-radius:13px;background:rgba(255,255,255,.014)}
+body.nexus-ux-refined.portal-admin-mode .journey-step.current{box-shadow:inset 3px 0 0 rgba(127,231,214,.7)}
+body.nexus-ux-refined.portal-admin-mode .journey-step-number{width:36px;height:36px;border-radius:10px}
+body.nexus-ux-refined.portal-admin-mode .journey-step p{max-width:760px}
+
+/* Discovery/diagnosis: group related content and de-emphasize implementation jargon. */
+body.nexus-ux-refined .discovery-capture-card,body.nexus-ux-refined .diagnosis-v2-card,body.nexus-ux-refined .nexus-inbox-card{border-radius:13px!important}
+body.nexus-ux-refined .nexus-inbox-controls{position:sticky;top:80px;z-index:12;padding:8px 0;background:linear-gradient(#0d0b13 72%,rgba(13,11,19,0))}
+body.nexus-ux-refined .nexus-inbox-filters{gap:5px}
+body.nexus-ux-refined .nexus-inbox-filters button{min-height:38px;padding:7px 10px;font-size:11px}
+
+/* Client: shorter reading widths, one-column actions on phones, less decorative density. */
+body.nexus-ux-refined.portal-client-mode .client-page-head{align-items:center;margin-bottom:14px}
+body.nexus-ux-refined.portal-client-mode .client-page-head h1{font-size:clamp(30px,4vw,46px);margin:6px 0 7px}
+body.nexus-ux-refined.portal-client-mode .client-page-head p{max-width:680px;font-size:14px}
+body.nexus-ux-refined.portal-client-mode .client-focus-panel{padding:18px;border-radius:15px}
+body.nexus-ux-refined.portal-client-mode .client-soft-panel,body.nexus-ux-refined.portal-client-mode .client-progress-section{padding:17px;border-radius:14px}
+body.nexus-ux-refined.portal-client-mode .client-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+body.nexus-ux-refined.portal-client-mode .client-action-card{padding:15px;border-radius:12px}
+body.nexus-ux-refined.portal-client-mode .client-completed-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+body.nexus-ux-refined.portal-client-mode .client-primary-nav button{min-height:46px}
+body.nexus-ux-refined.portal-client-mode .nexus-guide-button{right:14px;bottom:14px;min-height:46px}
+
+/* Operations console: plain-language navigation and client-context-first scanning. */
+.ops-native-body.nexus-ux-refined .ops-native-topbar{position:sticky;top:0;z-index:1000;min-height:68px;padding:10px 18px;background:rgba(6,16,29,.94);backdrop-filter:blur(16px)}
+.ops-native-body.nexus-ux-refined .ops-native-sidebar{padding-top:16px}
+.ops-native-body.nexus-ux-refined .ops-native-nav{gap:5px}
+.ops-native-body.nexus-ux-refined .ops-native-nav button{min-height:44px;border-radius:10px;padding:10px 12px}
+.ops-native-body.nexus-ux-refined .ops-native-main{max-width:1260px;width:100%;margin:0 auto;padding:clamp(18px,2.5vw,32px)}
+.ops-native-body.nexus-ux-refined .ops-page-head h1{font-size:clamp(30px,3.6vw,46px)}
+.ops-native-body.nexus-ux-refined .ops-panel,.ops-native-body.nexus-ux-refined .ops-command,.ops-native-body.nexus-ux-refined .ops-stat{border-radius:14px;box-shadow:none}
+.ops-native-body.nexus-ux-refined .ops-stat-grid{gap:8px}
+.ops-native-body.nexus-ux-refined .ops-grid{gap:10px}
+
+@media(max-width:900px){
+ body.nexus-ux-refined .main{padding:18px 14px 96px}
+ body.nexus-ux-refined .nexus-context-bar{align-items:flex-start;flex-wrap:wrap}
+ body.nexus-ux-refined .nexus-context-copy{flex-basis:100%}
+ body.nexus-ux-refined.portal-admin-mode .journey-step{grid-template-columns:40px minmax(0,1fr)}
+ body.nexus-ux-refined.portal-admin-mode .journey-step-action{grid-column:2;width:100%}
+ body.nexus-ux-refined.portal-admin-mode .journey-step-action .btn{width:100%}
+ body.nexus-ux-refined.portal-client-mode .client-action-grid,body.nexus-ux-refined.portal-client-mode .client-completed-list{grid-template-columns:1fr}
+ .ops-native-body.nexus-ux-refined .ops-native-main{padding:18px 14px 90px}
+}
+@media(max-width:620px){
+ body.nexus-ux-refined .topbar{min-height:60px;padding:8px 10px;flex-wrap:wrap}
+ body.nexus-ux-refined .topbar .pill{display:none}
+ body.nexus-ux-refined .topbar>.btn{min-height:38px;padding:0 10px;font-size:11px}
+ body.nexus-ux-refined .topbar .brand span:last-child{display:none}
+ body.nexus-ux-refined .toolbar{align-items:flex-start;flex-direction:column}
+ body.nexus-ux-refined .toolbar>.btn,body.nexus-ux-refined .toolbar>.actions{width:100%}
+ body.nexus-ux-refined .toolbar>.actions .btn{flex:1}
+ body.nexus-ux-refined .nexus-context-bar .btn{width:100%}
+ body.nexus-ux-refined.portal-client-mode .client-page-head{display:block}
+ body.nexus-ux-refined.portal-client-mode .client-page-head .btn{width:100%;margin-top:12px}
+ .ops-native-body.nexus-ux-refined .ops-native-title span{display:none}
+ .ops-native-body.nexus-ux-refined .ops-native-topbar{gap:7px;padding:8px 10px;flex-wrap:wrap}
+}
