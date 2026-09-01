@@ -7,7 +7,7 @@ const SUPABASE_KEY='sb_publishable_-bZLK1vmL0eUMz65A6EUsw_I20LBq2B';
 const BUCKET='nexus-client-documents';
 const sb=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id);
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=v=>v?new Date(v+'T00:00:00').toLocaleDateString():'—';
 const dt=v=>v?new Date(v).toLocaleString():'—';
 const state={user:null,admin:false,companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[],notificationPrefs:null,emailConfigured:false};
