@@ -4,7 +4,7 @@
   "type":"module",
   "scripts":{
     "test":"playwright test",
-    "test:smoke":"playwright test tests/public-smoke.spec.mjs tests/mobile-smoke.spec.mjs",
+    "test:smoke":"playwright test tests/public-smoke.spec.mjs tests/mobile-smoke.spec.mjs tests/sitewide-public-mobile.spec.mjs",
     "test:roles":"playwright test tests/role-boundary.spec.mjs"
   },
   "devDependencies":{
