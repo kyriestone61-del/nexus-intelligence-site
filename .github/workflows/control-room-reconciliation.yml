@@ -74,6 +74,10 @@ jobs:
           grep -q 'portal-runtime-hardening.css' portal-app.js
           grep -q 'portal-client-upload-service.js' portal-app.js
           grep -q 'portal-client-shell-v2.js' portal-app.js
+          grep -q 'portal.prepareUpload' portal-client-shell-v2.js
+          grep -q 'portal.services.clientUpload=service' portal-client-upload-service.js
+          grep -q "Object.defineProperty(portal,'prepareUpload'" portal-client-upload-service.js
+          grep -q 'request_id:selection.requestId' portal-client-upload-service.js
           if grep -q 'new MutationObserver' portal-client-shell-v2.js portal-accessibility.js; then
             echo 'Client Control Room runtime must not use DOM mutation rewrite loops.' >&2
             exit 1
