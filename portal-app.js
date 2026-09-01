@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-control-room-reconcile3';
+const BUILD='20260901-control-room-reconcile4';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -29,7 +29,19 @@ function loadStyle(file){return new Promise(resolve=>{const link=document.create
 async function loadStyles(files){await Promise.all(files.map(loadStyle))}
 function setBootMessage(title,message){const card=bootOverlay.querySelector('.nexus-boot-card');if(!card)return;const h=card.querySelector('h2'),p=card.querySelector('p');if(h)h.textContent=title;if(p)p.textContent=message}
 function clearBootLock(){window.__nexusPortalBooting=false;document.body.classList.add('nexus-shell-ready');const app=document.getElementById('portalApp');if(app)app.style.visibility='';document.body.classList.remove('nexus-runtime-booting');bootOverlay.remove();bootStyle.remove()}
-function showCoreLoadFailure(error){console.error('Nexus core portal failed to initialize.',error);window.__nexusPortalBooting=false;const app=document.getElementById('portalApp');if(app)app.style.visibility='hidden';document.body.classList.remove('nexus-runtime-booting');setBootMessage('Nexus could not finish loading.','Refresh this page. If the problem continues, sign out and sign back in.');const line=bootOverlay.querySelector('.nexus-boot-line');if(line)line.style.display='none'}
+function showCoreLoadFailure(error){
+  console.error('Nexus portal enhancement failed to initialize.',error);
+  clearBootLock();
+  document.body.classList.add('nexus-runtime-degraded');
+  if(document.getElementById('nexusPortalDegradedBanner'))return;
+  const banner=document.createElement('div');
+  banner.id='nexusPortalDegradedBanner';
+  banner.setAttribute('role','status');
+  banner.style.cssText='position:relative;z-index:10000;padding:10px 16px;background:#2a2138;color:#f4f0e8;border-bottom:1px solid rgba(255,255,255,.12);font:600 13px/1.4 system-ui,sans-serif;text-align:center';
+  banner.textContent='Nexus opened in recovery mode because one workspace enhancement did not finish loading. Core portal access remains available.';
+  const app=document.getElementById('portalApp');
+  (app||document.body).prepend(banner);
+}
 async function optionalImport(url){try{return await import(url)}catch(error){console.error(`Optional Nexus portal module failed to load: ${url}`,error);return null}}
 async function requiredImport(url,label=url){try{return await import(url)}catch(error){console.error(`Required Nexus portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
 async function importWithoutRecurringIntervals(url,blockedDelays=[]){const nativeSetInterval=window.setInterval;window.setInterval=(fn,delay,...args)=>blockedDelays.includes(Number(delay))?0:nativeSetInterval(fn,delay,...args);try{return await import(url)}finally{window.setInterval=nativeSetInterval}}
