@@ -7,6 +7,7 @@ on:
       - 'portal-ux-refinement.js'
       - 'portal-ux-refinement.css'
       - 'operations.html'
+      - 'operations-ux-refinement.js'
       - '.github/workflows/nexus-ux-refinement-qaqc.yml'
   workflow_dispatch:
 
@@ -22,6 +23,7 @@ jobs:
         run: |
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-ux-refinement.js
+          node --input-type=module --check < operations-ux-refinement.js
       - name: Portal load contract
         run: |
           set -euo pipefail
@@ -34,6 +36,7 @@ jobs:
           set -euo pipefail
           grep -Fq "bar.dataset.signature===signature" portal-ux-refinement.js
           grep -Fq "observer.observe(document.body,{subtree:true,childList:true})" portal-ux-refinement.js
+          grep -Fq "observer.observe(document.getElementById('consoleApp')||document.body,{subtree:true,childList:true})" operations-ux-refinement.js
           if grep -Fq "attributeFilter:['class']" portal-ux-refinement.js; then
             echo 'UX refinement must not continuously observe and rewrite body classes.' >&2
             exit 1
@@ -47,6 +50,8 @@ jobs:
           grep -Fq '>Knowledge & Evidence</button>' operations.html
           grep -Fq '>Connected Tools</button>' operations.html
           grep -Fq '/portal-ux-refinement.css?v=20260901-ux1' operations.html
+          grep -Fq '/operations-ux-refinement.js?v=20260901-ux1' operations.html
+          grep -Fq "['What requires judgment now?','What needs your attention?']" operations-ux-refinement.js
       - name: Mobile and touch contract
         run: |
           set -euo pipefail
