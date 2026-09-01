@@ -53,5 +53,7 @@ jobs:
             fi
           }
 
-          dispatch "email" "$EMAIL_DISPATCH_URL"
-          dispatch "sms" "$SMS_DISPATCH_URL"
+          status=0
+          if ! dispatch "email" "$EMAIL_DISPATCH_URL"; then status=1; fi
+          if ! dispatch "sms" "$SMS_DISPATCH_URL"; then status=1; fi
+          exit "$status"
