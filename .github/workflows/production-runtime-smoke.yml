@@ -1,6 +1,21 @@
 name: Nexus Production Runtime Smoke
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'portal.html'
+      - 'portal-app.js'
+      - 'portal-client.js'
+      - 'portal-auth.js'
+      - 'portal-runtime-core.js'
+      - 'portal-runtime-hardening.css'
+      - 'portal-accessibility.js'
+      - 'portal-client-core.js'
+      - 'portal-client-upload-service.js'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - '.github/workflows/production-runtime-smoke.yml'
   pull_request:
     paths:
       - '.github/workflows/production-runtime-smoke.yml'
@@ -14,7 +29,7 @@ permissions:
 jobs:
   production-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Probe live Nexus production
@@ -22,26 +37,38 @@ jobs:
         run: |
           set -euo pipefail
           origin='https://nexusintelligence.live'
+          pages='https://nexus-intelligence-site.pages.dev'
           supabase='https://dmdgkjksouhhsuojthav.supabase.co/functions/v1'
           report='production-smoke-report.txt'
           : > "$report"
 
           probe_get() {
             local name="$1" url="$2" expect="$3"
-            local body code
+            local body code attempt
             body="$(mktemp)"
-            code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' "$url")"
+            for attempt in 1 2 3 4 5 6 7 8; do
+              code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' "$url" || true)"
+              if [ "$code" = "200" ] && grep -Fq "$expect" "$body"; then
+                echo "$name http=$code marker=present attempt=$attempt" | tee -a "$report"
+                return 0
+              fi
+              echo "$name attempt=$attempt http=${code:-curl_error} waiting_for='$expect'" | tee -a "$report"
+              sleep 10
+            done
+            echo "$name failed: expected HTTP 200 and live marker: $expect" >&2
+            head -c 2400 "$body" >&2 || true
+            exit 1
+          }
+
+          probe_headers() {
+            local name="$1" url="$2"
+            local headers code
+            headers="$(mktemp)"
+            code="$(curl --silent --show-error --location --output /dev/null --dump-header "$headers" --write-out '%{http_code}' "$url")"
             echo "$name http=$code" | tee -a "$report"
-            if [ "$code" != "200" ]; then
-              echo "$name expected HTTP 200" >&2
-              cat "$body" >&2
-              exit 1
-            fi
-            if ! grep -Fq "$expect" "$body"; then
-              echo "$name missing expected live marker: $expect" >&2
-              head -c 2000 "$body" >&2
-              exit 1
-            fi
+            test "$code" = '200'
+            tr -d '\r' < "$headers" | grep -Eiq '^cache-control:.*no-store'
+            tr -d '\r' < "$headers" | grep -Eiq '^x-robots-tag:.*noindex'
           }
 
           probe_unauth_post() {
@@ -61,7 +88,23 @@ jobs:
             fi
           }
 
-          probe_get 'portal-app' "$origin/portal-app.js" 'portal-vnext-runtime-router.js'
+          # Client Control Room V2: verify the deployed asset graph, not only repository source.
+          probe_get 'pages-portal' "$pages/portal" 'CONTROL ROOM'
+          probe_headers 'pages-portal-security-headers' "$pages/portal"
+          probe_get 'pages-portal-app-build' "$pages/portal-app.js" '20260901-control-room-reconcile3'
+          probe_get 'pages-portal-app-shell-v2' "$pages/portal-app.js" 'portal-client-shell-v2.js'
+          probe_get 'pages-portal-app-upload-service' "$pages/portal-app.js" 'portal-client-upload-service.js'
+          probe_get 'pages-runtime-core' "$pages/portal-runtime-core.js" 'createPortalRuntime'
+          probe_get 'pages-shell-today' "$pages/portal-client-shell-v2.js" '01 Today'
+          probe_get 'pages-shell-data-room' "$pages/portal-client-shell-v2.js" '02 Secure Data Room'
+          probe_get 'pages-shell-improvement-record' "$pages/portal-client-shell-v2.js" '03 Improvement Record'
+          probe_get 'pages-upload-isolation' "$pages/portal-client-upload-service.js" 'stopImmediatePropagation'
+
+          # Custom production domain must serve the same reconciled portal runtime.
+          probe_get 'custom-portal-app-shell-v2' "$origin/portal-app.js" 'portal-client-shell-v2.js'
+          probe_get 'custom-shell-improvement-record' "$origin/portal-client-shell-v2.js" '03 Improvement Record'
+
+          # Existing administrator/runtime safety probes remain required.
           probe_get 'runtime-router' "$origin/portal-vnext-runtime-router.js" '/api/diagnosis-report-pdf'
           probe_get 'runtime-router-sms' "$origin/portal-vnext-runtime-router.js" "status:'scheduled'"
 
