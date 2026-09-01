@@ -1,0 +1,48 @@
+/* Nexus operating-model cohesion — Companies + Inbox + mobile */
+.nexus-companies-shell{display:grid;gap:14px}
+.nexus-companies-toolbar{display:grid;grid-template-columns:minmax(220px,1.5fr) minmax(170px,.7fr) auto;gap:9px;align-items:end;padding:14px;border:1px solid var(--nx-line);border-radius:16px;background:rgba(255,255,255,.025)}
+.nexus-companies-toolbar .field{margin:0}
+.nexus-company-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.nexus-company-summary>div{padding:14px;border:1px solid var(--nx-line);border-radius:14px;background:rgba(255,255,255,.025)}
+.nexus-company-summary b{display:block;font-size:24px}.nexus-company-summary span{font-size:12px;color:var(--muted)}
+.nexus-company-table-wrap{max-width:100%;overflow-x:auto;border:1px solid var(--nx-line);border-radius:16px}
+.nexus-company-table{width:100%;border-collapse:collapse;min-width:960px;background:rgba(255,255,255,.015)}
+.nexus-company-table th,.nexus-company-table td{padding:13px 12px;border-bottom:1px solid var(--nx-line);vertical-align:top;text-align:left}
+.nexus-company-table th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,.025);position:sticky;top:0;z-index:2}
+.nexus-company-table tr:last-child td{border-bottom:0}.nexus-company-table h3{margin:0 0 3px;font-size:15px}.nexus-company-table .small{font-size:11px}
+.nexus-lifecycle{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;border:1px solid var(--nx-line);white-space:nowrap}
+.nexus-lifecycle.intake{background:rgba(156,124,255,.12);color:#c9b8ff}.nexus-lifecycle.active{background:rgba(217,255,114,.10);color:#d9ff72}.nexus-lifecycle.archived{background:rgba(255,255,255,.05);color:var(--muted)}
+.nexus-company-actions{display:flex;gap:6px;flex-wrap:wrap}.nexus-company-actions .btn{padding:8px 10px;font-size:11px}
+.nexus-company-cards{display:none;gap:10px}
+.nexus-company-card{padding:15px;border:1px solid var(--nx-line);border-radius:15px;background:rgba(255,255,255,.025)}
+.nexus-company-card-head{display:flex;justify-content:space-between;gap:10px;align-items:start}.nexus-company-card h3{margin:0 0 3px}.nexus-company-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.nexus-company-card-grid>div{padding:9px;background:rgba(255,255,255,.025);border-radius:10px}.nexus-company-card-grid b{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}.nexus-company-card-grid span{font-size:12px}
+.nexus-inbox-advanced{display:grid;grid-template-columns:minmax(180px,1.4fr) repeat(3,minmax(130px,.7fr));gap:8px;margin:10px 0 14px;padding:12px;border:1px solid var(--nx-line);border-radius:14px;background:rgba(255,255,255,.02)}
+.nexus-inbox-advanced .field{margin:0}.nexus-inbox-advanced label{font-size:11px;color:var(--muted);margin-bottom:5px;display:block}.nexus-inbox-hidden{display:none!important}
+.nexus-action-guidance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.nexus-action-guidance>div{padding:10px 11px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.025)}
+.nexus-action-guidance b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}.nexus-action-guidance span{display:block;font-size:12px;line-height:1.45}
+#nexusMobileNavToggle{display:none;width:100%;align-items:center;justify-content:space-between;gap:10px;margin:0 0 9px;min-height:44px;border:1px solid var(--nx-line);border-radius:12px;background:rgba(255,255,255,.035);color:inherit;padding:10px 12px;font:inherit;font-weight:800}
+#nexusMobileNavToggle small{font-weight:500;color:var(--muted)}
+.nexus-mobile-company-label{display:none;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.vnext-full-pdf::after{content:' · Internal'}
+.vnext-client-pdf::after{content:' · Client'}
+
+@media(max-width:900px){
+  .nexus-companies-toolbar{grid-template-columns:1fr 1fr}.nexus-companies-toolbar .nexus-company-refresh{grid-column:1/-1;width:100%}
+  .nexus-company-table-wrap{display:none}.nexus-company-cards{display:grid}.nexus-action-guidance{grid-template-columns:1fr}
+  .nexus-inbox-advanced{grid-template-columns:1fr 1fr}
+}
+@media(max-width:760px){
+  #nexusMobileNavToggle{display:flex}
+  .portal-body .sidebar.nexus-mobile-nav-collapsed .side-nav,.portal-body .sidebar.nexus-mobile-nav-collapsed .note,.portal-body .sidebar.nexus-mobile-nav-collapsed .admin-tool-drawer{display:none!important}
+  .portal-body .sidebar{position:relative}
+  .portal-body .topbar .company-select{min-height:46px;border-width:1px!important;font-size:16px!important;background:rgba(255,255,255,.05)!important}
+  .nexus-mobile-company-label{display:block;grid-column:1/-1}
+  .nexus-companies-toolbar,.nexus-inbox-advanced{grid-template-columns:1fr}
+  .nexus-company-summary{grid-template-columns:1fr 1fr}.nexus-company-summary>div:last-child{grid-column:1/-1}
+  .nexus-company-card-grid{grid-template-columns:1fr}
+  .nexus-company-actions{display:grid;grid-template-columns:1fr}.nexus-company-actions .btn{width:100%;min-height:42px;justify-content:center}
+  .nexus-inbox-controls{align-items:stretch!important}.nexus-inbox-filters{display:grid!important;grid-template-columns:1fr 1fr!important;width:100%}.nexus-inbox-filters button{min-height:42px!important}
+  .nexus-inbox-card{padding:14px!important}.nexus-inbox-card-top{align-items:flex-start!important;gap:7px!important}.nexus-inbox-meta{display:grid!important;grid-template-columns:1fr!important;gap:4px!important}
+}
+@media(max-width:390px){.nexus-company-summary{grid-template-columns:1fr}.nexus-company-summary>div:last-child{grid-column:auto}.nexus-inbox-filters{grid-template-columns:1fr!important}}
