@@ -1,0 +1,36 @@
+/* Mobile admin cleanup: expose the real client selector and remove duplicated chrome. */
+@media(max-width:760px){
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;padding:10px!important;align-items:center!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar .brand{grid-column:1/-1!important;min-width:0!important;margin:0!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar>a[href="/"].btn{display:none!important}
+
+  /* companySelect is the canonical selector. Perspective mode hid it on phones; show it again. */
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar>#nexusMobileCompanyLabel{display:block!important;grid-column:1/-1!important;margin:2px 0 -2px!important;font-size:11px!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:var(--muted,#aaa4ba)!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar>#companySelect{display:block!important;grid-column:1/-1!important;width:100%!important;min-height:48px!important;font-size:16px!important;border:1px solid rgba(229,224,255,.18)!important;border-radius:12px!important;background:#15131f!important;color:inherit!important;padding:10px 12px!important}
+
+  /* Admin perspective stays available as a compact View control instead of looking like the client selector. */
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar #nexusPerspectiveSwitcher{grid-column:1/2!important;width:100%!important;margin:0!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar #nexusPerspectiveSwitcher>summary{width:100%!important;min-height:44px!important;padding:9px 11px!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar #nexusPerspectiveSwitcher>summary .perspective-client{display:none!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar #nexusPerspectiveSwitcher>summary:before{content:'View';font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#aaa4ba;font-weight:800}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar #alertsBtn{grid-column:2/3!important;width:100%!important;min-height:44px!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .topbar #signOutBtn{grid-column:1/-1!important;width:100%!important;min-height:42px!important}
+
+  /* These duplicate the Admin perspective and consume entire phone rows. */
+  body.nexus-perspective-enabled:not(.portal-client-mode) #accountModeBadge,
+  body.nexus-perspective-enabled:not(.portal-client-mode) .account-mode-badge,
+  body.nexus-perspective-enabled:not(.portal-client-mode) #adminConsoleLink,
+  body.nexus-perspective-enabled:not(.portal-client-mode) .admin-console-link{display:none!important}
+
+  /* Selected company is explicit above, so remove the redundant sidebar company block and its blank space. */
+  body.nexus-perspective-enabled:not(.portal-client-mode) .workspace{display:block!important;min-height:0!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .sidebar{padding:10px!important;border-bottom:1px solid rgba(229,224,255,.08)!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .sidebar #companyMini{display:none!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) #nexusMobileNavToggle{margin:0!important;min-height:50px!important;padding:11px 13px!important}
+
+  /* Context copy duplicates the selector + view control. Keep only the useful next-step action. */
+  body.nexus-perspective-enabled:not(.portal-client-mode) .main{padding-top:10px!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .nexus-context-bar{margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;min-height:0!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .nexus-context-bar .nexus-context-copy{display:none!important}
+  body.nexus-perspective-enabled:not(.portal-client-mode) .nexus-context-bar .btn{width:100%!important;min-height:46px!important}
+}
