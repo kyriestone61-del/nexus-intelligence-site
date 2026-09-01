@@ -1,5 +1,6 @@
+import '/portal-client-pdf-service.js';
 /**
- * Client upload service: one owner for Client Control Room document actions.
+ * Client document service: one owner for Client Control Room document actions.
  * Owns queue state, request linkage, downloads, rollback, and accepted evidence types.
  */
 const portal=window.NexusPortal;
