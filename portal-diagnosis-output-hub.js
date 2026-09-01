@@ -52,7 +52,7 @@ async function loadOutputs(runId=null){
     ]);
     const chainIds=approvals.map(x=>x.approval_chain_id).filter(Boolean);
     let chains=[];
-    if(chainIds.length){const r=await sb.from('nexus_approval_chains').select('id,status,visibility,current_step_order,updated_at').in('id',chainIds);if(r.error)throw r.error;chains=r.data||[]}
+    if(chainIds.length){const r=await sb.from('nexus_approval_chains').select('id,status,visibility,current_step,updated_at').in('id',chainIds);if(r.error)throw r.error;chains=r.data||[]}
     const chainById=Object.fromEntries(chains.map(x=>[x.id,x]));
     data={metrics,projects,approvals:approvals.map(x=>({...x,chain:chainById[x.approval_chain_id]||null})),milestones,nexus_tasks:tasks.filter(x=>x.assignee==='nexus'),client_actions:tasks.filter(x=>x.assignee==='client'),opportunities,document_requests:documents};
     return data;
