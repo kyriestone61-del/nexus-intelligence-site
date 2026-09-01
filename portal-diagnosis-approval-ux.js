@@ -68,6 +68,15 @@ async function approve(button){
   }
 }
 
+function hideReviewForDrilldown(event){
+  const target=event.target.closest?.('#diagnosisReviewModal .diagnosis-generated [data-output-kind],#diagnosisReviewModal .diagnosis-generated [data-open-generated-workspace],#diagnosisReviewModal .diagnosis-generated [data-continue-step4]');
+  if(!target)return;
+  const modal=document.getElementById('diagnosisReviewModal');
+  modal?.classList.remove('open');
+  modal?.setAttribute('aria-hidden','true');
+  document.body.classList.remove('diagnosis-review-open');
+}
+
 ensureStyles();
 document.addEventListener('click',event=>{
   const button=event.target.closest?.('[data-diagnosis-action="approve"]');
@@ -77,6 +86,7 @@ document.addEventListener('click',event=>{
   event.stopImmediatePropagation();
   approve(button);
 },true);
+document.addEventListener('click',hideReviewForDrilldown,true);
 
 window.NexusDiagnosisApprovalUX={approve};
 import('/portal-diagnosis-output-hub.js?v=20260901-step4').catch(error=>console.error('Diagnosis output hub failed to load',error));
