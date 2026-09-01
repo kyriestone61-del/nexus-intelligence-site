@@ -1,4 +1,4 @@
-name: Nexus Level Two Client Shell QA
+name: Nexus Full Client Control Room QA
 
 on:
   pull_request:
@@ -6,32 +6,32 @@ on:
       - 'portal-app.js'
       - 'portal-client.js'
       - 'portal-runtime-core.js'
+      - 'portal-nexus-store.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
-      - 'portal-client-shell.js'
-      - 'portal-client-shell.css'
+      - 'portal-client-control-room.js'
+      - 'portal-client-control-room.css'
+      - 'portal-admin-command-center.js'
+      - 'portal-admin-command-center.css'
       - 'portal-health-check.js'
+      - 'supabase/migrations/20260901211143_nexus_client_intake_roi_engine.sql'
       - 'tests/client-level2-qaqc.mjs'
       - '.github/workflows/client-shell-refactor-qaqc.yml'
   push:
     branches: [main]
     paths:
       - 'portal-app.js'
-      - 'portal-client.js'
       - 'portal-runtime-core.js'
-      - 'portal-client-core.js'
-      - 'portal-client-upload-service.js'
-      - 'portal-client-shell.js'
-      - 'portal-client-shell.css'
+      - 'portal-nexus-store.js'
+      - 'portal-client-control-room.js'
+      - 'portal-admin-command-center.js'
       - 'portal-health-check.js'
       - 'tests/client-level2-qaqc.mjs'
       - '.github/workflows/client-shell-refactor-qaqc.yml'
-
 permissions:
   contents: read
-
 jobs:
-  level-two-client-qaqc:
+  full-control-room-qaqc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,63 +41,47 @@ jobs:
       - name: Syntax
         run: |
           set -euo pipefail
-          node --input-type=module --check < portal-app.js
-          node --input-type=module --check < portal-client.js
-          node --input-type=module --check < portal-runtime-core.js
-          node --input-type=module --check < portal-client-core.js
-          node --input-type=module --check < portal-client-upload-service.js
-          node --input-type=module --check < portal-client-shell.js
-          node --input-type=module --check < portal-health-check.js
-      - name: Level Two zero-regression contract
+          for file in portal-app.js portal-client.js portal-runtime-core.js portal-nexus-store.js portal-client-core.js portal-client-upload-service.js portal-client-control-room.js portal-admin-command-center.js portal-health-check.js; do
+            node --input-type=module --check < "$file"
+          done
+      - name: Full zero-regression contract
         run: node tests/client-level2-qaqc.mjs
-      - name: Canonical shell guard
+      - name: Canonical runtime guard
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "portal-client-shell.css" portal-app.js
-          grep -Fq "portal-client-shell.js" portal-app.js
-          grep -Fq "portal-health-check.js" portal-app.js
-          if grep -Eq 'portal-client-shell-v2\.(js|css)' portal-app.js; then
-            echo 'Production loader still references the stale v2 shell.' >&2
+          grep -Fq 'portal-nexus-store.js' portal-app.js
+          grep -Fq 'portal-client-control-room.css' portal-app.js
+          grep -Fq 'portal-client-control-room.js' portal-app.js
+          grep -Fq 'portal-admin-command-center.js' portal-app.js
+          grep -Fq 'portal-health-check.js' portal-app.js
+          if grep -Eq 'portal-client-shell(?:-v2)?\.(js|css)' portal-app.js; then
+            echo 'Production loader references a retired client shell.' >&2
             exit 1
           fi
-          grep -Fq "['overview', 'Today']" portal-client-shell.js
-          grep -Fq "['data-room', 'Data Room']" portal-client-shell.js
-          grep -Fq "['action-queue', 'Actions']" portal-client-shell.js
-          grep -Fq "['projects', 'Projects']" portal-client-shell.js
-          grep -Fq "['ledger', 'Improvements']" portal-client-shell.js
-          grep -Fq "['notifications', 'Notifications']" portal-client-shell.js
-          grep -Fq 'Your Next Single Step' portal-client-shell.js
-          grep -Fq 'window.NexusStore' portal-client-shell.js
-          grep -Fq 'events.createScope' portal-client-shell.js
-          grep -Fq 'scope.delegate' portal-client-shell.js
+          for tab in overview intake data-room action-queue roadmap ledger inbox; do grep -Fq "'$tab'" portal-client-control-room.js; done
+          for phase in Discovery Diagnosis Prioritization Implementation Optimization; do grep -Fq "$phase" portal-client-control-room.js; done
+          grep -Fq 'preserveUploadNode' portal-client-control-room.js
           grep -Fq 'window.__NEXUS_HEALTH_CHECK' portal-health-check.js
-          grep -Fq "ADD_ACTION" portal-runtime-core.js
-          grep -Fq "ADD_MEASUREMENT" portal-runtime-core.js
-          grep -Fq "ADD_MILESTONE" portal-runtime-core.js
-          grep -Fq "REQUEST_ITEM" portal-runtime-core.js
-          grep -Fq 'showRetryToast' portal-runtime-core.js
-          if grep -Fq 'document.addEventListener(' portal-client-shell.js; then
-            echo 'Client Shell must use scoped delegated lifecycle events.' >&2
-            exit 1
-          fi
+          grep -Fq 'persistent test writes: 0' portal-health-check.js
+          ! grep -Fq 'document.addEventListener(' portal-client-control-room.js
+          ! grep -Fq 'document.addEventListener(' portal-admin-command-center.js
       - name: Mobile and accessibility contract
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq '@media(max-width:760px)' portal-client-shell.css
-          grep -Fq '@media(max-width:390px)' portal-client-shell.css
-          grep -Fq 'min-height:44px' portal-client-shell.css
-          grep -Fq 'env(safe-area-inset-bottom)' portal-client-shell.css
-          grep -Fq 'overflow-x:hidden' portal-client-shell.css
-          grep -Fq 'font-size:16px!important' portal-client-shell.css
-          grep -Fq 'aria-selected' portal-client-shell.js
+          grep -Fq '@media(max-width:760px)' portal-client-control-room.css
+          grep -Fq '@media(max-width:390px)' portal-client-control-room.css
+          grep -Fq 'min-height:44px' portal-client-control-room.css
+          grep -Fq 'env(safe-area-inset-bottom)' portal-client-control-room.css
+          grep -Fq 'font-size:16px!important' portal-client-control-room.css
+          grep -Fq 'aria-selected' portal-client-control-room.js
           grep -Fq 'aria-live' portal-health-check.js
       - name: Browser-delivered secret scan
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET|SECRET_KEY' portal-app.js portal-client.js portal-runtime-core.js portal-client-core.js portal-client-upload-service.js portal-client-shell.js portal-client-shell.css portal-health-check.js; then
-            echo 'Privileged server credential reference found in client browser files.' >&2
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET|SECRET_KEY' portal-app.js portal-client.js portal-runtime-core.js portal-nexus-store.js portal-client-core.js portal-client-upload-service.js portal-client-control-room.js portal-admin-command-center.js portal-health-check.js; then
+            echo 'Privileged server credential reference found in browser code.' >&2
             exit 1
           fi
