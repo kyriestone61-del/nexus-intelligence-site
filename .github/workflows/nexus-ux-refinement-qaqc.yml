@@ -1,0 +1,69 @@
+name: Nexus UX Refinement QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-ux-refinement.js'
+      - 'portal-ux-refinement.css'
+      - 'operations.html'
+      - 'operations-ux-refinement.js'
+      - '.github/workflows/nexus-ux-refinement-qaqc.yml'
+  workflow_dispatch:
+
+jobs:
+  ux-refinement-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: JavaScript syntax
+        run: |
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-ux-refinement.js
+          node --input-type=module --check < operations-ux-refinement.js
+      - name: Portal load contract
+        run: |
+          set -euo pipefail
+          grep -Fq "'portal-ux-refinement.css'" portal-app.js
+          grep -Fq "portal-ux-refinement.js?v=\${BUILD}" portal-app.js
+          grep -Fq "front-end UX refinement" portal-app.js
+          grep -Fq "const BUILD='20260901-workflow-cohesion1'" portal-app.js
+      - name: Idempotent runtime contract
+        run: |
+          set -euo pipefail
+          grep -Fq "bar.dataset.signature===signature" portal-ux-refinement.js
+          grep -Fq "observer.observe(document.body,{subtree:true,childList:true})" portal-ux-refinement.js
+          grep -Fq "observer.observe(document.getElementById('consoleApp')||document.body,{subtree:true,childList:true})" operations-ux-refinement.js
+          if grep -Fq "attributeFilter:['class']" portal-ux-refinement.js; then
+            echo 'UX refinement must not continuously observe and rewrite body classes.' >&2
+            exit 1
+          fi
+      - name: Plain-language operations contract
+        run: |
+          set -euo pipefail
+          grep -Fq '>Today</button>' operations.html
+          grep -Fq '>AI Agents</button>' operations.html
+          grep -Fq '>Automations</button>' operations.html
+          grep -Fq '>Knowledge & Evidence</button>' operations.html
+          grep -Fq '>Connected Tools</button>' operations.html
+          grep -Fq '/portal-ux-refinement.css?v=20260901-ux1' operations.html
+          grep -Fq '/operations-ux-refinement.js?v=20260901-ux1' operations.html
+          grep -Fq "['What requires judgment now?','What needs your attention?']" operations-ux-refinement.js
+      - name: Mobile and touch contract
+        run: |
+          set -euo pipefail
+          grep -Fq '@media(max-width:900px)' portal-ux-refinement.css
+          grep -Fq '@media(max-width:620px)' portal-ux-refinement.css
+          grep -Fq 'min-height:var(--nx-control-h)' portal-ux-refinement.css
+          grep -Fq 'client-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}' portal-ux-refinement.css
+          grep -Fq 'client-action-grid,body.nexus-ux-refined.portal-client-mode .client-completed-list{grid-template-columns:1fr}' portal-ux-refinement.css
+      - name: UX hierarchy contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'nexus-context-bar' portal-ux-refinement.css
+          grep -Fq 'Go to next step' portal-ux-refinement.js
+          grep -Fq 'More tools' portal-ux-refinement.js
+          grep -Fq 'Use Client Journey for the normal workflow.' portal-ux-refinement.js
