@@ -1,6 +1,6 @@
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/+esm';
 import {initAuthUX} from '/portal-auth.js';
-import {initOps} from '/portal-ops.js';
+import {createPortalRuntime} from '/portal-runtime-core.js';
 
 const SUPABASE_URL='https://dmdgkjksouhhsuojthav.supabase.co';
 const SUPABASE_KEY='sb_publishable_-bZLK1vmL0eUMz65A6EUsw_I20LBq2B';
@@ -8,230 +8,274 @@ const BUCKET='nexus-client-documents';
 const sb=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const date=v=>v?new Date(v+'T00:00:00').toLocaleDateString():'—';
+const date=v=>v?new Date(`${v}T00:00:00`).toLocaleDateString():'—';
 const dt=v=>v?new Date(v).toLocaleString():'—';
-const state={user:null,admin:false,companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[],notificationPrefs:null,emailConfigured:false};
+const initialState={user:null,admin:false,companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[],notificationPrefs:null,emailConfigured:false};
+
+function toast(message){const el=$('toast');if(!el)return;el.textContent=String(message||'');el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3600)}
+const runtime=createPortalRuntime(initialState,{notify:toast,getById:$});
+const {state,stateController,storage,events,boundary,modals,workspaceRequests,views}=runtime;
 let currentRequirementId=null,currentRequestId=null;
+let identityInFlight=null,identityUserId=null;
 
-function toast(message){const el=$('toast');if(!el)return;el.textContent=message;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3600)}
 function authMsg(message,bad=false){const el=$('authMessage');if(!el)return;el.textContent=message;el.style.color=bad?'#ffb1ba':'var(--nx-muted)'}
-function pane(id){['signInPane','createPane','confirmPane'].forEach(x=>$(x)?.classList.toggle('active',x===id));$('tabSignIn')?.classList.toggle('active',id==='signInPane');$('tabCreate')?.classList.toggle('active',id==='createPane')}
-function show(view){if($('authView'))$('authView').style.display=view==='auth'?'block':'none';if($('onboardView'))$('onboardView').style.display=view==='onboard'?'block':'none';if($('portalApp'))$('portalApp').style.display=view==='portal'?'block':'none'}
+const pane=id=>views.authPane(id);
+const show=view=>views.root(view);
 function formatBytes(v){const n=Number(v||0);if(!n)return '';if(n<1024)return `${n} B`;if(n<1048576)return `${(n/1024).toFixed(1)} KB`;return `${(n/1048576).toFixed(1)} MB`}
+function queryData(result,label){if(result?.error)throw new Error(`${label}: ${result.error.message||'query failed'}`);return result?.data||[]}
+function setBusy(button,busy,label){if(!button)return;if(busy){button.dataset.nexusLabel=button.textContent;button.disabled=true;if(label)button.textContent=label}else{button.disabled=false;if(button.dataset.nexusLabel){button.textContent=button.dataset.nexusLabel;delete button.dataset.nexusLabel}}}
 
-$('tabSignIn')?.addEventListener('click',()=>pane('signInPane'));
-$('tabCreate')?.addEventListener('click',()=>pane('createPane'));
-$('returnSignIn')?.addEventListener('click',()=>{pane('signInPane');$('signInEmail').value=localStorage.getItem('nexus_pending_email')||'';authMsg('Email verified? Sign in with the password you created.')});
-$('signOutBtn')?.addEventListener('click',()=>sb.auth.signOut());
+function bindStaticEvents(){
+  events.bind($('tabSignIn'),'click','auth:signin-tab',()=>pane('signInPane'));
+  events.bind($('tabCreate'),'click','auth:create-tab',()=>pane('createPane'));
+  events.bind($('returnSignIn'),'click','auth:return-signin',()=>{pane('signInPane');if($('signInEmail'))$('signInEmail').value=storage.get('nexus_pending_email','');authMsg('Email verified? Sign in with the password you created.')});
+  events.bind($('signOutBtn'),'click','auth:signout',boundary.wrap('sign out',()=>sb.auth.signOut()));
 
-$('createForm')?.addEventListener('submit',async e=>{
-  e.preventDefault();
-  const btn=$('createBtn'),email=$('createEmail').value.trim();
-  localStorage.setItem('nexus_pending_company',JSON.stringify({name:$('createCompany').value.trim(),website:$('createWebsite').value.trim()}));
-  localStorage.setItem('nexus_pending_email',email);
-  btn.disabled=true;btn.textContent='Creating account…';authMsg('Submitting account…');
-  let timer;
-  try{
-    const timeout=new Promise((_,reject)=>timer=setTimeout(()=>reject(new Error('The signup request took too long. Check your inbox before trying again.')),12000));
-    const request=sb.auth.signUp({email,password:$('createPassword').value,options:{emailRedirectTo:`${location.origin}/portal`,data:{full_name:$('createName').value.trim()}}});
-    const {data,error}=await Promise.race([request,timeout]);
-    if(error)throw error;
-    if(data?.session){authMsg('Account created and signed in.');return}
-    pane('confirmPane');$('confirmText').textContent=`We sent a confirmation email to ${email}. Open it, click Confirm email address, then return to Nexus and sign in.`;authMsg('');
-  }catch(error){authMsg(error.message||'Account creation could not be completed.',true)}
-  finally{clearTimeout(timer);btn.disabled=false;btn.textContent='Create account'}
-});
+  events.bind($('createForm'),'submit','auth:create',boundary.wrap('account creation',async event=>{
+    event.preventDefault();
+    const button=$('createBtn'),email=$('createEmail')?.value.trim()||'';
+    storage.setJSON('nexus_pending_company',{name:$('createCompany')?.value.trim()||'',website:$('createWebsite')?.value.trim()||''});
+    storage.set('nexus_pending_email',email);
+    setBusy(button,true,'Creating account…');authMsg('Submitting account…');
+    let timer;
+    try{
+      const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('The signup request took too long. Check your inbox before trying again.')),12000)});
+      const request=sb.auth.signUp({email,password:$('createPassword')?.value||'',options:{emailRedirectTo:`${location.origin}/portal`,data:{full_name:$('createName')?.value.trim()||''}}});
+      const {data,error}=await Promise.race([request,timeout]);
+      if(error)throw error;
+      if(data?.session){authMsg('Account created and signed in.');return}
+      pane('confirmPane');if($('confirmText'))$('confirmText').textContent=`We sent a confirmation email to ${email}. Open it, click Confirm email address, then return to Nexus and sign in.`;authMsg('');
+    }catch(error){authMsg(error.message||'Account creation could not be completed.',true)}
+    finally{clearTimeout(timer);setBusy(button,false)}
+  },{silent:true}));
 
-$('signInForm')?.addEventListener('submit',async e=>{
-  e.preventDefault();const btn=$('signInBtn');btn.disabled=true;btn.textContent='Signing in…';authMsg('');
-  try{const {error}=await sb.auth.signInWithPassword({email:$('signInEmail').value.trim(),password:$('signInPassword').value});if(error)throw error}
-  catch(error){authMsg(error.message||'Sign in failed.',true)}
-  finally{btn.disabled=false;btn.textContent='Sign in'}
-});
+  events.bind($('signInForm'),'submit','auth:signin',boundary.wrap('sign in',async event=>{
+    event.preventDefault();const button=$('signInBtn');setBusy(button,true,'Signing in…');authMsg('');
+    try{const {error}=await sb.auth.signInWithPassword({email:$('signInEmail')?.value.trim()||'',password:$('signInPassword')?.value||''});if(error)throw error}
+    catch(error){authMsg(error.message||'Sign in failed.',true)}
+    finally{setBusy(button,false)}
+  },{silent:true}));
 
-async function ensureProfile(){const {data}=await sb.from('nexus_profiles').select('user_id').eq('user_id',state.user.id).maybeSingle();if(!data)await sb.from('nexus_profiles').insert({user_id:state.user.id,full_name:state.user.user_metadata?.full_name||''})}
-async function identity(){
-  state.user=(await sb.auth.getUser()).data.user;if(!state.user){show('auth');return}
-  await ensureProfile();
-  try{
-    const {data:admin,error:adminError}=await sb.rpc('nexus_is_platform_admin');
-    if(adminError)throw adminError;
-    state.admin=admin===true;
-  }catch(error){
-    console.warn('Canonical Nexus administrator check failed; using compatibility fallback.',error?.message||error);
-    state.admin=!!(await sb.from('nexus_platform_admins').select('user_id').eq('user_id',state.user.id).maybeSingle()).data;
+  events.bind($('onboardForm'),'submit','workspace:activate',boundary.wrap('workspace activation',async event=>{
+    event.preventDefault();const button=event.submitter;setBusy(button,true,'Activating…');
+    try{
+      const {data,error}=await sb.rpc('nexus_activate_client_workspace',{p_name:$('onboardCompany')?.value.trim()||'',p_website:$('onboardWebsite')?.value.trim()||null,p_industry:$('onboardIndustry')?.value.trim()||null});
+      if(error)throw error;
+      storage.remove('nexus_pending_company');
+      toast(`Workspace activated${data?.company_name?`: ${data.company_name}`:''}.`);
+      await companies();
+    }finally{setBusy(button,false)}
+  }));
+
+  events.bind($('companySelect'),'change','workspace:company-select',boundary.wrap('company selection',async event=>{
+    const nextId=event.currentTarget?.value;if(!nextId||nextId===state.companyId)return;
+    event.currentTarget.disabled=true;
+    const previous=state.companyId;
+    try{await workspace(nextId,{reason:'company-selector'})}
+    catch(error){event.currentTarget.value=previous||'';throw error}
+    finally{event.currentTarget.disabled=false}
+  },{rethrow:false}));
+
+  events.bind($('uploadForm'),'submit','documents:upload',boundary.wrap('secure upload',handleUpload));
+  events.bind($('taskForm'),'submit','tasks:create',boundary.wrap('action creation',handleTaskCreate));
+  events.bind($('metricForm'),'submit','metrics:create',boundary.wrap('measurement creation',handleMetricCreate));
+  events.bind($('milestoneForm'),'submit','milestones:create',boundary.wrap('milestone creation',handleMilestoneCreate));
+  events.bind($('documentRequestForm'),'submit','documents:request',boundary.wrap('document request',handleDocumentRequest));
+  events.bind($('readAllBtn'),'click','notifications:read-all',boundary.wrap('mark notifications read',markAllRead));
+  events.bind($('alertsBtn'),'click','notifications:browser',boundary.wrap('browser notification permission',requestBrowserAlerts));
+
+  for(const [buttonId,modalId] of [['newTaskBtn','taskModal'],['newMetricBtn','metricModal'],['newMilestoneBtn','milestoneModal'],['newDocumentRequestBtn','documentRequestModal']]){
+    events.bind($(buttonId),'click',`modal:open:${modalId}`,event=>modals.open(modalId,event.currentTarget));
   }
-  await companies();
+  document.querySelectorAll('.modal').forEach(modal=>modals.register(modal,modal.id));
+  document.querySelectorAll('.side-nav button[data-section]').forEach(button=>events.bind(button,'click',`nav:${button.dataset.section}`,()=>views.section(button.dataset.section)));
+}
+
+async function ensureProfile(){
+  const user=state.user;if(!user)return;
+  const result=await sb.from('nexus_profiles').select('user_id').eq('user_id',user.id).maybeSingle();
+  if(result.error)throw result.error;
+  if(!result.data){const insert=await sb.from('nexus_profiles').insert({user_id:user.id,full_name:user.user_metadata?.full_name||''});if(insert.error)throw insert.error}
+}
+
+async function resolveAdmin(){
+  try{const {data,error}=await sb.rpc('nexus_is_platform_admin');if(error)throw error;return data===true}
+  catch(error){
+    console.warn('Canonical Nexus administrator check failed; using compatibility fallback.',error?.message||error);
+    const fallback=await sb.from('nexus_platform_admins').select('user_id').eq('user_id',state.user.id).maybeSingle();
+    if(fallback.error)throw fallback.error;return !!fallback.data;
+  }
+}
+
+async function identity(userOverride=null){
+  const user=userOverride||(await sb.auth.getUser()).data.user;
+  if(!user){stateController.patch({user:null,admin:false,companies:[],companyId:null},'auth:signed-out');show('auth');return}
+  if(identityInFlight&&identityUserId===user.id)return identityInFlight;
+  identityUserId=user.id;
+  identityInFlight=(async()=>{
+    stateController.patch({user},'auth:user');
+    await ensureProfile();
+    const admin=await resolveAdmin();
+    stateController.patch({admin},'auth:authorization');
+    await companies();
+  })();
+  try{await identityInFlight}finally{identityInFlight=null}
 }
 
 async function companies(){
-  if(state.admin){const {data,error}=await sb.from('nexus_companies').select('*').order('created_at',{ascending:false});if(error)throw error;state.companies=data||[]}
+  let companyRows=[];
+  if(state.admin){companyRows=queryData(await sb.from('nexus_companies').select('*').order('created_at',{ascending:false}),'Companies')}
   else{
-    const {data:members,error}=await sb.from('nexus_company_members').select('company_id').eq('user_id',state.user.id).eq('active',true);if(error)throw error;
-    const ids=(members||[]).map(x=>x.company_id);
-    if(ids.length){const {data,error:e}=await sb.from('nexus_companies').select('*').in('id',ids);if(e)throw e;state.companies=data||[]}else state.companies=[];
+    const members=queryData(await sb.from('nexus_company_members').select('company_id').eq('user_id',state.user.id).eq('active',true),'Company membership');
+    const ids=members.map(row=>row.company_id);
+    if(ids.length)companyRows=queryData(await sb.from('nexus_companies').select('*').in('id',ids),'Companies');
   }
-  if(!state.companies.length&&!state.admin){show('onboard');try{const pending=JSON.parse(localStorage.getItem('nexus_pending_company')||'{}');$('onboardCompany').value=pending.name||'';$('onboardWebsite').value=pending.website||''}catch{}return}
-  show('portal');$('roleLabel').textContent=state.admin?'Nexus administrator':'Client workspace';$('newMilestoneBtn').style.display=state.admin?'inline-flex':'none';$('newDocumentRequestBtn').style.display=state.admin?'inline-flex':'none';
-  $('companySelect').innerHTML=state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');$('companySelect').style.display=state.companies.length>1||state.admin?'block':'none';
-  const keep=state.companies.some(c=>c.id===state.companyId)?state.companyId:null;state.companyId=keep||state.companies[0]?.id||null;
-  if(state.companyId){$('companySelect').value=state.companyId;await workspace()}
+  stateController.patch({companies:companyRows},'workspace:companies');
+  if(!companyRows.length&&!state.admin){
+    show('onboard');const pending=storage.getJSON('nexus_pending_company',{});if($('onboardCompany'))$('onboardCompany').value=pending?.name||'';if($('onboardWebsite'))$('onboardWebsite').value=pending?.website||'';return;
+  }
+  show('portal');
+  if($('roleLabel'))$('roleLabel').textContent=state.admin?'Nexus administrator':'Client workspace';
+  if($('newMilestoneBtn'))$('newMilestoneBtn').style.display=state.admin?'inline-flex':'none';
+  if($('newDocumentRequestBtn'))$('newDocumentRequestBtn').style.display=state.admin?'inline-flex':'none';
+  const select=$('companySelect');
+  if(select){select.innerHTML=companyRows.map(company=>`<option value="${company.id}">${esc(company.name)}</option>`).join('');select.style.display=companyRows.length>1||state.admin?'block':'none'}
+  const preferred=companyRows.some(company=>company.id===state.companyId)?state.companyId:companyRows[0]?.id||null;
+  if(preferred){if(select)select.value=preferred;await workspace(preferred,{reason:'company-list'})}
 }
 
-$('onboardForm')?.addEventListener('submit',async e=>{
-  e.preventDefault();const button=e.submitter;if(button)button.disabled=true;
-  try{
-    const {data:company,error}=await sb.from('nexus_companies').insert({name:$('onboardCompany').value.trim(),website:$('onboardWebsite').value.trim()||null,industry:$('onboardIndustry').value.trim()||null,created_by:state.user.id}).select().single();if(error)throw error;
-    const {error:memberError}=await sb.from('nexus_company_members').insert({company_id:company.id,user_id:state.user.id,member_role:'owner'});if(memberError)throw memberError;
-    const {error:projectError}=await sb.from('nexus_projects').insert({company_id:company.id,name:'Nexus Opportunity Assessment',service_type:'AI Opportunity Assessment / Intake',service_slug:'ai-opportunity-assessment',status:'planning',summary:'Initial Nexus discovery, evidence preparation, and opportunity definition.',created_by:state.user.id});if(projectError)throw projectError;
-    localStorage.removeItem('nexus_pending_company');toast('Workspace created. Your preparation checklist is ready.');await companies();
-  }catch(error){toast(error.message||'Workspace setup failed.')}
-  finally{if(button)button.disabled=false}
-});
-$('companySelect')?.addEventListener('change',async()=>{state.companyId=$('companySelect').value;await workspace()});
-
-async function loadDataRequirements(){
-  const project=state.projects[0];if(!project){state.dataRequirements=[];return}
-  const {data:rows,error}=await sb.from('nexus_project_data_requirements').select('*').eq('project_id',project.id).order('created_at');
-  if(error){console.error(error);state.dataRequirements=[];return}
-  const ids=[...new Set((rows||[]).map(r=>r.catalog_id))];let catalog=[];
-  if(ids.length){const res=await sb.from('nexus_data_requirement_catalog').select('*').in('id',ids);catalog=res.data||[]}
-  const byId=Object.fromEntries(catalog.map(c=>[c.id,c]));
-  state.dataRequirements=(rows||[]).map(r=>({...r,catalog:byId[r.catalog_id]||null})).sort((a,b)=>(a.catalog?.sort_order||999)-(b.catalog?.sort_order||999));
+async function fetchEmailStatus(){
+  try{const response=await fetch('/api/email-status',{cache:'no-store'});if(!response.ok)throw new Error(`HTTP ${response.status}`);const data=await response.json();return !!data.configured}
+  catch(error){console.warn('Nexus email status unavailable',error);return false}
 }
-async function loadEmailStatus(){try{const r=await fetch('/api/email-status',{cache:'no-store'});const d=await r.json();state.emailConfigured=!!d.configured}catch{state.emailConfigured=false}}
-async function loadNotificationPrefs(){if(!state.user||!state.companyId){state.notificationPrefs=null;return}const {data}=await sb.from('nexus_notification_preferences').select('*').eq('company_id',state.companyId).eq('user_id',state.user.id).maybeSingle();state.notificationPrefs=data||null}
 
-async function workspace(){
-  const company=state.companies.find(x=>x.id===state.companyId);$('companyMini').innerHTML=`<div class="kicker">Active workspace</div><b>${esc(company?.name||'Workspace')}</b><div class="small">${esc(company?.industry||company?.website||'Nexus client workspace')}</div>`;$('workspaceTitle').textContent=company?.name||'Company workspace';
-  const calls=await Promise.all([
-    sb.from('nexus_projects').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}),
-    sb.from('nexus_tasks').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}),
-    sb.from('nexus_milestones').select('*').eq('company_id',state.companyId).order('sort_order').order('due_date'),
-    sb.from('nexus_metrics').select('*').eq('company_id',state.companyId).order('updated_at',{ascending:false}),
-    sb.from('nexus_documents').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}),
-    sb.from('nexus_notifications').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}),
-    sb.from('nexus_activity_log').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}).limit(100),
-    sb.from('nexus_document_requests').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false})
+async function fetchNotificationPrefs(companyId){
+  if(!state.user||!companyId)return null;
+  const result=await sb.from('nexus_notification_preferences').select('*').eq('company_id',companyId).eq('user_id',state.user.id).maybeSingle();
+  if(result.error)throw result.error;return result.data||null;
+}
+
+async function fetchDataRequirements(project){
+  if(!project)return [];
+  const rows=queryData(await sb.from('nexus_project_data_requirements').select('*').eq('project_id',project.id).order('created_at'),'Data requirements');
+  const ids=[...new Set(rows.map(row=>row.catalog_id).filter(Boolean))];
+  let catalog=[];
+  if(ids.length)catalog=queryData(await sb.from('nexus_data_requirement_catalog').select('*').in('id',ids),'Data requirement catalog');
+  const byId=Object.fromEntries(catalog.map(item=>[item.id,item]));
+  return rows.map(row=>({...row,catalog:byId[row.catalog_id]||null})).sort((a,b)=>(a.catalog?.sort_order||999)-(b.catalog?.sort_order||999));
+}
+
+async function workspace(companyId=state.companyId,{reason='refresh'}={}){
+  if(!companyId)return;
+  const token=workspaceRequests.begin();
+  const company=state.companies.find(item=>item.id===companyId);
+  const queries=await Promise.all([
+    sb.from('nexus_projects').select('*').eq('company_id',companyId).order('created_at',{ascending:false}),
+    sb.from('nexus_tasks').select('*').eq('company_id',companyId).order('created_at',{ascending:false}),
+    sb.from('nexus_milestones').select('*').eq('company_id',companyId).order('sort_order').order('due_date'),
+    sb.from('nexus_metrics').select('*').eq('company_id',companyId).order('updated_at',{ascending:false}),
+    sb.from('nexus_documents').select('*').eq('company_id',companyId).order('created_at',{ascending:false}),
+    sb.from('nexus_notifications').select('*').eq('company_id',companyId).order('created_at',{ascending:false}),
+    sb.from('nexus_activity_log').select('*').eq('company_id',companyId).order('created_at',{ascending:false}).limit(100),
+    sb.from('nexus_document_requests').select('*').eq('company_id',companyId).order('created_at',{ascending:false})
   ]);
-  state.projects=calls[0].data||[];state.tasks=calls[1].data||[];state.miles=calls[2].data||[];state.metrics=calls[3].data||[];state.docs=calls[4].data||[];state.notes=(calls[5].data||[]).filter(x=>!x.user_id||x.user_id===state.user.id);state.activity=calls[6].data||[];state.docRequests=calls[7].data||[];
-  await Promise.all([loadDataRequirements(),loadNotificationPrefs(),loadEmailStatus()]);render();
+  const projects=queryData(queries[0],'Projects');
+  const next={
+    companyId,
+    projects,
+    tasks:queryData(queries[1],'Tasks'),
+    miles:queryData(queries[2],'Milestones'),
+    metrics:queryData(queries[3],'Metrics'),
+    docs:queryData(queries[4],'Documents'),
+    notes:queryData(queries[5],'Notifications').filter(item=>!item.user_id||item.user_id===state.user?.id),
+    activity:queryData(queries[6],'Activity'),
+    docRequests:queryData(queries[7],'Document requests')
+  };
+  const [dataRequirements,notificationPrefs,emailConfigured]=await Promise.all([fetchDataRequirements(projects[0]||null),fetchNotificationPrefs(companyId),fetchEmailStatus()]);
+  if(!workspaceRequests.isCurrent(token))return;
+  Object.assign(next,{dataRequirements,notificationPrefs,emailConfigured});
+  stateController.patch(next,`workspace:${reason}`);
+  const select=$('companySelect');if(select&&select.value!==companyId)select.value=companyId;
+  if($('companyMini'))$('companyMini').innerHTML=`<div class="kicker">Active workspace</div><b>${esc(company?.name||'Workspace')}</b><div class="small">${esc(company?.industry||company?.website||'Nexus client workspace')}</div>`;
+  if($('workspaceTitle'))$('workspaceTitle').textContent=company?.name||'Company workspace';
+  render();
+  window.dispatchEvent(new CustomEvent('nexus:workspace-ready',{detail:{companyId,revision:stateController.revision}}));
 }
 
-function taskRow(x){return `<div class="row"><div class="grow"><span class="pill">${esc(x.assignee)}</span> <span class="pill">${esc(x.priority)}</span><br><b>${esc(x.title)}</b><div class="small">${esc(x.description||'')}</div><div class="small">${x.due_date?'Due '+date(x.due_date):'No fixed due date'}</div></div><select class="task-status" data-id="${x.id}">${[['open','Open'],['in_progress','In progress'],['blocked','Blocked'],['done','Done']].map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select></div>`}
-function docRow(x){const source=x.source_role==='nexus'?'Nexus':'Client';return `<div class="row"><div class="grow"><span class="pill">${esc(x.category)}</span> <span class="pill">${source}</span> <span class="pill">v${x.version_number}</span><br><b>${esc(x.file_name)}</b><div class="small">${esc(x.note||'')}</div><div class="small">${dt(x.created_at)}${x.size_bytes?' · '+formatBytes(x.size_bytes):''}</div></div><button class="btn secondary download" data-id="${x.id}" type="button">Download ↓</button></div>`}
-function mileRow(x){return `<div class="mile"><span class="pill">${esc(x.status)}</span><br><b>${esc(x.title)}</b><div class="small">${esc(x.description||'')}</div><div class="small">${date(x.start_date)} → ${date(x.due_date)}</div></div>`}
+function taskRow(item){return `<div class="row"><div class="grow"><span class="pill">${esc(item.assignee)}</span> <span class="pill">${esc(item.priority)}</span><br><b>${esc(item.title)}</b><div class="small">${esc(item.description||'')}</div><div class="small">${item.due_date?'Due '+date(item.due_date):'No fixed due date'}</div></div><select class="task-status" data-id="${item.id}" aria-label="Status for ${esc(item.title)}">${[['open','Open'],['in_progress','In progress'],['blocked','Blocked'],['done','Done']].map(([value,label])=>`<option value="${value}" ${item.status===value?'selected':''}>${label}</option>`).join('')}</select></div>`}
+function docRow(item){const source=item.source_role==='nexus'?'Nexus':'Client';return `<div class="row"><div class="grow"><span class="pill">${esc(item.category)}</span> <span class="pill">${source}</span> <span class="pill">v${item.version_number}</span><br><b>${esc(item.file_name)}</b><div class="small">${esc(item.note||'')}</div><div class="small">${dt(item.created_at)}${item.size_bytes?' · '+formatBytes(item.size_bytes):''}</div></div><button class="btn secondary download" data-id="${item.id}" type="button">Download ↓</button></div>`}
+function mileRow(item){return `<div class="mile"><span class="pill">${esc(item.status)}</span><br><b>${esc(item.title)}</b><div class="small">${esc(item.description||'')}</div><div class="small">${date(item.start_date)} → ${date(item.due_date)}</div></div>`}
 
 function render(){
-  const open=state.tasks.filter(x=>x.status!=='done'),active=state.miles.filter(x=>x.status!=='complete'),unread=state.notes.filter(x=>!x.read_at);
-  $('sTasks').textContent=open.length;$('sDocs').textContent=state.docs.length;$('sMiles').textContent=active.length;$('sNotes').textContent=unread.length;
-  $('overviewTasks').innerHTML=open.slice(0,5).map(taskRow).join('')||'<div class="empty">No open actions.</div>';
-  $('overviewDocs').innerHTML=state.docs.slice(0,5).map(docRow).join('')||'<div class="empty">No documents yet.</div>';
-  $('overviewTimeline').innerHTML=state.miles.slice(0,4).map(mileRow).join('')||'<div class="empty">No milestones yet.</div>';
-  $('taskList').innerHTML=state.tasks.map(taskRow).join('')||'<div class="empty">No tasks yet.</div>';
-  $('documentList').innerHTML=state.docs.map(docRow).join('')||'<div class="empty">No files have been shared yet.</div>';
-  $('milestoneList').innerHTML=state.miles.map(mileRow).join('')||'<div class="empty">No milestones yet.</div>';
-  const project=state.projects[0];$('projectBox').innerHTML=project?`<span class="pill">${esc(project.status)}</span><h3>${esc(project.name)}</h3><p class="small">${esc(project.summary||project.service_type||'Nexus engagement workspace')}</p><div class="small">${date(project.start_date)} → ${date(project.target_end_date)}</div>`:'<div class="empty">No project configured.</div>';
-  $('metricList').innerHTML=state.metrics.map(x=>`<div class="metric-card"><span class="pill">${esc(x.unit||'metric')}</span><h3>${esc(x.name)}</h3><div class="small">Baseline</div><b style="font-size:22px">${x.baseline_value??'—'} ${esc(x.unit||'')}</b><div class="small" style="margin-top:8px">Current: ${x.current_value??'—'} · Target: ${x.target_value??'—'}</div><p class="small">${esc(x.measurement_method||'Measurement method not yet documented.')}</p></div>`).join('')||'<div class="empty">No measurements yet.</div>';
-  $('notificationList').innerHTML=state.notes.map(x=>`<div class="row"><div class="grow"><span class="pill">${esc(x.notification_type)}</span><br><b>${esc(x.title)}</b><div class="small">${esc(x.message||'')}</div><div class="small">${dt(x.created_at)}</div></div>${x.read_at?'':'<span class="pill">new</span>'}</div>`).join('')||'<div class="empty">No notifications yet.</div>';
-  $('activityList').innerHTML=state.activity.map(x=>`<div class="row"><div class="grow"><b>${esc(x.summary||x.action)}</b><div class="small">${esc(x.entity_type||'activity')}</div></div><div class="small">${dt(x.created_at)}</div></div>`).join('')||'<div class="empty">No activity yet.</div>';
-  renderDataRoom();renderEmailPrefs();bindRows();
+  try{
+    const openTasks=state.tasks.filter(item=>item.status!=='done'),activeMiles=state.miles.filter(item=>item.status!=='complete'),unread=state.notes.filter(item=>!item.read_at);
+    if($('sTasks'))$('sTasks').textContent=openTasks.length;if($('sDocs'))$('sDocs').textContent=state.docs.length;if($('sMiles'))$('sMiles').textContent=activeMiles.length;if($('sNotes'))$('sNotes').textContent=unread.length;
+    if($('overviewTasks'))$('overviewTasks').innerHTML=openTasks.slice(0,5).map(taskRow).join('')||'<div class="empty">No open actions.</div>';
+    if($('overviewDocs'))$('overviewDocs').innerHTML=state.docs.slice(0,5).map(docRow).join('')||'<div class="empty">No documents yet.</div>';
+    if($('overviewTimeline'))$('overviewTimeline').innerHTML=state.miles.slice(0,4).map(mileRow).join('')||'<div class="empty">No milestones yet.</div>';
+    if($('taskList'))$('taskList').innerHTML=state.tasks.map(taskRow).join('')||'<div class="empty">No tasks yet.</div>';
+    if($('documentList'))$('documentList').innerHTML=state.docs.map(docRow).join('')||'<div class="empty">No files have been shared yet.</div>';
+    if($('milestoneList'))$('milestoneList').innerHTML=state.miles.map(mileRow).join('')||'<div class="empty">No milestones yet.</div>';
+    const project=state.projects[0];if($('projectBox'))$('projectBox').innerHTML=project?`<span class="pill">${esc(project.status)}</span><h3>${esc(project.name)}</h3><p class="small">${esc(project.summary||project.service_type||'Nexus engagement workspace')}</p><div class="small">${date(project.start_date)} → ${date(project.target_end_date)}</div>`:'<div class="empty">No project configured.</div>';
+    if($('metricList'))$('metricList').innerHTML=state.metrics.map(item=>`<div class="metric-card"><span class="pill">${esc(item.unit||'metric')}</span><h3>${esc(item.name)}</h3><div class="small">Baseline</div><b style="font-size:22px">${item.baseline_value??'—'} ${esc(item.unit||'')}</b><div class="small" style="margin-top:8px">Current: ${item.current_value??'—'} · Target: ${item.target_value??'—'}</div><p class="small">${esc(item.measurement_method||'Measurement method not yet documented.')}</p></div>`).join('')||'<div class="empty">No measurements yet.</div>';
+    if($('notificationList'))$('notificationList').innerHTML=state.notes.map(item=>`<div class="row"><div class="grow"><span class="pill">${esc(item.notification_type)}</span><br><b>${esc(item.title)}</b><div class="small">${esc(item.message||'')}</div><div class="small">${dt(item.created_at)}</div></div>${item.read_at?'':'<span class="pill">new</span>'}</div>`).join('')||'<div class="empty">No notifications yet.</div>';
+    if($('activityList'))$('activityList').innerHTML=state.activity.map(item=>`<div class="row"><div class="grow"><b>${esc(item.summary||item.action)}</b><div class="small">${esc(item.entity_type||'activity')}</div></div><div class="small">${dt(item.created_at)}</div></div>`).join('')||'<div class="empty">No activity yet.</div>';
+    renderDataRoom();renderEmailPrefs();bindRenderedControls();
+  }catch(error){console.error('Nexus base workspace render failed',error);toast('The workspace could not finish rendering. Refresh and try again.')}
 }
 
 function addressedStatus(status){return ['ready','uploaded','build_with_nexus','not_available','not_applicable'].includes(status)}
 function detail(label,text,extra=''){return `<div class="req-detail ${extra}"><b>${esc(label)}</b><p>${esc(text||'—')}</p></div>`}
-function requirementCard(r){
-  const c=r.catalog||{},fileLike=['file','export'].includes(c.input_type),answerLike=['answer','list','access_context'].includes(c.input_type),addressed=addressedStatus(r.status);
-  let html=`<article class="requirement-card ${addressed?'addressed':''}">`;
-  html+=`<div class="requirement-head"><div><span class="pill">${esc(c.category||'Preparation')}</span> <span class="pill">${esc((c.importance||'helpful').replaceAll('_',' '))}</span></div><span class="req-status ${esc(r.status)}">${esc(r.status.replaceAll('_',' '))}</span></div>`;
-  html+=`<h3>${esc(c.title||'Preparation item')}</h3>`;
-  html+=detail('Why Nexus needs it',c.why_needed||'This helps Nexus understand the current state without guessing.');
-  html+=detail('How to find it',c.how_to_find||'Ask the person closest to the workflow or check the systems where the work happens.');
-  html+=detail('Good examples',c.good_examples||'A representative example is enough.');
-  html+=detail('Don’t have it?',c.if_missing||'That is okay. Nexus can help build the minimum useful version with you.','missing');
-  if(r.client_note)html+=detail('Your note / response',r.client_note);
-  if(!state.admin){
-    html+='<div class="req-actions">';
-    if(fileLike)html+=`<button class="btn primary req-upload" data-id="${r.id}" data-title="${esc(c.title||'this item')}" type="button">Upload evidence</button>`;
-    if(answerLike)html+=`<button class="btn secondary req-answer-btn" data-id="${r.id}" type="button">Answer here</button>`;
-    html+=`<button class="btn secondary req-build" data-id="${r.id}" type="button">Build with Nexus</button><button class="btn secondary req-na" data-id="${r.id}" type="button">Not applicable</button></div>`;
-    html+=`<div class="req-answer" data-id="${r.id}"><textarea id="req-note-${r.id}" placeholder="Be specific. A short list or clear explanation is enough.">${esc(r.client_note||'')}</textarea><div class="actions" style="margin-top:8px"><button class="btn primary req-save" data-id="${r.id}" type="button">Save response</button></div></div>`;
-  }
+function requirementCard(row){
+  const catalog=row.catalog||{},fileLike=['file','export'].includes(catalog.input_type),answerLike=['answer','list','access_context'].includes(catalog.input_type),addressed=addressedStatus(row.status);
+  let html=`<article class="requirement-card ${addressed?'addressed':''}"><div class="requirement-head"><div><span class="pill">${esc(catalog.category||'Preparation')}</span> <span class="pill">${esc((catalog.importance||'helpful').replaceAll('_',' '))}</span></div><span class="req-status ${esc(row.status)}">${esc(String(row.status||'open').replaceAll('_',' '))}</span></div><h3>${esc(catalog.title||'Preparation item')}</h3>`;
+  html+=detail('Why Nexus needs it',catalog.why_needed||'This helps Nexus understand the current state without guessing.');html+=detail('How to find it',catalog.how_to_find||'Ask the person closest to the workflow or check the systems where the work happens.');html+=detail('Good examples',catalog.good_examples||'A representative example is enough.');html+=detail('Don’t have it?',catalog.if_missing||'That is okay. Nexus can help build the minimum useful version with you.','missing');if(row.client_note)html+=detail('Your note / response',row.client_note);
+  if(!state.admin){html+='<div class="req-actions">';if(fileLike)html+=`<button class="btn primary req-upload" data-id="${row.id}" data-title="${esc(catalog.title||'this item')}" type="button">Upload evidence</button>`;if(answerLike)html+=`<button class="btn secondary req-answer-btn" data-id="${row.id}" type="button">Answer here</button>`;html+=`<button class="btn secondary req-build" data-id="${row.id}" type="button">Build with Nexus</button><button class="btn secondary req-na" data-id="${row.id}" type="button">Not applicable</button></div><div class="req-answer" data-id="${row.id}"><textarea id="req-note-${row.id}" placeholder="Be specific. A short list or clear explanation is enough.">${esc(row.client_note||'')}</textarea><div class="actions" style="margin-top:8px"><button class="btn primary req-save" data-id="${row.id}" type="button">Save response</button></div></div>`}
   return html+'</article>';
 }
-function documentRequestCard(r){
-  let html='<div class="row"><div class="grow"><span class="pill">Requested by Nexus</span>';
-  if(r.due_date)html+=` <span class="pill">Due ${date(r.due_date)}</span>`;
-  html+=`<br><b>${esc(r.title)}</b><div class="small">${esc(r.purpose||'')}</div>`;
-  if(r.examples)html+=`<div class="small"><b>Examples:</b> ${esc(r.examples)}</div>`;
-  if(r.redaction_guidance)html+=`<div class="small"><b>Privacy:</b> ${esc(r.redaction_guidance)}</div>`;
-  html+='<div class="small">If you do not have this item, tell Nexus—we can help create or reconstruct the minimum useful version.</div></div>';
-  if(!state.admin)html+=`<button class="btn primary upload-request" data-id="${r.id}" data-title="${esc(r.title)}" type="button">Upload →</button>`;
-  return html+'</div>';
-}
-function renderDataRoom(){
-  const root=$('dataRoomRequirements');if(!root)return;
-  const total=state.dataRequirements.length,addressed=state.dataRequirements.filter(r=>addressedStatus(r.status)).length,pct=total?Math.round(addressed/total*100):0;
-  $('dataRoomProgress').innerHTML=`<div class="data-room-meter-track"><div class="data-room-meter-fill" style="width:${pct}%"></div></div><strong>${addressed} of ${total||'—'} preparation items addressed</strong>`;
-  root.innerHTML=state.dataRequirements.length?state.dataRequirements.map(requirementCard).join(''):'<div class="empty">Nexus has not assigned a preparation checklist to this project yet.</div>';
-  const requestRoot=$('explicitDocumentRequests'),openRequests=state.docRequests.filter(r=>r.status==='requested');
-  requestRoot.innerHTML=openRequests.length?`<div class="request-strip">${openRequests.map(documentRequestCard).join('')}</div>`:'<div class="empty">No additional one-off document requests are outstanding.</div>';
-  root.querySelectorAll('.req-upload').forEach(b=>b.onclick=()=>prepareUpload({requirementId:b.dataset.id,title:b.dataset.title}));
-  root.querySelectorAll('.req-answer-btn').forEach(b=>b.onclick=()=>document.querySelector(`.req-answer[data-id="${b.dataset.id}"]`)?.classList.toggle('open'));
-  root.querySelectorAll('.req-save').forEach(b=>b.onclick=()=>saveRequirementAnswer(b.dataset.id));
-  root.querySelectorAll('.req-build').forEach(b=>b.onclick=()=>setRequirementStatus(b.dataset.id,'build_with_nexus'));
-  root.querySelectorAll('.req-na').forEach(b=>b.onclick=()=>setRequirementStatus(b.dataset.id,'not_applicable'));
-  requestRoot.querySelectorAll('.upload-request').forEach(b=>b.onclick=()=>prepareUpload({requestId:b.dataset.id,title:b.dataset.title}));
-}
-async function saveRequirementAnswer(id){const note=$(`req-note-${id}`)?.value.trim();if(!note)return toast('Add a response before saving.');const {error}=await sb.from('nexus_project_data_requirements').update({client_note:note,status:'ready',updated_by:state.user.id,updated_at:new Date().toISOString()}).eq('id',id);if(error)return toast(error.message);toast('Preparation response saved.');await workspace()}
-async function setRequirementStatus(id,status){const {error}=await sb.from('nexus_project_data_requirements').update({status,updated_by:state.user.id,updated_at:new Date().toISOString()}).eq('id',id);if(error)return toast(error.message);toast(status==='build_with_nexus'?'Marked for Nexus to help build.':'Preparation item updated.');await workspace()}
-function prepareUpload({requirementId=null,requestId=null,title=''}){currentRequirementId=requirementId;currentRequestId=requestId;const box=$('uploadContext');box.classList.add('show');box.innerHTML=`<b>Upload for:</b> ${esc(title)} <button id="clearUploadContext" class="btn secondary" type="button" style="min-height:30px;padding:0 9px;margin-left:8px">Clear</button>`;$('docNote').value=$('docNote').value||`Evidence for ${title}`;box.scrollIntoView({behavior:'smooth',block:'center'});$('clearUploadContext')?.addEventListener('click',clearUploadContext);$('docFile').focus()}
-function clearUploadContext(){currentRequirementId=null;currentRequestId=null;$('uploadContext').classList.remove('show');$('uploadContext').innerHTML=''}
+function documentRequestCard(row){let html='<div class="row"><div class="grow"><span class="pill">Requested by Nexus</span>';if(row.due_date)html+=` <span class="pill">Due ${date(row.due_date)}</span>`;html+=`<br><b>${esc(row.title)}</b><div class="small">${esc(row.purpose||'')}</div>`;if(row.examples)html+=`<div class="small"><b>Examples:</b> ${esc(row.examples)}</div>`;if(row.redaction_guidance)html+=`<div class="small"><b>Privacy:</b> ${esc(row.redaction_guidance)}</div>`;html+='<div class="small">If you do not have this item, tell Nexus—we can help create or reconstruct the minimum useful version.</div></div>';if(!state.admin)html+=`<button class="btn primary upload-request" data-id="${row.id}" data-title="${esc(row.title)}" type="button">Upload →</button>`;return html+'</div>'}
+function renderDataRoom(){const root=$('dataRoomRequirements');if(!root)return;const total=state.dataRequirements.length,addressed=state.dataRequirements.filter(row=>addressedStatus(row.status)).length,pct=total?Math.round(addressed/total*100):0;if($('dataRoomProgress'))$('dataRoomProgress').innerHTML=`<div class="data-room-meter-track"><div class="data-room-meter-fill" style="width:${pct}%"></div></div><strong>${addressed} of ${total||'—'} preparation items addressed</strong>`;root.innerHTML=state.dataRequirements.length?state.dataRequirements.map(requirementCard).join(''):'<div class="empty">Nexus has not assigned a preparation checklist to this project yet.</div>';const requestRoot=$('explicitDocumentRequests'),openRequests=state.docRequests.filter(row=>row.status==='requested');if(requestRoot)requestRoot.innerHTML=openRequests.length?`<div class="request-strip">${openRequests.map(documentRequestCard).join('')}</div>`:'<div class="empty">No additional one-off document requests are outstanding.</div>'}
 
-function renderEmailPrefs(){
-  const root=$('emailPreferencePanel');if(!root)return;const p=state.notificationPrefs||{email_enabled:true,task_emails:true,approval_emails:true,document_request_emails:true,digest_cadence:'daily'};
-  root.innerHTML=`<div class="email-control"><div class="toolbar" style="margin-bottom:0"><div><div class="kicker">Notification routing</div><h3 style="margin:4px 0">Stay clear on what Nexus needs from you.</h3></div><span class="email-status ${state.emailConfigured?'live':''}">${state.emailConfigured?'Email delivery connected':'Email delivery provider connection pending'}</span></div><p class="small">In-app alerts are active now. Your email preferences are stored here so task, approval, document-request, and action-summary emails follow your choices when outbound delivery is connected.</p><div class="pref-grid"><label class="pref-toggle"><input id="prefEmail" type="checkbox" ${p.email_enabled?'checked':''}><span><b>Email notifications</b><span>Master email preference.</span></span></label><label class="pref-toggle"><input id="prefTasks" type="checkbox" ${p.task_emails?'checked':''}><span><b>Tasks & responsibilities</b><span>New client action items.</span></span></label><label class="pref-toggle"><input id="prefApprovals" type="checkbox" ${p.approval_emails?'checked':''}><span><b>Approvals</b><span>Decisions Nexus needs from your team.</span></span></label><label class="pref-toggle"><input id="prefDocs" type="checkbox" ${p.document_request_emails?'checked':''}><span><b>Document requests</b><span>New evidence or files Nexus requests.</span></span></label></div><div class="field" style="max-width:260px;margin-top:10px"><label>Action-summary cadence</label><select id="prefDigest"><option value="daily" ${p.digest_cadence==='daily'?'selected':''}>Daily when actions exist</option><option value="weekly" ${p.digest_cadence==='weekly'?'selected':''}>Weekly</option><option value="off" ${p.digest_cadence==='off'?'selected':''}>Off</option></select></div><div class="actions" style="margin-top:12px"><button id="savePrefs" class="btn secondary" type="button">Save notification preferences</button></div></div>`;
-  $('savePrefs').onclick=saveNotificationPrefs;
-}
-async function saveNotificationPrefs(){const row={company_id:state.companyId,user_id:state.user.id,email_enabled:$('prefEmail').checked,task_emails:$('prefTasks').checked,approval_emails:$('prefApprovals').checked,document_request_emails:$('prefDocs').checked,digest_cadence:$('prefDigest').value,updated_at:new Date().toISOString()};const {error}=await sb.from('nexus_notification_preferences').upsert(row,{onConflict:'company_id,user_id'});if(error)return toast(error.message);toast('Notification preferences saved.');await loadNotificationPrefs();renderEmailPrefs()}
+function renderEmailPrefs(){const root=$('emailPreferencePanel');if(!root)return;const pref=state.notificationPrefs||{email_enabled:true,task_emails:true,approval_emails:true,document_request_emails:true,digest_cadence:'daily'};root.innerHTML=`<div class="email-control"><div class="toolbar" style="margin-bottom:0"><div><div class="kicker">Notification routing</div><h3 style="margin:4px 0">Stay clear on what Nexus needs from you.</h3></div><span class="email-status ${state.emailConfigured?'live':''}">${state.emailConfigured?'Email delivery connected':'Email delivery provider connection pending'}</span></div><details class="nexus-progressive-help"><summary>Notification details</summary><p class="small">Choose which action notices reach email. In-app activity remains available in Nexus.</p></details><div class="pref-grid"><label class="pref-toggle"><input id="prefEmail" type="checkbox" ${pref.email_enabled?'checked':''}><span><b>Email notifications</b><span>Master email preference.</span></span></label><label class="pref-toggle"><input id="prefTasks" type="checkbox" ${pref.task_emails?'checked':''}><span><b>Tasks</b><span>New client actions.</span></span></label><label class="pref-toggle"><input id="prefApprovals" type="checkbox" ${pref.approval_emails?'checked':''}><span><b>Approvals</b><span>Decisions that need you.</span></span></label><label class="pref-toggle"><input id="prefDocs" type="checkbox" ${pref.document_request_emails?'checked':''}><span><b>File requests</b><span>Evidence Nexus requests.</span></span></label></div><div class="field" style="max-width:260px;margin-top:10px"><label>Action-summary cadence</label><select id="prefDigest"><option value="daily" ${pref.digest_cadence==='daily'?'selected':''}>Daily when actions exist</option><option value="weekly" ${pref.digest_cadence==='weekly'?'selected':''}>Weekly</option><option value="off" ${pref.digest_cadence==='off'?'selected':''}>Off</option></select></div><div class="actions" style="margin-top:12px"><button id="savePrefs" class="btn secondary" type="button">Save preferences</button></div></div>`}
 
-function bindRows(){document.querySelectorAll('.task-status').forEach(el=>el.onchange=async()=>{const {error}=await sb.from('nexus_tasks').update({status:el.value,updated_at:new Date().toISOString()}).eq('id',el.dataset.id);if(error)return toast(error.message);await workspace()});document.querySelectorAll('.download').forEach(b=>b.onclick=()=>downloadDocument(b.dataset.id))}
-async function downloadDocument(id){
-  const doc=state.docs.find(x=>x.id===id);if(!doc)return toast('Document record not found.');
-  const buttons=[...document.querySelectorAll(`.download[data-id="${id}"]`)];buttons.forEach(b=>{b.disabled=true;b.textContent='Preparing…'});
-  try{
-    const signed=await sb.storage.from(BUCKET).createSignedUrl(doc.storage_path,120,{download:doc.file_name});
-    if(!signed.error&&signed.data?.signedUrl){const a=document.createElement('a');a.href=signed.data.signedUrl;a.download=doc.file_name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();return}
-    const fallback=await sb.storage.from(BUCKET).download(doc.storage_path);if(fallback.error)throw fallback.error;
-    const url=URL.createObjectURL(fallback.data),a=document.createElement('a');a.href=url;a.download=doc.file_name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);
-  }catch(error){console.error('Document download failed',error);toast(`Download failed: ${error.message||'access could not be verified'}`)}
-  finally{buttons.forEach(b=>{b.disabled=false;b.textContent='Download ↓'})}
+function bindRenderedControls(){
+  document.querySelectorAll('.task-status').forEach(control=>events.bind(control,'change',`task-status:${control.dataset.id}`,boundary.wrap('task status update',async()=>{const result=await sb.from('nexus_tasks').update({status:control.value,updated_at:new Date().toISOString()}).eq('id',control.dataset.id);if(result.error)throw result.error;await workspace()})));
+  document.querySelectorAll('.download').forEach(button=>events.bind(button,'click',`download:${button.dataset.id}`,()=>downloadDocument(button.dataset.id)));
+  document.querySelectorAll('.req-upload').forEach(button=>events.bind(button,'click',`requirement-upload:${button.dataset.id}`,()=>prepareUpload({requirementId:button.dataset.id,title:button.dataset.title})));
+  document.querySelectorAll('.req-answer-btn').forEach(button=>events.bind(button,'click',`requirement-answer:${button.dataset.id}`,()=>document.querySelector(`.req-answer[data-id="${CSS.escape(button.dataset.id)}"]`)?.classList.toggle('open')));
+  document.querySelectorAll('.req-save').forEach(button=>events.bind(button,'click',`requirement-save:${button.dataset.id}`,boundary.wrap('preparation response save',()=>saveRequirementAnswer(button.dataset.id))));
+  document.querySelectorAll('.req-build').forEach(button=>events.bind(button,'click',`requirement-build:${button.dataset.id}`,boundary.wrap('preparation status update',()=>setRequirementStatus(button.dataset.id,'build_with_nexus'))));
+  document.querySelectorAll('.req-na').forEach(button=>events.bind(button,'click',`requirement-na:${button.dataset.id}`,boundary.wrap('preparation status update',()=>setRequirementStatus(button.dataset.id,'not_applicable'))));
+  document.querySelectorAll('.upload-request').forEach(button=>events.bind(button,'click',`request-upload:${button.dataset.id}`,()=>prepareUpload({requestId:button.dataset.id,title:button.dataset.title})));
+  events.bind($('savePrefs'),'click','preferences:save',boundary.wrap('notification preferences save',saveNotificationPrefs));
 }
 
-$('uploadForm')?.addEventListener('submit',async e=>{
-  e.preventDefault();const f=$('docFile').files[0];if(!f)return;if(f.size>26214400)return toast('File exceeds the 25 MB limit.');
-  const safe=f.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=`${state.companyId}/${Date.now()}-${crypto.randomUUID()}-${safe}`;
-  const requirement=state.dataRequirements.find(r=>r.id===currentRequirementId),request=state.docRequests.find(r=>r.id===currentRequestId),sensitivity=requirement?.catalog?.sensitivity||request?.sensitivity||'standard';
-  const {error:uploadError}=await sb.storage.from(BUCKET).upload(path,f,{contentType:f.type||undefined});if(uploadError)return toast(uploadError.message);
-  const row={company_id:state.companyId,project_id:state.projects[0]?.id||null,storage_path:path,file_name:f.name,mime_type:f.type||null,size_bytes:f.size,category:$('docCategory').value,status:'shared',note:$('docNote').value.trim()||null,uploaded_by:state.user.id,sensitivity,request_id:currentRequestId||null,data_requirement_id:currentRequirementId||null,document_area:state.admin?'nexus_deliverable':'client_submission',source_role:state.admin?'nexus':'client'};
-  const {data,error}=await sb.from('nexus_documents').insert(row).select().single();if(error){await sb.storage.from(BUCKET).remove([path]);return toast(error.message)}
-  await log('document_uploaded','document',data.id,`${state.admin?'Nexus':'Client'} uploaded ${f.name}`);e.target.reset();clearUploadContext();toast('Document uploaded securely.');await workspace();
-});
+async function saveRequirementAnswer(id){const note=$(`req-note-${id}`)?.value.trim();if(!note){toast('Add a response before saving.');return}const result=await sb.from('nexus_project_data_requirements').update({client_note:note,status:'ready',updated_by:state.user.id,updated_at:new Date().toISOString()}).eq('id',id);if(result.error)throw result.error;toast('Preparation response saved.');await workspace()}
+async function setRequirementStatus(id,status){const result=await sb.from('nexus_project_data_requirements').update({status,updated_by:state.user.id,updated_at:new Date().toISOString()}).eq('id',id);if(result.error)throw result.error;toast(status==='build_with_nexus'?'Marked for Nexus to help build.':'Preparation item updated.');await workspace()}
+function prepareUpload({requirementId=null,requestId=null,title=''}){try{currentRequirementId=requirementId;currentRequestId=requestId;const box=$('uploadContext');if(!box)return;box.classList.add('show');box.innerHTML=`<b>Upload for:</b> ${esc(title)} <button id="clearUploadContext" class="btn secondary" type="button" style="min-height:30px;padding:0 9px;margin-left:8px">Clear</button>`;if($('docNote'))$('docNote').value=$('docNote').value||`Evidence for ${title}`;events.bind($('clearUploadContext'),'click','upload-context:clear',clearUploadContext);box.scrollIntoView({behavior:'smooth',block:'center'});$('docFile')?.focus()}catch(error){console.error('Nexus upload preparation failed',error);toast('The upload form could not be prepared.')}}
+function clearUploadContext(){currentRequirementId=null;currentRequestId=null;const box=$('uploadContext');if(box){box.classList.remove('show');box.innerHTML=''}}
 
-$('taskForm')?.addEventListener('submit',async e=>{e.preventDefault();const row={company_id:state.companyId,project_id:state.projects[0]?.id||null,title:$('taskTitle').value.trim(),description:$('taskDescription').value.trim()||null,assignee:$('taskAssignee').value,status:'open',priority:$('taskPriority').value,due_date:$('taskDue').value||null,created_by:state.user.id};const {data,error}=await sb.from('nexus_tasks').insert(row).select().single();if(error)return toast(error.message);await log('task_created','task',data.id,`Task created: ${row.title}`);closeAll();e.target.reset();await workspace()});
-$('metricForm')?.addEventListener('submit',async e=>{e.preventDefault();const num=v=>v===''?null:Number(v),row={company_id:state.companyId,project_id:state.projects[0]?.id||null,name:$('metricName').value.trim(),unit:$('metricUnit').value.trim()||null,baseline_value:num($('metricBaseline').value),current_value:num($('metricCurrent').value),target_value:num($('metricTarget').value),measurement_method:$('metricMethod').value.trim()||null,measured_at:new Date().toISOString(),created_by:state.user.id};const {data,error}=await sb.from('nexus_metrics').insert(row).select().single();if(error)return toast(error.message);await log('measurement_added','metric',data.id,`Measurement added: ${row.name}`);closeAll();e.target.reset();await workspace()});
-$('milestoneForm')?.addEventListener('submit',async e=>{e.preventDefault();if(!state.admin)return;const row={company_id:state.companyId,project_id:state.projects[0]?.id||null,title:$('milestoneTitle').value.trim(),description:$('milestoneDescription').value.trim()||null,start_date:$('milestoneStart').value||null,due_date:$('milestoneDue').value||null,status:$('milestoneStatus').value,created_by:state.user.id};const {data,error}=await sb.from('nexus_milestones').insert(row).select().single();if(error)return toast(error.message);await log('milestone_created','milestone',data.id,`Milestone added: ${row.title}`);closeAll();e.target.reset();await workspace()});
-$('documentRequestForm')?.addEventListener('submit',async e=>{e.preventDefault();if(!state.admin)return;const row={company_id:state.companyId,project_id:state.projects[0]?.id||null,title:$('requestDocTitle').value.trim(),purpose:$('requestDocPurpose').value.trim()||null,examples:$('requestDocExamples').value.trim()||null,redaction_guidance:$('requestDocPrivacy').value.trim()||null,sensitivity:$('requestDocSensitivity').value,due_date:$('requestDocDue').value||null,requested_by:state.user.id};const {data,error}=await sb.from('nexus_document_requests').insert(row).select().single();if(error)return toast(error.message);await log('document_requested','document_request',data.id,`Document requested: ${row.title}`);closeAll();e.target.reset();toast('Document request sent to the client workspace.');await workspace()});
+async function saveNotificationPrefs(){const row={company_id:state.companyId,user_id:state.user.id,email_enabled:!!$('prefEmail')?.checked,task_emails:!!$('prefTasks')?.checked,approval_emails:!!$('prefApprovals')?.checked,document_request_emails:!!$('prefDocs')?.checked,digest_cadence:$('prefDigest')?.value||'daily',updated_at:new Date().toISOString()};const result=await sb.from('nexus_notification_preferences').upsert(row,{onConflict:'company_id,user_id'});if(result.error)throw result.error;toast('Notification preferences saved.');stateController.patch({notificationPrefs:await fetchNotificationPrefs(state.companyId)},'preferences:saved');renderEmailPrefs();bindRenderedControls()}
 
-async function log(action,type,id,summary){try{await sb.from('nexus_activity_log').insert({company_id:state.companyId,actor_id:state.user.id,action,entity_type:type,entity_id:id,summary})}catch{}}
-$('readAllBtn')?.addEventListener('click',async()=>{const ids=state.notes.filter(x=>!x.read_at&&x.user_id===state.user.id).map(x=>x.id);if(ids.length)await sb.from('nexus_notifications').update({read_at:new Date().toISOString()}).in('id',ids);await workspace()});
-$('alertsBtn')?.addEventListener('click',async()=>{if(!('Notification'in window))return toast('Browser alerts are unavailable here.');const permission=await Notification.requestPermission();toast(permission==='granted'?'Browser alerts enabled.':'Browser alerts were not enabled.')});
-function open(id){$(id)?.classList.add('show')}function closeAll(){document.querySelectorAll('.modal').forEach(x=>x.classList.remove('show'))}
-$('newTaskBtn')?.addEventListener('click',()=>open('taskModal'));$('newMetricBtn')?.addEventListener('click',()=>open('metricModal'));$('newMilestoneBtn')?.addEventListener('click',()=>open('milestoneModal'));$('newDocumentRequestBtn')?.addEventListener('click',()=>open('documentRequestModal'));document.querySelectorAll('.close').forEach(b=>b.onclick=closeAll);document.querySelectorAll('.modal').forEach(m=>m.onclick=e=>{if(e.target===m)closeAll()});
-document.querySelectorAll('.side-nav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.side-nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='section-'+b.dataset.section));window.scrollTo(0,0)}));
+async function downloadDocument(id){const doc=state.docs.find(item=>item.id===id);if(!doc){toast('Document record not found.');return}const buttons=[...document.querySelectorAll(`.download[data-id="${CSS.escape(id)}"]`)];buttons.forEach(button=>{button.disabled=true;button.textContent='Preparing…'});try{const signed=await sb.storage.from(BUCKET).createSignedUrl(doc.storage_path,120,{download:doc.file_name});if(!signed.error&&signed.data?.signedUrl){const anchor=document.createElement('a');anchor.href=signed.data.signedUrl;anchor.download=doc.file_name;anchor.rel='noopener';document.body.appendChild(anchor);anchor.click();anchor.remove();return}const fallback=await sb.storage.from(BUCKET).download(doc.storage_path);if(fallback.error)throw fallback.error;const url=URL.createObjectURL(fallback.data),anchor=document.createElement('a');anchor.href=url;anchor.download=doc.file_name;document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),2500)}catch(error){console.error('Document download failed',error);toast(`Download failed: ${error.message||'access could not be verified'}`)}finally{buttons.forEach(button=>{button.disabled=false;button.textContent='Download ↓'})}}
 
-window.NexusPortal={sb,state,$,toast,workspace,log,downloadDocument};
-await initAuthUX({sb,$,pane,show});
-await initOps({sb,state,$,toast,workspace,log});
-sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){try{await identity()}catch(error){console.error(error);toast(error.message||'Portal could not load.')}}else{state.user=null;show('auth')}});
-const initial=(await sb.auth.getSession()).data.session;if(initial?.user){try{await identity()}catch(error){console.error(error);toast(error.message||'Portal could not load.')}}else show('auth');
+async function handleUpload(event){event.preventDefault();const form=event.currentTarget,file=$('docFile')?.files?.[0];if(!file)return;if(file.size>26214400){toast('File exceeds the 25 MB limit.');return}const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=`${state.companyId}/${Date.now()}-${crypto.randomUUID()}-${safe}`;const requirement=state.dataRequirements.find(row=>row.id===currentRequirementId),request=state.docRequests.find(row=>row.id===currentRequestId),sensitivity=requirement?.catalog?.sensitivity||request?.sensitivity||'standard';const upload=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||undefined});if(upload.error)throw upload.error;try{const row={company_id:state.companyId,project_id:state.projects[0]?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category:$('docCategory')?.value||'General',status:'shared',note:$('docNote')?.value.trim()||null,uploaded_by:state.user.id,sensitivity,request_id:currentRequestId||null,data_requirement_id:currentRequirementId||null,document_area:state.admin?'nexus_deliverable':'client_submission',source_role:state.admin?'nexus':'client'};const insert=await sb.from('nexus_documents').insert(row).select().single();if(insert.error)throw insert.error;await log('document_uploaded','document',insert.data.id,`${state.admin?'Nexus':'Client'} uploaded ${file.name}`);form.reset();clearUploadContext();toast('Document uploaded securely.');await workspace()}catch(error){await sb.storage.from(BUCKET).remove([path]).catch(()=>{});throw error}}
+async function handleTaskCreate(event){event.preventDefault();const row={company_id:state.companyId,project_id:state.projects[0]?.id||null,title:$('taskTitle')?.value.trim()||'',description:$('taskDescription')?.value.trim()||null,assignee:$('taskAssignee')?.value||'client',status:'open',priority:$('taskPriority')?.value||'normal',due_date:$('taskDue')?.value||null,created_by:state.user.id};const result=await sb.from('nexus_tasks').insert(row).select().single();if(result.error)throw result.error;await log('task_created','task',result.data.id,`Task created: ${row.title}`);modals.close('taskModal');event.currentTarget.reset();await workspace()}
+async function handleMetricCreate(event){event.preventDefault();const num=value=>value===''?null:Number(value),row={company_id:state.companyId,project_id:state.projects[0]?.id||null,name:$('metricName')?.value.trim()||'',unit:$('metricUnit')?.value.trim()||null,baseline_value:num($('metricBaseline')?.value||''),current_value:num($('metricCurrent')?.value||''),target_value:num($('metricTarget')?.value||''),measurement_method:$('metricMethod')?.value.trim()||null,measured_at:new Date().toISOString(),created_by:state.user.id};const result=await sb.from('nexus_metrics').insert(row).select().single();if(result.error)throw result.error;await log('measurement_added','metric',result.data.id,`Measurement added: ${row.name}`);modals.close('metricModal');event.currentTarget.reset();await workspace()}
+async function handleMilestoneCreate(event){event.preventDefault();if(!state.admin)return;const row={company_id:state.companyId,project_id:state.projects[0]?.id||null,title:$('milestoneTitle')?.value.trim()||'',description:$('milestoneDescription')?.value.trim()||null,start_date:$('milestoneStart')?.value||null,due_date:$('milestoneDue')?.value||null,status:$('milestoneStatus')?.value||'planned',created_by:state.user.id};const result=await sb.from('nexus_milestones').insert(row).select().single();if(result.error)throw result.error;await log('milestone_created','milestone',result.data.id,`Milestone added: ${row.title}`);modals.close('milestoneModal');event.currentTarget.reset();await workspace()}
+async function handleDocumentRequest(event){event.preventDefault();if(!state.admin)return;const row={company_id:state.companyId,project_id:state.projects[0]?.id||null,title:$('requestDocTitle')?.value.trim()||'',purpose:$('requestDocPurpose')?.value.trim()||null,examples:$('requestDocExamples')?.value.trim()||null,redaction_guidance:$('requestDocPrivacy')?.value.trim()||null,sensitivity:$('requestDocSensitivity')?.value||'standard',due_date:$('requestDocDue')?.value||null,requested_by:state.user.id};const result=await sb.from('nexus_document_requests').insert(row).select().single();if(result.error)throw result.error;await log('document_requested','document_request',result.data.id,`Document requested: ${row.title}`);modals.close('documentRequestModal');event.currentTarget.reset();toast('Document request sent to the client workspace.');await workspace()}
+async function log(action,type,id,summary){try{const result=await sb.from('nexus_activity_log').insert({company_id:state.companyId,actor_id:state.user.id,action,entity_type:type,entity_id:id,summary});if(result.error)console.warn('Nexus activity log write failed',result.error)}catch(error){console.warn('Nexus activity log write failed',error)}}
+async function markAllRead(){const ids=state.notes.filter(item=>!item.read_at&&(!item.user_id||item.user_id===state.user.id)).map(item=>item.id);if(ids.length){const result=await sb.from('nexus_notifications').update({read_at:new Date().toISOString()}).in('id',ids);if(result.error)throw result.error}await workspace()}
+async function requestBrowserAlerts(){if(!('Notification'in window)){toast('Browser alerts are unavailable here.');return}const permission=await Notification.requestPermission();toast(permission==='granted'?'Browser alerts enabled.':'Browser alerts were not enabled.')}
+
+bindStaticEvents();
+window.NexusPortal={sb,state,stateController,runtime,$,toast,workspace,log,downloadDocument};
+await initAuthUX({sb,$,pane,show,runtime});
+
+async function handleAuthSession(session){
+  if(session?.user){await identity(session.user);return}
+  workspaceRequests.invalidate();identityUserId=null;stateController.patch({user:null,admin:false,companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[]},'auth:signed-out');show('auth');
+}
+
+sb.auth.onAuthStateChange((_event,session)=>{queueMicrotask(()=>boundary.run('authentication state change',()=>handleAuthSession(session),{silent:true}))});
+const sessionResult=await sb.auth.getSession();if(sessionResult.error)console.warn('Initial Nexus session lookup failed',sessionResult.error);await boundary.run('initial portal session',()=>handleAuthSession(sessionResult.data?.session||null),{silent:false});
