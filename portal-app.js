@@ -44,6 +44,7 @@ const isSignedIn=!!portal.state?.user,isAdmin=!!portal.state?.admin;
 
 await requiredImport(asset(`portal-accessibility.js?v=${BUILD}`),'portal accessibility');
 if(isSignedIn)await requiredImport(asset(`portal-foundation-hardening.js?v=${BUILD}`),'workspace foundation hardening');
+if(isSignedIn)await requiredImport(asset(`portal-approval-bridge.js?v=${BUILD}`),'approval routing bridge');
 
 if(isSignedIn&&portal.state?.companyId){
   const opsModule=await requiredImport(asset(`portal-ops.js?v=${BUILD}`),'operations workspace');
