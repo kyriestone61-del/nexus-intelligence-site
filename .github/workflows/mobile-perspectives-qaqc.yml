@@ -1,0 +1,61 @@
+name: Nexus Mobile Perspectives QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-client.js'
+      - 'perspective-switcher.css'
+      - 'portal-mobile-hardening.css'
+      - '.github/workflows/mobile-perspectives-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-client.js'
+      - 'perspective-switcher.css'
+      - 'portal-mobile-hardening.css'
+      - '.github/workflows/mobile-perspectives-qaqc.yml'
+
+jobs:
+  mobile-perspectives-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Portal JavaScript syntax
+        run: node --input-type=module --check < portal-client.js
+      - name: Canonical administrator recovery contract
+        run: |
+          grep -q "sb.rpc('nexus_is_platform_admin')" portal-client.js
+          grep -q "state.admin=admin===true" portal-client.js
+          grep -q "compatibility fallback" portal-client.js
+          grep -q "nexus_platform_admins" portal-client.js
+      - name: Existing portal mobile hardening is actually loaded
+        run: |
+          grep -q "@import url('/portal-mobile-hardening.css" perspective-switcher.css
+          grep -q "@media(max-width:760px)" portal-mobile-hardening.css
+          grep -q "diagnosis-review-card" portal-mobile-hardening.css
+      - name: Client mobile UX contract
+        run: |
+          grep -q "portal-client-mode .client-primary-nav" perspective-switcher.css
+          grep -q "grid-template-columns:repeat(5" perspective-switcher.css
+          grep -q "portal-client-mode .client-action-grid" perspective-switcher.css
+          grep -q "portal-client-mode .nexus-guide-drawer" perspective-switcher.css
+          grep -q "safe-area-inset-bottom" perspective-switcher.css
+      - name: Admin mobile UX contract
+        run: |
+          grep -q "portal-body:not(.portal-client-mode) .journey-primary" perspective-switcher.css
+          grep -q "portal-body .topbar #nexusPerspectiveSwitcher" perspective-switcher.css
+          grep -q "data-diagnosis-action" perspective-switcher.css
+      - name: Operations mobile UX contract
+        run: |
+          grep -q "ops-native-topbar" perspective-switcher.css
+          grep -q "ops-native-nav" perspective-switcher.css
+          grep -q "ops-table-wrap" perspective-switcher.css
+          grep -q "ops-modal-card" perspective-switcher.css
+          grep -q "font-size:16px" perspective-switcher.css
+      - name: Three-perspective navigation remains intact
+        run: |
+          grep -q "Admin" portal-perspective-switcher.js
+          grep -q "Operations" portal-perspective-switcher.js
+          grep -q "Client View" portal-perspective-switcher.js
+          grep -q "Admin" operations-perspective-switcher.js
+          grep -q "Client View" operations-perspective-switcher.js
