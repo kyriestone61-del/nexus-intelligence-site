@@ -13,7 +13,7 @@ assert.match(sql,/marketing_opt_in_at/,
   'Snapshot marketing consent timestamp behavior must be preserved');
 assert.match(sql,/snapshot_result/,
   'Personalized Snapshot result queueing must be preserved');
-assert.match(sql,/snapshot_followup-1:/,
+assert.match(sql,/snapshot-followup-1:/,
   'Opt-in nurture sequence must be preserved');
 
 console.log('PASS Snapshot founder-decision domain contract');
