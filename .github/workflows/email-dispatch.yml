@@ -1,4 +1,4 @@
-name: Nexus Email Dispatch
+name: Nexus Transactional Dispatch
 
 on:
   schedule:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: nexus-email-dispatch
+  group: nexus-transactional-dispatch
   cancel-in-progress: false
 
 jobs:
@@ -17,32 +17,43 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Dispatch queued Nexus email
+      - name: Dispatch queued Nexus notifications
         env:
           DISPATCH_SECRET: ${{ secrets.NEXUS_EMAIL_DISPATCH_SECRET }}
-          DISPATCH_URL: https://nexusintelligence.live/api/email-dispatch
+          EMAIL_DISPATCH_URL: https://nexusintelligence.live/api/email-dispatch
+          SMS_DISPATCH_URL: https://nexusintelligence.live/api/sms-dispatch
         shell: bash
         run: |
           set -euo pipefail
           if [ -z "${DISPATCH_SECRET:-}" ]; then
-            echo "NEXUS_EMAIL_DISPATCH_SECRET is not configured; leaving the queue untouched."
+            echo "NEXUS_EMAIL_DISPATCH_SECRET is not configured; leaving notification queues untouched."
             exit 0
           fi
 
-          response_file="$(mktemp)"
-          http_code="$(curl --silent --show-error \
-            --output "$response_file" \
-            --write-out '%{http_code}' \
-            --request POST \
-            --header "Authorization: Bearer ${DISPATCH_SECRET}" \
-            --header 'Content-Type: application/json' \
-            --data '{}' \
-            "$DISPATCH_URL")"
+          dispatch() {
+            local label="$1"
+            local url="$2"
+            local response_file
+            response_file="$(mktemp)"
+            local http_code
+            http_code="$(curl --silent --show-error \
+              --output "$response_file" \
+              --write-out '%{http_code}' \
+              --request POST \
+              --header "Authorization: Bearer ${DISPATCH_SECRET}" \
+              --header 'Content-Type: application/json' \
+              --data '{}' \
+              "$url")"
+            echo "$label:"
+            cat "$response_file"
+            echo
+            if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+              echo "Nexus $label dispatch returned HTTP $http_code" >&2
+              return 1
+            fi
+          }
 
-          cat "$response_file"
-          echo
-
-          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-            echo "Nexus email dispatch returned HTTP $http_code" >&2
-            exit 1
-          fi
+          status=0
+          if ! dispatch "email" "$EMAIL_DISPATCH_URL"; then status=1; fi
+          if ! dispatch "sms" "$SMS_DISPATCH_URL"; then status=1; fi
+          exit "$status"
