@@ -1,9 +1,7 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-control-room-reconcile1';
+const BUILD='20260901-control-room-reconcile2';
 
 window.__nexusPortalBooting=true;
-/* The application loader is the sole owner of runtime selection. Admin Operations is
- * initialized deliberately only after authorization and perspective resolution. */
 window.__nexusOpsInit=true;
 document.body.classList.add('nexus-runtime-booting');
 
@@ -58,17 +56,16 @@ const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell;
 if(useClientShell){
   await loadStyles(['portal-client-shell-v2.css']);
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
+  await requiredImport(asset(`portal-client-upload-service.js?v=${BUILD}`),'client upload service');
   await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
 }else if(useAdminShell){
   const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css'];
   await loadStyles(adminStyles);
-
   await requiredImport(asset(`portal-foundation-hardening.js?v=${BUILD}`),'workspace foundation hardening');
   await requiredImport(asset(`portal-active-engagement-cohesion.js?v=${BUILD}`),'active engagement cohesion');
   await requiredImport(asset(`portal-approval-bridge.js?v=${BUILD}`),'approval routing bridge');
-
   if(portal.state?.companyId){
     const opsModule=await requiredImport(asset(`portal-ops.js?v=${BUILD}`),'operations workspace');
     if(!opsModule?.initOps){const error=new Error('Nexus operations module did not expose initOps.');showCoreLoadFailure(error);throw error}
@@ -77,7 +74,6 @@ if(useClientShell){
     await opsModule.initOps({sb:opsClient,state:portal.state,$:portal.$,toast:portal.toast,workspace:portal.workspace,log:portal.log});
     await waitFor(()=>document.getElementById('opsTodayRoot'),{timeout:2200,step:60});
   }
-
   const NativeMutationObserver=window.MutationObserver;
   window.MutationObserver=class NexusPortalNoopObserver{constructor(){}observe(){}disconnect(){}takeRecords(){return []}};
   try{await requiredImport(asset(`portal-admin-intake.js?v=${BUILD}`),'admin intake')}finally{window.MutationObserver=NativeMutationObserver}
@@ -86,12 +82,10 @@ if(useClientShell){
   await requiredImport(asset(`portal-diagnosis-approval-ux.js?v=${BUILD}`),'diagnosis approval UX');
   await optionalImport(asset(`portal-diagnosis-manual-fallback.js?v=${BUILD}`));
   await optionalImport(asset(`portal-diagnosis-recovery.js?v=${BUILD}`));
-
   await requiredImportWithoutRecurringIntervals(asset(`portal-action-workflow.js?v=${BUILD}`),[1200],'action workflow');
   await requiredImport(asset(`portal-action-execution-v2.js?v=${BUILD}`),'action execution');
   await optionalImport(asset(`portal-action-execution-v2-forms.js?v=${BUILD}`));
   await optionalImport(asset(`portal-guided-ops.js?v=${BUILD}`));
-
   await requiredImport(asset(`portal-admin-journey.js?v=${BUILD}`),'admin Client Journey');
   await requiredImport(asset(`portal-admin-journey-router.js?v=${BUILD}`),'Client Journey router');
   await requiredImport(asset(`portal-diagnosis-controller-v2.js?v=${BUILD}`),'diagnosis controller');
@@ -99,11 +93,9 @@ if(useClientShell){
   await requiredImport(asset(`portal-diagnosis-review-ux.js?v=${BUILD}`),'diagnosis review UX');
   await requiredImport(asset(`portal-journey-task-guard.js?v=${BUILD}`),'journey task guard');
   await requiredImport(asset(`portal-revenue-engine.js?v=${BUILD}`),'Revenue Engine');
-
   const finalAdminReady=await waitFor(()=>{const nav=document.querySelector('.side-nav');const labels=[...nav?.querySelectorAll('button')||[]].map(x=>x.textContent.trim());return document.querySelector('.journey-primary')&&document.querySelector('#adminJourneyRoot .journey-step')&&labels.includes('Client Journey')&&labels.includes('Discovery & Diagnosis')&&labels.includes('Revenue Engine')},{timeout:5200,step:70});
   if(!finalAdminReady){showCoreLoadFailure(new Error('Final Nexus admin navigation did not initialize.'));throw new Error('Final Nexus admin navigation did not initialize.')}
   await window.NexusDiagnosisController?.refreshJourneyLabels?.({force:true});window.NexusDiagnosisController?.normalizeIntake?.();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-
   await requiredImport(asset(`portal-vnext-runtime-router.js?v=${BUILD}`),'vNext delivery runtime router');
   await requiredImport(asset(`portal-vnext-experience.js?v=${BUILD}`),'vNext diagnosis and client report experience');
   await requiredImport(asset(`portal-approval-inbox.js?v=${BUILD}`),'approval chains and Inbox');
