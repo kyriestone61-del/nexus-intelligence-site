@@ -1,0 +1,33 @@
+name: Nexus Revenue Flywheel QA
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260831_nexus_revenue_flywheel_*.sql'
+      - 'supabase/functions/nexus-email-worker/index.ts'
+      - 'qa/contracts/revenue-flywheel.test.mjs'
+      - '.github/workflows/revenue-flywheel-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  revenue-flywheel-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Worker TypeScript syntax
+        run: node --input-type=module --check < supabase/functions/nexus-email-worker/index.ts
+      - name: Revenue flywheel contract
+        run: node qa/contracts/revenue-flywheel.test.mjs
+      - name: No autonomous outbound send contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Eq "nexus_outreach_sequence_steps.*nexus_email_outbox|nexus_email_outbox.*nexus_outreach_sequence_steps" supabase/migrations/20260831_nexus_revenue_flywheel_*.sql
+          grep -Fq "qa_status='passed'" supabase/migrations/20260831_nexus_revenue_flywheel_02_logic.sql
+          grep -Fq "now()+interval '3 days'" supabase/migrations/20260831_nexus_revenue_flywheel_02_logic.sql
