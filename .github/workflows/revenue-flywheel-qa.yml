@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'supabase/migrations/20260831_nexus_revenue_flywheel_*.sql'
+      - 'supabase/migrations/20260901_nexus_revenue_first_touch_approval_deadlock_fix.sql'
+      - 'supabase/migrations/20260901_nexus_revenue_followup_due_gate.sql'
       - 'supabase/functions/nexus-email-worker/index.ts'
       - 'portal-revenue-engine.js'
       - 'portal-revenue-engine.css'
@@ -12,6 +14,7 @@ on:
       - 'qa/contracts/revenue-suppression-sync.test.mjs'
       - 'qa/contracts/revenue-cascade-delete-guard.test.mjs'
       - 'qa/contracts/revenue-generation-gate.test.mjs'
+      - 'qa/contracts/revenue-approval-handoff.test.mjs'
       - '.github/workflows/revenue-flywheel-qa.yml'
   workflow_dispatch:
 
@@ -41,6 +44,8 @@ jobs:
         run: node qa/contracts/revenue-cascade-delete-guard.test.mjs
       - name: Packet generation gate contract
         run: node qa/contracts/revenue-generation-gate.test.mjs
+      - name: Approval handoff and follow-up timing contract
+        run: node qa/contracts/revenue-approval-handoff.test.mjs
       - name: No autonomous outbound send contract
         shell: bash
         run: |
