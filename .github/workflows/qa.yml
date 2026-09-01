@@ -74,7 +74,8 @@ jobs:
             echo 'Production loader still references a retired client shell.' >&2
             exit 1
           fi
-          grep -q 'const platformAdmin=!!portal.state?.admin' portal-app.js
+          grep -q 'nexus_is_platform_admin' portal-app.js
+          grep -q "portal.stateController.patch({admin:platformAdmin},'boot:authorization')" portal-app.js
           grep -q "portal.state?.viewMode==='client'" portal-app.js
           grep -q 'const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell' portal-app.js
           grep -q 'portal-admin-intake.js' portal-app.js
@@ -82,17 +83,27 @@ jobs:
           grep -q 'portal-vnext-experience.js' portal-app.js
           grep -q 'NativeMutationObserver' portal-app.js
           grep -q 'NexusPortalNoopObserver' portal-app.js
+          grep -q 'const coreImportPromise=' portal-app.js
+          grep -q 'withTimeout' portal-app.js
+          grep -q 'softImport' portal-app.js
+          grep -q 'showRuntimeWarning' portal-app.js
+          grep -q 'void hydrateClientShell()' portal-app.js
+          grep -q 'void hydrateAdminShell()' portal-app.js
           node <<'NODE'
           const fs=require('fs');
           const app=fs.readFileSync('portal-app.js','utf8');
-          const perspective=app.indexOf('await perspectiveModule.preparePerspective?.(portal)');
-          const decision=app.indexOf("const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='client')");
-          if(perspective<0||decision<0||perspective>decision) throw new Error('Perspective must resolve before runtime selection.');
+          const role=app.indexOf("nexus_is_platform_admin");
           const store=app.indexOf('portal-nexus-store.js');
+          const decision=app.indexOf("const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='client')");
+          const unlock=app.indexOf('clearBootLock();',decision);
+          const clientFn=app.indexOf('async function hydrateClientShell()',unlock);
+          const adminFn=app.indexOf('async function hydrateAdminShell()',clientFn);
+          if(role<0||decision<0||role>decision) throw new Error('Platform authorization must resolve before runtime selection.');
           if(store<0||store>decision) throw new Error('NexusStore must load before role-specific runtime selection.');
-          const match=app.match(/if\(useClientShell\)\{([\s\S]*?)\}\s*else if\(useAdminShell\)/);
-          if(!match) throw new Error('Dedicated reconciled client runtime branch not found.');
-          const client=match[1];
+          if(unlock<0||clientFn<0||adminFn<0||!(decision<unlock&&unlock<clientFn&&clientFn<adminFn)) throw new Error('Authenticated core shell must unlock before progressive role enhancement hydration.');
+          if(!app.includes("document.body.classList.contains('nexus-shell-ready')")) throw new Error('Post-unlock enhancement failures must not re-hide the core workspace.');
+          if(!app.includes('Core workspace is still available.')) throw new Error('Progressive enhancement failure must degrade visibly instead of deadlocking.');
+          const client=app.slice(clientFn,adminFn);
           const required=['portal-client-control-room.css','portal-client-core.js','portal-client-upload-service.js','portal-client-control-room.js','portal-health-check.js'];
           for(const file of required) if(!client.includes(file)) throw new Error(`Client runtime missing ${file}`);
           if(!client.includes('mountPerspectiveSwitcher')) throw new Error('Administrator Client View must retain the perspective switcher.');
