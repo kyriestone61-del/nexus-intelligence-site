@@ -26,16 +26,21 @@ function normalizeInbox(){
   const section=document.getElementById('section-notifications');
   if(section){
     const heading=section.querySelector('h1');
-    if(heading)heading.textContent='Inbox';
+    if(heading&&heading.textContent!=='Inbox')heading.textContent='Inbox';
     const eyebrow=section.querySelector('.eyebrow');
-    if(eyebrow)eyebrow.textContent='Messages & alerts';
+    if(eyebrow&&eyebrow.textContent!=='Messages & alerts')eyebrow.textContent='Messages & alerts';
     const copy=section.querySelector('p.small');
-    if(copy)copy.textContent='See client updates, report notifications, questions, answers, and other items that need your attention.';
+    const inboxCopy='See client updates, report notifications, questions, answers, and other items that need your attention.';
+    if(copy&&copy.textContent!==inboxCopy)copy.textContent=inboxCopy;
   }
   const nav=document.querySelector('.side-nav');
   if(!nav)return;
   let button=nav.querySelector('button[data-section="notifications"]');
-  if(button){button.textContent='Inbox';button.dataset.nexusInbox='1';return}
+  if(button){
+    if(button.textContent!=='Inbox')button.textContent='Inbox';
+    button.dataset.nexusInbox='1';
+    return;
+  }
   if(!section)return;
   button=document.createElement('button');
   button.type='button';
@@ -47,8 +52,9 @@ function normalizeInbox(){
   const journey=nav.querySelector('.journey-primary');
   if(clients)clients.after(button);else if(journey)journey.after(button);else nav.prepend(button);
 }
+const inboxNav=document.querySelector('.side-nav');
 const inboxObserver=new MutationObserver(()=>normalizeInbox());
-inboxObserver.observe(document.body,{childList:true,subtree:true});
+if(inboxNav)inboxObserver.observe(inboxNav,{childList:true,subtree:true});
 for(const ms of [0,120,450,1200])setTimeout(normalizeInbox,ms);
 
 // Preserve compatibility with existing modules that still consume state.projects[0], but make
