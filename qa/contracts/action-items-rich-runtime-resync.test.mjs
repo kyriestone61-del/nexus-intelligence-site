@@ -6,9 +6,11 @@ const app=fs.readFileSync('portal-app.js','utf8');
 const actions=fs.readFileSync('portal-action-execution-v2.js','utf8');
 const cohesion=fs.readFileSync('portal-buildingblok-cohesion.js','utf8');
 
-test('rich Action Items runtime is not imported with its 900ms reconciliation disabled',()=>{
-  assert.ok(app.includes("requiredImport(asset(`portal-action-execution-v2.js?v=${BUILD}`),'action execution')"));
-  assert.ok(!app.includes("portal-action-execution-v2.js?v=${BUILD}`),[900]"));
+test('rich Action Items runtime keeps its 900ms reconciliation under progressive hydration',()=>{
+  assert.ok(app.includes("['portal-action-execution-v2.js','action execution']"),'rich action runtime must remain registered in admin hydration');
+  assert.ok(app.includes('for(const [file,label,blockedDelays=[]] of modules)'),'admin enhancement registry must pass only explicit blocked delays');
+  assert.ok(!app.includes("['portal-action-execution-v2.js','action execution',[900]]"),'900ms reconciliation must never be suppressed');
+  assert.ok(actions.includes('setInterval(()=>reconcile(false).catch(console.error),900)'),'rich action runtime must retain its workspace reconciliation loop');
 });
 
 test('client action cards retain details, response, submit, and Nexus review controls',()=>{

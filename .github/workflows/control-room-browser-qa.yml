@@ -2,11 +2,6 @@ name: Nexus Control Room Browser QA
 
 on:
   workflow_dispatch:
-    inputs:
-      base_url:
-        description: 'Portal base URL'
-        required: false
-        default: 'https://nexus-intelligence-site.pages.dev'
   push:
     branches: [main]
     paths:
@@ -19,8 +14,9 @@ on:
       - 'portal-accessibility.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
-      - 'portal-client-shell-v2.js'
-      - 'portal-client-shell-v2.css'
+      - 'portal-client-shell.js'
+      - 'portal-client-shell.css'
+      - 'portal-health-check.js'
       - 'portal-perspective-switcher.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
@@ -36,8 +32,9 @@ on:
       - 'portal-accessibility.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
-      - 'portal-client-shell-v2.js'
-      - 'portal-client-shell-v2.css'
+      - 'portal-client-shell.js'
+      - 'portal-client-shell.css'
+      - 'portal-health-check.js'
       - 'portal-perspective-switcher.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
@@ -54,7 +51,7 @@ jobs:
       run:
         working-directory: qa/playwright
     env:
-      NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
+      NEXUS_QA_BASE_URL: http://127.0.0.1:4173
       NEXUS_QA_ADMIN_EMAIL: ${{ secrets.NEXUS_QA_ADMIN_EMAIL }}
       NEXUS_QA_ADMIN_PASSWORD: ${{ secrets.NEXUS_QA_ADMIN_PASSWORD }}
       NEXUS_QA_CLIENT_EMAIL: ${{ secrets.NEXUS_QA_CLIENT_EMAIL }}
@@ -67,6 +64,18 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium webkit
+      - name: Serve checked-out branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory ../.. >/tmp/nexus-http.log 2>&1 &
+          echo $! >/tmp/nexus-http.pid
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/portal.html >/dev/null; then exit 0; fi
+            sleep 0.5
+          done
+          cat /tmp/nexus-http.log
+          exit 1
       - name: Report authenticated QA coverage
         shell: bash
         run: |

@@ -14,6 +14,10 @@
 <style id="nexus-shell-preboot">
 #portalApp{visibility:hidden!important}
 body.nexus-shell-ready #portalApp{visibility:visible!important}
+/* Critical auth geometry must exist before the dynamic runtime stylesheet arrives. */
+#tabSignIn,#tabCreate,#signInBtn,#createBtn,#backToSignIn{min-height:44px!important}
+.auth-shell .tabs button{min-height:44px!important;padding:10px 12px!important}
+.auth-shell button,.auth-shell .btn,.auth-shell input[type="submit"],.auth-shell input[type="button"]{min-height:44px}
 </style>
 </head>
 <body class="portal-body">
@@ -38,133 +42,93 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
       <div id="signInPane" class="auth-pane active">
         <div class="kicker">Authenticated workspace</div><h2>Welcome back.</h2>
         <form id="signInForm">
-          <div class="field"><label>Email</label><input id="signInEmail" type="email" autocomplete="email" required></div>
-          <div class="field"><label>Password</label><input id="signInPassword" type="password" autocomplete="current-password" required></div>
-          <div class="actions"><button id="signInBtn" class="btn primary" type="submit">Sign in →</button></div>
+          <label class="field">Email<input id="signInEmail" type="email" autocomplete="email" required></label>
+          <label class="field">Password<input id="signInPassword" type="password" autocomplete="current-password" required></label>
+          <button id="signInBtn" class="btn primary" type="submit">Sign in →</button>
         </form>
       </div>
       <div id="createPane" class="auth-pane">
         <div class="kicker">Create your Nexus workspace</div><h2>Set up your company account.</h2>
-        <p class="small">Creating an account opens a coordination workspace. It does not by itself create a consulting engagement, fee, deadline, or service level.</p>
+        <p class="small muted">Creating an account opens a coordination workspace. It does not by itself create a consulting engagement, fee, deadline, or service level.</p>
         <form id="createForm">
-          <div class="field"><label>Your name</label><input id="createName" autocomplete="name" required></div>
-          <div class="field"><label>Company name</label><input id="createCompany" autocomplete="organization" required></div>
-          <div class="field"><label>Company website <span class="small">(optional)</span></label><input id="createWebsite" type="url" placeholder="https://"></div>
-          <div class="field"><label>Email</label><input id="createEmail" type="email" autocomplete="email" required></div>
-          <div class="field"><label>Password</label><input id="createPassword" type="password" minlength="12" autocomplete="new-password" required></div>
-          <div class="actions"><button id="createBtn" class="btn primary" type="submit">Create account →</button></div>
+          <label class="field">Your name<input id="createName" autocomplete="name" required></label>
+          <label class="field">Company name<input id="createCompany" autocomplete="organization" required></label>
+          <label class="field"><span>Company website <span class="muted">(optional)</span></span><input id="createWebsite" type="url" placeholder="https://" autocomplete="url"></label>
+          <label class="field">Email<input id="createEmail" type="email" autocomplete="email" required></label>
+          <label class="field">Password<input id="createPassword" type="password" autocomplete="new-password" required></label>
+          <button id="createBtn" class="btn primary" type="submit">Create account →</button>
         </form>
       </div>
       <div id="confirmPane" class="auth-pane">
-        <div class="success-box"><div class="kicker">Account submitted</div><h2>Check your email to finish.</h2><p id="confirmText">We sent an account-confirmation email. Click the confirmation link once, then return to Nexus.</p><div class="actions"><button id="returnSignIn" class="btn primary" type="button">Return to sign in →</button></div></div>
+        <div class="kicker">Account submitted</div><h2>Check your email to finish.</h2>
+        <p class="muted">We sent an account-confirmation email. Click the confirmation link once, then return to Nexus.</p>
+        <button id="backToSignIn" class="btn primary" type="button">Return to sign in →</button>
       </div>
-      <p id="authMessage" class="small" style="margin-top:15px"></p>
-      <div class="note" style="margin-top:20px"><b>Security boundary:</b> Never upload passwords, MFA codes, API keys, payment-card data, medical records, or other highly sensitive/regulated data unless Nexus has expressly approved that data type and handling method.</div>
-      <div class="actions"><a class="btn secondary" href="/">← Main website</a></div>
+      <p id="authStatus" class="status-text" role="status" aria-live="polite"></p>
+      <div class="security-boundary">Security boundary: Never upload passwords, MFA codes, API keys, payment-card data, medical records, or other highly sensitive/regulated data unless Nexus has expressly approved that data type and handling method.</div>
+      <a class="small" href="/">← Main website</a>
     </section>
   </div>
 </div>
 
 <div id="onboardView" class="auth-shell" style="display:none">
-  <section class="panel" style="max-width:730px;margin:auto">
-    <div class="eyebrow">Workspace activation</div><h1 style="font-size:44px;line-height:1.02">Tell Nexus which company this workspace belongs to.</h1>
-    <p class="muted">Once you continue, Nexus will create your initial opportunity-assessment preparation checklist and next actions automatically.</p>
-    <form id="onboardForm">
-      <div class="field"><label>Company name</label><input id="onboardCompany" required></div>
-      <div class="field"><label>Website <span class="small">(optional)</span></label><input id="onboardWebsite" type="url"></div>
-      <div class="field"><label>Industry / business type <span class="small">(optional)</span></label><input id="onboardIndustry"></div>
-      <div class="actions"><button class="btn primary" type="submit">Activate workspace →</button></div>
-    </form>
-  </section>
+  <div class="auth-grid">
+    <section class="panel nx-corner">
+      <div class="brand"><span class="mark">N</span><span>Nexus Intelligence</span></div>
+      <div class="eyebrow" style="margin-top:28px">Workspace setup</div>
+      <h1>One last step.</h1>
+      <p class="muted">Tell Nexus which company this workspace belongs to. You can refine the company profile later.</p>
+    </section>
+    <section class="panel">
+      <form id="onboardForm">
+        <label class="field">Company name<input id="onboardCompany" required></label>
+        <label class="field">Website<input id="onboardWebsite" type="url" placeholder="https://"></label>
+        <label class="field">Industry<input id="onboardIndustry"></label>
+        <button class="btn primary" type="submit">Create workspace →</button>
+      </form>
+      <p id="onboardStatus" class="status-text" role="status" aria-live="polite"></p>
+    </section>
+  </div>
 </div>
 
 <div id="portalApp" style="display:none">
   <header class="topbar">
     <a class="brand" href="/"><span class="mark">N</span><span>Nexus Intelligence</span></a>
-    <span class="pill">CONTROL ROOM</span>
     <select id="companySelect" class="company-select" aria-label="Select company"></select>
-    <button id="alertsBtn" class="btn secondary" type="button">Browser alerts</button>
     <button id="signOutBtn" class="btn secondary" type="button">Sign out</button>
   </header>
-
   <div class="workspace">
     <aside class="sidebar">
-      <div id="companyMini" style="padding:4px 10px 16px"></div>
+      <div id="companyMini" class="company-mini"></div>
       <nav class="side-nav" aria-label="Workspace navigation">
-        <button class="active" data-section="overview" type="button">Today</button>
-        <button data-section="documents" type="button">Secure Data Room</button>
-        <button data-section="tasks" type="button">Action Items</button>
-        <button data-section="timeline" type="button">Projects</button>
-        <button data-section="metrics" type="button">Improvements</button>
-        <button data-section="notifications" type="button">Notifications</button>
-        <button data-section="activity" type="button">Activity</button>
+        <button type="button" data-section="overview">Overview</button>
+        <button type="button" data-section="documents">Data Room</button>
+        <button type="button" data-section="tasks">Action Queue</button>
+        <button type="button" data-section="projects">Projects</button>
+        <button type="button" data-section="metrics">Improvement Ledger</button>
+        <button type="button" data-section="notifications">Notifications</button>
+        <button type="button" data-section="settings">Settings</button>
       </nav>
-      <div class="note" style="margin-top:18px"><b>Control boundary:</b> Portal tasks, comments, uploads, planning dates, and status labels do not amend a contract, SOW, fee, acceptance criterion, or service level.</div>
     </aside>
-
     <main class="main">
-      <section id="section-overview" class="section active">
-        <div class="toolbar"><div><div class="eyebrow">Client workspace</div><h1 id="workspaceTitle" style="font-size:36px;margin:6px 0">Company workspace</h1></div><span id="roleLabel" class="small"></span></div>
-        <div class="stats"><div class="stat"><b id="sTasks">0</b><span>Open actions</span></div><div class="stat"><b id="sDocs">0</b><span>Secure files</span></div><div class="stat"><b id="sMiles">0</b><span>Active milestones</span></div><div class="stat"><b id="sNotes">0</b><span>Unread alerts</span></div></div>
-        <div style="height:14px"></div><div class="two"><div class="box"><h3>Current actions</h3><div id="overviewTasks" class="list"></div></div><div class="box"><h3>Recent files</h3><div id="overviewDocs" class="list"></div></div></div>
-        <div style="height:14px"></div><div class="box"><h3>Timeline</h3><div id="overviewTimeline" class="timeline"></div></div>
-      </section>
-
-      <section id="section-documents" class="section">
-        <div class="toolbar"><div><div class="eyebrow">Evidence preparation + private exchange</div><h1 style="font-size:38px;margin:6px 0">Secure Data Room</h1><p class="small">Give Nexus enough evidence to understand the real operation. Perfect documentation is not required.</p></div><button id="newDocumentRequestBtn" class="btn primary" type="button" style="display:none">+ Request item</button></div>
-        <div class="data-room-stack">
-          <div class="data-room-hero">
-            <div class="kicker">Start here</div><h2>What should your company provide?</h2>
-            <p>Nexus is looking for evidence of <b>how the work actually happens</b>: the process, real examples, systems involved, volume, measurable baseline, and the people who own decisions. For every item below, we explain why it matters, where to find it, and what to do if it does not exist.</p>
-            <div id="dataRoomProgress" class="data-room-meter"></div>
-          </div>
-          <div class="data-room-help">
-            <div><b>Use representative—not exhaustive—evidence.</b><span>Three to ten normal examples usually teach more than a giant data dump.</span></div>
-            <div><b>Redact what Nexus does not need.</b><span>Remove unnecessary customer PII, secrets, credentials, payment information, and unrelated sensitive fields.</span></div>
-            <div><b>Missing is useful information.</b><span>If an SOP, KPI, systems map, or runbook does not exist, choose “Build with Nexus.” That gap can become part of the work.</span></div>
-          </div>
-          <div class="secure-doc-section"><div class="toolbar"><div><div class="kicker">Preparation checklist</div><h2>Recommended evidence for this service</h2></div></div><div id="dataRoomRequirements" class="requirement-grid"></div></div>
-          <div class="secure-doc-section"><div class="toolbar"><div><div class="kicker">Specific requests</div><h2>Requested from You</h2></div></div><div id="explicitDocumentRequests"></div></div>
-          <div class="upload data-room-upload">
-            <div class="kicker">Private upload</div><h2 style="font-size:24px;margin:5px 0 4px">Share a file securely</h2><p class="small">Use this for current-state evidence or a specific Nexus request. Select an item above first when possible so the portal can automatically mark the correct requirement as uploaded.</p>
-            <div id="uploadContext" class="upload-context"></div>
-            <form id="uploadForm">
-              <div class="form-grid">
-                <div class="field"><label>File</label><input id="docFile" type="file" required accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg"></div>
-                <div class="field"><label>Category</label><select id="docCategory"><option>Client Source</option><option>Process Document</option><option>Measurement</option><option>Report</option><option>General</option><option>Nexus Deliverable</option></select></div>
-              </div>
-              <div class="field"><label>Context note <span class="small">(recommended)</span></label><textarea id="docNote" placeholder="What is this file? What workflow, period, or question does it help Nexus understand?"></textarea></div>
-              <div class="actions"><button class="btn primary" type="submit">Upload securely →</button></div>
-              <p class="small">Accepted: PDF, DOCX, XLSX, CSV, TXT, PNG, JPG · Maximum 25 MB · Private company-level storage.</p>
-            </form>
-          </div>
-          <div class="secure-doc-section"><div class="toolbar"><div><div class="kicker secure-subhead">Your Recent Submissions</div><h2>Workspace files</h2></div></div><div id="documentList" class="list"></div></div>
-        </div>
-      </section>
-
-      <section id="section-tasks" class="section"><div class="toolbar"><div><div class="eyebrow">Responsibility queue</div><h1 style="font-size:36px;margin:6px 0">Action Items</h1><p class="small">Who owns the next move, what “done” means, and where work is blocked.</p></div><button id="newTaskBtn" class="btn primary" type="button">+ Add action</button></div><div class="note"><b>Scope rule:</b> Assigning a portal task to Nexus coordinates existing work; it does not expand signed scope or create a binding deadline.</div><div style="height:14px"></div><div id="taskList" class="list"></div></section>
-
-      <section id="section-timeline" class="section"><div class="toolbar"><div><div class="eyebrow">Engagement progress</div><h1 style="font-size:36px;margin:6px 0">Projects & Milestones</h1></div><button id="newMilestoneBtn" class="btn primary" type="button" style="display:none">+ Add milestone</button></div><div id="projectBox" class="box" style="margin-bottom:16px"></div><div id="milestoneList" class="timeline"></div><p class="small">Portal dates are planning dates unless a signed agreement expressly identifies a binding deadline or service level.</p></section>
-
-      <section id="section-metrics" class="section"><div class="toolbar"><div><div class="eyebrow">Value & Improvement Ledger</div><h1 style="font-size:36px;margin:6px 0">Improvements</h1></div><button id="newMetricBtn" class="btn primary" type="button">+ Add measurement</button></div><div class="note"><b>Measurement rule:</b> Movement in a metric does not automatically prove Nexus caused the change. Baselines, measurement windows, assumptions, exclusions, and attribution should be documented.</div><div style="height:14px"></div><div id="metricList" class="metrics"></div></section>
-
-      <section id="section-notifications" class="section"><div class="toolbar"><div><div class="eyebrow">Action routing</div><h1 style="font-size:36px;margin:6px 0">Notifications</h1><p class="small">Keep responsibilities visible without turning the workspace into notification noise.</p></div><button id="readAllBtn" class="btn secondary" type="button">Mark all read</button></div><div id="emailPreferencePanel"></div><div id="notificationList" class="list"></div></section>
-
-      <section id="section-activity" class="section"><div class="toolbar"><div><div class="eyebrow">Audit trail</div><h1 style="font-size:36px;margin:6px 0">Activity</h1></div></div><div id="activityList" class="list"></div></section>
+      <section id="section-overview" class="section active"></section>
+      <section id="section-documents" class="section"><div class="data-room-upload"><div class="kicker">Secure upload</div><h2>Share evidence</h2><p class="small muted">Upload the smallest useful example. Link it to a request when possible.</p><div id="uploadContext"></div><form id="uploadForm"><div class="form-grid"><label class="field">File<input id="docFile" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg"></label><label class="field">Category<select id="docCategory"><option>Client Source</option><option>Process Document</option><option>Report</option><option>Measurement</option><option>General</option></select></label></div><label class="field">Note<textarea id="docNote" rows="3"></textarea></label><button class="btn primary" type="submit">Upload securely →</button></form></div></section>
+      <section id="section-tasks" class="section"></section>
+      <section id="section-projects" class="section"></section>
+      <section id="section-metrics" class="section"></section>
+      <section id="section-notifications" class="section"><div id="emailPreferencePanel"></div><button id="readAllBtn" class="btn secondary" type="button">Mark all read</button></section>
+      <section id="section-settings" class="section"></section>
     </main>
   </div>
 </div>
 
-<div id="taskModal" class="modal"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add action item</h2><button class="btn secondary close" type="button">Close</button></div><form id="taskForm"><div class="field"><label>Action</label><input id="taskTitle" required></div><div class="form-grid"><div class="field"><label>Owner</label><select id="taskAssignee"><option value="client">Client</option><option value="nexus">Nexus</option></select></div><div class="field"><label>Priority</label><select id="taskPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div><div class="field"><label>Due date</label><input id="taskDue" type="date"></div></div><div class="field"><label>Completion context</label><textarea id="taskDescription" placeholder="What needs to happen, and what should be true when this is done?"></textarea></div><div class="actions"><button class="btn primary" type="submit">Create action</button></div></form></div></div>
-
-<div id="metricModal" class="modal"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add measurement</h2><button class="btn secondary close" type="button">Close</button></div><form id="metricForm"><div class="field"><label>Metric</label><input id="metricName" required placeholder="Example: Weekly reporting time"></div><div class="form-grid"><div class="field"><label>Unit</label><input id="metricUnit" placeholder="hours, %, days, count"></div><div class="field"><label>Baseline</label><input id="metricBaseline" type="number" step="any"></div><div class="field"><label>Current</label><input id="metricCurrent" type="number" step="any"></div><div class="field"><label>Target</label><input id="metricTarget" type="number" step="any"></div></div><div class="field"><label>Measurement method</label><textarea id="metricMethod"></textarea></div><div class="actions"><button class="btn primary" type="submit">Save measurement</button></div></form></div></div>
-
-<div id="milestoneModal" class="modal"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add milestone</h2><button class="btn secondary close" type="button">Close</button></div><form id="milestoneForm"><div class="field"><label>Milestone</label><input id="milestoneTitle" required></div><div class="form-grid"><div class="field"><label>Start</label><input id="milestoneStart" type="date"></div><div class="field"><label>Due</label><input id="milestoneDue" type="date"></div><div class="field"><label>Status</label><select id="milestoneStatus"><option value="planned">Planned</option><option value="active">Active</option><option value="complete">Complete</option><option value="delayed">Delayed</option></select></div></div><div class="field"><label>Description</label><textarea id="milestoneDescription"></textarea></div><div class="actions"><button class="btn primary" type="submit">Save milestone</button></div></form></div></div>
-
-<div id="documentRequestModal" class="modal"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Request a client item</h2><button class="btn secondary close" type="button">Close</button></div><form id="documentRequestForm"><div class="field"><label>What do you need?</label><input id="requestDocTitle" required></div><div class="field"><label>Why is it needed?</label><textarea id="requestDocPurpose" placeholder="Explain the decision, workflow, or measurement this will support."></textarea></div><div class="field"><label>Good examples</label><textarea id="requestDocExamples" placeholder="Give the client examples of acceptable evidence."></textarea></div><div class="field"><label>Privacy / redaction guidance</label><textarea id="requestDocPrivacy" placeholder="What should the client remove or avoid sharing?"></textarea></div><div class="form-grid"><div class="field"><label>Sensitivity</label><select id="requestDocSensitivity"><option value="standard">Standard</option><option value="confidential">Confidential</option></select></div><div class="field"><label>Requested by</label><input id="requestDocDue" type="date"></div></div><div class="actions"><button class="btn primary" type="submit">Send request →</button></div></form></div></div>
+<div id="taskModal" class="modal" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2>Add action item</h2><button class="close" type="button" aria-label="Close">×</button></div><form id="taskForm"><label class="field">Action<input id="taskTitle" required></label><div class="form-grid"><label class="field">Owner<select id="taskAssignee"><option value="client">Client</option><option value="nexus">Nexus</option></select></label><label class="field">Priority<select id="taskPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></label><label class="field">Due date<input id="taskDue" type="date"></label></div><label class="field">Completion context<textarea id="taskDescription" placeholder="What needs to happen, and what should be true when this is done?"></textarea></label><button class="btn primary" type="submit">Create action</button></form></div></div>
+<div id="metricModal" class="modal" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2>Add measurement</h2><button class="close" type="button" aria-label="Close">×</button></div><form id="metricForm"><label class="field">Metric<input id="metricName" placeholder="Example: Weekly reporting time" required></label><div class="form-grid"><label class="field">Unit<input id="metricUnit" placeholder="hours, %, days, count"></label><label class="field">Baseline<input id="metricBaseline" type="number" step="any"></label><label class="field">Current<input id="metricCurrent" type="number" step="any"></label><label class="field">Target<input id="metricTarget" type="number" step="any"></label></div><label class="field">Measurement method<textarea id="metricMethod"></textarea></label><button class="btn primary" type="submit">Save measurement</button></form></div></div>
+<div id="milestoneModal" class="modal" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2>Add milestone</h2><button class="close" type="button" aria-label="Close">×</button></div><form id="milestoneForm"><label class="field">Milestone<input id="milestoneTitle" required></label><div class="form-grid"><label class="field">Start<input id="milestoneStart" type="date"></label><label class="field">Due<input id="milestoneDue" type="date"></label><label class="field">Status<select id="milestoneStatus"><option value="planned">Planned</option><option value="active">Active</option><option value="complete">Complete</option><option value="delayed">Delayed</option></select></label></div><label class="field">Description<textarea id="milestoneDescription"></textarea></label><button class="btn primary" type="submit">Save milestone</button></form></div></div>
+<div id="documentRequestModal" class="modal" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2>Request a client item</h2><button class="close" type="button" aria-label="Close">×</button></div><form id="documentRequestForm"><label class="field">What do you need?<input id="requestDocTitle" required></label><label class="field">Why is it needed?<textarea id="requestDocPurpose" placeholder="Explain the decision, workflow, or measurement this will support."></textarea></label><label class="field">Good examples<textarea id="requestDocExamples" placeholder="Give the client examples of acceptable evidence."></textarea></label><label class="field">Privacy / redaction guidance<textarea id="requestDocRedaction" placeholder="What should the client remove or avoid sharing?"></textarea></label><div class="form-grid"><label class="field">Sensitivity<select id="requestDocSensitivity"><option value="standard">Standard</option><option value="confidential">Confidential</option></select></label><label class="field">Requested by<input id="requestDocRequester"></label></div><input id="requestDocDue" type="date" hidden><button class="btn primary" type="submit">Send request →</button></form></div></div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="/portal-security-hardening.js?v=20260831-discovery-capture1"></script>
+<script type="module" src="/portal-security-hardening.js?v=20260831-discovery-capture1"></script>
 <script type="module" src="/portal-app.js?v=20260831-discovery-capture1"></script>
 </body>
 </html>

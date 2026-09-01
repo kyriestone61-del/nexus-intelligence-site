@@ -21,29 +21,40 @@ jobs:
         run: |
           set -euo pipefail
           node --input-type=module --check < portal-app.js
-      - name: Boot lock contract
+      - name: Anti-deadlock boot contract
         run: |
           set -euo pipefail
           grep -Fq 'window.__nexusPortalBooting=true' portal-app.js
           grep -Fq 'nexusPortalBootOverlay' portal-app.js
           grep -Fq 'Loading Nexus workspace' portal-app.js
           grep -Fq 'portal-client.js?v=${BUILD}' portal-app.js
-          grep -Fq 'importWithoutRecurringIntervals' portal-app.js
-          grep -Fq '[180]' portal-app.js
-          grep -Fq 'window.__nexusOpsInit=false' portal-app.js
-          grep -Fq 'labels.includes('\''Client Journey'\'')' portal-app.js
-          grep -Fq 'labels.includes('\''Discovery & Diagnosis'\'')' portal-app.js
-          grep -Fq 'Final Nexus admin navigation did not initialize.' portal-app.js
+          grep -Fq 'const coreImportPromise=' portal-app.js
+          grep -Fq 'window.NexusPortal' portal-app.js
+          grep -Fq "portal.sb.auth.getSession()" portal-app.js
+          grep -Fq "nexus_is_platform_admin" portal-app.js
+          grep -Fq 'withTimeout' portal-app.js
+          grep -Fq 'softImport' portal-app.js
+          grep -Fq 'showRuntimeWarning' portal-app.js
           grep -Fq 'clearBootLock();' portal-app.js
-      - name: No premature reveal regression
+          grep -Fq 'void hydrateClientShell()' portal-app.js
+          grep -Fq 'void hydrateAdminShell()' portal-app.js
+      - name: Core reveal precedes enhancement hydration
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
           s=Path('portal-app.js').read_text()
-          assert s.index('window.__nexusPortalBooting=true') < s.index('portal-client.js?v=${BUILD}')
-          assert s.index("labels.includes('Client Journey')") < s.rindex('clearBootLock();')
-          assert s.index("labels.includes('Discovery & Diagnosis')") < s.rindex('clearBootLock();')
-          assert 'revealPortal();' not in s
-          print('Final-layout boot ordering is deterministic.')
+          boot=s.index('window.__nexusPortalBooting=true')
+          core=s.index('const coreImportPromise=')
+          session=s.index('portal.sb.auth.getSession()')
+          role=s.index("nexus_is_platform_admin")
+          decision=s.index("const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='client')")
+          unlock=s.index('clearBootLock();', decision)
+          client_hydration=s.index('async function hydrateClientShell()', unlock)
+          admin_hydration=s.index('async function hydrateAdminShell()', client_hydration)
+          assert boot < core < session < role < decision < unlock < client_hydration < admin_hydration
+          assert "document.body.classList.contains('nexus-shell-ready')" in s
+          assert "Core workspace is still available." in s
+          assert 'Final Nexus admin navigation did not initialize.' not in s
+          print('Authenticated core shell unlocks before progressive enhancement hydration.')
           PY

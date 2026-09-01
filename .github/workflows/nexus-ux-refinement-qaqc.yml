@@ -24,13 +24,15 @@ jobs:
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-ux-refinement.js
           node --input-type=module --check < operations-ux-refinement.js
-      - name: Portal load contract
+      - name: Portal progressive load contract
         run: |
           set -euo pipefail
           grep -Fq "'portal-ux-refinement.css'" portal-app.js
-          grep -Fq "portal-ux-refinement.js?v=\${BUILD}" portal-app.js
+          grep -Fq "'portal-ux-refinement.js','front-end UX refinement'" portal-app.js
+          grep -Fq "softImport(asset(\`\${file}?v=\${BUILD}\`)" portal-app.js
           grep -Fq "front-end UX refinement" portal-app.js
-          grep -Fq "const BUILD='20260901-workflow-cohesion1'" portal-app.js
+          grep -Fq "clearBootLock();" portal-app.js
+          grep -Eq "^const BUILD='[0-9]{8}-[A-Za-z0-9._-]+';" portal-app.js
       - name: Idempotent runtime contract
         run: |
           set -euo pipefail

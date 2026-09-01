@@ -25,9 +25,13 @@ jobs:
           node --input-type=module --check < portal-client.js
           node --input-type=module --check < portal-auth.js
           node --input-type=module --check < portal-runtime-core.js
+          node --input-type=module --check < portal-nexus-store.js
           node --input-type=module --check < portal-client-core.js
+          node --input-type=module --check < portal-client-pdf-service.js
           node --input-type=module --check < portal-client-upload-service.js
-          node --input-type=module --check < portal-client-shell-v2.js
+          node --input-type=module --check < portal-client-control-room.js
+          node --input-type=module --check < portal-admin-command-center.js
+          node --input-type=module --check < portal-health-check.js
           node --input-type=module --check < portal-ops.js
           node --input-type=module --check < portal-simplify.js
           node --input-type=module --check < portal-admin-intake.js
@@ -59,11 +63,19 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'portal-client.js' portal-app.js
+          grep -q 'portal-nexus-store.js' portal-app.js
           grep -q 'portal-client-core.js' portal-app.js
           grep -q 'portal-client-upload-service.js' portal-app.js
-          grep -q 'portal-client-shell-v2.js' portal-app.js
-          grep -q 'portal-client-shell-v2.css' portal-app.js
-          grep -q 'const platformAdmin=!!portal.state?.admin' portal-app.js
+          grep -q 'portal-client-control-room.js' portal-app.js
+          grep -q 'portal-client-control-room.css' portal-app.js
+          grep -q 'portal-admin-command-center.js' portal-app.js
+          grep -q 'portal-health-check.js' portal-app.js
+          if grep -Eq 'portal-client-shell(?:-v2)?\.(js|css)' portal-app.js; then
+            echo 'Production loader still references a retired client shell.' >&2
+            exit 1
+          fi
+          grep -q 'nexus_is_platform_admin' portal-app.js
+          grep -q "portal.stateController.patch({admin:platformAdmin},'boot:authorization')" portal-app.js
           grep -q "portal.state?.viewMode==='client'" portal-app.js
           grep -q 'const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell' portal-app.js
           grep -q 'portal-admin-intake.js' portal-app.js
@@ -71,20 +83,32 @@ jobs:
           grep -q 'portal-vnext-experience.js' portal-app.js
           grep -q 'NativeMutationObserver' portal-app.js
           grep -q 'NexusPortalNoopObserver' portal-app.js
+          grep -q 'const coreImportPromise=' portal-app.js
+          grep -q 'withTimeout' portal-app.js
+          grep -q 'softImport' portal-app.js
+          grep -q 'showRuntimeWarning' portal-app.js
+          grep -q 'void hydrateClientShell()' portal-app.js
+          grep -q 'void hydrateAdminShell()' portal-app.js
           node <<'NODE'
           const fs=require('fs');
           const app=fs.readFileSync('portal-app.js','utf8');
-          const perspective=app.indexOf('await perspectiveModule.preparePerspective?.(portal)');
+          const role=app.indexOf("nexus_is_platform_admin");
+          const store=app.indexOf('portal-nexus-store.js');
           const decision=app.indexOf("const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='client')");
-          if(perspective<0||decision<0||perspective>decision) throw new Error('Perspective must resolve before runtime selection.');
-          const match=app.match(/if\(useClientShell\)\{([\s\S]*?)\}\s*else if\(useAdminShell\)/);
-          if(!match) throw new Error('Dedicated reconciled client runtime branch not found.');
-          const client=match[1];
-          const required=['portal-client-shell-v2.css','portal-client-core.js','portal-client-upload-service.js','portal-client-shell-v2.js'];
+          const unlock=app.indexOf('clearBootLock();',decision);
+          const clientFn=app.indexOf('async function hydrateClientShell()',unlock);
+          const adminFn=app.indexOf('async function hydrateAdminShell()',clientFn);
+          if(role<0||decision<0||role>decision) throw new Error('Platform authorization must resolve before runtime selection.');
+          if(store<0||store>decision) throw new Error('NexusStore must load before role-specific runtime selection.');
+          if(unlock<0||clientFn<0||adminFn<0||!(decision<unlock&&unlock<clientFn&&clientFn<adminFn)) throw new Error('Authenticated core shell must unlock before progressive role enhancement hydration.');
+          if(!app.includes("document.body.classList.contains('nexus-shell-ready')")) throw new Error('Post-unlock enhancement failures must not re-hide the core workspace.');
+          if(!app.includes('Core workspace is still available.')) throw new Error('Progressive enhancement failure must degrade visibly instead of deadlocking.');
+          const client=app.slice(clientFn,adminFn);
+          const required=['portal-client-control-room.css','portal-client-core.js','portal-client-upload-service.js','portal-client-control-room.js','portal-health-check.js'];
           for(const file of required) if(!client.includes(file)) throw new Error(`Client runtime missing ${file}`);
           if(!client.includes('mountPerspectiveSwitcher')) throw new Error('Administrator Client View must retain the perspective switcher.');
-          const forbidden=['portal-client-shell.js','portal-simplify.js','portal-action-workflow.js','portal-vnext-experience.js','portal-approval-inbox.js','portal-workflow-cohesion.js','portal-buildingblok-cohesion.js','portal-client-guide.js','portal-ux-refinement.js'];
-          for(const file of forbidden) if(client.includes(file)) throw new Error(`Legacy client overlay still executes: ${file}`);
+          const forbidden=['portal-client-shell.js','portal-client-shell-v2.js','portal-simplify.js','portal-action-workflow.js','portal-vnext-experience.js','portal-approval-inbox.js','portal-workflow-cohesion.js','portal-buildingblok-cohesion.js','portal-client-guide.js','portal-ux-refinement.js'];
+          for(const file of forbidden) if(client.includes(file)) throw new Error(`Legacy/admin overlay still executes in client runtime: ${file}`);
           NODE
           grep -q 'Secure Data Room' portal.html
           grep -q 'createPortalRuntime' portal-client.js
@@ -96,7 +120,7 @@ jobs:
           grep -q 'emailRedirectTo:`${location.origin}/portal`' portal-client.js
           grep -q 'initAuthUX' portal-client.js
           grep -q 'Email delivery provider connection pending' portal-client.js
-          if grep -Eq '\.onclick\s*=|\.onchange\s*=' portal-client.js portal-auth.js portal-client-shell-v2.js; then
+          if grep -Eq '\.onclick\s*=|\.onchange\s*=' portal-client.js portal-auth.js portal-client-control-room.js portal-admin-command-center.js; then
             echo 'Reconciled portal runtime must not use direct onclick/onchange rebinding.' >&2
             exit 1
           fi
@@ -108,27 +132,36 @@ jobs:
           grep -q 'getWorkspaceCurrentActionContext' portal-client-core.js
           grep -q 'aggregateNotifications' portal-client-core.js
           grep -q 'serializeReleasedClientReport' portal-client-core.js
-          grep -q '01 Today' portal-client-shell-v2.js
-          grep -q '02 Secure Data Room' portal-client-shell-v2.js
-          grep -q '03 Improvement Record' portal-client-shell-v2.js
-          grep -q 'YOUR NEXT STEP' portal-client-shell-v2.js
-          grep -q 'Complete this step →' portal-client-shell-v2.js
-          grep -q 'UP NEXT —' portal-client-shell-v2.js
-          grep -q 'Needs action' portal-client-shell-v2.js
-          grep -q 'Updates' portal-client-shell-v2.js
-          grep -q 'Available after Nexus completes' portal-client-shell-v2.js
-          if grep -q 'new MutationObserver' portal-client-shell-v2.js; then
-            echo 'Reconciled client shell must not use DOM mutation rewrite loops.' >&2
+          grep -q "\['overview','Today'\]" portal-client-control-room.js
+          grep -q "\['intake','Intake'\]" portal-client-control-room.js
+          grep -q "\['data-room','Data Room'\]" portal-client-control-room.js
+          grep -q "\['action-queue','Actions'\]" portal-client-control-room.js
+          grep -q "\['roadmap','Roadmap'\]" portal-client-control-room.js
+          grep -q "\['ledger','Value'\]" portal-client-control-room.js
+          grep -q "\['inbox','Inbox'\]" portal-client-control-room.js
+          grep -q 'Your Next Single Step' portal-client-control-room.js
+          grep -q 'preserveUploadNode' portal-client-control-room.js
+          for phase in Discovery Diagnosis Prioritization Implementation Optimization; do grep -q "$phase" portal-client-control-room.js; done
+          if grep -q 'new MutationObserver' portal-client-control-room.js portal-admin-command-center.js; then
+            echo 'Reconciled Control Room must not use DOM mutation rewrite loops.' >&2
             exit 1
           fi
           grep -q "event.key === 'Escape'" portal-runtime-core.js
           grep -q 'event.shiftKey' portal-runtime-core.js
           grep -q 'nexus-modal-open' portal-runtime-core.js
-          grep -q 'min-height:44px' portal-client-shell-v2.css
-          grep -q 'env(safe-area-inset-bottom)' portal-client-shell-v2.css
-          grep -q 'overflow-x:hidden' portal-client-shell-v2.css
+          grep -q 'min-height:44px' portal-client-control-room.css
+          grep -q 'env(safe-area-inset-bottom)' portal-client-control-room.css
+          grep -q 'overflow-x:hidden' portal-client-control-room.css
           grep -q 'request_id:selection.requestId' portal-client-upload-service.js
           grep -q 'stopImmediatePropagation' portal-client-upload-service.js
+          grep -q 'NexusClientPdfService' portal-client-pdf-service.js
+          grep -q 'application/pdf' portal-client-pdf-service.js
+          grep -q 'Admin Master View' portal-admin-command-center.js
+          grep -q 'Diagnosis & ROI Builder' portal-admin-command-center.js
+          grep -q 'nexus_request_entity_approval' portal-admin-command-center.js
+          grep -q 'DIAGNOSIS_BUILDER' portal-admin-command-center.js
+          grep -q 'window.__NEXUS_HEALTH_CHECK' portal-health-check.js
+          grep -q 'persistent test writes: 0' portal-health-check.js
           grep -q 'NEXUS ADMIN ACCOUNT' portal-admin-intake.js
           grep -q 'CLIENT ACCOUNT' portal-admin-intake.js
           grep -q 'nexus_diagnosis_runs' portal-admin-intake.js
@@ -137,7 +170,7 @@ jobs:
           grep -qi 'Capture discovery context' portal-admin-intake.js
           grep -q 'discovery_context_captured' portal-admin-intake.js
           grep -q "DISCOVERY_CAPTURE_STATUS='draft'" portal-discovery-capture.js
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal-auth.js portal-runtime-core.js portal-client-core.js portal-client-upload-service.js portal-client-shell-v2.js portal.html portal-client-shell-v2.css portal-ops.js portal-admin-intake.js portal-admin-intake.css portal-discovery-capture.js portal-discovery-capture.css portal-action-workflow.js portal-action-workflow.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal-auth.js portal-runtime-core.js portal-nexus-store.js portal-client-core.js portal-client-pdf-service.js portal-client-upload-service.js portal-client-control-room.js portal-admin-command-center.js portal-health-check.js portal.html portal-client-control-room.css portal-admin-command-center.css portal-ops.js portal-admin-intake.js portal-admin-intake.css portal-discovery-capture.js portal-discovery-capture.css portal-action-workflow.js portal-action-workflow.css; then
             echo 'Privileged server credential reference found in browser-delivered portal files.' >&2
             exit 1
           fi
