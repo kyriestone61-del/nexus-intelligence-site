@@ -20,8 +20,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Worker TypeScript syntax
-        run: node --input-type=module --check < supabase/functions/nexus-email-worker/index.ts
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Worker TypeScript syntax and types
+        run: deno check --no-lock supabase/functions/nexus-email-worker/index.ts
       - name: Revenue flywheel contract
         run: node qa/contracts/revenue-flywheel.test.mjs
       - name: No autonomous outbound send contract
@@ -29,5 +32,5 @@ jobs:
         run: |
           set -euo pipefail
           ! grep -Eq "nexus_outreach_sequence_steps.*nexus_email_outbox|nexus_email_outbox.*nexus_outreach_sequence_steps" supabase/migrations/20260831_nexus_revenue_flywheel_*.sql
-          grep -Fq "qa_status='passed'" supabase/migrations/20260831_nexus_revenue_flywheel_02_logic.sql
-          grep -Fq "now()+interval '3 days'" supabase/migrations/20260831_nexus_revenue_flywheel_02_logic.sql
+          grep -Fq "qa_status='passed'" supabase/migrations/20260831_nexus_revenue_flywheel_04_release_controls.sql
+          grep -Fq "now()+interval '3 days'" supabase/migrations/20260831_nexus_revenue_flywheel_04_release_controls.sql
