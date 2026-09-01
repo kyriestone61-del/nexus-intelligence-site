@@ -9,6 +9,8 @@ on:
       - 'portal-client.js'
       - 'portal-auth.js'
       - 'portal-runtime-core.js'
+      - 'portal-runtime-hardening.css'
+      - 'portal-accessibility.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
@@ -24,6 +26,8 @@ on:
       - 'portal-client.js'
       - 'portal-auth.js'
       - 'portal-runtime-core.js'
+      - 'portal-runtime-hardening.css'
+      - 'portal-accessibility.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
@@ -31,6 +35,7 @@ on:
       - 'portal-perspective-switcher.js'
       - 'tests/client-shell-refactor-qaqc.mjs'
       - 'supabase/migrations/**'
+      - '.github/workflows/control-room-reconciliation.yml'
 
 permissions:
   contents: read
@@ -51,6 +56,7 @@ jobs:
           node --input-type=module --check < portal-client.js
           node --input-type=module --check < portal-auth.js
           node --input-type=module --check < portal-runtime-core.js
+          node --input-type=module --check < portal-accessibility.js
           node --input-type=module --check < portal-client-core.js
           node --input-type=module --check < portal-client-upload-service.js
           node --input-type=module --check < portal-client-shell-v2.js
@@ -58,17 +64,18 @@ jobs:
         run: |
           set -euo pipefail
           node tests/client-shell-refactor-qaqc.mjs
-          ! grep -Eq '\.onclick\s*=|\.onchange\s*=' portal-client.js portal-client-shell-v2.js portal-auth.js
+          ! grep -Eq '\.onclick\s*=|\.onchange\s*=' portal-client.js portal-client-shell-v2.js portal-auth.js portal-accessibility.js
           ! grep -q "from '/portal-ops.js'" portal-client.js
           ! grep -q 'initOps(' portal-client.js
           grep -q 'nexus_activate_client_workspace' portal-client.js
           grep -q '01 Today' portal-client-shell-v2.js
           grep -q '02 Secure Data Room' portal-client-shell-v2.js
           grep -q '03 Improvement Record' portal-client-shell-v2.js
+          grep -q 'portal-runtime-hardening.css' portal-app.js
           grep -q 'portal-client-upload-service.js' portal-app.js
           grep -q 'portal-client-shell-v2.js' portal-app.js
-          if grep -q 'new MutationObserver' portal-client-shell-v2.js; then
-            echo 'Client Shell V2 must not use DOM mutation rewrite loops.' >&2
+          if grep -q 'new MutationObserver' portal-client-shell-v2.js portal-accessibility.js; then
+            echo 'Client Control Room runtime must not use DOM mutation rewrite loops.' >&2
             exit 1
           fi
       - name: Database migration contract
