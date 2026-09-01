@@ -98,7 +98,8 @@ END
 $function$;
 
 -- Retire active first-touch step chains created by the former circular design.
--- Historical completed/rejected chains are preserved as audit records.
+-- Historical completed/rejected chains and their notifications are preserved as
+-- audit artifacts; no notification guard is bypassed by this repair.
 WITH target_chains AS (
   SELECT c.id
   FROM public.nexus_approval_chains c
@@ -125,19 +126,3 @@ WITH target_chains AS (
 UPDATE public.nexus_approval_chains c
 SET status='cancelled',cancelled_at=now(),updated_at=now()
 WHERE c.id IN (SELECT id FROM target_chains);
-
-UPDATE public.nexus_notifications n
-SET read_at=coalesce(n.read_at,now())
-WHERE n.related_type='approval_step'
-  AND n.read_at IS NULL
-  AND EXISTS(
-    SELECT 1
-    FROM public.nexus_approval_chain_steps s
-    JOIN public.nexus_approval_chains c ON c.id=s.chain_id
-    JOIN public.nexus_outreach_sequence_steps os
-      ON c.entity_type='outreach_step' AND c.entity_id=os.id
-    WHERE s.id=n.related_id
-      AND os.step_no=1
-      AND c.approval_type='revenue_outreach'
-      AND c.status='cancelled'
-  );
