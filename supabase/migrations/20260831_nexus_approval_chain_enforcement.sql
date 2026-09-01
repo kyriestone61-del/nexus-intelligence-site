@@ -1,0 +1,3 @@
+-- Approval-chain enforcement intentionally moved to
+-- 20260831_z_nexus_approval_chain_enforcement.sql so clean rebuilds create
+-- the approval-chain tables/functions before installing enforcement triggers.

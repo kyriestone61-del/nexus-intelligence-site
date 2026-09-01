@@ -1,0 +1,100 @@
+name: Nexus Approval Chains & Inbox QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-approval-bridge.js'
+      - 'portal-approval-inbox.js'
+      - 'portal-approval-inbox.css'
+      - 'supabase/migrations/*approval*'
+      - '.github/workflows/approval-inbox-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  approval-inbox-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-approval-bridge.js
+          node --input-type=module --check < portal-approval-inbox.js
+          node --input-type=module --check < portal-app.js
+      - name: Ordered approval-chain contract
+        run: |
+          set -euo pipefail
+          f=supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          grep -Fq 'nexus_approval_chains' "$f"
+          grep -Fq 'nexus_approval_chain_steps' "$f"
+          grep -Fq 'nexus_approval_events' "$f"
+          grep -Fq "status IN ('queued','pending','approved','changes_requested','rejected','skipped','cancelled')" "$f"
+          grep -Fq 'UNIQUE(chain_id,step_order)' "$f"
+          grep -Fq 'nexus_decide_approval_step' "$f"
+          grep -Fq 'nexus_resubmit_approval_chain' "$f"
+          grep -Fq 'nexus_start_approval_chain' "$f"
+          grep -Fq 'private.nexus_user_can_approve_step' "$f"
+          grep -Fq 'private.nexus_apply_approval_completion' "$f"
+          grep -Fq "c.current_step<>s.step_order" "$f"
+      - name: Consequential action enforcement
+        run: |
+          set -euo pipefail
+          f=supabase/migrations/20260831_z_nexus_approval_chain_enforcement.sql
+          grep -Fq "nexus_require_entity_chain_approved('diagnosis_report_release'" "$f"
+          grep -Fq "nexus_require_entity_chain_approved('outreach_packet'" "$f"
+          grep -Fq "nexus_require_entity_chain_approved('outreach_step'" "$f"
+          grep -Fq 'nexus_default_platform_admin_user' "$f"
+          grep -Fq 'AFTER UPDATE OF status ON public.nexus_diagnosis_runs' "$f"
+          grep -Fq "nexus_require_entity_chain_approved('client_task_release'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          grep -Fq "nexus_require_entity_chain_approved('document_request_release'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          grep -Fq 'DROP POLICY IF EXISTS "nexus members decide approvals"' supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+      - name: Migration ordering contract
+        run: |
+          set -euo pipefail
+          test -f supabase/migrations/20260831_000_nexus_revenue_approval_actor.sql
+          test -f supabase/migrations/20260831_001_nexus_global_admin_notifications.sql
+          test -f supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          test -f supabase/migrations/20260831_z_nexus_approval_chain_enforcement.sql
+          grep -Fq 'intentionally moved' supabase/migrations/20260831_nexus_approval_chain_enforcement.sql
+      - name: Unified Inbox contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'nexus_get_inbox' supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          grep -Fq "'approval'::text" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          grep -Fq "'task'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          grep -Fq "'document_request'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          grep -Fq "'question'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          grep -Fq "'founder_decision'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
+          grep -Fq "nav.textContent='Inbox'" portal-approval-inbox.js
+          grep -Fq 'Needs action' portal-approval-inbox.js
+          grep -Fq 'Review & decide' portal-approval-inbox.js
+          grep -Fq 'Step ${x.step_order} of ${x.step_count' portal-approval-inbox.js
+          grep -Fq 'Decision history' portal-approval-inbox.js
+      - name: Runtime load and bypass prevention
+        run: |
+          set -euo pipefail
+          bridge=$(grep -n 'portal-approval-bridge.js' portal-app.js | head -1 | cut -d: -f1)
+          release=$(grep -n 'portal-diagnosis-release-queue.js' portal-app.js | head -1 | cut -d: -f1)
+          revenue=$(grep -n 'portal-revenue-engine.js' portal-app.js | head -1 | cut -d: -f1)
+          inbox=$(grep -n 'portal-approval-inbox.js' portal-app.js | head -1 | cut -d: -f1)
+          test "$bridge" -lt "$release"
+          test "$bridge" -lt "$revenue"
+          test "$inbox" -gt "$revenue"
+          grep -Fq 'portal-approval-inbox.css' portal-app.js
+          grep -Fq "type==='task'||type==='document request'" portal-approval-bridge.js
+          grep -Fq "openApproval('diagnosis_report_release'" portal-approval-bridge.js
+          grep -Fq "openApproval('outreach_packet'" portal-approval-bridge.js
+          grep -Fq "openApproval('outreach_step'" portal-approval-bridge.js
+      - name: Browser secret safety
+        run: |
+          set -euo pipefail
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY|SECRET_KEY' portal-approval-bridge.js portal-approval-inbox.js portal-approval-inbox.css; then
+            echo 'Server-only credential reference found in browser-delivered approval code.' >&2
+            exit 1
+          fi
