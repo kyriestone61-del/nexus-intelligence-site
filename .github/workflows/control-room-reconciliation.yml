@@ -1,0 +1,82 @@
+name: Nexus Control Room Reconciliation QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'portal.html'
+      - 'portal-app.js'
+      - 'portal-client.js'
+      - 'portal-auth.js'
+      - 'portal-runtime-core.js'
+      - 'portal-client-core.js'
+      - 'portal-client-upload-service.js'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - 'portal-perspective-switcher.js'
+      - 'tests/client-shell-refactor-qaqc.mjs'
+      - 'supabase/migrations/**'
+      - '.github/workflows/control-room-reconciliation.yml'
+  pull_request:
+    paths:
+      - 'portal.html'
+      - 'portal-app.js'
+      - 'portal-client.js'
+      - 'portal-auth.js'
+      - 'portal-runtime-core.js'
+      - 'portal-client-core.js'
+      - 'portal-client-upload-service.js'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - 'portal-perspective-switcher.js'
+      - 'tests/client-shell-refactor-qaqc.mjs'
+      - 'supabase/migrations/**'
+
+permissions:
+  contents: read
+
+jobs:
+  architecture-qaqc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript compile gates
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-client.js
+          node --input-type=module --check < portal-auth.js
+          node --input-type=module --check < portal-runtime-core.js
+          node --input-type=module --check < portal-client-core.js
+          node --input-type=module --check < portal-client-upload-service.js
+          node --input-type=module --check < portal-client-shell-v2.js
+      - name: Architectural regression contract
+        run: |
+          set -euo pipefail
+          node tests/client-shell-refactor-qaqc.mjs
+          ! grep -Eq '\.onclick\s*=|\.onchange\s*=' portal-client.js portal-client-shell-v2.js portal-auth.js
+          ! grep -q "from '/portal-ops.js'" portal-client.js
+          ! grep -q 'initOps(' portal-client.js
+          grep -q 'nexus_activate_client_workspace' portal-client.js
+          grep -q '01 Today' portal-client-shell-v2.js
+          grep -q '02 Secure Data Room' portal-client-shell-v2.js
+          grep -q '03 Improvement Record' portal-client-shell-v2.js
+          grep -q 'portal-client-upload-service.js' portal-app.js
+          grep -q 'portal-client-shell-v2.js' portal-app.js
+          if grep -q 'new MutationObserver' portal-client-shell-v2.js; then
+            echo 'Client Shell V2 must not use DOM mutation rewrite loops.' >&2
+            exit 1
+          fi
+      - name: Database migration contract
+        run: |
+          set -euo pipefail
+          file='supabase/migrations/20260901_nexus_atomic_client_workspace_activation.sql'
+          grep -q 'pg_advisory_xact_lock' "$file"
+          grep -q 'insert into public.nexus_companies' "$file"
+          grep -q 'insert into public.nexus_company_members' "$file"
+          grep -q 'insert into public.nexus_projects' "$file"
+          grep -q 'grant execute.*authenticated' "$file"
