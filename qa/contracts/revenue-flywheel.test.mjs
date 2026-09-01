@@ -103,8 +103,9 @@ assert.ok(!/nexus_outreach_sequence_steps[\s\S]{0,300}resend\.com/i.test(worker)
 
 // Admin Revenue Engine must make the backend usable without weakening authority boundaries.
 assert.match(portalApp,/portal-revenue-engine\.css/);
-assert.match(portalApp,/portal-revenue-engine\.js/);
-assert.match(portalApp,/labels\.includes\('Revenue Engine'\)/);
+assert.match(portalApp,/\['portal-revenue-engine\.js','Revenue Engine'\]/,'Revenue Engine must remain registered in progressive admin hydration');
+assert.match(portalApp,/async function hydrateAdminShell\(\)/,'Revenue Engine must hydrate only inside the admin shell');
+assert.ok(portalApp.indexOf('clearBootLock();') < portalApp.indexOf('async function hydrateAdminShell()'),'Revenue Engine hydration must not block the authenticated core shell from becoming usable');
 assert.match(revenueUi,/state\?\.admin/,'revenue console must be admin-only');
 for(const rpc of ['nexus_admin_upsert_revenue_lead','nexus_recalculate_revenue_lead_score','nexus_admin_approve_outreach_packet','nexus_admin_approve_outreach_step','nexus_admin_mark_outreach_sent']) assert.ok(revenueUi.includes(rpc),`revenue console missing ${rpc}`);
 for(const table of ['nexus_revenue_leads','nexus_lead_research_evidence','nexus_outreach_packets','nexus_outreach_sequence_steps','nexus_lead_exceptions','nexus_founder_decision_queue']) assert.ok(revenueUi.includes(table),`revenue console missing ${table}`);
