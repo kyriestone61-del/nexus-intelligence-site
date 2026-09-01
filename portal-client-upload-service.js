@@ -40,4 +40,5 @@ async function submit(event){
 const form=$('uploadForm');if(form)events.bind(form,'submit','client-upload:submit',boundary.wrap('client secure upload',submit),true);
 const service=Object.freeze({prepare,clear,getSelection:()=>({...selection})});
 portal.services=portal.services||{};portal.services.clientUpload=service;
+Object.defineProperty(portal,'prepareUpload',{value:prepare,configurable:true,enumerable:false});
 window.NexusClientUploadService=service;
