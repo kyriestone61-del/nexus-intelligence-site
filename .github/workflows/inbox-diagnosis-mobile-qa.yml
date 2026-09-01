@@ -34,11 +34,12 @@ jobs:
       - name: Cancellable diagnosis review contract
         run: |
           set -euo pipefail
-          grep -Fq 'const LOAD_TIMEOUT_MS=5000' portal-diagnosis-v2.js
+          grep -Fq 'const LOAD_TIMEOUT_MS=4000' portal-diagnosis-v2.js
           grep -Fq 'activeReviewAbort?.abort()' portal-diagnosis-v2.js
           grep -Fq "event.key==='Escape'" portal-diagnosis-v2.js
           grep -Fq 'data-diagnosis-review-reload' portal-diagnosis-v2.js
           grep -Fq 'data-diagnosis-review-close' portal-diagnosis-v2.js
+          grep -Fq 'Promise.race([loadRun(id,controller.signal),timeoutPromise])' portal-diagnosis-v2.js
           grep -Fq "select('id,status,analysis_result,execution_error,analysis_completed_at,orchestrated_at,orchestration_summary')" portal-diagnosis-v2.js
           if grep -Fq ".select('*').eq('id',id).single()" portal-diagnosis-v2.js; then
             echo 'Diagnosis review regressed to full-row fetch.' >&2
