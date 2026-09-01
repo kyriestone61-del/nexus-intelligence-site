@@ -1,0 +1,36 @@
+name: Nexus Diagnosis Step 4 QA
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  diagnosis-step4-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: JavaScript syntax
+        run: |
+          node --input-type=module --check < portal-diagnosis-output-hub.js
+          node --input-type=module --check < portal-diagnosis-approval-ux.js
+      - name: Diagnosis output drill-down contract
+        run: |
+          set -euo pipefail
+          grep -Fq "data-output-kind" portal-diagnosis-output-hub.js
+          grep -Fq "Continue to Step 4" portal-diagnosis-output-hub.js
+          grep -Fq "Send to client Inbox" portal-diagnosis-output-hub.js
+          grep -Fq "data-complete-task" portal-diagnosis-output-hub.js
+          grep -Fq "Proceed with this" portal-diagnosis-output-hub.js
+          grep -Fq "data-document-owner" portal-diagnosis-output-hub.js
+          grep -Fq "NexusRevenueEngine" portal-diagnosis-output-hub.js
+          grep -Fq "portal-diagnosis-output-hub.js?v=20260901-step4" portal-diagnosis-approval-ux.js
+      - name: Mobile contract
+        run: |
+          set -euo pipefail
+          grep -Fq "@media(max-width:600px)" portal-diagnosis-output-hub.css
+          grep -Fq ".output-tabs" portal-diagnosis-output-hub.css
+          grep -Fq ".diagnosis-step4-guide" portal-diagnosis-output-hub.css
