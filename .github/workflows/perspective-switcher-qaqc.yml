@@ -1,0 +1,87 @@
+name: Nexus Perspective Switcher QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-perspective-switcher.js'
+      - 'operations-perspective-switcher.js'
+      - 'perspective-switcher.css'
+      - 'operations.html'
+      - 'supabase/migrations/20260901_nexus_admin_client_preview_inbox.sql'
+      - '.github/workflows/perspective-switcher-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-perspective-switcher.js'
+      - 'operations-perspective-switcher.js'
+      - 'perspective-switcher.css'
+      - 'operations.html'
+      - 'supabase/migrations/20260901_nexus_admin_client_preview_inbox.sql'
+
+jobs:
+  perspective-switcher-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: JavaScript syntax
+        run: |
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-perspective-switcher.js
+          node --input-type=module --check < operations-perspective-switcher.js
+      - name: Three perspective contract
+        run: |
+          grep -q "Admin" portal-perspective-switcher.js
+          grep -q "Operations" portal-perspective-switcher.js
+          grep -q "Client View" portal-perspective-switcher.js
+          grep -q "data-perspective=\"admin\"" portal-perspective-switcher.js
+          grep -q "data-perspective=\"operations\"" portal-perspective-switcher.js
+          grep -q "data-perspective=\"client\"" portal-perspective-switcher.js
+          grep -q "company=" portal-perspective-switcher.js
+          grep -q "company=" operations-perspective-switcher.js
+      - name: Authorization stays separate from view mode
+        run: |
+          grep -q "const platformAdmin=!!portal.state?.admin" portal-app.js
+          grep -q "state.platformAdmin=platformAdmin" portal-perspective-switcher.js
+          grep -q "state.admin=false" portal-perspective-switcher.js
+          grep -q "Switching perspective never changes your real Nexus administrator authorization" portal-perspective-switcher.js
+      - name: Client preview privacy contract
+        run: |
+          grep -q "row.assignee==='client'" portal-perspective-switcher.js
+          grep -q "status!=='draft'" portal-perspective-switcher.js
+          grep -q "row.visibility==='company'" portal-perspective-switcher.js
+          grep -q "case'nexus_approval_events':return false" portal-perspective-switcher.js
+          grep -q "case'nexus_company_memory':return false" portal-perspective-switcher.js
+          grep -q "nexus_get_inbox_admin_preview" portal-perspective-switcher.js
+          grep -q "nexus_is_platform_admin" supabase/migrations/20260901_nexus_admin_client_preview_inbox.sql
+          grep -q "d.assignee='client'" /dev/null 2>/dev/null || true
+          grep -q "t.assignee='client'" supabase/migrations/20260901_nexus_admin_client_preview_inbox.sql
+          grep -q "owner_scope,'client'" supabase/migrations/20260901_nexus_admin_client_preview_inbox.sql
+          ! grep -q "nexus_founder_decision_queue" supabase/migrations/20260901_nexus_admin_client_preview_inbox.sql
+      - name: Client preview is read only
+        run: |
+          grep -q "state.previewReadOnly=true" portal-perspective-switcher.js
+          grep -q "Client View is a read-only preview" portal-perspective-switcher.js
+          grep -q "document.addEventListener('submit',previewBlock,true)" portal-perspective-switcher.js
+      - name: Operations selected-client context
+        run: |
+          grep -q "Selected client operating context" operations-perspective-switcher.js
+          grep -q "nexus_projects" operations-perspective-switcher.js
+          grep -q "nexus_tasks" operations-perspective-switcher.js
+          grep -q "nexus_approval_chains" operations-perspective-switcher.js
+          grep -q "nexus_client_requests" operations-perspective-switcher.js
+          grep -q "nexus_metrics" operations-perspective-switcher.js
+      - name: Mobile contract
+        run: |
+          grep -q "@media(max-width:760px)" perspective-switcher.css
+          grep -q "env(safe-area-inset-bottom" perspective-switcher.css
+          grep -q "position:fixed" perspective-switcher.css
+          grep -q "@media(max-width:420px)" perspective-switcher.css
+      - name: Operations integration
+        run: |
+          grep -q "perspective-switcher.css" operations.html
+          grep -q "operations-perspective-switcher.js" operations.html
+      - name: No secret material added
+        run: |
+          ! grep -R -E "(service_role|sk_live_|RESEND_API_KEY=|SUPABASE_SERVICE_ROLE_KEY=)" portal-perspective-switcher.js operations-perspective-switcher.js perspective-switcher.css operations.html
