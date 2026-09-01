@@ -7,7 +7,10 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const arr=v=>Array.isArray(v)?v:[];
 const day=v=>{if(!v)return '';try{return new Date(String(v).length===10?`${v}T00:00:00`:v).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}catch{return ''}};
-let snapshot={approvals:[],docRequests:[],requests:[],automations:[],releases:[]};
+function emptySnapshot(){return {approvals:[],docRequests:[],requests:[],automations:[],releases:[],sourceState:{approvals:{verified:false,error:null},docRequests:{verified:false,error:null},requests:{verified:false,error:null},automations:{verified:false,error:null},releases:{verified:false,error:null}}}}
+let snapshot=emptySnapshot();
+let snapshotCompanyId=null;
+let snapshotGeneration=0;
 let refreshBusy=false;
 let guideOpen=false;
 
@@ -27,6 +30,10 @@ function humanStatus(raw,{owner}={}){
 function statusClass(label){return label.toLowerCase().replaceAll(' ','-')}
 function statusChip(raw,opts){const label=humanStatus(raw,opts);return `<span class="client-status ${statusClass(label)}">${esc(label)}</span>`}
 function activeProject(){return window.NexusFoundationHardening?.activeProject?.()||null}
+function sourceVerified(...names){return names.every(name=>snapshot.sourceState?.[name]?.verified===true)}
+function dueTime(value){if(!value)return Number.POSITIVE_INFINITY;const parsed=Date.parse(value);return Number.isFinite(parsed)?parsed:Number.POSITIVE_INFINITY}
+function urgencyBand(item,nowMs=Date.now()){const status=String(item?.status||'').toLowerCase();const due=dueTime(item?.due);const overdue=Number.isFinite(due)&&due<nowMs;const dueSoon=Number.isFinite(due)&&due>=nowMs&&due<=nowMs+(3*24*60*60*1000);const priority=String(item?.priority||'normal').toLowerCase();if(['blocked','failed','action_required'].includes(status))return 0;if(overdue)return 1;if(item?.kind==='approval'||['ready_for_review','pending_review'].includes(status))return 2;if(priority==='critical'||priority==='high')return 3;if(dueSoon)return 4;return 5}
+function rankClientActions(items,limit=3){return [...items].map((item,index)=>({...item,__index:index,__urgency:urgencyBand(item),__due:dueTime(item?.due)})).sort((a,b)=>a.__urgency-b.__urgency||a.__due-b.__due||a.__index-b.__index).slice(0,limit).map(({__index,__urgency,__due,...item})=>item)}
 
 const faqs=[
   {id:'start-next',category:'Start Here',q:'How do I know what I need to do next?',keywords:'next today action need do start home waiting',answer:'Open Home. The “Needs you now” area shows only the items that are actually waiting on you.',steps:['Open Home.','Start with the first item under “Needs you now.”','Use the single action button on that card.'],dest:'overview',action:'Show my Home'},
@@ -50,36 +57,53 @@ const faqs=[
 ];
 const categories=['All','Start Here','Files & Evidence','Requests & Actions','Reports','Projects & Progress','Account & Notifications'];
 
-async function querySafe(table,columns='*',order='created_at'){
-  if(!state.companyId)return [];
+async function querySafe(table,columns='*',order='created_at',companyId=state.companyId){
+  if(!companyId)return {verified:false,data:[],error:'Company context is not ready.'};
   try{
-    let q=sb.from(table).select(columns).eq('company_id',state.companyId);
+    let q=sb.from(table).select(columns).eq('company_id',companyId);
     if(order)q=q.order(order,{ascending:false});
-    const {data,error}=await q;if(error)throw error;return data||[];
-  }catch(error){console.warn(`Client Guide could not read ${table}`,error?.message||error);return []}
+    const {data,error}=await q;if(error)throw error;return {verified:true,data:data||[],error:null};
+  }catch(error){const message=String(error?.message||error||'Unknown read error');console.warn(`Client Guide could not read ${table}`,message);return {verified:false,data:[],error:message}}
 }
 async function loadSnapshot(){
-  if(refreshBusy||!state.companyId)return snapshot;
-  refreshBusy=true;
+  const companyId=state.companyId;
+  if(!companyId)return snapshot;
+  if(snapshotCompanyId!==companyId){snapshot=emptySnapshot();snapshotCompanyId=companyId}
+  if(refreshBusy)return snapshot;
+  refreshBusy=true;const generation=++snapshotGeneration;
   try{
-    const [approvals,docRequests,requests,automations,releases]=await Promise.all([
-      querySafe('nexus_approvals','id,title,description,status,due_date,decided_at,created_at'),
-      querySafe('nexus_document_requests','id,title,purpose,status,due_date,created_at'),
-      querySafe('nexus_client_requests','id,title,description,status,category,priority,created_at,updated_at'),
-      querySafe('nexus_automations','id,name,purpose,status,owner_label,last_run_at,updated_at'),
-      querySafe('nexus_diagnosis_report_releases','id,status,released_at,created_at','released_at')
+    const [approvalsResult,docRequestsResult,requestsResult,automationsResult,releasesResult]=await Promise.all([
+      querySafe('nexus_approvals','id,title,description,status,due_date,decided_at,created_at','created_at',companyId),
+      querySafe('nexus_document_requests','id,title,purpose,status,due_date,created_at','created_at',companyId),
+      querySafe('nexus_client_requests','id,title,description,status,category,priority,created_at,updated_at','created_at',companyId),
+      querySafe('nexus_automations','id,name,purpose,status,owner_label,last_run_at,updated_at','updated_at',companyId),
+      querySafe('nexus_diagnosis_report_releases','id,status,released_at,created_at','released_at',companyId)
     ]);
-    snapshot={approvals,docRequests,requests,automations,releases};
+    if(generation!==snapshotGeneration||state.companyId!==companyId)return snapshot;
+    snapshot={
+      approvals:approvalsResult.verified?approvalsResult.data:snapshot.approvals,
+      docRequests:docRequestsResult.verified?docRequestsResult.data:snapshot.docRequests,
+      requests:requestsResult.verified?requestsResult.data:snapshot.requests,
+      automations:automationsResult.verified?automationsResult.data:snapshot.automations,
+      releases:releasesResult.verified?releasesResult.data:snapshot.releases,
+      sourceState:{
+        approvals:{verified:approvalsResult.verified,error:approvalsResult.error},
+        docRequests:{verified:docRequestsResult.verified,error:docRequestsResult.error},
+        requests:{verified:requestsResult.verified,error:requestsResult.error},
+        automations:{verified:automationsResult.verified,error:automationsResult.error},
+        releases:{verified:releasesResult.verified,error:releasesResult.error}
+      }
+    };
     return snapshot;
   }finally{refreshBusy=false}
 }
 
 function clientActions(){
   const items=[];
-  arr(state.tasks).filter(t=>String(t.assignee||'').toLowerCase()==='client'&&!['complete','completed'].includes(String(t.status||'').toLowerCase())).forEach(t=>items.push({kind:'task',title:t.title||'Action item',copy:t.description||'Nexus needs you to complete this action.',status:t.status||'waiting_on_client',due:t.due_date,section:'tasks',cta:'Open action'}));
-  snapshot.approvals.filter(a=>a.status==='pending').forEach(a=>items.push({kind:'approval',title:a.title||'Decision',copy:a.description||'Nexus needs your decision.',status:'ready_for_review',due:a.due_date,section:'approvals',cta:'Review decision'}));
-  snapshot.docRequests.filter(d=>d.status==='requested').forEach(d=>items.push({kind:'file',title:d.title||'Requested information',copy:d.purpose||'Nexus needs this information to continue.',status:'waiting_on_client',due:d.due_date,section:'documents',cta:'Provide item'}));
-  return items.slice(0,3);
+  arr(state.tasks).filter(t=>String(t.assignee||'').toLowerCase()==='client'&&!['complete','completed'].includes(String(t.status||'').toLowerCase())).forEach(t=>items.push({kind:'task',title:t.title||'Action item',copy:t.description||'Nexus needs you to complete this action.',status:t.status||'waiting_on_client',priority:t.priority||'normal',due:t.due_date,section:'tasks',cta:'Open action'}));
+  snapshot.approvals.filter(a=>a.status==='pending').forEach(a=>items.push({kind:'approval',title:a.title||'Decision',copy:a.description||'Nexus needs your decision.',status:'ready_for_review',priority:'high',due:a.due_date,section:'approvals',cta:'Review decision'}));
+  snapshot.docRequests.filter(d=>d.status==='requested').forEach(d=>items.push({kind:'file',title:d.title||'Requested information',copy:d.purpose||'Nexus needs this information to continue.',status:'waiting_on_client',priority:'normal',due:d.due_date,section:'documents',cta:'Provide item'}));
+  return rankClientActions(items,3);
 }
 function nexusWorking(){
   const items=[];
@@ -149,14 +173,15 @@ function renderHome(){
   const section=$('section-overview'),legacy=$('opsTodayRoot');if(!section)return;
   if(legacy)legacy.classList.add('client-simple-hidden');
   let root=$('clientSimpleHome');if(!root){root=document.createElement('div');root.id='clientSimpleHome';root.className='client-simple-home';section.prepend(root)}
-  const actions=clientActions(),working=nexusWorking(),done=recentlyCompleted(),milestone=nextMilestone();
+  const actions=clientActions(),working=nexusWorking(),done=recentlyCompleted(),milestone=nextMilestone();const actionsVerified=sourceVerified('approvals','docRequests'),workingVerified=sourceVerified('requests','automations');
   root.innerHTML=`<header class="client-page-head"><div><div class="eyebrow">Home</div><h1>What do you need to do?</h1><p>Start here. If something needs you, it will be obvious.</p></div><button class="btn secondary client-context-help" type="button" data-guide-question="How do I know what I need to do next?">Need help?</button></header>
-  <section class="client-focus-panel"><div class="client-section-head"><div><div class="kicker">Needs you now</div><h2>${actions.length?`${actions.length} ${actions.length===1?'item':'items'} waiting on you`:'You are clear right now'}</h2></div></div>${actions.length?`<div class="client-action-grid">${actions.map(actionCard).join('')}</div>`:'<div class="client-clear-state"><b>Nothing needs your attention.</b><span>Nexus will surface the next action here when one is ready.</span></div>'}</section>
-  <div class="client-home-grid"><section class="client-soft-panel"><div class="kicker">Nexus is working on</div><h2>No guessing required</h2>${working.length?working.map(x=>`<div class="client-line-item">${statusChip(x.status)}<div><b>${esc(x.title)}</b><span>${esc(x.copy)}</span></div></div>`).join(''):'<div class="client-empty-small">No active Nexus work is visible right now.</div>'}</section>
+  <section class="client-focus-panel"><div class="client-section-head"><div><div class="kicker">Needs you now</div><h2>${actions.length?`${actions.length} ${actions.length===1?'item':'items'} waiting on you`:actionsVerified?'You are clear right now':'Live action state could not be verified'}</h2></div></div>${actions.length?`<div class="client-action-grid">${actions.map(actionCard).join('')}</div>`:actionsVerified?'<div class="client-clear-state"><b>Nothing needs your attention.</b><span>Nexus will surface the next action here when one is ready.</span></div>':'<div class="client-clear-state client-data-warning"><b>Live action state could not be verified.</b><span>Do not assume there is nothing to do. Refresh the workspace before proceeding.</span><button class="btn secondary" type="button" data-client-refresh>Refresh</button></div>'}</section>
+  <div class="client-home-grid"><section class="client-soft-panel"><div class="kicker">Nexus is working on</div><h2>No guessing required</h2>${working.length?working.map(x=>`<div class="client-line-item">${statusChip(x.status)}<div><b>${esc(x.title)}</b><span>${esc(x.copy)}</span></div></div>`).join(''):workingVerified?'<div class="client-empty-small">No active Nexus work is visible right now.</div>':'<div class="client-empty-small client-data-warning">Live Nexus work state could not be verified. Refresh before relying on this status.</div>'}</section>
   <section class="client-soft-panel"><div class="kicker">Next milestone</div><h2>${esc(milestone?.title||'No milestone is waiting')}</h2>${milestone?`<p>${esc(milestone.description||'This is the next planned point in the engagement.')}</p><div class="client-meta-row">${statusChip(milestone.status)}${milestone.due_date?`<span>Target ${esc(day(milestone.due_date))}</span>`:''}</div><button class="btn secondary" type="button" data-client-dest="progress">See Progress</button>`:'<p>Nexus will show the next milestone here once it is scheduled.</p>'}</section></div>
   <section class="client-soft-panel client-completed-panel"><div class="client-section-head"><div><div class="kicker">Recently completed</div><h2>What moved forward</h2></div><button class="btn secondary" type="button" data-client-dest="progress">See all progress</button></div>${done.length?`<div class="client-completed-list">${done.map(x=>`<div><span class="client-complete-mark">✓</span><b>${esc(x.title)}</b>${x.when?`<small>${esc(day(x.when))}</small>`:''}</div>`).join('')}</div>`:'<div class="client-empty-small">Completed work will collect here as the engagement moves forward.</div>'}</section>`;
   root.querySelectorAll('[data-open-detail]').forEach(b=>b.onclick=()=>openDetail(b.dataset.openDetail,'overview'));
   root.querySelectorAll('[data-client-dest]').forEach(b=>b.onclick=()=>activateDestination(b.dataset.clientDest));
+  root.querySelectorAll('[data-client-refresh]').forEach(b=>b.onclick=()=>refreshClientExperience());
   bindGuideButtons(root);
 }
 
@@ -165,10 +190,10 @@ function milestoneRows(){return [...arr(state.milestones)].sort((a,b)=>String(a.
 function metricRows(){return arr(state.metrics).slice(0,8)}
 function renderProgress(){
   const root=$('clientProgressRoot');if(!root)return;
-  const tasks=taskRows(),approvals=snapshot.approvals.slice(0,10),milestones=milestoneRows(),metrics=metricRows(),project=activeProject();
+  const tasks=taskRows(),approvals=snapshot.approvals.slice(0,10),milestones=milestoneRows(),metrics=metricRows(),project=activeProject(),decisionsVerified=sourceVerified('approvals');
   root.innerHTML=`<header class="client-page-head"><div><div class="eyebrow">Progress</div><h1>Everything moving forward, in one place.</h1><p>Your actions, decisions, project plan, and measured results—without the internal machinery.</p></div><button class="btn secondary client-context-help" type="button" data-guide-question="Where can I see project progress?">Need help?</button></header>
   <section class="client-progress-section"><div class="client-section-head"><div><div class="kicker">Your actions</div><h2>${tasks.filter(t=>!['complete','completed'].includes(String(t.status||'').toLowerCase())).length} open</h2></div>${tasks.length?'<button class="btn secondary" type="button" data-progress-detail="tasks">Open action details</button>':''}</div>${tasks.length?`<div class="client-progress-list">${tasks.map(t=>`<div class="client-progress-row">${statusChip(t.status,{owner:'client'})}<div><b>${esc(t.title||'Action item')}</b><span>${esc(t.description||'')}</span></div>${t.due_date?`<small>${esc(day(t.due_date))}</small>`:''}</div>`).join('')}</div>`:'<div class="client-clear-state"><b>No client actions yet.</b><span>When Nexus needs something from you, it will appear here and on Home.</span></div>'}</section>
-  <section class="client-progress-section"><div class="client-section-head"><div><div class="kicker">Decisions</div><h2>${approvals.filter(a=>a.status==='pending').length} ready for review</h2></div>${approvals.length?'<button class="btn secondary" type="button" data-progress-detail="approvals">Review decisions</button>':''}</div>${approvals.length?`<div class="client-progress-list">${approvals.map(a=>`<div class="client-progress-row">${statusChip(a.status==='pending'?'ready_for_review':a.status)}<div><b>${esc(a.title||'Decision')}</b><span>${esc(a.description||'')}</span></div>${a.due_date?`<small>${esc(day(a.due_date))}</small>`:''}</div>`).join('')}</div>`:'<div class="client-empty-small">No decisions are waiting.</div>'}</section>
+  <section class="client-progress-section"><div class="client-section-head"><div><div class="kicker">Decisions</div><h2>${decisionsVerified?`${approvals.filter(a=>a.status==='pending').length} ready for review`:'Status unavailable'}</h2></div>${approvals.length?'<button class="btn secondary" type="button" data-progress-detail="approvals">Review decisions</button>':''}</div>${approvals.length?`<div class="client-progress-list">${approvals.map(a=>`<div class="client-progress-row">${statusChip(a.status==='pending'?'ready_for_review':a.status)}<div><b>${esc(a.title||'Decision')}</b><span>${esc(a.description||'')}</span></div>${a.due_date?`<small>${esc(day(a.due_date))}</small>`:''}</div>`).join('')}</div>`:decisionsVerified?'<div class="client-empty-small">No decisions are waiting.</div>':'<div class="client-empty-small client-data-warning">Decision state could not be verified. Refresh before assuming nothing is waiting.</div>'}</section>
   <section class="client-progress-section"><div class="client-section-head"><div><div class="kicker">Project plan</div><h2>${esc(project?.name||'Nexus engagement')}</h2></div></div>${milestones.length?`<div class="client-milestone-track">${milestones.map((m,i)=>`<div class="client-milestone ${['complete','completed'].includes(String(m.status||'').toLowerCase())?'complete':''}"><span>${['complete','completed'].includes(String(m.status||'').toLowerCase())?'✓':i+1}</span><div><b>${esc(m.title||'Milestone')}</b><small>${m.due_date?esc(day(m.due_date)):humanStatus(m.status)}</small></div></div>`).join('')}</div>`:'<div class="client-empty-small">Project milestones will appear here once they are scheduled.</div>'}</section>
   <section class="client-progress-section"><div class="client-section-head"><div><div class="kicker">Results</div><h2>Measured improvement</h2></div></div>${metrics.length?`<div class="client-metric-grid">${metrics.map(m=>`<article><b>${esc(m.name||'Measurement')}</b><div><span>Baseline<strong>${esc(m.baseline_value??'—')} ${esc(m.unit||'')}</strong></span><span>Current<strong>${esc(m.current_value??'—')} ${esc(m.unit||'')}</strong></span><span>Target<strong>${esc(m.target_value??'—')} ${esc(m.unit||'')}</strong></span></div></article>`).join('')}</div>`:'<div class="client-empty-small">Measured results will appear here once a baseline and follow-up measurement exist.</div>'}</section>`;
   root.querySelectorAll('[data-progress-detail]').forEach(b=>b.onclick=()=>openDetail(b.dataset.progressDetail,'progress'));
@@ -224,14 +249,14 @@ function bestFaq(query){const q=tokenize(query);let best=null,score=0;faqs.forEa
 function dynamicGuide(query){
   const q=query.toLowerCase();
   if(/what.*(need|do)|what.*next|my next|needs me/.test(q)){
-    const items=clientActions();if(!items.length)return {html:'<b>You are clear right now.</b><p>Nothing in the client-visible workspace is waiting on you. Nexus will put the next required action on Home.</p>',dest:'overview',label:'Open Home'};
+    const items=clientActions();if(!items.length&&!sourceVerified('approvals','docRequests'))return {html:'<b>Live action state could not be verified.</b><p>Refresh Home before assuming nothing needs you.</p>',dest:'overview',label:'Refresh Home'};if(!items.length)return {html:'<b>You are clear right now.</b><p>Nothing in the verified client-visible workspace is waiting on you. Nexus will put the next required action on Home.</p>',dest:'overview',label:'Open Home'};
     return {html:`<b>${items.length} ${items.length===1?'thing needs':'things need'} you right now.</b><ol>${items.map(x=>`<li>${esc(x.title)}</li>`).join('')}</ol><p>Start with the first item. Home keeps the list capped so it stays manageable.</p>`,dest:'overview',label:'Show my Home'};
   }
   if(/nexus.*working|what.*nexus.*doing/.test(q)){
-    const items=nexusWorking();return {html:items.length?`<b>Nexus is currently working on:</b><ol>${items.map(x=>`<li>${esc(x.title)}</li>`).join('')}</ol><p>You do not need to act on these unless the status changes to Waiting on you or Ready to review.</p>`:'<b>No active Nexus-owned work is visible right now.</b><p>Home will update when Nexus starts or changes work.</p>',dest:'overview',label:'Open Home'};
+    const items=nexusWorking();return {html:items.length?`<b>Nexus is currently working on:</b><ol>${items.map(x=>`<li>${esc(x.title)}</li>`).join('')}</ol><p>You do not need to act on these unless the status changes to Waiting on you or Ready to review.</p>`:sourceVerified('requests','automations')?'<b>No active Nexus-owned work is visible right now.</b><p>Home will update when Nexus starts or changes work.</p>':'<b>Live Nexus work state could not be verified.</b><p>Refresh Home before relying on this status.</p>',dest:'overview',label:'Open Home'};
   }
   if(/next milestone|milestone next/.test(q)){const m=nextMilestone();return {html:m?`<b>Your next milestone is ${esc(m.title||'the next project step')}.</b><p>${esc(m.description||'Open Progress for the project plan.')}${m.due_date?` Target: ${esc(day(m.due_date))}.`:''}</p>`:'<b>No next milestone is currently scheduled.</b><p>Nexus will add it to Progress when the plan is ready.</p>',dest:'progress',label:'Open Progress'}}
-  if(/report.*(available|ready|where)|where.*report/.test(q)){const count=snapshot.releases.filter(r=>r.status==='released').length;return {html:count?`<b>You have ${count} released ${count===1?'report':'reports'} available.</b><p>Open Reports and start with the executive summary.</p>`:'<b>No released report is visible yet.</b><p>Nexus internal drafts stay private until they are deliberately released to your client workspace.</p>',dest:'diagnosis-reports',label:'Open Reports'}}
+  if(/report.*(available|ready|where)|where.*report/.test(q)){if(!sourceVerified('releases'))return {html:'<b>Report availability could not be verified.</b><p>Refresh Reports before assuming no report has been released.</p>',dest:'diagnosis-reports',label:'Open Reports'};const count=snapshot.releases.filter(r=>r.status==='released').length;return {html:count?`<b>You have ${count} released ${count===1?'report':'reports'} available.</b><p>Open Reports and start with the executive summary.</p>`:'<b>No released report is visible yet.</b><p>Nexus internal drafts stay private until they are deliberately released to your client workspace.</p>',dest:'diagnosis-reports',label:'Open Reports'}}
   return null;
 }
 function askGuide(query){
@@ -269,4 +294,4 @@ window.addEventListener('focus',()=>setTimeout(refreshClientExperience,120));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&guideOpen)closeGuide()});
 for(const ms of [0,180,650])setTimeout(refreshClientExperience,ms);
 setTimeout(()=>showTour(false),1000);
-window.NexusClientGuide={refresh:refreshClientExperience,open:openGuide,ask:askGuide,activateDestination};
+window.NexusClientGuide={refresh:refreshClientExperience,open:openGuide,ask:askGuide,activateDestination,__qa:{sourceVerified,rankClientActions}};
