@@ -8,6 +8,7 @@ on:
       - 'portal-client-core.d.ts'
       - 'portal-client-shell.js'
       - 'portal-client-shell.css'
+      - 'supabase/migrations/20260901_nexus_client_shell_action_state.sql'
       - 'tests/client-shell-refactor-qaqc.mjs'
       - '.github/workflows/client-shell-refactor-qaqc.yml'
   push:
@@ -18,6 +19,7 @@ on:
       - 'portal-client-core.d.ts'
       - 'portal-client-shell.js'
       - 'portal-client-shell.css'
+      - 'supabase/migrations/20260901_nexus_client_shell_action_state.sql'
       - 'tests/client-shell-refactor-qaqc.mjs'
       - '.github/workflows/client-shell-refactor-qaqc.yml'
 
@@ -63,6 +65,19 @@ jobs:
             echo 'Client Shell must not introduce MutationObserver rewrite loops.' >&2
             exit 1
           fi
+      - name: Canonical database action-state contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration=supabase/migrations/20260901_nexus_client_shell_action_state.sql
+          grep -Fq 'private.nexus_client_action_context_unchecked' "$migration"
+          grep -Fq 'public.nexus_get_client_action_context' "$migration"
+          grep -Fq "ctx.canonical_state='WAITING_ON_YOU'" "$migration"
+          grep -Fq 'nexus_release_unblocked_client_tasks' "$migration"
+          grep -Fq "status = 'released'" "$migration"
+          grep -Fq 'revoked_at is null' "$migration"
+          grep -Fq 'dependency_cleared_tasks' "$migration"
+          grep -Fq 'Your next step is:' "$migration"
       - name: Mobile contract
         shell: bash
         run: |
