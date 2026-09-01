@@ -1,7 +1,7 @@
 /**
  * Nexus Portal Runtime Core
  * One owner for mutable browser state, event bindings, async boundaries, storage,
- * workspace-load cancellation, and modal lifecycle.
+ * workspace-load cancellation, modal lifecycle, and scoped cleanup.
  */
 
 export function createStateController(initialState = {}) {
@@ -83,7 +83,10 @@ export function createAsyncBoundary({ notify } = {}) {
     try { return await operation(); }
     catch (error) {
       console.error(`Nexus ${label} failed`, error);
-      if (!options.silent) notify?.(options.message || messageFor(error));
+      if (!options.silent) {
+        const retry = options.retry === false ? null : async () => run(label, operation, { ...options, retry: false });
+        notify?.(options.message || messageFor(error), { retry, label });
+      }
       if (options.rethrow) throw error;
       return options.fallback;
     }
@@ -96,6 +99,7 @@ export function createAsyncBoundary({ notify } = {}) {
 
 export function createEventRegistry() {
   const records = new WeakMap();
+  const scopes = new Map();
 
   function bind(element, type, key, handler, options) {
     if (!(element instanceof EventTarget) || !type || !key || typeof handler !== 'function') return () => {};
@@ -107,6 +111,15 @@ export function createEventRegistry() {
     element.addEventListener(type, handler, options);
     map.set(token, { handler, options });
     return () => unbind(element, type, key);
+  }
+
+  function delegate(element, type, key, selector, handler, options) {
+    return bind(element, type, key, event => {
+      const origin = event.target instanceof Element ? event.target : null;
+      const target = origin?.closest(selector);
+      if (!target || !(element === document || element === window || element.contains?.(target))) return;
+      handler(event, target);
+    }, options);
   }
 
   function unbind(element, type, key) {
@@ -125,7 +138,47 @@ export function createEventRegistry() {
     records.delete(element);
   }
 
-  return Object.freeze({ bind, unbind, clear });
+  function createScope(name) {
+    if (scopes.has(name)) scopes.get(name).destroy();
+    const cleanups = new Set();
+    const timers = new Set();
+    let destroyed = false;
+    const api = {
+      bind(element, type, key, handler, options) {
+        if (destroyed) return () => {};
+        const cleanup = bind(element, type, `${name}:${key}`, handler, options);
+        cleanups.add(cleanup);
+        return () => { cleanup(); cleanups.delete(cleanup); };
+      },
+      delegate(element, type, key, selector, handler, options) {
+        if (destroyed) return () => {};
+        const cleanup = delegate(element, type, `${name}:${key}`, selector, handler, options);
+        cleanups.add(cleanup);
+        return () => { cleanup(); cleanups.delete(cleanup); };
+      },
+      timeout(handler, delay) {
+        if (destroyed) return 0;
+        const id = window.setTimeout(() => { timers.delete(id); if (!destroyed) handler(); }, delay);
+        timers.add(id);
+        return id;
+      },
+      destroy() {
+        if (destroyed) return;
+        destroyed = true;
+        for (const cleanup of [...cleanups]) cleanup();
+        cleanups.clear();
+        for (const id of [...timers]) window.clearTimeout(id);
+        timers.clear();
+        scopes.delete(name);
+      }
+    };
+    scopes.set(name, api);
+    return Object.freeze(api);
+  }
+
+  function destroyScope(name) { scopes.get(name)?.destroy(); }
+  function destroyAllScopes() { for (const scope of [...scopes.values()]) scope.destroy(); }
+  return Object.freeze({ bind, delegate, unbind, clear, createScope, destroyScope, destroyAllScopes });
 }
 
 export function createLatestRequestController() {
@@ -138,16 +191,34 @@ export function createLatestRequestController() {
   });
 }
 
-export function createModalManager({ events } = {}) {
+function ensureLiveRegion() {
+  let region = document.getElementById('nexusPortalLiveRegion');
+  if (!region) {
+    region = document.createElement('div');
+    region.id = 'nexusPortalLiveRegion';
+    region.setAttribute('role', 'status');
+    region.setAttribute('aria-live', 'polite');
+    region.setAttribute('aria-atomic', 'true');
+    region.className = 'sr-only';
+    document.body.appendChild(region);
+  }
+  return region;
+}
+
+export function createModalManager({ events, stateController } = {}) {
   const registry = events || createEventRegistry();
   const state = { active: null, trigger: null, keydown: null };
   const focusableSelector = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  const modalStateMap = { taskModal: 'ADD_ACTION', metricModal: 'ADD_MEASUREMENT', milestoneModal: 'ADD_MILESTONE', documentRequestModal: 'REQUEST_ITEM' };
 
   const focusables = modal => [...modal.querySelectorAll(focusableSelector)].filter(node => !node.hidden && node.getAttribute('aria-hidden') !== 'true');
   const unlockBody = () => { if (!state.active) document.body.classList.remove('nexus-modal-open'); };
   const setExpanded = (trigger, expanded) => {
     if (trigger instanceof HTMLElement && trigger.hasAttribute('aria-expanded')) trigger.setAttribute('aria-expanded', String(expanded));
   };
+  const announce = text => { const region = ensureLiveRegion(); region.textContent = ''; requestAnimationFrame(() => { region.textContent = text; }); };
+  const modalLabel = modal => modal.getAttribute('aria-label') || modal.querySelector('h1,h2,h3')?.textContent?.trim() || 'Dialog';
+  const stateName = modal => modal?.dataset?.nexusModalState || modalStateMap[modal?.id] || modal?.id || null;
 
   function close(modalOrId, { restoreFocus = true } = {}) {
     const modal = typeof modalOrId === 'string' ? document.getElementById(modalOrId) : modalOrId;
@@ -159,6 +230,8 @@ export function createModalManager({ events } = {}) {
     if (state.active === modal) { state.active = null; state.trigger = null; state.keydown = null; }
     setExpanded(trigger, false);
     unlockBody();
+    stateController?.patch?.({ modalState: null }, 'modal:close');
+    announce(`${modalLabel(modal)} closed.`);
     if (restoreFocus && trigger && document.contains(trigger)) setTimeout(() => trigger.focus?.(), 0);
     modal.dispatchEvent(new CustomEvent('nexus:modal-closed', { bubbles: false, detail: { modalId: modal.id || null } }));
   }
@@ -173,6 +246,8 @@ export function createModalManager({ events } = {}) {
     document.body.classList.add('nexus-modal-open');
     modal.classList.add('show');
     modal.setAttribute('aria-hidden', 'false');
+    stateController?.patch?.({ modalState: stateName(modal) }, 'modal:open');
+    announce(`${modalLabel(modal)} opened.`);
     const handler = event => {
       if (event.key === 'Escape') { event.preventDefault(); close(modal); return; }
       if (event.key !== 'Tab') return;
@@ -194,6 +269,7 @@ export function createModalManager({ events } = {}) {
     modal.setAttribute('role', modal.getAttribute('role') || 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-hidden', modal.classList.contains('show') ? 'false' : 'true');
+    if (modalStateMap[modal.id] && !modal.dataset.nexusModalState) modal.dataset.nexusModalState = modalStateMap[modal.id];
     registry.bind(modal, 'click', `${key}:backdrop`, event => { if (event.target === modal) close(modal); });
     modal.querySelectorAll('.close,[data-modal-close]').forEach((button, index) => registry.bind(button, 'click', `${key}:close:${index}`, () => close(modal)));
   }
@@ -215,7 +291,11 @@ export function createViewController({ getById = id => document.getElementById(i
       }
     },
     section(sectionName) {
-      document.querySelectorAll('.side-nav button[data-section]').forEach(button => button.classList.toggle('active', button.dataset.section === sectionName));
+      document.querySelectorAll('.side-nav button[data-section]').forEach(button => {
+        const selected = button.dataset.section === sectionName;
+        button.classList.toggle('active', selected);
+        button.setAttribute('aria-selected', String(selected));
+      });
       document.querySelectorAll('.main > .section').forEach(section => section.classList.toggle('active', section.id === `section-${sectionName}`));
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     }
@@ -227,7 +307,7 @@ export function createPortalRuntime(initialState, options = {}) {
   const storage = createSafeStorage(options.storage || window.localStorage);
   const events = createEventRegistry();
   const boundary = createAsyncBoundary({ notify: options.notify });
-  const modals = createModalManager({ events });
+  const modals = createModalManager({ events, stateController });
   const workspaceRequests = createLatestRequestController();
   const views = createViewController({ getById: options.getById });
   return Object.freeze({ stateController, state: stateController.state, storage, events, boundary, modals, workspaceRequests, views });
