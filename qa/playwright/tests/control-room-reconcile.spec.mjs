@@ -13,6 +13,8 @@ async function signIn(page,email,password){
   await page.locator('#signInPassword').fill(password);
   await page.locator('#signInBtn').click();
   await expect(page.locator('#portalApp')).toBeVisible({timeout:25_000});
+  await expect(page.locator('body')).not.toHaveClass(/nexus-runtime-booting/,{timeout:25_000});
+  await expect(page.locator('#nexusPortalBootOverlay')).toHaveCount(0,{timeout:25_000});
 }
 async function assertNoOverflow(page){
   const dims=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
@@ -39,6 +41,15 @@ test('public Control Room header links remain reachable and touch safe',async({p
   await assertNoOverflow(page);
 });
 
+test('deployed inbox runtime contains the lockout regression guard',async({request})=>{
+  const response=await request.get('/portal-approval-inbox.js');
+  expect(response.ok()).toBeTruthy();
+  const source=await response.text();
+  expect(source).toContain('queueInboxRefresh');
+  expect(source).not.toContain('new MutationObserver');
+  expect(source).not.toContain('observer.observe(document.body');
+});
+
 test.describe('authenticated client control room',()=>{
   test.skip(!clientEmail||!clientPassword,'Dedicated Nexus QA client credentials are required.');
 
@@ -58,6 +69,17 @@ test.describe('authenticated client control room',()=>{
     await assertNoOverflow(page);expect(meaningfulConsoleErrors(errors)).toEqual([]);
   });
 
+  test('client portal settles without runaway inbox traffic',async({page})=>{
+    let inboxCalls=0;
+    page.on('request',request=>{if(request.url().includes('/rest/v1/rpc/nexus_get_inbox'))inboxCalls+=1;});
+    await signIn(page,clientEmail,clientPassword);
+    inboxCalls=0;
+    await page.waitForTimeout(3_000);
+    expect(inboxCalls,'Idle client portal must not continuously poll nexus_get_inbox').toBeLessThanOrEqual(4);
+    await expect(page.locator('#portalApp')).toBeVisible();
+    await expect(page.locator('body')).not.toHaveClass(/nexus-runtime-booting/);
+  });
+
   test('company selector refreshes one coherent client workspace',async({page})=>{
     await signIn(page,clientEmail,clientPassword);
     const select=page.locator('#companySelect'),optionCount=await select.locator('option').count();
@@ -73,6 +95,21 @@ test.describe('authenticated client control room',()=>{
 
 test.describe('administrator and client-preview boundaries',()=>{
   test.skip(!adminEmail||!adminPassword,'Dedicated Nexus QA administrator credentials are required.');
+
+  test('administrator settles without runaway inbox traffic or boot lock',async({page})=>{
+    let inboxCalls=0;
+    const errors=[];
+    page.on('request',request=>{if(request.url().includes('/rest/v1/rpc/nexus_get_inbox'))inboxCalls+=1;});
+    page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
+    await signIn(page,adminEmail,adminPassword);
+    inboxCalls=0;
+    await page.waitForTimeout(3_000);
+    expect(inboxCalls,'Idle admin portal must not recursively reload nexus_get_inbox').toBeLessThanOrEqual(4);
+    await expect(page.locator('#portalApp')).toBeVisible();
+    await expect(page.locator('body')).not.toHaveClass(/nexus-runtime-booting/);
+    await expect(page.locator('#nexusPortalBootOverlay')).toHaveCount(0);
+    expect(meaningfulConsoleErrors(errors)).toEqual([]);
+  });
 
   test('administrator can enter Client View without boot failure',async({page})=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
