@@ -14,7 +14,6 @@ on conflict(agent_code) do update set
   output_contract=excluded.output_contract,prohibited_actions=excluded.prohibited_actions,escalation_conditions=excluded.escalation_conditions,
   permission_level=excluded.permission_level,operating_mode=excluded.operating_mode,evaluation_threshold=excluded.evaluation_threshold,status=excluded.status,updated_at=now();
 
--- These workflow codes are new to this feature. Remove only same-version definitions if a failed preview migration is retried.
 delete from public.nexus_workflow_definitions
 where company_id is null and version=1 and workflow_code in (
   'revenue_lead_intake_scoring','qualified_outreach_packet','revenue_exception_triage','retainer_fulfillment_loop','revenue_flywheel_control_review'
@@ -47,14 +46,15 @@ values
 ('execution_compliance_auditor','normal','REV-CMP-01','Each release phase is compared with approved plan and deviations force hold until corrected.',true,'Issue #58 revenue flywheel')
 on conflict(agent_code,case_ref) do nothing;
 
+-- Production nexus_kpi_definitions accepts direction values: up, down, context.
 insert into public.nexus_kpi_definitions(kpi_code,domain,title,definition,unit,direction,response_rule,owner_label,source_system,status)
 values
-('revenue_qualifying_packet_coverage','Revenue Flywheel','Qualifying Lead Packet Coverage','Percent of non-suppressed leads scoring <=50 that have an outreach packet.','percent','higher','Below 100%: inspect blocked/failed revenue agent jobs before adding new lead volume.','Revenue Operations','nexus_revenue_leads + nexus_outreach_packets','active'),
-('revenue_claim_evidence_coverage','Revenue Flywheel','Outreach Claim Evidence Coverage','Percent of material personalized outreach claims mapped to verified evidence.','percent','higher','Anything below 100% blocks approval of affected packet.','QA / Governance','nexus_outreach_packets.claim_map','active'),
-('revenue_outreach_reply_rate','Revenue Flywheel','Outreach Reply Rate','Replied leads divided by contacted leads for the selected cohort.','percent','higher','Use for message/targeting learning; do not optimize by increasing spam volume.','Revenue Operations','nexus_revenue_leads','active'),
-('revenue_booking_conversion','Revenue Flywheel','Qualified-to-Booked Conversion','Booked leads divided by non-suppressed leads that entered outreach.','percent','higher','Inspect targeting, packet quality and offer friction before increasing automation.','Revenue Operations','nexus_revenue_leads','active'),
-('revenue_stale_queue','Revenue Flywheel','Stale Revenue Queue','Count of queued/running jobs or approval steps beyond their operational review window.','count','lower','Any sustained backlog routes to Revenue Ops Cohesion and AI Ops Observer.','AI Operations','nexus_revenue_agent_jobs + nexus_outreach_sequence_steps','active'),
-('revenue_verified_mrr','Revenue Flywheel','Verified Managed-Service MRR','Monthly recurring revenue from signed/active managed-service engagements only; estimates are excluded.','currency','higher','Do not include pipeline estimates or unsigned proposals.','Founder','signed engagement records','active')
+('revenue_qualifying_packet_coverage','Revenue Flywheel','Qualifying Lead Packet Coverage','Percent of non-suppressed leads scoring <=50 that have an outreach packet.','percent','up','Below 100%: inspect blocked/failed revenue agent jobs before adding new lead volume.','Revenue Operations','nexus_revenue_leads + nexus_outreach_packets','active'),
+('revenue_claim_evidence_coverage','Revenue Flywheel','Outreach Claim Evidence Coverage','Percent of material personalized outreach claims mapped to verified evidence.','percent','up','Anything below 100% blocks approval of affected packet.','QA / Governance','nexus_outreach_packets.claim_map','active'),
+('revenue_outreach_reply_rate','Revenue Flywheel','Outreach Reply Rate','Replied leads divided by contacted leads for the selected cohort.','percent','up','Use for message/targeting learning; do not optimize by increasing spam volume.','Revenue Operations','nexus_revenue_leads','active'),
+('revenue_booking_conversion','Revenue Flywheel','Qualified-to-Booked Conversion','Booked leads divided by non-suppressed leads that entered outreach.','percent','up','Inspect targeting, packet quality and offer friction before increasing automation.','Revenue Operations','nexus_revenue_leads','active'),
+('revenue_stale_queue','Revenue Flywheel','Stale Revenue Queue','Count of queued/running jobs or approval steps beyond their operational review window.','count','down','Any sustained backlog routes to Revenue Ops Cohesion and AI Ops Observer.','AI Operations','nexus_revenue_agent_jobs + nexus_outreach_sequence_steps','active'),
+('revenue_verified_mrr','Revenue Flywheel','Verified Managed-Service MRR','Monthly recurring revenue from signed/active managed-service engagements only; estimates are excluded.','currency','up','Do not include pipeline estimates or unsigned proposals.','Founder','signed engagement records','active')
 on conflict(kpi_code) do update set title=excluded.title,definition=excluded.definition,unit=excluded.unit,direction=excluded.direction,response_rule=excluded.response_rule,owner_label=excluded.owner_label,source_system=excluded.source_system,status=excluded.status,updated_at=now();
 
 insert into public.nexus_flywheel_requirement_checks(requirement_code,category,requirement_text,reviewer_agent)
