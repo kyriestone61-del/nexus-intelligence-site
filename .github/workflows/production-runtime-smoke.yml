@@ -98,11 +98,17 @@ jobs:
           probe_get 'pages-shell-today' "$pages/portal-client-shell-v2.js" '01 Today'
           probe_get 'pages-shell-data-room' "$pages/portal-client-shell-v2.js" '02 Secure Data Room'
           probe_get 'pages-shell-improvement-record' "$pages/portal-client-shell-v2.js" '03 Improvement Record'
+          probe_get 'pages-shell-upload-facade' "$pages/portal-client-shell-v2.js" 'portal.prepareUpload'
           probe_get 'pages-upload-isolation' "$pages/portal-client-upload-service.js" 'stopImmediatePropagation'
+          probe_get 'pages-upload-owner' "$pages/portal-client-upload-service.js" 'portal.services.clientUpload=service'
+          probe_get 'pages-upload-facade-owner' "$pages/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
+          probe_get 'pages-upload-request-linkage' "$pages/portal-client-upload-service.js" 'request_id:selection.requestId'
 
           # Custom production domain must serve the same reconciled portal runtime.
           probe_get 'custom-portal-app-shell-v2' "$origin/portal-app.js" 'portal-client-shell-v2.js'
           probe_get 'custom-shell-improvement-record' "$origin/portal-client-shell-v2.js" '03 Improvement Record'
+          probe_get 'custom-shell-upload-facade' "$origin/portal-client-shell-v2.js" 'portal.prepareUpload'
+          probe_get 'custom-upload-facade-owner' "$origin/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
 
           # Existing administrator/runtime safety probes remain required.
           probe_get 'runtime-router' "$origin/portal-vnext-runtime-router.js" '/api/diagnosis-report-pdf'
