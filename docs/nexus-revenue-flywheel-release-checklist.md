@@ -1,0 +1,28 @@
+# Nexus Revenue Flywheel Release Checklist
+
+- [x] Source commands decomposed into Issue #58 acceptance contract.
+- [x] Score semantics explicitly resolved: lower score = larger automation gap.
+- [x] No fabricated observation/proof rule incorporated.
+- [x] Canonical revenue lead/evidence/job/packet/sequence/exception schema authored.
+- [x] Admin-only RLS and service-role API privileges authored.
+- [x] Deterministic score + <=50 trigger authored.
+- [x] Website Opportunity Snapshot sync authored.
+- [x] Exception classifier authored.
+- [x] Multi-stage outreach packet worker authored.
+- [x] Final repaired-packet independent QA authored.
+- [x] Human packet/step approval and live contactability controls authored.
+- [x] +3 day Email 2 sequencing authored.
+- [x] Revenue agent registry/workflows/evaluations/KPIs authored.
+- [x] Requirements Coverage Auditor defined.
+- [x] Execution Compliance Auditor defined.
+- [x] Revenue Operations/Cohesion Agent defined.
+- [x] Static revenue-flywheel QA authored.
+- [ ] Pull-request CI fully green.
+- [ ] Production-schema compatibility verified.
+- [ ] Migrations deployed in order.
+- [ ] Existing scheduled worker deployed with revenue runtime.
+- [ ] Synthetic low-score / high-score / suppression tests pass.
+- [ ] Production worker reports revenue flywheel idle/healthy with no fabricated leads.
+- [ ] Requirement evidence statuses updated.
+- [ ] Coverage Auditor final sign-off.
+- [ ] Execution Compliance final sign-off.
