@@ -5,6 +5,8 @@ on:
     paths:
       - 'portal-foundation-hardening.js'
       - 'portal-diagnosis-v2.js'
+      - 'portal-diagnosis-v2.css'
+      - 'portal-diagnosis-controller-v2.js'
       - 'portal-mobile-hardening.css'
       - '.github/workflows/inbox-diagnosis-mobile-qa.yml'
 
@@ -24,6 +26,7 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-foundation-hardening.js
           node --input-type=module --check < portal-diagnosis-v2.js
+          node --input-type=module --check < portal-diagnosis-controller-v2.js
       - name: Inbox contract
         run: |
           set -euo pipefail
@@ -45,6 +48,30 @@ jobs:
             echo 'Diagnosis review regressed to full-row fetch.' >&2
             exit 1
           fi
+      - name: Direct diagnosis route contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'const canOpenDirectly=run=>' portal-diagnosis-controller-v2.js
+          grep -Fq 'if(canOpenDirectly(run)&&window.NexusDiagnosisReviewRuntime?.openReview)' portal-diagnosis-controller-v2.js
+          grep -Fq 'await window.NexusDiagnosisReviewRuntime.openReview(run.id);' portal-diagnosis-controller-v2.js
+          python - <<'PY'
+          from pathlib import Path
+          js=Path('portal-diagnosis-controller-v2.js').read_text()
+          start=js.index('async function openRun(run){')
+          direct=js.index('window.NexusDiagnosisReviewRuntime?.openReview',start)
+          intake=js.index('openIntake()',start)
+          assert direct < intake, 'Reviewable diagnosis must open before any Discovery & Diagnosis navigation.'
+          print('Reviewable diagnosis opens directly without exposing intake first.')
+          PY
+      - name: Diagnosis top-layer contract
+        run: |
+          set -euo pipefail
+          grep -Fq '.portal-body #diagnosisReviewModal{' portal-diagnosis-v2.css
+          grep -Fq 'position:fixed!important' portal-diagnosis-v2.css
+          grep -Fq 'z-index:2147483000!important' portal-diagnosis-v2.css
+          grep -Fq '.portal-body #diagnosisReviewModal.open{display:flex!important}' portal-diagnosis-v2.css
+          grep -Fq 'height:100dvh!important' portal-diagnosis-v2.css
+          grep -Fq 'body.portal-body.diagnosis-review-open{overflow:hidden!important' portal-diagnosis-v2.css
       - name: Mobile overflow contract
         run: |
           set -euo pipefail
