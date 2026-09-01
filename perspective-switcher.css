@@ -1,0 +1,48 @@
+.nexus-perspective-enabled .topbar>#companySelect{display:none!important}
+.nexus-perspective-switcher{position:relative;z-index:9000;margin-left:auto;color:var(--nx-text,#f4f0e8)}
+.nexus-perspective-switcher>summary{list-style:none;display:flex;align-items:center;gap:9px;min-height:44px;padding:8px 12px;border:1px solid rgba(229,224,255,.18);border-radius:12px;background:rgba(18,16,27,.96);cursor:pointer;box-shadow:0 8px 28px rgba(0,0,0,.22);user-select:none}
+.nexus-perspective-switcher>summary::-webkit-details-marker{display:none}
+.nexus-perspective-switcher>summary .perspective-label{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#aaa4ba;font-weight:800}
+.nexus-perspective-switcher>summary b{font-size:13px;white-space:nowrap}
+.nexus-perspective-switcher>summary .perspective-client{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#d9ff72}
+.nexus-perspective-switcher>summary:after{content:'⌄';font-size:15px;color:#aaa4ba;margin-left:2px}
+.nexus-perspective-switcher[open]>summary:after{content:'⌃'}
+.nexus-perspective-menu{position:absolute;right:0;top:calc(100% + 9px);width:min(330px,calc(100vw - 24px));padding:12px;border:1px solid rgba(229,224,255,.16);border-radius:16px;background:#15131f;box-shadow:0 22px 60px rgba(0,0,0,.48)}
+.nexus-perspective-menu .perspective-account{display:grid;gap:6px;padding:3px 3px 12px}
+.nexus-perspective-menu label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#aaa4ba;font-weight:800}
+.nexus-perspective-menu select{width:100%;min-height:42px;border:1px solid rgba(229,224,255,.15);border-radius:10px;background:#0e0c15;color:#f4f0e8;padding:8px 10px;font:inherit}
+.nexus-perspective-options{display:grid;gap:7px}
+.nexus-perspective-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;border:1px solid rgba(229,224,255,.11);border-radius:11px;background:rgba(255,255,255,.025);color:#f4f0e8;padding:11px 12px;cursor:pointer}
+.nexus-perspective-option:hover,.nexus-perspective-option:focus-visible{border-color:rgba(217,255,114,.38);outline:none}
+.nexus-perspective-option.active{border-color:rgba(217,255,114,.55);background:rgba(217,255,114,.08)}
+.nexus-perspective-option span{display:grid;gap:2px}
+.nexus-perspective-option b{font-size:13px}
+.nexus-perspective-option small{font-size:10px;color:#aaa4ba;line-height:1.35}
+.nexus-perspective-option i{font-style:normal;color:#d9ff72;font-weight:900}
+.nexus-perspective-note{margin:10px 3px 2px;color:#8f899e;font-size:10px;line-height:1.4}
+.nexus-client-preview-banner{display:flex;align-items:center;justify-content:center;gap:9px;padding:8px 14px;border-bottom:1px solid rgba(217,255,114,.18);background:rgba(217,255,114,.06);color:#dfe7c0;font-size:11px;line-height:1.35;position:relative;z-index:80}
+.nexus-client-preview-banner b{color:#d9ff72}
+.nexus-ops-client-context{margin:0 0 18px;padding:18px;border:1px solid rgba(104,183,255,.2);border-radius:16px;background:rgba(35,79,119,.09)}
+.nexus-ops-client-context-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:13px}
+.nexus-ops-client-context h2{margin:3px 0 0;font-size:22px}
+.nexus-ops-client-context .ops-client-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.nexus-ops-client-context .ops-client-stats>div{padding:11px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(0,0,0,.15)}
+.nexus-ops-client-context .ops-client-stats b{display:block;font-size:19px}
+.nexus-ops-client-context .ops-client-stats span{font-size:10px;color:#9fb1c2}
+.ops-native-topbar .nexus-perspective-switcher{margin-left:8px}
+@media(max-width:760px){
+  .nexus-perspective-switcher{margin-left:0}
+  .nexus-perspective-switcher>summary{min-height:40px;padding:7px 9px;gap:6px}
+  .nexus-perspective-switcher>summary .perspective-label{display:none}
+  .nexus-perspective-switcher>summary .perspective-client{max-width:86px}
+  .nexus-perspective-menu{position:fixed;left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:auto;max-height:72vh;overflow:auto}
+  .nexus-client-preview-banner{padding:8px 12px;text-align:center}
+  .nexus-ops-client-context .ops-client-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ops-native-topbar .nexus-perspective-switcher{order:3;width:auto;margin-left:auto}
+}
+@media(max-width:420px){
+  .nexus-perspective-switcher>summary .perspective-client{display:none}
+  .nexus-perspective-menu{left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+  .nexus-ops-client-context{padding:14px}
+  .nexus-ops-client-context-head{display:block}
+}
