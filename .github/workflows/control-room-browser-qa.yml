@@ -15,6 +15,8 @@ on:
       - 'portal-client.js'
       - 'portal-auth.js'
       - 'portal-runtime-core.js'
+      - 'portal-runtime-hardening.css'
+      - 'portal-accessibility.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
@@ -30,6 +32,8 @@ on:
       - 'portal-client.js'
       - 'portal-auth.js'
       - 'portal-runtime-core.js'
+      - 'portal-runtime-hardening.css'
+      - 'portal-accessibility.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
@@ -37,6 +41,7 @@ on:
       - 'portal-perspective-switcher.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
+      - '.github/workflows/control-room-browser-qa.yml'
 
 permissions:
   contents: read
@@ -62,6 +67,15 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium webkit
+      - name: Report authenticated QA coverage
+        shell: bash
+        run: |
+          if [ -n "${NEXUS_QA_ADMIN_EMAIL:-}" ] && [ -n "${NEXUS_QA_ADMIN_PASSWORD:-}" ] && [ -n "${NEXUS_QA_CLIENT_EMAIL:-}" ] && [ -n "${NEXUS_QA_CLIENT_PASSWORD:-}" ]; then
+            echo 'AUTHENTICATED_CONTROL_ROOM_QA=ENABLED'
+          else
+            echo '::warning::Authenticated Control Room cases will be skipped because dedicated QA credentials are not configured. Public cross-browser checks still run.'
+            echo 'AUTHENTICATED_CONTROL_ROOM_QA=SKIPPED'
+          fi
       - name: Run desktop Chrome, Android Chrome, and iOS WebKit paths
         run: npx playwright test --config=control-room.config.mjs
       - uses: actions/upload-artifact@v4
