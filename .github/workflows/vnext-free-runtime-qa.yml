@@ -6,8 +6,7 @@ on:
       - 'portal-app.js'
       - 'portal-vnext-runtime-router.js'
       - 'functions/api/diagnosis-report-pdf.js'
-      - 'functions/api/sms-dispatch.js'
-      - '.github/workflows/email-dispatch.yml'
+      - 'supabase/functions/nexus-email-worker/**'
       - 'qa/contracts/vnext-free-runtime.test.mjs'
       - '.github/workflows/vnext-free-runtime-qa.yml'
   workflow_dispatch:
@@ -23,18 +22,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Runtime syntax
+      - name: Browser and Cloudflare syntax
         run: |
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-vnext-runtime-router.js
           node --input-type=module --check < functions/api/diagnosis-report-pdf.js
-          node --input-type=module --check < functions/api/sms-dispatch.js
       - name: Free-plan delivery contract
         run: node qa/contracts/vnext-free-runtime.test.mjs
-      - name: Dispatcher independence contract
+      - name: Secured notification worker contract
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq 'if ! dispatch "email" "$EMAIL_DISPATCH_URL"; then status=1; fi' .github/workflows/email-dispatch.yml
-          grep -Fq 'if ! dispatch "sms" "$SMS_DISPATCH_URL"; then status=1; fi' .github/workflows/email-dispatch.yml
-          grep -Fq 'exit "$status"' .github/workflows/email-dispatch.yml
+          worker='supabase/functions/nexus-email-worker/index.ts'
+          grep -Fq 'x-nexus-worker-token' "$worker"
+          grep -Fq 'processEmail' "$worker"
+          grep -Fq 'processSms' "$worker"
+          grep -Fq 'nexus_email_outbox' "$worker"
+          grep -Fq 'nexus_sms_outbox' "$worker"
+          grep -Fq 'RESEND_API_KEY' "$worker"
+          grep -Fq 'TWILIO_ACCOUNT_SID' "$worker"
