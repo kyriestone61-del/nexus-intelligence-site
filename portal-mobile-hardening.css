@@ -69,7 +69,16 @@
   .portal-body .diagnosis-review-item{padding:12px!important}
   .portal-body .toast{left:10px!important;right:10px!important;bottom:calc(10px + env(safe-area-inset-bottom))!important;max-width:none!important}
   .portal-body textarea{min-height:110px}
-  .portal-body input,.portal-body select,.portal-body textarea{width:100%!important;font-size:16px!important}
+  .portal-body input:not([type="checkbox"]):not([type="radio"]),.portal-body select,.portal-body textarea{width:100%!important;font-size:16px!important}
+  .portal-body input[type="checkbox"],.portal-body input[type="radio"]{width:20px!important;height:20px!important;min-width:20px!important;max-width:20px!important;flex:0 0 20px!important;margin:2px 0 0!important;padding:0!important;accent-color:var(--nx-violet,#9c7cff)}
+  .portal-body #emailPreferencePanel{width:100%;max-width:100%;min-width:0;overflow:hidden}
+  .portal-body .email-control{width:100%;max-width:100%;padding:14px!important;margin-bottom:14px!important;overflow:hidden}
+  .portal-body .email-control .pref-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important;width:100%}
+  .portal-body .pref-toggle{display:grid!important;grid-template-columns:20px minmax(0,1fr)!important;align-items:start!important;gap:10px!important;width:100%;max-width:100%;min-width:0;padding:12px!important}
+  .portal-body .pref-toggle>span,.portal-body .pref-toggle>div{min-width:0!important;width:auto!important;max-width:100%!important}
+  .portal-body .pref-toggle b,.portal-body .pref-toggle span{overflow-wrap:normal!important;word-break:normal!important;white-space:normal!important}
+  .portal-body .pref-toggle b{font-size:14px!important;line-height:1.25!important}
+  .portal-body .pref-toggle span{font-size:12px!important;line-height:1.4!important}
   .portal-body .admin-journey-hero,.portal-body .admin-journey-client{display:block!important;width:100%!important;max-width:100%!important}
   .portal-body [style*="min-width"],.portal-body [style*="width:"]{max-width:100%}
 }
@@ -81,4 +90,6 @@
   .portal-body .side-nav{grid-template-columns:1fr!important}
   .portal-body .main{padding-left:8px!important;padding-right:8px!important}
   .portal-body .panel,.portal-body .box,.portal-body .requirement-card,.portal-body .journey-step{border-radius:12px!important}
+  .portal-body .email-control{padding:12px!important}
+  .portal-body .pref-toggle{padding:11px!important;gap:9px!important}
 }
