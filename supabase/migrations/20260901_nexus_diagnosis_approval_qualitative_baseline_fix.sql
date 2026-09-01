@@ -41,7 +41,7 @@ declare
   v_old_value text := 'nullif(item->>''baseline_value'','''')::numeric';
   v_new_value text := 'private.nexus_try_numeric(item->''baseline_value'')';
   v_old_notes text := 'item->>''notes'',auth.uid()';
-  v_new_notes text := 'case when item ? ''baseline_value'' and private.nexus_try_numeric(item->''baseline_value'') is null and nullif(btrim(item->>''baseline_value''),'''') is not null then concat_ws(E''\n'',nullif(item->>''notes'',''''),''Qualitative baseline: ''||item->>''baseline_value'') else item->>''notes'' end,auth.uid()';
+  v_new_notes text := 'case when item ? ''baseline_value'' and private.nexus_try_numeric(item->''baseline_value'') is null and nullif(btrim(item->>''baseline_value''),'''') is not null then concat_ws(E''\n'',nullif(item->>''notes'',''''),concat(''Qualitative baseline: '',item->>''baseline_value'')) else item->>''notes'' end,auth.uid()';
 begin
   select pg_get_functiondef('public.nexus_approve_diagnosis(uuid,text)'::regprocedure)
     into v_def;
