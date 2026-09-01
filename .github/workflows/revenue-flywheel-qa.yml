@@ -10,6 +10,7 @@ on:
       - 'portal-app.js'
       - 'qa/contracts/revenue-flywheel.test.mjs'
       - 'qa/contracts/revenue-suppression-sync.test.mjs'
+      - 'qa/contracts/revenue-cascade-delete-guard.test.mjs'
       - '.github/workflows/revenue-flywheel-qa.yml'
   workflow_dispatch:
 
@@ -35,6 +36,8 @@ jobs:
         run: node qa/contracts/revenue-flywheel.test.mjs
       - name: Suppression exception sync contract
         run: node qa/contracts/revenue-suppression-sync.test.mjs
+      - name: Cascade delete guard contract
+        run: node qa/contracts/revenue-cascade-delete-guard.test.mjs
       - name: No autonomous outbound send contract
         shell: bash
         run: |
