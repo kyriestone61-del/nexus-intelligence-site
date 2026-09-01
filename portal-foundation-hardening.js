@@ -24,7 +24,8 @@ function activateInbox(button){
 }
 function normalizeInbox(){
   const section=document.getElementById('section-notifications');
-  if(section){
+  const unifiedInboxReady=!!document.getElementById('nexusInboxRoot')||!!section?.querySelector('.nexus-inbox-controls');
+  if(section&&!unifiedInboxReady){
     const heading=section.querySelector('h1');
     if(heading&&heading.textContent!=='Inbox')heading.textContent='Inbox';
     const eyebrow=section.querySelector('.eyebrow');
