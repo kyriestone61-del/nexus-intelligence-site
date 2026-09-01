@@ -23,6 +23,8 @@ jobs:
           node --check app.js
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-client.js
+          node --input-type=module --check < portal-client-core.js
+          node --input-type=module --check < portal-client-shell.js
           node --input-type=module --check < portal-ops.js
           node --input-type=module --check < portal-auth.js
           node --input-type=module --check < portal-simplify.js
@@ -33,6 +35,7 @@ jobs:
           node --input-type=module --check < functions/api/opportunity-snapshot.js
           node --input-type=module --check < functions/api/email-status.js
           node --input-type=module --check < functions/api/email-dispatch.js
+          node tests/client-shell-refactor-qaqc.mjs
       - name: Founder console safety assertions
         shell: bash
         run: |
@@ -49,51 +52,61 @@ jobs:
             echo 'Potential privileged secret reference found in founder console files.' >&2
             exit 1
           fi
-      - name: Portal data-room, role, and runtime safety assertions
+      - name: Client shell and portal runtime safety assertions
         shell: bash
         run: |
           set -euo pipefail
           grep -q 'portal-client.js' portal-app.js
-          grep -q 'portal-layout-fix.css' portal-app.js
-          grep -q 'portal-simplify.js' portal-app.js
-          grep -q 'portal-simplify.css' portal-app.js
+          grep -q 'portal-client-core.js' portal-app.js
+          grep -q 'portal-client-shell.js' portal-app.js
+          grep -q 'portal-client-shell.css' portal-app.js
+          grep -q 'window.__nexusOpsInit=true' portal-app.js
+          grep -q 'const platformAdmin=!!portal.state?.admin' portal-app.js
           grep -q 'portal-admin-intake.js' portal-app.js
-          grep -q 'portal-admin-intake.css' portal-app.js
-          grep -q 'portal-discovery-capture.css' portal-app.js
           grep -q 'portal-action-workflow.js' portal-app.js
-          grep -q 'portal-action-workflow.css' portal-app.js
+          grep -q 'portal-vnext-experience.js' portal-app.js
           grep -q 'NativeMutationObserver' portal-app.js
           grep -q 'NexusPortalNoopObserver' portal-app.js
-          grep -q 'setInterval(schedule,1200)' portal-simplify.js
-          if grep -q 'new MutationObserver' portal-simplify.js; then
-            echo 'portal-simplify must not observe and rewrite its own DOM mutations.' >&2
-            exit 1
-          fi
-          grep -q 'select.task-status' portal-layout-fix.css
-          grep -q 'grid-template-columns:minmax(0,1fr) max-content' portal-layout-fix.css
+          node <<'NODE'
+          const fs=require('fs');
+          const app=fs.readFileSync('portal-app.js','utf8');
+          const match=app.match(/if\(isSignedIn&&!isAdmin\)\{([\s\S]*?)\}\s*else if\(isSignedIn&&isAdmin\)/);
+          if(!match) throw new Error('Dedicated client runtime branch not found.');
+          const client=match[1];
+          const required=['portal-client-shell.css','portal-client-core.js','portal-client-shell.js'];
+          for(const file of required) if(!client.includes(file)) throw new Error(`Client runtime missing ${file}`);
+          const forbidden=['portal-simplify.js','portal-action-workflow.js','portal-vnext-experience.js','portal-approval-inbox.js','portal-workflow-cohesion.js','portal-buildingblok-cohesion.js','portal-client-guide.js','portal-ux-refinement.js'];
+          for(const file of forbidden) if(client.includes(file)) throw new Error(`Legacy client overlay still executes: ${file}`);
+          NODE
           grep -q 'Secure Data Room' portal.html
           grep -q 'Build with Nexus' portal-client.js
-          grep -q 'Files & Information' portal-simplify.js
-          grep -q 'Managed by Nexus' portal-simplify.js
-          grep -q 'ADMIN ACCOUNT · YOU RUN THE ENGAGEMENT' portal-simplify.js
-          grep -q 'CLIENT ACCOUNT · KEEP IT SIMPLE' portal-simplify.js
-          grep -q 'portalClientNavGroups' portal-simplify.js
-          grep -q 'How this work is done today' portal-simplify.js
-          grep -q '3–10 real examples' portal-simplify.js
-          grep -q 'Tools your team uses' portal-simplify.js
-          grep -q 'How often this happens' portal-simplify.js
-          grep -q 'Any reports or numbers you already track' portal-simplify.js
-          grep -q 'Who does the work and who approves changes' portal-simplify.js
-          grep -q "taskBtn.style.display=admin?'inline-flex':'none'" portal-simplify.js
-          grep -q "metricBtn.style.display=admin?'inline-flex':'none'" portal-simplify.js
           grep -q 'nexus_project_data_requirements' portal-client.js
           grep -q 'nexus_data_requirement_catalog' portal-client.js
           grep -q 'createSignedUrl' portal-client.js
           grep -q "source_role:state.admin?'nexus':'client'" portal-client.js
           grep -q 'emailRedirectTo:`${location.origin}/portal`' portal-client.js
           grep -q 'initAuthUX' portal-client.js
-          grep -q 'initOps' portal-client.js
           grep -q 'Email delivery provider connection pending' portal-client.js
+          grep -q 'evaluateClientActionState' portal-client-core.js
+          grep -q 'getWorkspaceCurrentActionContext' portal-client-core.js
+          grep -q 'aggregateNotifications' portal-client-core.js
+          grep -q 'serializeReleasedClientReport' portal-client-core.js
+          grep -q 'YOUR NEXT STEP' portal-client-shell.js
+          grep -q 'Complete this step →' portal-client-shell.js
+          grep -q 'UP NEXT —' portal-client-shell.js
+          grep -q 'Needs action' portal-client-shell.js
+          grep -q 'Updates' portal-client-shell.js
+          grep -q 'Available after Nexus completes' portal-client-shell.js
+          if grep -q 'new MutationObserver' portal-client-shell.js; then
+            echo 'Consolidated client shell must not use DOM mutation rewrite loops.' >&2
+            exit 1
+          fi
+          grep -q 'event.shiftKey && document.activeElement === first' portal-client-shell.js
+          grep -q "event.key === 'Escape'" portal-client-shell.js
+          grep -q 'restoreLastFocus' portal-client-shell.js
+          grep -q 'min-height:44px' portal-client-shell.css
+          grep -q 'env(safe-area-inset-bottom)' portal-client-shell.css
+          grep -q 'overflow-x:hidden' portal-client-shell.css
           grep -q 'NEXUS ADMIN ACCOUNT' portal-admin-intake.js
           grep -q 'CLIENT ACCOUNT' portal-admin-intake.js
           grep -q 'nexus_diagnosis_runs' portal-admin-intake.js
@@ -102,11 +115,11 @@ jobs:
           grep -qi 'Capture discovery context' portal-admin-intake.js
           grep -q 'discovery_context_captured' portal-admin-intake.js
           grep -q "DISCOVERY_CAPTURE_STATUS='draft'" portal-discovery-capture.js
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal.html portal-v2.css portal-layout-fix.css portal-simplify.js portal-simplify.css portal-auth.js portal-ops.js portal-admin-intake.js portal-admin-intake.css portal-discovery-capture.js portal-discovery-capture.css portal-action-workflow.js portal-action-workflow.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal-client-core.js portal-client-shell.js portal.html portal-client-shell.css portal-auth.js portal-ops.js portal-admin-intake.js portal-admin-intake.css portal-discovery-capture.js portal-discovery-capture.css portal-action-workflow.js portal-action-workflow.css; then
             echo 'Privileged server credential reference found in browser-delivered portal files.' >&2
             exit 1
           fi
-      - name: Operational client action assertions
+      - name: Operational admin action assertions
         shell: bash
         run: |
           set -euo pipefail
