@@ -9,7 +9,7 @@ const clientTabs=[['overview','Today'],['data-room','Data Room'],['action-queue'
 
 function meaningfulConsoleErrors(messages){return messages.filter(text=>!/favicon|cloudflareinsights|analytics|ResizeObserver loop/i.test(text));}
 async function signIn(page,email,password){
-  await page.goto('/portal',{waitUntil:'domcontentloaded'});
+  await page.goto('/portal.html',{waitUntil:'domcontentloaded'});
   await page.locator('#signInEmail').fill(email);
   await page.locator('#signInPassword').fill(password);
   await page.locator('#signInBtn').click();
@@ -22,7 +22,7 @@ async function assertNoOverflow(page){
 
 test('auth tabs and verification entry surface remain stable',async({page})=>{
   const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
-  await page.goto('/portal',{waitUntil:'domcontentloaded'});
+  await page.goto('/portal.html',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#signInForm')).toBeVisible();
   await page.locator('#tabCreate').click();
   await expect(page.locator('#createForm')).toBeVisible();
@@ -34,7 +34,7 @@ test('auth tabs and verification entry surface remain stable',async({page})=>{
 });
 
 test('public Control Room header links remain reachable and touch safe',async({page})=>{
-  await page.goto('/portal',{waitUntil:'domcontentloaded'});
+  await page.goto('/portal.html',{waitUntil:'domcontentloaded'});
   await expect(page.locator('a.brand')).toHaveAttribute('href','/');
   for(const selector of ['#tabSignIn','#tabCreate','#signInBtn']){const box=await page.locator(selector).boundingBox();expect(box?.height||0).toBeGreaterThanOrEqual(40);}
   await assertNoOverflow(page);
@@ -70,15 +70,18 @@ test.describe('authenticated Level Two client control room',()=>{
 
   test('company selector refreshes one coherent client workspace without page reload',async({page})=>{
     await signIn(page,clientEmail,clientPassword);
-    const select=page.locator('#companySelect'),optionCount=await select.locator('option').count();
+    const select=page.locator('#companySelect');
+    const values=await select.locator('option').evaluateAll(options=>options.map(option=>option.value).filter(Boolean));
     if(qaCompany)expect(await select.locator('option').allTextContents()).toContain(qaCompany);
-    if(optionCount>1){
+    if(values.length>1){
       const first=await select.inputValue();
-      const second=await select.locator('option').filter({hasNot:page.locator(`option[value="${first}"]`)}).first().getAttribute('value').catch(()=>null) || await select.locator('option').nth(1).getAttribute('value');
-      await select.selectOption(second);
-      await expect.poll(async()=>await page.evaluate(()=>window.NexusPortal?.state?.companyId)).toBe(second);
-      await expect(page.locator('#nexusClientMiniContext b')).not.toHaveText('');
-      await expect(page.locator('#nexus-client-overview')).toBeVisible();
+      const second=values.find(value=>value!==first);
+      if(second){
+        await select.selectOption(second);
+        await expect.poll(async()=>await page.evaluate(()=>window.NexusPortal?.state?.companyId)).toBe(second);
+        await expect(page.locator('#nexusClientMiniContext b')).not.toHaveText('');
+        await expect(page.locator('#nexus-client-overview')).toBeVisible();
+      }
     }
   });
 });
