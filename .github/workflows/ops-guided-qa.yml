@@ -34,9 +34,12 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'importWithoutRecurringIntervals' portal-app.js
-          grep -Fq 'optionalImport' portal-app.js
-          grep -Fq "[1200]" portal-app.js
-          grep -Fq "requiredImport(asset(\`portal-action-execution-v2.js?v=\${BUILD}\`),'action execution')" portal-app.js
+          grep -Fq 'softImport' portal-app.js
+          grep -Fq 'withTimeout' portal-app.js
+          grep -Fq "['portal-action-workflow.js','action workflow',[1200]]" portal-app.js
+          grep -Fq "['portal-action-execution-v2.js','action execution']" portal-app.js
+          grep -Fq "['portal-guided-ops.js','guided operations']" portal-app.js
+          grep -Fq 'clearBootLock();' portal-app.js
           if grep -Fq "portal-action-execution-v2.js?v=\${BUILD}\`),[900]" portal-app.js; then
             echo 'Rich Action Items 900ms reconciliation must not be suppressed; workspace refreshes otherwise restore the legacy task renderer.' >&2
             exit 1
