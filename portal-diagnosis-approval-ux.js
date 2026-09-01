@@ -79,3 +79,4 @@ document.addEventListener('click',event=>{
 },true);
 
 window.NexusDiagnosisApprovalUX={approve};
+import('/portal-diagnosis-output-hub.js?v=20260901-step4').catch(error=>console.error('Diagnosis output hub failed to load',error));
