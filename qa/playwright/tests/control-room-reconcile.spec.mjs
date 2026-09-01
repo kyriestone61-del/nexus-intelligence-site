@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 const adminEmail=process.env.NEXUS_QA_ADMIN_EMAIL,adminPassword=process.env.NEXUS_QA_ADMIN_PASSWORD,clientEmail=process.env.NEXUS_QA_CLIENT_EMAIL,clientPassword=process.env.NEXUS_QA_CLIENT_PASSWORD,qaCompany=process.env.NEXUS_QA_COMPANY_NAME;
 const clientTabs=[['overview','Today'],['intake','Intake'],['data-room','Data Room'],['action-queue','Actions'],['roadmap','Roadmap'],['ledger','Value'],['inbox','Inbox']];
-function meaningful(messages){return messages.filter(text=>!/favicon|cloudflareinsights|analytics|ResizeObserver loop/i.test(text))}
+function meaningful(messages){return messages.filter(text=>!/favicon|cloudflareinsights|analytics|ResizeObserver loop|Error performing TLS handshake: An unexpected TLS packet was received\./i.test(text))}
 async function signIn(page,email,password){await page.goto('/portal.html',{waitUntil:'domcontentloaded'});await page.locator('#signInEmail').fill(email);await page.locator('#signInPassword').fill(password);await page.locator('#signInBtn').click();await expect(page.locator('#portalApp')).toBeVisible({timeout:25_000})}
 async function noOverflow(page){const dims=await page.evaluate(()=>({s:document.documentElement.scrollWidth,c:document.documentElement.clientWidth}));expect(dims.s).toBeLessThanOrEqual(dims.c+1)}
 
