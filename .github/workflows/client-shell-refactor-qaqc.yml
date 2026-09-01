@@ -9,6 +9,7 @@ on:
       - 'portal-nexus-store.js'
       - 'portal-client-core.js'
       - 'portal-client-upload-service.js'
+      - 'portal-client-pdf-service.js'
       - 'portal-client-control-room.js'
       - 'portal-client-control-room.css'
       - 'portal-admin-command-center.js'
@@ -23,6 +24,8 @@ on:
       - 'portal-app.js'
       - 'portal-runtime-core.js'
       - 'portal-nexus-store.js'
+      - 'portal-client-upload-service.js'
+      - 'portal-client-pdf-service.js'
       - 'portal-client-control-room.js'
       - 'portal-admin-command-center.js'
       - 'portal-health-check.js'
@@ -41,7 +44,7 @@ jobs:
       - name: Syntax
         run: |
           set -euo pipefail
-          for file in portal-app.js portal-client.js portal-runtime-core.js portal-nexus-store.js portal-client-core.js portal-client-upload-service.js portal-client-control-room.js portal-admin-command-center.js portal-health-check.js; do
+          for file in portal-app.js portal-client.js portal-runtime-core.js portal-nexus-store.js portal-client-core.js portal-client-pdf-service.js portal-client-upload-service.js portal-client-control-room.js portal-admin-command-center.js portal-health-check.js; do
             node --input-type=module --check < "$file"
           done
       - name: Full zero-regression contract
@@ -53,6 +56,7 @@ jobs:
           grep -Fq 'portal-nexus-store.js' portal-app.js
           grep -Fq 'portal-client-control-room.css' portal-app.js
           grep -Fq 'portal-client-control-room.js' portal-app.js
+          grep -Fq "import '/portal-client-pdf-service.js'" portal-client-upload-service.js
           grep -Fq 'portal-admin-command-center.js' portal-app.js
           grep -Fq 'portal-health-check.js' portal-app.js
           if grep -Eq 'portal-client-shell(?:-v2)?\.(js|css)' portal-app.js; then
@@ -62,6 +66,9 @@ jobs:
           for tab in overview intake data-room action-queue roadmap ledger inbox; do grep -Fq "'$tab'" portal-client-control-room.js; done
           for phase in Discovery Diagnosis Prioritization Implementation Optimization; do grep -Fq "$phase" portal-client-control-room.js; done
           grep -Fq 'preserveUploadNode' portal-client-control-room.js
+          grep -Fq 'NexusClientPdfService' portal-client-pdf-service.js
+          grep -Fq 'application/pdf' portal-client-pdf-service.js
+          grep -Fq 'DIAGNOSIS_BUILDER' portal-admin-command-center.js
           grep -Fq 'window.__NEXUS_HEALTH_CHECK' portal-health-check.js
           grep -Fq 'persistent test writes: 0' portal-health-check.js
           ! grep -Fq 'document.addEventListener(' portal-client-control-room.js
@@ -81,7 +88,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET|SECRET_KEY' portal-app.js portal-client.js portal-runtime-core.js portal-nexus-store.js portal-client-core.js portal-client-upload-service.js portal-client-control-room.js portal-admin-command-center.js portal-health-check.js; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET|SECRET_KEY' portal-app.js portal-client.js portal-runtime-core.js portal-nexus-store.js portal-client-core.js portal-client-pdf-service.js portal-client-upload-service.js portal-client-control-room.js portal-admin-command-center.js portal-health-check.js; then
             echo 'Privileged server credential reference found in browser code.' >&2
             exit 1
           fi
