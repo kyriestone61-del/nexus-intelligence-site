@@ -5,6 +5,7 @@ on:
     paths:
       - 'portal-app.js'
       - 'portal-diagnosis-override.js'
+      - 'portal-action-execution-v2.js'
       - 'portal-action-execution-v2-forms.js'
       - 'portal-guided-ops.js'
       - 'portal-guided-ops.css'
@@ -26,6 +27,7 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-diagnosis-override.js
+          node --input-type=module --check < portal-action-execution-v2.js
           node --input-type=module --check < portal-action-execution-v2-forms.js
           node --input-type=module --check < portal-guided-ops.js
       - name: Layout stability assertions
@@ -34,7 +36,12 @@ jobs:
           grep -Fq 'importWithoutRecurringIntervals' portal-app.js
           grep -Fq 'optionalImport' portal-app.js
           grep -Fq "[1200]" portal-app.js
-          grep -Fq "[900]" portal-app.js
+          grep -Fq "requiredImport(asset(\`portal-action-execution-v2.js?v=\${BUILD}\`),'action execution')" portal-app.js
+          if grep -Fq "portal-action-execution-v2.js?v=\${BUILD}\`),[900]" portal-app.js; then
+            echo 'Rich Action Items 900ms reconciliation must not be suppressed; workspace refreshes otherwise restore the legacy task renderer.' >&2
+            exit 1
+          fi
+          grep -Fq 'setInterval(()=>reconcile(false).catch(console.error),900)' portal-action-execution-v2.js
           if grep -Fq 'setInterval(enhance,450)' portal-action-execution-v2-forms.js; then
             echo '450ms DOM polling must not return.' >&2
             exit 1
