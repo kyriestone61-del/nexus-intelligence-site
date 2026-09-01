@@ -1,0 +1,100 @@
+name: Nexus Portal Access Safety Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'portal.html'
+      - 'portal-*.js'
+      - 'portal-*.css'
+      - 'qa/playwright/**'
+      - '.github/workflows/control-room-browser-qa.yml'
+      - '.github/workflows/production-runtime-smoke.yml'
+      - '.github/workflows/portal-access-safety-gate.yml'
+  pull_request:
+    paths:
+      - 'portal.html'
+      - 'portal-*.js'
+      - 'portal-*.css'
+      - 'qa/playwright/**'
+      - '.github/workflows/control-room-browser-qa.yml'
+      - '.github/workflows/production-runtime-smoke.yml'
+      - '.github/workflows/portal-access-safety-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portal-access-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce portal access invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          failures=[]
+          app=Path('portal-app.js').read_text()
+          inbox=Path('portal-approval-inbox.js').read_text()
+          portal=Path('portal.html').read_text()
+          browser=Path('.github/workflows/control-room-browser-qa.yml').read_text()
+          smoke=Path('.github/workflows/production-runtime-smoke.yml').read_text()
+
+          # A secondary enhancement failure must never make the authenticated app invisible.
+          try:
+              start=app.index('function showCoreLoadFailure')
+              end=app.index('async function optionalImport',start)
+              failure_handler=app[start:end]
+          except ValueError:
+              failure_handler=''
+          if 'clearBootLock();' not in failure_handler:
+              failures.append('showCoreLoadFailure must clear the boot lock before reporting degraded mode')
+          if 'nexus-runtime-degraded' not in failure_handler:
+              failures.append('showCoreLoadFailure must enter explicit degraded/recovery mode')
+
+          # The September 1 lockout was caused by a render -> MutationObserver -> reload loop.
+          if 'queueInboxRefresh' not in inbox:
+              failures.append('Inbox must retain an explicit debounced refresh queue')
+          if 'new MutationObserver' in inbox or 'observer.observe(document.body' in inbox:
+              failures.append('Inbox must not use a body-wide MutationObserver to trigger data reloads')
+          if 'setInterval(' in inbox:
+              failures.append('Inbox must not use recurring interval polling')
+
+          # The production route is /portal. Re-introducing /app redirects is a release blocker.
+          route_pattern=re.compile(r'''["']/app(?:["'/?#])''')
+          for path in [Path('portal.html'),*Path('.').glob('portal-*.js')]:
+              text=path.read_text(errors='ignore')
+              if route_pattern.search(text):
+                  failures.append(f'{path}: forbidden /app route reference found')
+
+          # Hiding during bootstrap is allowed only while a guaranteed reveal path exists.
+          if '#portalApp{visibility:hidden' not in portal:
+              failures.append('portal.html must preserve deliberate preboot hiding semantics')
+          if 'clearBootLock' not in app:
+              failures.append('portal-app.js must provide a boot-lock release function')
+
+          # Changes to the module that caused the outage must always trigger both major QA lanes.
+          for name,text in [('browser QA',browser),('production smoke',smoke)]:
+              if 'portal-approval-inbox.js' not in text:
+                  failures.append(f'{name} must trigger when portal-approval-inbox.js changes')
+
+          # Production smoke may never hard-code a stale build identifier.
+          if "expected_build=" not in smoke or "sed -n" not in smoke:
+              failures.append('production smoke must derive the expected BUILD from portal-app.js')
+          if re.search(r"probe_get\s+'pages-portal-app-build'[^\n]*'20\d{6}-",smoke):
+              failures.append('production smoke contains a hard-coded portal build marker')
+
+          if failures:
+              print('PORTAL_ACCESS_SAFETY_GATE=FAIL')
+              for failure in failures:
+                  print(f'::error::{failure}')
+              raise SystemExit(1)
+
+          print('PORTAL_ACCESS_SAFETY_GATE=PASS')
+          PY
