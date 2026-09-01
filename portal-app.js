@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-level2-reconcile';
+const BUILD='20260901-full-reconcile1';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -44,6 +44,7 @@ const isSignedIn=!!portal.state?.user;
 let perspectiveModule=null;
 
 await requiredImport(asset(`portal-accessibility.js?v=${BUILD}`),'portal accessibility');
+await requiredImport(asset(`portal-nexus-store.js?v=${BUILD}`),'unified NexusStore');
 
 if(isSignedIn&&platformAdmin){
   await loadStyles(['perspective-switcher.css']);
@@ -55,15 +56,15 @@ const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='clie
 const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell;
 
 if(useClientShell){
-  await loadStyles(['portal-client-shell.css']);
+  await loadStyles(['portal-client-control-room.css']);
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
   await requiredImport(asset(`portal-client-upload-service.js?v=${BUILD}`),'client upload service');
-  await requiredImport(asset(`portal-client-shell.js?v=${BUILD}`),'Level Two client shell');
-  await requiredImport(asset(`portal-health-check.js?v=${BUILD}`),'client health check');
+  await requiredImport(asset(`portal-client-control-room.js?v=${BUILD}`),'frictionless client control room');
+  await requiredImport(asset(`portal-health-check.js?v=${BUILD}`),'Nexus health check');
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
 }else if(useAdminShell){
-  const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css'];
+  const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css','portal-admin-command-center.css'];
   await loadStyles(adminStyles);
   await requiredImport(asset(`portal-foundation-hardening.js?v=${BUILD}`),'workspace foundation hardening');
   await requiredImport(asset(`portal-active-engagement-cohesion.js?v=${BUILD}`),'active engagement cohesion');
@@ -104,6 +105,8 @@ if(useClientShell){
   await requiredImport(asset(`portal-workflow-cohesion.js?v=${BUILD}`),'workflow cohesion');
   await requiredImport(asset(`portal-buildingblok-cohesion.js?v=${BUILD}`),'Companies, Inbox and mobile operating model');
   await requiredImport(asset(`portal-ux-refinement.js?v=${BUILD}`),'front-end UX refinement');
+  await requiredImport(asset(`portal-admin-command-center.js?v=${BUILD}`),'admin master view and ROI engine');
+  await requiredImport(asset(`portal-health-check.js?v=${BUILD}`),'Nexus health check');
   perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
 }else{
