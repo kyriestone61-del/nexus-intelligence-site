@@ -1,2 +1,41 @@
-const publicPaths=['/','/services','/methodology','/case-studies','/about','/quick-scan','/assessment','/book','/capabilities','/industries','/problems','/delivery-standard','/privacy','/terms','/accessibility'];
-export async function onRequestGet({request}){const origin=new URL(request.url).origin,now=new Date().toISOString().slice(0,10);const urls=publicPaths.map((path,i)=>`<url><loc>${origin}${path}</loc><lastmod>${now}</lastmod><changefreq>${i<7?'weekly':'monthly'}</changefreq><priority>${path==='/'?'1.0':i<7?'0.8':'0.5'}</priority></url>`).join('');const xml=`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;return new Response(xml,{headers:{'content-type':'application/xml; charset=utf-8','cache-control':'public,max-age=3600'}})}
+const SITE_ORIGIN='https://nexusintelligence.live';
+const PUBLIC_PATHS=[
+  '/',
+  '/about',
+  '/accessibility',
+  '/assessment',
+  '/capabilities',
+  '/case-studies',
+  '/delivery-standard',
+  '/faq',
+  '/industries',
+  '/methodology',
+  '/privacy',
+  '/problems',
+  '/quick-scan',
+  '/roi-calculator',
+  '/security',
+  '/services',
+  '/services/ai-enablement-training',
+  '/services/ai-opportunity-assessment',
+  '/services/business-transformation',
+  '/services/fractional-ai-director',
+  '/services/implementation-sprint',
+  '/services/managed-ai-operations',
+  '/terms'
+];
+
+function escapeXml(value){
+  return String(value).replace(/[<>&'\"]/g,char=>({
+    '<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','\"':'&quot;'
+  }[char]));
+}
+
+export async function onRequestGet(){
+  const urls=PUBLIC_PATHS.map(path=>`<url><loc>${escapeXml(`${SITE_ORIGIN}${path}`)}</loc></url>`).join('');
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>\n`;
+  return new Response(xml,{headers:{
+    'content-type':'application/xml; charset=utf-8',
+    'cache-control':'public,max-age=3600'
+  }});
+}

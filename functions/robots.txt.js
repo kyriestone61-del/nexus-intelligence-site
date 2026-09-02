@@ -1,1 +1,9 @@
-export async function onRequestGet({request}){const origin=new URL(request.url).origin;const body=`User-agent: *\nAllow: /\nDisallow: /portal\nDisallow: /operations\nDisallow: /prospect-workspace\nDisallow: /booking-manage\nDisallow: /api/\n\nSitemap: ${origin}/sitemap.xml\n`;return new Response(body,{headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public,max-age=3600'}})}
+const SITEMAP='https://nexusintelligence.live/sitemap.xml';
+
+export async function onRequestGet(){
+  const body=`User-agent: *\nAllow: /\n\nSitemap: ${SITEMAP}\n`;
+  return new Response(body,{headers:{
+    'content-type':'text/plain; charset=utf-8',
+    'cache-control':'public,max-age=3600'
+  }});
+}

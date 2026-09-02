@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Nexus Intelligence</title>
+  <desc id="desc">Nexus Intelligence N mark</desc>
+  <rect width="512" height="512" rx="128" fill="#06101d"/>
+  <rect x="28" y="28" width="456" height="456" rx="112" fill="#0e1b2d" stroke="#65d8ff" stroke-opacity="0.45" stroke-width="8"/>
+  <path d="M146 366V146h48l124 141V146h48v220h-44L194 221v145h-48Z" fill="#65d8ff"/>
+</svg>
