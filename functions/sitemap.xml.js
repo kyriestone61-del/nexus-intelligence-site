@@ -5,7 +5,6 @@ const PUBLIC_PATHS=[
   '/accessibility',
   '/assessment',
   '/capabilities',
-  '/case-studies',
   '/delivery-standard',
   '/faq',
   '/industries',

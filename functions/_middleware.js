@@ -59,9 +59,16 @@ function jsonLd(schema){
 }
 
 export async function onRequest(context){
-  const response=await context.next();
   const url=new URL(context.request.url);
   const path=canonicalPath(url.pathname);
+
+  if(path==='/case-studies'){
+    const target=new URL('/methodology',url.origin);
+    target.search=url.search;
+    return Response.redirect(target.toString(),301);
+  }
+
+  const response=await context.next();
   const isPrivate=PRIVATE_PREFIXES.some(prefix=>path===prefix||path.startsWith(prefix));
   const isPreview=url.hostname.endsWith('.pages.dev');
   const headers=new Headers(response.headers);
@@ -85,7 +92,7 @@ export async function onRequest(context){
     .on('meta[property="og:url"]',{element(el){el.remove();}})
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
-    .on('body',{element(el){el.append('<script src="/launch-readiness.js?v=20260830-2"></script><script src="/snapshot-lifecycle-patch.js?v=20260830-1"></script>',{html:true});}})
+    .on('body',{element(el){el.append('<script src="/launch-readiness.js?v=20260830-2"></script><script src="/snapshot-lifecycle-patch.js?v=20260830-1"></script><script src="/phase-two.js?v=20260902-1"></script>',{html:true});}})
     .transform(new Response(response.body,{status:response.status,statusText:response.statusText,headers}));
   return transformed;
 }

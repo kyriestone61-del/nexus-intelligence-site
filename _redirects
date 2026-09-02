@@ -1,3 +1,9 @@
+# Results content has moved into the methodology page.
+# Keep these static redirects as a fallback; the root Pages Function enforces the same redirect for Function-routed requests.
+/case-studies /methodology 301
+/case-studies/ /methodology 301
+/case-studies.html /methodology 301
+
 # Cloudflare Pages route rewrites for dynamic detail views.
 # Service detail pages now use real /services/<slug>/index.html routes so the selected slug cannot be lost by pretty-URL canonicalization.
 /industries/* /industries.html 200
