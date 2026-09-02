@@ -1,5 +1,6 @@
 const SITE_ORIGIN='https://nexusintelligence.live';
 const PRIVATE_PREFIXES=['/portal','/operations','/prospect-workspace','/booking-manage','/api/'];
+const PROTECTED_MARKETING_PATHS=new Set(['/privacy','/terms','/accessibility','/security']);
 const SERVICE_SLUGS=new Set(['ai-enablement-training','ai-opportunity-assessment','business-transformation','fractional-ai-director','implementation-sprint','managed-ai-operations']);
 
 const founderSchema={
@@ -56,6 +57,8 @@ const servicesSchema={
 
 const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-stone-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie Stone, founder of Nexus Intelligence" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie Stone is the Delaware-based founder of Nexus Intelligence and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach to AI: understand the work, establish the baseline, identify the friction, preserve human ownership, and automate only what is justified.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie Stone</a></div></div></div></div></section>`;
 
+const pricingSignal=`<p class="note" data-phase-five-pricing style="margin-top:18px"><b>Investment guidance is published below.</b> Each service shows a current starting point and typical planning window so you can assess fit before a call. Final fees and scope are defined in writing based on the actual engagement.</p>`;
+
 function canonicalPath(pathname){
   let path=pathname||'/';
   if(path.length>1&&path.endsWith('/'))path=path.slice(0,-1);
@@ -86,6 +89,7 @@ export async function onRequest(context){
 
   const response=await context.next();
   const isPrivate=PRIVATE_PREFIXES.some(prefix=>path===prefix||path.startsWith(prefix));
+  const isProtectedMarketing=PROTECTED_MARKETING_PATHS.has(path);
   const isPreview=url.hostname.endsWith('.pages.dev');
   const headers=new Headers(response.headers);
 
@@ -110,6 +114,9 @@ export async function onRequest(context){
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
     .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
+    .on('.navlinks a[href="/portal"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})
+    .on('.navlinks a[href="/case-studies"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})
+    .on('#serviceRoot .hero',{element(el){if(path==='/services')el.append(pricingSignal,{html:true});}})
     .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('.preview-metric small',{element(el){if(path==='/')el.remove();}})
     .on('.problem-btn[data-problem="revenue"]',{element(el){if(path==='/')el.remove();}})
@@ -123,7 +130,7 @@ export async function onRequest(context){
     .on('.flow-card.after .flow-head .tag',{element(el){if(path==='/')el.setInnerContent('Illustrative target state');}})
     .on('.flow-card.after .flow-foot',{element(el){if(path==='/')el.setInnerContent('Target state: fewer manual handoffs • explicit controls • measurable process');}})
     .on('main',{element(el){if(path==='/')el.append(founderHomepageSection,{html:true});}})
-    .on('body',{element(el){el.append('<script src="/launch-readiness.js?v=20260830-2"></script><script src="/snapshot-lifecycle-patch.js?v=20260830-1"></script><script src="/phase-two.js?v=20260902-1"></script><script src="/phase-three.js?v=20260902-1"></script>',{html:true});}})
+    .on('body',{element(el){el.append('<script src="/launch-readiness.js?v=20260830-2"></script><script src="/snapshot-lifecycle-patch.js?v=20260830-1"></script><script src="/phase-two.js?v=20260902-1"></script><script src="/phase-three.js?v=20260902-1"></script><script src="/phase-five.js?v=20260902-1"></script>',{html:true});}})
     .transform(new Response(response.body,{status:response.status,statusText:response.statusText,headers}));
   return transformed;
 }
