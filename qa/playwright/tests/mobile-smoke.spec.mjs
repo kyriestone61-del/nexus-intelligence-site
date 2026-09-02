@@ -2,6 +2,18 @@ import {test,expect} from '@playwright/test';
 
 test.use({viewport:{width:390,height:844}});
 
+test('mobile menu exposes a touch-friendly client login route',async({page})=>{
+  await page.goto('/',{waitUntil:'domcontentloaded'});
+  await page.getByRole('button',{name:'Open navigation'}).click();
+  const login=page.getByRole('link',{name:'Client Login',exact:true}).first();
+  await expect(login).toBeVisible();
+  const box=await login.boundingBox();
+  expect(box?.height||0).toBeGreaterThanOrEqual(44);
+  await login.click();
+  await expect(page).toHaveURL(/\/portal\/?$/);
+  await expect(page.locator('#signInForm')).toBeVisible();
+});
+
 test('portal auth experience fits a phone viewport without horizontal overflow',async({page})=>{
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#signInForm')).toBeVisible();

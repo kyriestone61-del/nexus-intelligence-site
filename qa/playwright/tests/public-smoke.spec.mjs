@@ -14,6 +14,16 @@ test('public homepage and portal load without server errors',async({page})=>{
   expect(errors).toEqual([]);
 });
 
+test('public navigation exposes client login and reaches the sign-in experience',async({page})=>{
+  await page.goto('/',{waitUntil:'domcontentloaded'});
+  const login=page.getByRole('link',{name:'Client Login',exact:true}).first();
+  await expect(login).toBeVisible();
+  await expect(login).toHaveAttribute('href','/portal');
+  await login.click();
+  await expect(page).toHaveURL(/\/portal\/?$/);
+  await expect(page.locator('#signInForm')).toBeVisible();
+});
+
 test('portal is private from search indexing and has security boundary copy',async({page})=>{
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
   const robots=page.locator('meta[name="robots"]');

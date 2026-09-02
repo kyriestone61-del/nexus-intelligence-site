@@ -114,7 +114,6 @@ export async function onRequest(context){
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
     .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
-    .on('.navlinks a[href="/portal"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})
     .on('.navlinks a[href="/case-studies"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})
     .on('#serviceRoot .hero',{element(el){if(path==='/services')el.append(pricingSignal,{html:true});}})
     .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
