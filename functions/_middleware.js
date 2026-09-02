@@ -2,6 +2,17 @@ const SITE_ORIGIN='https://nexusintelligence.live';
 const PRIVATE_PREFIXES=['/portal','/operations','/prospect-workspace','/booking-manage','/api/'];
 const SERVICE_SLUGS=new Set(['ai-enablement-training','ai-opportunity-assessment','business-transformation','fractional-ai-director','implementation-sprint','managed-ai-operations']);
 
+const founderSchema={
+  '@context':'https://schema.org',
+  '@type':'Person',
+  '@id':`${SITE_ORIGIN}/about#founder`,
+  name:'Kyrie Stone',
+  jobTitle:'Founder',
+  url:`${SITE_ORIGIN}/about`,
+  worksFor:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Nexus Intelligence',url:`${SITE_ORIGIN}/`},
+  description:'Delaware-based founder of Nexus Intelligence with 4+ years of commercial construction project-engineering and operations experience.'
+};
+
 const organizationSchema={
   '@context':'https://schema.org',
   '@type':'Organization',
@@ -10,7 +21,8 @@ const organizationSchema={
   url:`${SITE_ORIGIN}/`,
   logo:`${SITE_ORIGIN}/logo.svg`,
   description:'Nexus Intelligence finds where AI can improve your business, builds the right systems, and measures whether they actually work.',
-  areaServed:{'@type':'Country',name:'United States'}
+  areaServed:{'@type':'Country',name:'United States'},
+  founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie Stone',url:`${SITE_ORIGIN}/about`}
 };
 
 const servicesSchema={
@@ -39,6 +51,8 @@ const servicesSchema={
     }))
   }
 };
+
+const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split"><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie Stone is the Delaware-based founder of Nexus Intelligence and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach to AI: understand the work, establish the baseline, identify the friction, preserve human ownership, and automate only what is justified.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie Stone</a></div></div><div class="card"><span class="tag">Operating background</span><h3>Construction project operations</h3><p>OSHA 30 training plus practical experience with Bluebeam and AutoCAD inside coordination-heavy, document-driven project workflows.</p><p class="small">Founder experience is operating background, not a client result or performance guarantee.</p></div></div></div></section>`;
 
 function canonicalPath(pathname){
   let path=pathname||'/';
@@ -83,15 +97,17 @@ export async function onRequest(context){
   if(response.status>=400&&!headers.has('X-Robots-Tag'))headers.set('X-Robots-Tag','noindex');
 
   const canonical=`${SITE_ORIGIN}${path}`;
+  const structuredData=`${path==='/'?jsonLd(organizationSchema):''}${path==='/services'?jsonLd(servicesSchema):''}${path==='/about'?jsonLd(founderSchema):''}`;
   const headHtml=isPrivate
     ? '<meta name="robots" content="noindex,nofollow,noarchive">'
-    : `<link rel="canonical" href="${canonical}"><meta property="og:url" content="${canonical}"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image">${path==='/'?jsonLd(organizationSchema):''}${path==='/services'?jsonLd(servicesSchema):''}`;
+    : `<link rel="canonical" href="${canonical}"><meta property="og:url" content="${canonical}"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image">${structuredData}`;
 
   const transformed=new HTMLRewriter()
     .on('link[rel="canonical"]',{element(el){el.remove();}})
     .on('meta[property="og:url"]',{element(el){el.remove();}})
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
+    .on('main',{element(el){if(path==='/')el.append(founderHomepageSection,{html:true});}})
     .on('body',{element(el){el.append('<script src="/launch-readiness.js?v=20260830-2"></script><script src="/snapshot-lifecycle-patch.js?v=20260830-1"></script><script src="/phase-two.js?v=20260902-1"></script>',{html:true});}})
     .transform(new Response(response.body,{status:response.status,statusText:response.statusText,headers}));
   return transformed;
