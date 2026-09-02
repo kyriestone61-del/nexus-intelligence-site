@@ -175,7 +175,7 @@ jobs:
           grep -q "observer.observe(root,{childList:true,subtree:true})" app.js
           grep -q 'simplifyFitCallExperience' app.js
           grep -q 'Request a Nexus Fit Call' app.js
-          grep -q 'appointment-based beauty business' industries.html
+          grep -q 'appointment-driven service business' industries.html
           if grep -qi 'Moon Wax' industries.html; then
             echo 'Client-adjacent Moon Wax reference must not appear on the public industries page.' >&2
             exit 1
