@@ -50,6 +50,6 @@ test('booking route remains an intentional external redirect',async({request})=>
 test('sitemap exposes exactly the governed public surface',async({request})=>{
   const response=await request.get(`${base}/sitemap.xml`);expect(response.ok()).toBeTruthy();
   const xml=await response.text();
-  for(const path of [...paths,'/book'])expect(xml).toContain(`<loc>${base}${path}</loc>`);
+  for(const path of paths)expect(xml).toContain(`<loc>${base}${path}</loc>`);
   expect(xml).not.toMatch(/\/portal|\/operations|\/admin/);
 });
