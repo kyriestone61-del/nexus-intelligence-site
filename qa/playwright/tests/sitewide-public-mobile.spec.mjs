@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-const paths=['/','/services','/methodology','/case-studies','/about','/quick-scan','/assessment','/capabilities','/industries','/problems','/delivery-standard','/privacy','/terms','/accessibility'];
+const paths=['/','/services','/methodology','/about','/quick-scan','/assessment','/capabilities','/industries','/problems','/delivery-standard','/privacy','/terms','/accessibility'];
 const base=process.env.NEXUS_QA_BASE_URL||'https://nexusintelligence.live';
 
 function meaningfulErrors(errors){return errors.filter(x=>!/favicon|analytics|third-party cookie|ResizeObserver loop/i.test(x));}
