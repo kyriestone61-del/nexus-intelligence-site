@@ -5,6 +5,6 @@
 
   const nav=document.querySelector('.navlinks');
   if(nav){
-    nav.querySelectorAll('a[href="/portal"],a[href="/case-studies"]').forEach(link=>link.remove());
+    nav.querySelectorAll('a[href="/case-studies"]').forEach(link=>link.remove());
   }
 })();

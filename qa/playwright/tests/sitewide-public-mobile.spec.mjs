@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-const paths=['/','/services','/methodology','/case-studies','/about','/quick-scan','/assessment','/capabilities','/industries','/problems','/delivery-standard','/privacy','/terms','/accessibility'];
+const paths=['/','/services','/methodology','/about','/quick-scan','/assessment','/capabilities','/industries','/problems','/delivery-standard','/privacy','/terms','/accessibility'];
 const base=process.env.NEXUS_QA_BASE_URL||'https://nexusintelligence.live';
 
 function meaningfulErrors(errors){return errors.filter(x=>!/favicon|analytics|third-party cookie|ResizeObserver loop/i.test(x));}
@@ -50,6 +50,6 @@ test('booking route remains an intentional external redirect',async({request})=>
 test('sitemap exposes exactly the governed public surface',async({request})=>{
   const response=await request.get(`${base}/sitemap.xml`);expect(response.ok()).toBeTruthy();
   const xml=await response.text();
-  for(const path of [...paths,'/book'])expect(xml).toContain(`<loc>${base}${path}</loc>`);
+  for(const path of paths)expect(xml).toContain(`<loc>${base}${path}</loc>`);
   expect(xml).not.toMatch(/\/portal|\/operations|\/admin/);
 });

@@ -17,6 +17,11 @@ on:
       - 'portal-client-shell-v2.css'
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
+      - 'app.js'
+      - 'index.html'
+      - 'styles.css'
+      - 'phase-five.js'
+      - 'functions/_middleware.js'
       - '.github/workflows/production-runtime-smoke.yml'
   pull_request:
     paths:
@@ -33,6 +38,11 @@ on:
       - 'portal-client-shell-v2.css'
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
+      - 'app.js'
+      - 'index.html'
+      - 'styles.css'
+      - 'phase-five.js'
+      - 'functions/_middleware.js'
       - '.github/workflows/production-runtime-smoke.yml'
   workflow_dispatch:
   schedule:
@@ -159,6 +169,14 @@ jobs:
           probe_get 'custom-upload-facade-owner' "$origin/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
           probe_get 'custom-inbox-refresh-guard' "$origin/portal-approval-inbox.js" 'queueInboxRefresh'
           probe_absent 'custom-inbox-no-self-observer' "$origin/portal-approval-inbox.js" 'new MutationObserver'
+
+          # Pull requests test candidate source through static and contract gates while production
+          # remains unchanged. After a merge, wait for Cloudflare to expose the restored account path.
+          if [ "$GITHUB_EVENT_NAME" != 'pull_request' ]; then
+            probe_get 'custom-public-client-login-home' "$origin/" 'class="nav-account"'
+            probe_get 'custom-public-client-login-app' "$origin/app.js" 'data-track="nav_client_login"'
+            probe_get 'custom-public-client-login-style' "$origin/styles.css" '.nav-account{'
+          fi
 
           # Existing administrator/runtime safety probes remain required.
           probe_get 'runtime-router' "$origin/portal-vnext-runtime-router.js" '/api/diagnosis-report-pdf'
