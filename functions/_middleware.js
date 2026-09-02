@@ -22,7 +22,7 @@ const organizationSchema={
   url:`${SITE_ORIGIN}/`,
   logo:`${SITE_ORIGIN}/logo.svg`,
   image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`,
-  description:'Nexus Intelligence finds where AI can improve your business, builds the right systems, and measures whether they actually work.',
+  description:'Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.',
   areaServed:{'@type':'Country',name:'United States'},
   founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie Stone',url:`${SITE_ORIGIN}/about`,image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`}
 };
@@ -108,9 +108,22 @@ export async function onRequest(context){
     .on('link[rel="canonical"]',{element(el){el.remove();}})
     .on('meta[property="og:url"]',{element(el){el.remove();}})
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
+    .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
+    .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
+    .on('.preview-metric small',{element(el){if(path==='/')el.remove();}})
+    .on('.problem-btn[data-problem="revenue"]',{element(el){if(path==='/')el.remove();}})
+    .on('.problem-btn[data-problem="data"]',{element(el){if(path==='/')el.remove();}})
+    .on('.problem-btn[data-problem="manual"] span',{element(el){if(path==='/')el.setInnerContent('01');}})
+    .on('.problem-btn[data-problem="service"] span',{element(el){if(path==='/')el.setInnerContent('02');}})
+    .on('.problem-btn[data-problem="knowledge"] span',{element(el){if(path==='/')el.setInnerContent('03');}})
+    .on('.problem-btn[data-problem="systems"] span',{element(el){if(path==='/')el.setInnerContent('04');}})
+    .on('#problemDetail .kicker',{element(el){if(path==='/')el.setInnerContent('Nexus evaluation');}})
+    .on('#problemText',{element(el){if(path==='/')el.setInnerContent('Nexus maps repetitive handoffs, copying, routing, document preparation, and status-update work, then evaluates which steps are appropriate for automation.');}})
+    .on('.flow-card.after .flow-head .tag',{element(el){if(path==='/')el.setInnerContent('Illustrative target state');}})
+    .on('.flow-card.after .flow-foot',{element(el){if(path==='/')el.setInnerContent('Target state: fewer manual handoffs • explicit controls • measurable process');}})
     .on('main',{element(el){if(path==='/')el.append(founderHomepageSection,{html:true});}})
-    .on('body',{element(el){el.append('<script src="/launch-readiness.js?v=20260830-2"></script><script src="/snapshot-lifecycle-patch.js?v=20260830-1"></script><script src="/phase-two.js?v=20260902-1"></script>',{html:true});}})
+    .on('body',{element(el){el.append('<script src="/launch-readiness.js?v=20260830-2"></script><script src="/snapshot-lifecycle-patch.js?v=20260830-1"></script><script src="/phase-two.js?v=20260902-1"></script><script src="/phase-three.js?v=20260902-1"></script>',{html:true});}})
     .transform(new Response(response.body,{status:response.status,statusText:response.statusText,headers}));
   return transformed;
 }
