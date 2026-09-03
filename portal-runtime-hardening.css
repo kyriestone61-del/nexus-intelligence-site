@@ -13,9 +13,19 @@
 .portal-body .topbar button{min-height:44px}
 .portal-body .company-select{min-height:44px}
 
+/* Auth tabs are true mode switches: only the active form is visible. */
+.portal-body .auth-pane{display:none!important}
+.portal-body .auth-pane.active{display:block!important}
+
 .portal-body input,
 .portal-body select,
 .portal-body textarea{font-size:16px}
+
+/* Global form controls are width:100%; inside flex rows that previously let status
+ * selects consume the entire row and crush task copy into one-word columns. */
+.portal-body .row>.grow{flex:1 1 auto!important;min-width:0!important;width:auto!important;word-break:normal!important;overflow-wrap:anywhere}
+.portal-body .row>select,
+.portal-body .row>.task-status{flex:0 0 170px!important;width:170px!important;min-width:150px!important;max-width:190px!important;align-self:flex-start}
 
 .portal-body.nexus-modal-open{overflow:hidden!important}
 
@@ -26,4 +36,7 @@
   .portal-body summary,
   .portal-body input[type="button"],
   .portal-body input[type="submit"]{min-height:44px}
+  .portal-body .row{flex-direction:column!important;align-items:stretch!important}
+  .portal-body .row>select,
+  .portal-body .row>.task-status{flex:0 0 auto!important;width:100%!important;min-width:0!important;max-width:none!important;align-self:stretch}
 }
