@@ -6,6 +6,7 @@ on:
       - 'portal-app.js'
       - 'portal-client-upload-service.js'
       - 'core/document-context.js'
+      - 'core/document-service.js'
       - 'portal-task-file-attachments.js'
       - 'portal-task-file-attachments-live.js'
       - 'portal-task-file-attachments.css'
@@ -21,6 +22,7 @@ on:
       - 'portal-app.js'
       - 'portal-client-upload-service.js'
       - 'core/document-context.js'
+      - 'core/document-service.js'
       - 'portal-task-file-attachments.js'
       - 'portal-task-file-attachments-live.js'
       - 'portal-task-file-attachments.css'
@@ -48,6 +50,7 @@ jobs:
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-client-upload-service.js
           node --input-type=module --check < core/document-context.js
+          node --input-type=module --check < core/document-service.js
           node --input-type=module --check < portal-task-file-attachments.js
           node --input-type=module --check < portal-task-file-attachments-live.js
           node --input-type=module --check < portal-action-execution-v2-forms.js
@@ -61,7 +64,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY' portal-client-upload-service.js portal-task-file-attachments.js portal-task-file-attachments-live.js; then
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY' core/document-context.js core/document-service.js portal-client-upload-service.js portal-task-file-attachments.js portal-task-file-attachments-live.js; then
             echo 'Privileged credential reference found in client attachment code.' >&2
             exit 1
           fi
