@@ -1,0 +1,58 @@
+name: Nexus Direct Client Workflow Handoff QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-action-execution.js'
+      - 'portal-client-action-execution.css'
+      - 'portal-client-upload-service.js'
+      - 'portal-client.js'
+      - 'tests/client-direct-workflow-handoff-qaqc.mjs'
+      - '.github/workflows/client-direct-workflow-handoff-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-action-execution.js'
+      - 'portal-client-action-execution.css'
+      - 'portal-client-upload-service.js'
+      - 'portal-client.js'
+      - 'tests/client-direct-workflow-handoff-qaqc.mjs'
+      - '.github/workflows/client-direct-workflow-handoff-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  direct-client-workflow-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-client-action-execution.js
+          node --input-type=module --check < portal-client-upload-service.js
+          node --input-type=module --check < portal-client.js
+      - name: Direct workflow contract
+        run: node tests/client-direct-workflow-handoff-qaqc.mjs
+      - name: Mobile and handoff styling contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'portal-client-action-execution.css' portal-app.js
+          grep -Fq '.nexus-client-preparation-handoff' portal-client-action-execution.css
+          grep -Fq '@media(max-width:760px)' portal-client-action-execution.css
+      - name: No privileged browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET|SECRET_KEY' portal-client-action-execution.js portal-client-upload-service.js portal-client.js portal-app.js; then
+            echo 'Privileged server credential reference found in client-delivered files.' >&2
+            exit 1
+          fi
