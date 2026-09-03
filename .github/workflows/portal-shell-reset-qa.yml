@@ -31,7 +31,9 @@ jobs:
           grep -Fq '/portal-v2.css?v=20260831-discovery-capture1' portal.html
           grep -Fq '/portal-security-hardening.js?v=20260831-discovery-capture1' portal.html
           grep -Fq '/portal-app.js?v=20260831-discovery-capture1' portal.html
-          grep -Fq "const BUILD='20260901-workflow-cohesion1'" portal-app.js
+          grep -Eq "^const BUILD='[0-9]{8}-[A-Za-z0-9._-]+';" portal-app.js
+          grep -Fq "portal-client-shell-v2.js?v=\${BUILD}" portal-app.js
+          grep -Fq "portal-admin-journey.js?v=\${BUILD}" portal-app.js
           grep -Fq "document.body.classList.add('nexus-shell-ready');" portal-app.js
           if grep -Fq 'cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main' portal.html; then
             echo 'Mutable @main CDN portal asset detected.' >&2
