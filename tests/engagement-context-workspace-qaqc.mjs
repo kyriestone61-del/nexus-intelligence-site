@@ -81,6 +81,7 @@ assert.throws(
   const loader=async()=>{calls+=1;await gate;return {revision:calls}};
   const one=coordinator.run(`company:${COMPANY}`,loader);
   const two=coordinator.run(`company:${COMPANY}`,loader);
+  await Promise.resolve();
   assert.equal(calls,1,'duplicate in-flight workspace loads must coalesce');
   release();
   const [a,b]=await Promise.all([one,two]);
