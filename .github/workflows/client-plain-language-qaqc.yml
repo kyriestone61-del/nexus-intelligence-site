@@ -1,0 +1,44 @@
+name: Nexus Client Plain Language QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-plain-language.js'
+      - 'tests/client-plain-language-qaqc.mjs'
+      - '.github/workflows/client-plain-language-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-plain-language.js'
+      - 'tests/client-plain-language-qaqc.mjs'
+      - '.github/workflows/client-plain-language-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  client-plain-language-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-client-plain-language.js
+          node --check tests/client-plain-language-qaqc.mjs
+      - name: Plain-language contract
+        run: node tests/client-plain-language-qaqc.mjs
+      - name: No privileged browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY' portal-client-plain-language.js; then
+            echo 'Privileged credential reference found in plain-language browser code.' >&2
+            exit 1
+          fi

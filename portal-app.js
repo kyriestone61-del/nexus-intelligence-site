@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260903-founder-report-editor1';
+const BUILD='20260903-client-plain-language1';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -50,6 +50,7 @@ async function waitFor(test,{timeout=5000,step=70}={}){const start=Date.now();wh
 
 await loadStyles(['portal-runtime-hardening.css']);
 try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180])}catch(error){showCoreLoadFailure(error);throw error}
+await optionalImport(asset(`portal-client-plain-language.js?v=${BUILD}`));
 const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Nexus portal context is unavailable.'));throw new Error('Nexus portal context is unavailable.')}
 const platformAdmin=!!portal.state?.admin;
 const isSignedIn=!!portal.state?.user;
@@ -73,6 +74,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
   await requiredImport(asset(`portal-client-action-execution.js?v=${BUILD}`),'client action execution and handoff');
   await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
+  window.NexusClientPlainLanguage?.apply?.();
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
 }else if(useAdminShell){
