@@ -16,6 +16,7 @@ on:
       - 'portal-diagnosis-release-queue.js'
       - 'portal-journey-task-guard.js'
       - 'functions/portal.js'
+      - 'supabase/functions/nexus-diagnosis-execute/**'
       - '.github/workflows/journey-runtime-routing-qa.yml'
 
 permissions:
@@ -53,65 +54,63 @@ jobs:
           grep -Fq 'portal-diagnosis-v2.js' portal-app.js
           grep -Fq 'portal-diagnosis-release-queue.js' portal-app.js
           grep -Fq 'portal-diagnosis-manual-fallback.js' portal-app.js
-          if grep -Fq 'portal-diagnosis-override.js' portal-app.js; then
-            echo 'Legacy diagnosis override must not load beside the centralized controller.' >&2
-            exit 1
-          fi
-          if grep -Fq 'portal-diagnosis-state-labels.js' portal-app.js; then
-            echo 'Legacy diagnosis label patch must not load beside the centralized controller.' >&2
-            exit 1
-          fi
-          if grep -Fq 'portal-journey-reliability.js' portal-app.js; then
-            echo 'Legacy Journey reliability patch must not load beside the centralized controller.' >&2
-            exit 1
-          fi
-          if grep -Fq 'portal-launch-control.js' portal-app.js; then
-            echo 'Launch Control must remain in the Admin Console and not inject a late portal nav item.' >&2
-            exit 1
-          fi
-      - name: Transcript persistence and queue contract
+          if grep -Fq 'portal-diagnosis-override.js' portal-app.js; then echo 'Legacy diagnosis override must not load beside the centralized controller.' >&2; exit 1; fi
+          if grep -Fq 'portal-diagnosis-state-labels.js' portal-app.js; then echo 'Legacy diagnosis label patch must not load beside the centralized controller.' >&2; exit 1; fi
+          if grep -Fq 'portal-journey-reliability.js' portal-app.js; then echo 'Legacy Journey reliability patch must not load beside the centralized controller.' >&2; exit 1; fi
+          if grep -Fq 'portal-launch-control.js' portal-app.js; then echo 'Launch Control must remain in the Admin Console and not inject a late portal nav item.' >&2; exit 1; fi
+      - name: Evidence persistence and queue contract
         run: |
           set -euo pipefail
-          grep -Fq "category==='Discovery Transcript'" portal-diagnosis-controller-v2.js
-          grep -Fq 'resolveTranscriptId' portal-diagnosis-controller-v2.js
-          grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller-v2.js
-          grep -Fq 'selectedTranscript' portal-diagnosis-controller-v2.js
-          grep -Fq 'docs[0]?.id' portal-diagnosis-controller-v2.js
-          grep -Fq 'No diagnosis evidence was found' portal-diagnosis-controller-v2.js
-          grep -Fq 'existingRunForTranscript' portal-diagnosis-controller-v2.js
-          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
-      - name: Step 1 capture and promotion contract
-        run: |
-          set -euo pipefail
-          grep -Fiq 'Capture discovery context' portal-admin-intake.js
-          grep -Fq 'captureDiscoveryContext' portal-admin-intake.js
-          grep -Fq 'discovery_context_captured' portal-admin-intake.js
-          grep -Fq "DISCOVERY_CAPTURE_STATUS='draft'" portal-discovery-capture.js
-          grep -Fq ".eq('id',captured.id).eq('status','draft')" portal-diagnosis-controller-v2.js
+          grep -Fq 'const evidenceDocs=' portal-diagnosis-controller-v2.js
+          grep -Fq 'supporting_document_ids:docs.map' portal-diagnosis-controller-v2.js
+          grep -Fq 'transcript_document_id:transcript?.id||null' portal-diagnosis-controller-v2.js
+          grep -Fq 'completed client discovery response' portal-diagnosis-controller-v2.js
+          grep -Fq 'ensureCurrentAdminContext' portal-diagnosis-controller-v2.js
           grep -Fq "status:'queued'" portal-diagnosis-controller-v2.js
-          grep -Fq 'nexus:discovery-context-captured' portal-admin-journey.js
-      - name: Step 3 routing and fallback contract
+          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
+          ! grep -Fq 'resolveTranscriptId' portal-diagnosis-controller-v2.js
+          ! grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller-v2.js
+          ! grep -Fq 'selectedTranscript' portal-diagnosis-controller-v2.js
+      - name: Unified Step 2 capture and intelligence contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'nexus_save_discovery_admin_context' portal-admin-intake.js
+          grep -Fq 'This context will be included in the next diagnosis run' portal-admin-intake.js
+          grep -Fq 'Analyze Missing Information' portal-admin-intake.js
+          grep -Fq "operation:'gap_analysis'" portal-admin-intake.js
+          grep -Fq 'nexus_send_discovery_information_request' portal-admin-intake.js
+          grep -Fq "DISCOVERY_CAPTURE_STATUS='draft'" portal-discovery-capture.js
+          grep -Fq "capture:{source:'evidence_first_step2'" portal-discovery-capture.js
+          grep -Fq "title:'Discovery & Diagnosis'" portal-admin-journey.js
+          ! grep -Fq 'nexus:discovery-context-captured' portal-admin-journey.js
+      - name: Step 2 routing and fallback contract
         run: |
           set -euo pipefail
           grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller-v2.js
+          grep -Fq 'Step\\s*2\\s*of\\s*6' portal-diagnosis-controller-v2.js
           grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller-v2.js
           grep -Fq 'Review Diagnosis' portal-diagnosis-controller-v2.js
           grep -Fq 'Diagnosis execution failed.' portal-diagnosis-controller-v2.js
-          grep -Fq 'already exists for this transcript' portal-diagnosis-controller-v2.js
-          grep -Fq 'Finish Step 3 with ChatGPT' portal-diagnosis-manual-fallback.js
+          grep -Fq 'A diagnosis already exists.' portal-diagnosis-controller-v2.js
+          grep -Fq 'Finish Step 2 with ChatGPT' portal-diagnosis-manual-fallback.js
           grep -Fq "status:'ready_for_review'" portal-diagnosis-manual-fallback.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
           grep -Fq 'nexus_release_client_task' portal-diagnosis-release-queue.js
+      - name: Omnivorous evidence parser contract
+        run: |
+          set -euo pipefail
+          grep -Fq 'docxText' supabase/functions/nexus-diagnosis-execute/index.ts
+          grep -Fq 'pptxText' supabase/functions/nexus-diagnosis-execute/index.ts
+          grep -Fq 'xlsxText' supabase/functions/nexus-diagnosis-execute/index.ts
+          grep -Fq 'imageText' supabase/functions/nexus-diagnosis-execute/index.ts
+          grep -Fq 'metadata_only' supabase/functions/nexus-diagnosis-execute/index.ts
       - name: Deterministic deployed assets
         run: |
           set -euo pipefail
           grep -Fq "const asset=path=>\`/" portal-app.js
           grep -Fq 'jsdelivr' functions/portal.js
           grep -Fq 'exact code packaged in this Cloudflare deployment' functions/portal.js
-          if grep -Fq 'cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main' portal-app.js; then
-            echo 'Portal app is loading mutable main-branch assets.' >&2
-            exit 1
-          fi
+          if grep -Fq 'cdn.jsdelivr.net/gh/kyriestone61-del/nexus-intelligence-site@main' portal-app.js; then echo 'Portal app is loading mutable main-branch assets.' >&2; exit 1; fi
       - name: Browser secret safety
         run: |
           set -euo pipefail
