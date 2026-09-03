@@ -44,7 +44,7 @@ async function uploadFile({file,requestId=null,requirementId=null,taskId=null,ti
   const projectId=task?.project_id||state.projects?.[0]?.id||null;
   const upload=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||undefined});if(upload.error)throw upload.error;
   try{
-    const row={company_id:companyId,project_id:projectId,task_id:task?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category,status:'shared',note:note||title?String(note||`File for ${title}`):null,uploaded_by:state.user.id,sensitivity,request_id:requestId||null,data_requirement_id:requirementId||null,document_area:'client_submission',source_role:'client'};
+    const row={company_id:companyId,project_id:projectId,task_id:task?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category,status:'shared',note:(note||title)?String(note||`File for ${title}`):null,uploaded_by:state.user.id,sensitivity,request_id:requestId||null,data_requirement_id:requirementId||null,document_area:'client_submission',source_role:'client'};
     const insert=await sb.from('nexus_documents').insert(row).select().single();if(insert.error)throw insert.error;
     await portal.log?.('document_uploaded','document',insert.data.id,task?`Client uploaded ${file.name} for action: ${task.title}`:`Client uploaded ${file.name}`);
     if(refresh)await portal.workspace?.();
@@ -77,3 +77,7 @@ const service=Object.freeze({prepare,clear,uploadFile,uploadFilesForTask,getSele
 portal.services=portal.services||{};portal.services.clientUpload=service;
 Object.defineProperty(portal,'prepareUpload',{value:prepare,configurable:true,enumerable:false});
 window.NexusClientUploadService=service;
+
+const TASK_FILE_BUILD='20260903-inline-action-files1';
+if(!document.querySelector('link[data-nexus-task-files]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`/portal-task-file-attachments.css?v=${TASK_FILE_BUILD}`;link.dataset.nexusTaskFiles='1';document.head.appendChild(link)}
+import(`/portal-task-file-attachments.js?v=${TASK_FILE_BUILD}`).then(()=>import(`/portal-task-file-attachments-live.js?v=${TASK_FILE_BUILD}`)).catch(error=>console.error('Nexus task file controls failed to load.',error));
