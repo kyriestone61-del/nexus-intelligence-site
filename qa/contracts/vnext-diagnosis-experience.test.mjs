@@ -10,6 +10,7 @@ const pdf=read('supabase/functions/nexus-diagnosis-report-pdf/index.ts');
 const sms=read('supabase/functions/nexus-sms-worker/index.ts');
 const migration=read('supabase/migrations/20260831_nexus_diagnosis_release_qa_inbox.sql');
 const step2Migration=read('supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql');
+const mapperFix=read('supabase/migrations/20260903_nexus_step2_template_mapper_fix.sql');
 const intake=read('portal-admin-intake.js');
 
 const reportKeys=[
@@ -79,6 +80,9 @@ assert.match(step2Migration,/drop trigger if exists nexus_document_request_relea
 assert.match(step2Migration,/nexus_release_document_request/);
 assert.doesNotMatch(step2Migration.slice(step2Migration.indexOf('create or replace function public.nexus_release_document_request'),step2Migration.indexOf('create or replace function public.nexus_send_discovery_information_request')),/nexus_require_entity_chain_approved/,'simple information requests must release directly');
 assert.match(step2Migration,/nexus_map_diagnosis_action_templates/,'approved diagnosis must map downstream actions to the reusable template library');
+assert.match(mapperFix,/v_code/,'template mapper must use a non-conflicting PL/pgSQL variable name');
+assert.match(mapperFix,/at\.code=v_code/,'template mapper must explicitly compare the aliased table column to the local variable');
+assert.doesNotMatch(mapperFix,/nexus_action_templates\.code=code/,'template mapper must never reintroduce the ambiguous code=code comparison');
 
 // Durable release/Q&A tables and strict client boundary.
 assert.match(migration,/CREATE TABLE IF NOT EXISTS public\.nexus_diagnosis_report_releases/);
