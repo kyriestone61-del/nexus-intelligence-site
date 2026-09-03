@@ -25,7 +25,7 @@ jobs:
       - name: Canonical administrator recovery contract
         run: |
           grep -q "sb.rpc('nexus_is_platform_admin')" portal-client.js
-          grep -q "state.admin=admin===true" portal-client.js
+          grep -q "stateController.patch({admin},'auth:authorization')" portal-client.js
           grep -q "compatibility fallback" portal-client.js
           grep -q "nexus_platform_admins" portal-client.js
       - name: Existing portal mobile hardening is actually loaded
