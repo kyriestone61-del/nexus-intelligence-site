@@ -96,4 +96,24 @@ const documentRequests=[
   assert.equal(projection.items.every(item=>item.projectId===null),true,'without an active project only explicit company-level work may project');
 }
 
+// Integration contract: the existing client-core consumer owns the one governed
+// action-context RPC, then feeds that result plus workspace-loaded tasks/requests into
+// projectTaskProjection. Home, Guide and Inbox must consume the same projection.
+const clientCore=fs.readFileSync('portal-client-core.js','utf8');
+const shell=fs.readFileSync('portal-client-shell-v2.js','utf8');
+assert.match(clientCore,/from '\/core\/task-projection\.js'/,'client core must import the canonical task projection');
+assert.match(clientCore,/projectTaskProjection\(/,'client core must build the projection inside the existing action-context consumer');
+assert.equal((clientCore.match(/nexus_get_client_action_context/g)||[]).length,1,'client core must retain exactly one governed action-context RPC path');
+assert.match(clientCore,/options\.engagementContext/,'client core must accept the already-resolved EngagementContext');
+assert.match(clientCore,/options\.documentRequests/,'client core must accept already-loaded document requests');
+assert.doesNotMatch(clientCore,/from\('nexus_document_requests'\)/,'client core must not add another document-request query');
+
+assert.match(shell,/engagementContext:state\.engagementContext/,'client shell must pass the base EngagementContext into the existing consumer');
+assert.match(shell,/documentRequests:state\.docRequests/,'client shell must reuse base workspace document requests');
+assert.doesNotMatch(shell,/from\('nexus_document_requests'\)/,'client shell must not re-fetch the full document-request collection');
+assert.match(shell,/currentContext\?\.taskProjection/,'Home\/Guide\/Inbox must have one canonical task projection on current context');
+assert.match(shell,/function renderToday\([\s\S]*taskProjection/,'Home must consume the task projection');
+assert.match(shell,/function askGuide\([\s\S]*taskProjection/,'Guide must consume the task projection');
+assert.match(shell,/function actionableInbox\([\s\S]*taskProjection/,'Inbox action eligibility must consume the task projection');
+
 console.log('NEXUS TASK PROJECTION QAQC PASS');
