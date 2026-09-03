@@ -1,0 +1,46 @@
+name: Human OS Static Build QA
+
+on:
+  pull_request:
+    paths:
+      - 'human-os-static/**'
+      - 'supabase/functions/hlo-stage-upload/**'
+      - 'supabase/migrations/*human_os*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: human-os-static
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build pinned Human OS static release
+        run: npm run build
+      - name: Verify release surfaces
+        run: |
+          test -s dist/index.html
+          test -s dist/robots.txt
+          test -s dist/sitemap.xml
+          test -s dist/terms/index.html
+          test -s dist/privacy/index.html
+          grep -q 'Build My Learning Path' dist/index.html
+          grep -q '\$29/month' dist/index.html
+          grep -q 'Sitemap:' dist/robots.txt
+      - name: Reject runtime static-asset dependency
+        run: |
+          if grep -R -F 'hlo-app?asset=' dist/assets dist/index.html; then
+            echo 'Runtime Supabase static asset dependency remains.' >&2
+            exit 1
+          fi
+      - name: JavaScript syntax check
+        run: |
+          find dist/assets -name '*.js' -print0 | xargs -0 -n1 node --check
