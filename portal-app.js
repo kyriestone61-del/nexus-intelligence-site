@@ -73,6 +73,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
   await requiredImport(asset(`portal-client-action-execution.js?v=${BUILD}`),'client action execution and handoff');
   await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
+  await requiredImport(asset(`portal-client-report-decision.js?v=${BUILD}`),'client diagnosis report approval');
   await requiredImport(asset(`portal-client-commercial.js?v=${BUILD}`),'client entitlement and individual solution controls');
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
