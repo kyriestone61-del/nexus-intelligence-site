@@ -283,7 +283,7 @@ document.addEventListener('click',event=>{
   }
 
   if(event.target.closest?.('[data-client-view="files"],[data-client-go="files"]'))scheduleEnhancements();
-  if(event.target.closest?.('[data-client-view="today"],[data-client-go="today"]'))scheduleEnhancements();
+  if(event.target.closest?.('[data-client-view="home"],[data-client-go="home"],[data-client-view="today"],[data-client-go="today"]'))scheduleEnhancements();
 },true);
 
 window.addEventListener('nexus:client-context-ready',event=>{
