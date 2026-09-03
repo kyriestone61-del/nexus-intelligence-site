@@ -5,6 +5,7 @@ on:
     paths:
       - 'portal-app.js'
       - 'portal-client-upload-service.js'
+      - 'app/services/document-context.js'
       - 'portal-task-file-attachments.js'
       - 'portal-task-file-attachments-live.js'
       - 'portal-task-file-attachments.css'
@@ -12,12 +13,14 @@ on:
       - 'supabase/migrations/20260903_nexus_task_document_attachments.sql'
       - 'supabase/migrations/20260903_nexus_task_document_company_guard.sql'
       - 'tests/client-action-inline-files-qaqc.mjs'
+      - 'tests/client-upload-context-qaqc.mjs'
       - '.github/workflows/client-action-inline-files-qaqc.yml'
   push:
     branches: [main]
     paths:
       - 'portal-app.js'
       - 'portal-client-upload-service.js'
+      - 'app/services/document-context.js'
       - 'portal-task-file-attachments.js'
       - 'portal-task-file-attachments-live.js'
       - 'portal-task-file-attachments.css'
@@ -25,6 +28,7 @@ on:
       - 'supabase/migrations/20260903_nexus_task_document_attachments.sql'
       - 'supabase/migrations/20260903_nexus_task_document_company_guard.sql'
       - 'tests/client-action-inline-files-qaqc.mjs'
+      - 'tests/client-upload-context-qaqc.mjs'
       - '.github/workflows/client-action-inline-files-qaqc.yml'
 
 permissions:
@@ -43,12 +47,16 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-client-upload-service.js
+          if [ -f app/services/document-context.js ]; then node --input-type=module --check < app/services/document-context.js; fi
           node --input-type=module --check < portal-task-file-attachments.js
           node --input-type=module --check < portal-task-file-attachments-live.js
           node --input-type=module --check < portal-action-execution-v2-forms.js
           node --check tests/client-action-inline-files-qaqc.mjs
+          node --check tests/client-upload-context-qaqc.mjs
       - name: Inline file contract
         run: node tests/client-action-inline-files-qaqc.mjs
+      - name: Upload context contract
+        run: node tests/client-upload-context-qaqc.mjs
       - name: No privileged client credentials
         shell: bash
         run: |
