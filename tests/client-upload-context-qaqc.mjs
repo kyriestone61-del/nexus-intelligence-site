@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {resolveDocumentContext} from '../app/services/document-context.js';
+
+const contextSource=fs.readFileSync('app/services/document-context.js','utf8');
+const contextModule=await import(`data:text/javascript;base64,${Buffer.from(contextSource).toString('base64')}`);
+const {resolveDocumentContext}=contextModule;
 
 const COMPANY='04acb60c-0f99-4743-9b7e-effedfd1df18';
 const ASSESSMENT='99762f18-ab2c-42b3-a480-a06d99d7d011';
