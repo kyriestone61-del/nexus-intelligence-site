@@ -59,7 +59,7 @@ assert.match(runtime,/createStateController/);assert.match(runtime,/createEventR
 assert.match(migration,/pg_advisory_xact_lock/);assert.match(migration,/insert into public\.nexus_companies/);assert.match(migration,/insert into public\.nexus_company_members/);assert.match(migration,/insert into public\.nexus_projects/);
 
 assert.match(shell,/PRIMARY_VIEWS=\[\['today','01 Today'\],\['files','02 Secure Data Room'\],\['improvement','03 Improvement Record'\]\]/);
-assert.match(shell,/YOUR NEXT STEP/);assert.match(shell,/Complete this step →/);assert.match(shell,/UP NEXT —/);assert.match(shell,/Reports/);assert.match(shell,/Help/);assert.match(shell,/Inbox/);
+assert.match(shell,/YOUR NEXT STEP/);assert.match(shell,/Complete this step →/);assert.match(shell,/ALSO READY —/);assert.match(shell,/Reports/);assert.match(shell,/Help/);assert.match(shell,/Inbox/);
 assert.equal(shell.includes('new MutationObserver'),false);assert.equal(/\.onclick\s*=/.test(shell),false);assert.equal(/\.onchange\s*=/.test(shell),false);
 assert.match(shell,/runtime/);assert.match(shell,/events\.bind/);assert.match(shell,/boundary\.run|boundary\.wrap/);assert.match(shell,/modals\.open/);
 assert.match(shell,/portal\.prepareUpload\?\.\(\{requestId,title\}\)/,'V2 shell must use the explicit upload facade');
