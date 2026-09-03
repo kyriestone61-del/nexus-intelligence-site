@@ -15,6 +15,9 @@ on:
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
+      - 'portal-task-file-attachments.js'
+      - 'portal-task-file-attachments-live.js'
+      - 'portal-task-file-attachments.css'
       - 'portal-perspective-switcher.js'
       - 'tests/client-shell-refactor-qaqc.mjs'
       - 'supabase/migrations/**'
@@ -32,6 +35,9 @@ on:
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
+      - 'portal-task-file-attachments.js'
+      - 'portal-task-file-attachments-live.js'
+      - 'portal-task-file-attachments.css'
       - 'portal-perspective-switcher.js'
       - 'tests/client-shell-refactor-qaqc.mjs'
       - 'supabase/migrations/**'
@@ -60,6 +66,8 @@ jobs:
           node --input-type=module --check < portal-client-core.js
           node --input-type=module --check < portal-client-upload-service.js
           node --input-type=module --check < portal-client-shell-v2.js
+          node --input-type=module --check < portal-task-file-attachments.js
+          node --input-type=module --check < portal-task-file-attachments-live.js
       - name: Architectural regression contract
         run: |
           set -euo pipefail
@@ -77,9 +85,12 @@ jobs:
           grep -q 'portal.prepareUpload' portal-client-shell-v2.js
           grep -q 'portal.services.clientUpload=service' portal-client-upload-service.js
           grep -q "Object.defineProperty(portal,'prepareUpload'" portal-client-upload-service.js
-          grep -q 'request_id:selection.requestId' portal-client-upload-service.js
+          grep -Fq 'request_id:requestId||null' portal-client-upload-service.js
+          grep -Fq 'data_requirement_id:requirementId||null' portal-client-upload-service.js
+          grep -Fq 'task_id:task?.id||null' portal-client-upload-service.js
+          grep -q 'portal-task-file-attachments.js' portal-client-upload-service.js
           if grep -q 'new MutationObserver' portal-client-shell-v2.js portal-accessibility.js; then
-            echo 'Client Control Room runtime must not use DOM mutation rewrite loops.' >&2
+            echo 'Client Control Room core shell must not use DOM mutation rewrite loops.' >&2
             exit 1
           fi
       - name: Database migration contract
@@ -91,3 +102,5 @@ jobs:
           grep -q 'insert into public.nexus_company_members' "$file"
           grep -q 'insert into public.nexus_projects' "$file"
           grep -q 'grant execute.*authenticated' "$file"
+          grep -q 'task_id uuid references public.nexus_tasks' supabase/migrations/20260903_nexus_task_document_attachments.sql
+          grep -q 'nexus_validate_document_task_company' supabase/migrations/20260903_nexus_task_document_company_guard.sql
