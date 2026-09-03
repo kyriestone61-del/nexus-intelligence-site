@@ -1,4 +1,4 @@
-import {resolveDocumentContext} from '/app/services/document-context.js';
+import {resolveDocumentContext} from '/core/document-context.js';
 
 /**
  * Client upload service: one owner for client uploads from the Data Room and
