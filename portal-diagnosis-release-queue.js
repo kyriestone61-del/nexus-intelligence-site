@@ -1,7 +1,7 @@
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Nexus portal context is unavailable.');
 const {sb,state,toast}=portal;
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 let currentRunId=null,renderBusy=false;
 
 async function loadQueue(id){
@@ -47,6 +47,42 @@ async function release(button){
   catch(error){console.error('Client release failed',error);toast?.(error.message||'The item could not be released.')}
   finally{if(button.isConnected){button.disabled=false;button.textContent=original}}
 }
+async function latestReportRelease(runId){
+  const {data,error}=await sb.from('nexus_diagnosis_report_releases').select('id,status,report_version,released_at,revoked_at').eq('diagnosis_run_id',runId).order('report_version',{ascending:false}).limit(1);
+  if(error)throw error;
+  return data?.[0]||null;
+}
+async function releaseApprovalChain(runId){
+  const {data,error}=await sb.from('nexus_approval_chains').select('id,status,current_step').eq('entity_type','diagnosis_report_release').eq('entity_id',runId).order('created_at',{ascending:false}).limit(1);
+  if(error)throw error;
+  return data?.[0]||null;
+}
+async function completePendingReleaseApproval(runId){
+  const chain=await releaseApprovalChain(runId);
+  if(!chain)return null;
+  if(chain.status==='approved')return null;
+  if(chain.status!=='pending')throw new Error(`Diagnosis release approval is ${String(chain.status||'not actionable').replaceAll('_',' ')}.`);
+  const {data:steps,error}=await sb.from('nexus_approval_chain_steps').select('id,step_order,status').eq('chain_id',chain.id).eq('step_order',chain.current_step).limit(1);
+  if(error)throw error;
+  const step=steps?.[0];
+  if(!step||step.status!=='pending')throw new Error('The diagnosis release approval step is not currently actionable.');
+  const decision=await sb.rpc('nexus_decide_approval_step',{p_step_id:step.id,p_decision:'approved',p_note:'Founder approved release of the client-safe diagnosis report after reviewing wording, scope, recipient visibility, and downstream consequences.'});
+  if(decision.error)throw decision.error;
+  return chain.id;
+}
+async function performDiagnosisReportRelease(runId){
+  const chain=await releaseApprovalChain(runId);
+  if(chain?.status==='pending'){
+    await completePendingReleaseApproval(runId);
+    const released=await latestReportRelease(runId);
+    if(!released||released.status!=='released'||released.revoked_at)throw new Error('Release approval completed, but the client report was not published.');
+    return released.id;
+  }
+  if(chain&&chain.status!=='approved')throw new Error(`Diagnosis release approval is ${String(chain.status||'not actionable').replaceAll('_',' ')}.`);
+  const {data,error}=await sb.rpc('nexus_release_diagnosis_report',{p_run_id:runId});
+  if(error)throw error;
+  return data||null;
+}
 async function releaseReport(button){
   const runId=button.dataset.nexusReleaseReport;if(!runId)return;
   const existing=button.closest('.diagnosis-report-release-gate')?.classList.contains('released');
@@ -56,11 +92,11 @@ async function releaseReport(button){
   if(!window.confirm(copy))return;
   button.disabled=true;const original=button.textContent;button.textContent='Releasing report…';
   try{
-    const {data,error}=await sb.rpc('nexus_release_diagnosis_report',{p_run_id:runId});if(error)throw error;
+    const releaseId=await performDiagnosisReportRelease(runId);
     toast?.(existing?'Updated diagnosis report released. Client approval reopened.':'Diagnosis report released. The client can now review and approve it.');
     await portal.workspace?.();
     await renderReleaseQueue();
-    window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed',{detail:{runId,releaseId:data||null}}));
+    window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed',{detail:{runId,releaseId}}));
   }catch(error){console.error('Diagnosis report release failed',error);toast?.(error.message||'The diagnosis report could not be released.')}
   finally{if(button.isConnected){button.disabled=false;button.textContent=original}}
 }
