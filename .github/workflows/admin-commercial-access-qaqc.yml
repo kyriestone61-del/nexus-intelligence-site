@@ -1,0 +1,37 @@
+name: Nexus Admin Commercial Access QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-admin-commercial-access.js'
+      - 'supabase/migrations/20260903154000_nexus_commercial_request_reopen_and_admin_entitlement.sql'
+      - 'tests/admin-commercial-access-qaqc.mjs'
+      - '.github/workflows/admin-commercial-access-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-admin-commercial-access.js'
+      - 'supabase/migrations/20260903154000_nexus_commercial_request_reopen_and_admin_entitlement.sql'
+      - 'tests/admin-commercial-access-qaqc.mjs'
+      - '.github/workflows/admin-commercial-access-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  admin-commercial-access-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-admin-commercial-access.js
+      - name: Founder commercial access contract
+        run: node tests/admin-commercial-access-qaqc.mjs

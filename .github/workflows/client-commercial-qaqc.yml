@@ -1,0 +1,49 @@
+name: Nexus Client Commercial QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-commercial.js'
+      - 'supabase/migrations/20260903153500_nexus_commercial_entitlements_and_solution_requests.sql'
+      - 'supabase/migrations/20260903154000_nexus_commercial_request_reopen_and_admin_entitlement.sql'
+      - 'supabase/migrations/20260903155800_nexus_solution_request_inbox_routing.sql'
+      - 'tests/client-commercial-qaqc.mjs'
+      - '.github/workflows/client-commercial-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-commercial.js'
+      - 'supabase/migrations/20260903153500_nexus_commercial_entitlements_and_solution_requests.sql'
+      - 'supabase/migrations/20260903154000_nexus_commercial_request_reopen_and_admin_entitlement.sql'
+      - 'supabase/migrations/20260903155800_nexus_solution_request_inbox_routing.sql'
+      - 'tests/client-commercial-qaqc.mjs'
+      - '.github/workflows/client-commercial-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  client-commercial-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-client-commercial.js
+      - name: Client commercial contract
+        run: node tests/client-commercial-qaqc.mjs
+      - name: No privileged browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|STRIPE_SECRET|TWILIO_AUTH_TOKEN' portal-client-commercial.js; then
+            echo 'Privileged server credential reference found in client commercial controls.' >&2
+            exit 1
+          fi

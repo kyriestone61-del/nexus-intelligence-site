@@ -1,0 +1,47 @@
+name: Nexus Founder Diagnosis Review QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-diagnosis-report-editor.js'
+      - 'supabase/migrations/20260903152000_nexus_founder_report_controls_and_onboarding.sql'
+      - 'supabase/migrations/20260903152500_nexus_client_report_display_shape.sql'
+      - 'tests/diagnosis-founder-review-qaqc.mjs'
+      - '.github/workflows/diagnosis-founder-review-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-diagnosis-report-editor.js'
+      - 'supabase/migrations/20260903152000_nexus_founder_report_controls_and_onboarding.sql'
+      - 'supabase/migrations/20260903152500_nexus_client_report_display_shape.sql'
+      - 'tests/diagnosis-founder-review-qaqc.mjs'
+      - '.github/workflows/diagnosis-founder-review-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  founder-diagnosis-review-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-diagnosis-report-editor.js
+      - name: Founder review and onboarding contract
+        run: node tests/diagnosis-founder-review-qaqc.mjs
+      - name: No privileged browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|TWILIO_AUTH_TOKEN' portal-diagnosis-report-editor.js; then
+            echo 'Privileged server credential reference found in founder report browser controls.' >&2
+            exit 1
+          fi
