@@ -101,7 +101,7 @@ const documentRequests=[
 // projectTaskProjection. Home, Guide and Inbox must consume the same projection.
 const clientCore=fs.readFileSync('portal-client-core.js','utf8');
 const shell=fs.readFileSync('portal-client-shell-v2.js','utf8');
-assert.match(clientCore,/from '\/core\/task-projection\.js'/,'client core must import the canonical task projection');
+assert.match(clientCore,/from ['"]\.\/core\/task-projection\.js['"]/,'client core must import the canonical task projection through a browser/Node compatible relative path');
 assert.match(clientCore,/projectTaskProjection\(/,'client core must build the projection inside the existing action-context consumer');
 assert.equal((clientCore.match(/nexus_get_client_action_context/g)||[]).length,1,'client core must retain exactly one governed action-context RPC path');
 assert.match(clientCore,/options\.engagementContext/,'client core must accept the already-resolved EngagementContext');
