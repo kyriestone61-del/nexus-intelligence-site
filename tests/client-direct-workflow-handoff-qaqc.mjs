@@ -28,6 +28,12 @@ assert.match(execution,/After you submit/,'Today view must explain what follows 
 assert.match(execution,/Nexus reviews your submission/,'Today view must not imply the client needs Nexus permission before doing client-owned work');
 assert.equal(execution.includes('new MutationObserver'),false,'direct-work reconciliation must not add DOM rewrite loops');
 
+assert.match(execution,/state\.previewReadOnly===true/,'administrator Client View must be detected explicitly');
+assert.match(execution,/function requireWritable\(\)/,'all direct mutations must have an explicit writable guard');
+assert.match(execution,/Client View is read-only from the administrator account/,'preview safety must explain the authorization boundary');
+assert.match(execution,/Client can submit to Nexus/,'admin preview must show the real client capability without enabling the mutation');
+assert.match(execution,/signed-in client can use the controls below, save progress, upload and download files, and submit completed work to Nexus/,'preview must explain what the actual client can do');
+
 assert.match(upload,/BUCKET='nexus-client-documents'/);
 assert.match(upload,/\.upload\(path,file/,'client upload service must write to private company storage');
 assert.match(upload,/request_id:selection\.requestId/,'uploads must retain document-request lineage');
