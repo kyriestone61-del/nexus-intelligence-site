@@ -1,0 +1,28 @@
+name: Nexus Production Diagnosis Quality QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260903155000_nexus_diagnosis_production_quality_certification.sql'
+      - 'tests/diagnosis-production-quality-qaqc.mjs'
+      - '.github/workflows/diagnosis-production-quality-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260903155000_nexus_diagnosis_production_quality_certification.sql'
+      - 'tests/diagnosis-production-quality-qaqc.mjs'
+      - '.github/workflows/diagnosis-production-quality-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnosis-production-quality-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Production diagnosis quality contract
+        run: node tests/diagnosis-production-quality-qaqc.mjs
