@@ -67,7 +67,7 @@ const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='clie
 const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell;
 
 if(useClientShell){
-  await loadStyles(['portal-client-shell-v2.css']);
+  await loadStyles(['portal-client-shell-v2.css','portal-client-action-execution.css']);
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
   await requiredImport(asset(`portal-client-upload-service.js?v=${BUILD}`),'client upload service');
   await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
