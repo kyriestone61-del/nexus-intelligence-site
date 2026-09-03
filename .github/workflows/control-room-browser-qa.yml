@@ -75,7 +75,23 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         shell: bash
         run: |
-          python3 -m http.server 4173 --directory ../.. >/tmp/nexus-pr-portal.log 2>&1 &
+          cat >/tmp/nexus_pr_server.py <<'PY'
+          import os
+          from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+          from urllib.parse import urlsplit
+
+          os.chdir(os.environ['GITHUB_WORKSPACE'])
+
+          class NexusHandler(SimpleHTTPRequestHandler):
+              def do_GET(self):
+                  parsed=urlsplit(self.path)
+                  if parsed.path in ('/portal','/portal/'):
+                      self.path='/portal.html'+(('?'+parsed.query) if parsed.query else '')
+                  return super().do_GET()
+
+          ThreadingHTTPServer(('127.0.0.1',4173),NexusHandler).serve_forever()
+          PY
+          python3 /tmp/nexus_pr_server.py >/tmp/nexus-pr-portal.log 2>&1 &
           echo $! >/tmp/nexus-pr-portal.pid
           for i in {1..30}; do
             if curl -fsS http://127.0.0.1:4173/portal >/dev/null; then exit 0; fi
