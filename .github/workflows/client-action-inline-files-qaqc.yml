@@ -5,7 +5,7 @@ on:
     paths:
       - 'portal-app.js'
       - 'portal-client-upload-service.js'
-      - 'app/services/document-context.js'
+      - 'core/document-context.js'
       - 'portal-task-file-attachments.js'
       - 'portal-task-file-attachments-live.js'
       - 'portal-task-file-attachments.css'
@@ -20,7 +20,7 @@ on:
     paths:
       - 'portal-app.js'
       - 'portal-client-upload-service.js'
-      - 'app/services/document-context.js'
+      - 'core/document-context.js'
       - 'portal-task-file-attachments.js'
       - 'portal-task-file-attachments-live.js'
       - 'portal-task-file-attachments.css'
@@ -47,7 +47,7 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-client-upload-service.js
-          if [ -f app/services/document-context.js ]; then node --input-type=module --check < app/services/document-context.js; fi
+          node --input-type=module --check < core/document-context.js
           node --input-type=module --check < portal-task-file-attachments.js
           node --input-type=module --check < portal-task-file-attachments-live.js
           node --input-type=module --check < portal-action-execution-v2-forms.js
