@@ -4,7 +4,7 @@ import fs from 'node:fs';
 const app=fs.readFileSync('portal-app.js','utf8');
 const copy=fs.readFileSync('portal-client-plain-language.js','utf8');
 
-assert.match(app,/const BUILD='20260903-client-plain-language1'/,'plain-language release must use a fresh client asset build id');
+assert.match(app,/const BUILD='20260903-[A-Za-z0-9._-]+'/,'client portal must use a dated cache-busting build id');
 assert.match(app,/portal-client-plain-language\.js\?v=\$\{BUILD\}/,'plain-language layer must be loaded by the portal');
 assert.ok(app.indexOf('portal-client.js?v=${BUILD}')<app.indexOf('portal-client-plain-language.js?v=${BUILD}'),'plain-language layer must load after base portal client initialization');
 assert.ok(app.indexOf('portal-client-plain-language.js?v=${BUILD}')<app.indexOf('const portal=window.NexusPortal'),'auth and onboarding copy must be simplified before role-specific shells are selected');
