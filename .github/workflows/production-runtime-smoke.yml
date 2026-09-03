@@ -17,6 +17,9 @@ on:
       - 'portal-client-shell-v2.css'
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
+      - 'core/document-context.js'
+      - 'core/engagement-context.js'
+      - 'core/workspace-query-coordinator.js'
       - 'app.js'
       - 'index.html'
       - 'styles.css'
@@ -38,6 +41,9 @@ on:
       - 'portal-client-shell-v2.css'
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
+      - 'core/document-context.js'
+      - 'core/engagement-context.js'
+      - 'core/workspace-query-coordinator.js'
       - 'app.js'
       - 'index.html'
       - 'styles.css'
@@ -138,7 +144,8 @@ jobs:
             fi
           }
 
-          # Client Control Room V2: verify deployed production matches repository source.
+          # This workflow probes the currently deployed production runtime. Candidate-specific
+          # contracts are enforced by dedicated PR QA jobs; do not expect undeployed PR files here.
           probe_get 'pages-portal' "$pages/portal" 'CONTROL ROOM'
           probe_headers 'pages-portal-security-headers' "$pages/portal"
           probe_get 'pages-portal-app-build' "$pages/portal-app.js" "$expected_build"
@@ -153,15 +160,12 @@ jobs:
           probe_get 'pages-upload-isolation' "$pages/portal-client-upload-service.js" 'stopImmediatePropagation'
           probe_get 'pages-upload-owner' "$pages/portal-client-upload-service.js" 'portal.services.clientUpload=service'
           probe_get 'pages-upload-facade-owner' "$pages/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
-          probe_get 'pages-upload-request-linkage' "$pages/portal-client-upload-service.js" 'request_id:selection.requestId'
+          probe_get 'pages-upload-request-linkage' "$pages/portal-client-upload-service.js" 'request_id:requestId||null'
 
-          # Regression guard for the September 1 lockout: Inbox refresh must be explicit/debounced,
-          # never driven by a body-wide MutationObserver that can retrigger itself on render.
           probe_get 'pages-inbox-refresh-guard' "$pages/portal-approval-inbox.js" 'queueInboxRefresh'
           probe_absent 'pages-inbox-no-self-observer' "$pages/portal-approval-inbox.js" 'new MutationObserver'
           probe_absent 'pages-inbox-no-body-observer' "$pages/portal-approval-inbox.js" 'observer.observe(document.body'
 
-          # Custom production domain must serve the same runtime and same lockout fix.
           probe_get 'custom-portal-app-build' "$origin/portal-app.js" "$expected_build"
           probe_get 'custom-portal-app-shell-v2' "$origin/portal-app.js" 'portal-client-shell-v2.js'
           probe_get 'custom-shell-improvement-record' "$origin/portal-client-shell-v2.js" '03 Improvement Record'
@@ -170,19 +174,15 @@ jobs:
           probe_get 'custom-inbox-refresh-guard' "$origin/portal-approval-inbox.js" 'queueInboxRefresh'
           probe_absent 'custom-inbox-no-self-observer' "$origin/portal-approval-inbox.js" 'new MutationObserver'
 
-          # Pull requests test candidate source through static and contract gates while production
-          # remains unchanged. After a merge, wait for Cloudflare to expose the restored account path.
           if [ "$GITHUB_EVENT_NAME" != 'pull_request' ]; then
             probe_get 'custom-public-client-login-home' "$origin/" 'class="nav-account"'
             probe_get 'custom-public-client-login-app' "$origin/app.js" 'data-track="nav_client_login"'
             probe_get 'custom-public-client-login-style' "$origin/styles.css" '.nav-account{'
           fi
 
-          # Existing administrator/runtime safety probes remain required.
           probe_get 'runtime-router' "$origin/portal-vnext-runtime-router.js" '/api/diagnosis-report-pdf'
           probe_get 'runtime-router-sms' "$origin/portal-vnext-runtime-router.js" "status:'scheduled'"
 
-          # Protected server-side surfaces must reject anonymous callers.
           probe_unauth_post 'diagnosis-report-pdf' "$origin/api/diagnosis-report-pdf"
           probe_unauth_post 'notification-worker' "$supabase/nexus-email-worker" 'x-nexus-worker-token' 'invalid-smoke-token'
 
