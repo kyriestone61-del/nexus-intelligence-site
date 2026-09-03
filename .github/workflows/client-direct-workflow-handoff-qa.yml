@@ -5,6 +5,7 @@ on:
     paths:
       - 'portal-app.js'
       - 'portal-client-action-execution.js'
+      - 'portal-client-action-execution.css'
       - 'portal-client-upload-service.js'
       - 'portal-client.js'
       - 'tests/client-direct-workflow-handoff-qaqc.mjs'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'portal-app.js'
       - 'portal-client-action-execution.js'
+      - 'portal-client-action-execution.css'
       - 'portal-client-upload-service.js'
       - 'portal-client.js'
       - 'tests/client-direct-workflow-handoff-qaqc.mjs'
@@ -39,6 +41,13 @@ jobs:
           node --input-type=module --check < portal-client.js
       - name: Direct workflow contract
         run: node tests/client-direct-workflow-handoff-qaqc.mjs
+      - name: Mobile and handoff styling contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'portal-client-action-execution.css' portal-app.js
+          grep -Fq '.nexus-client-preparation-handoff' portal-client-action-execution.css
+          grep -Fq '@media(max-width:760px)' portal-client-action-execution.css
       - name: No privileged browser credentials
         shell: bash
         run: |
