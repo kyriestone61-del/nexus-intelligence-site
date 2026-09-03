@@ -9,6 +9,14 @@
   Cache-Control: no-store, max-age=0
   X-Robots-Tag: noindex, nofollow
 
+# Authenticated portal modules change frequently during client-workflow hardening.
+# Do not leave a returning client on an older browser-cached action/approval runtime.
+/portal-*.js
+  Cache-Control: no-store, max-age=0
+
+/portal-*.css
+  Cache-Control: no-store, max-age=0
+
 /operations*
   Cache-Control: no-store, max-age=0
   X-Robots-Tag: noindex, nofollow
