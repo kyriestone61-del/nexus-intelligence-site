@@ -44,3 +44,10 @@ jobs:
       - name: JavaScript syntax check
         run: |
           find dist/assets -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Preserve verified deployment candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: human-os-static-${{ github.event.pull_request.head.sha || github.sha }}
+          path: human-os-static/dist
+          if-no-files-found: error
+          retention-days: 14
