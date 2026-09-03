@@ -79,5 +79,8 @@ assert.throws(
 const upload=fs.readFileSync('portal-client-upload-service.js','utf8');
 assert.match(upload,/resolveDocumentContext/,'upload service must delegate lineage selection to the canonical context resolver');
 assert.doesNotMatch(upload,/state\.projects\?\.\[0\]\?\.id/,'upload service must never infer document project from projects[0]');
+const contextIndex=upload.indexOf('resolveDocumentContext({');
+const storageIndex=upload.indexOf('.storage.from(BUCKET).upload');
+assert.ok(contextIndex>=0&&storageIndex>=0&&contextIndex<storageIndex,'document context must be resolved before any storage upload begins');
 
 console.log('NEXUS CLIENT UPLOAD CONTEXT QAQC PASS');
