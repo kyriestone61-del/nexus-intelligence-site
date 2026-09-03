@@ -32,6 +32,10 @@ assert.match(deepLink,/data-diagnosis-release-id/,'notification must target the 
 
 assert.match(releaseQueue,/data-nexus-release-report/,'admin diagnosis review must expose a dedicated report release gate');
 assert.match(releaseQueue,/nexus_release_diagnosis_report/,'report release must use the canonical secured admin RPC');
+assert.match(releaseQueue,/nexus_decide_approval_step/,'pending release approval must be completed through the canonical approval-chain RPC');
+assert.match(releaseQueue,/entity_type','diagnosis_report_release'/,'release UI must resolve the approval chain bound to the diagnosis release');
+assert.match(releaseQueue,/if\(chain\?\.status==='pending'\)[\s\S]*completePendingReleaseApproval\(runId\)[\s\S]*return released\.id/,'approval completion must return after its server-side release instead of publishing the report a second time');
+assert.equal((releaseQueue.match(/sb\.rpc\('nexus_release_diagnosis_report'/g)||[]).length,1,'browser release code must have exactly one direct diagnosis-release RPC path');
 assert.match(releaseQueue,/Release the diagnosis before asking the client to approve it/,'admin UI must explain the required sequence');
 assert.match(releaseQueue,/Approve diagnosis and first priority/,'admin UI must explain which client task opens after report release');
 assert.match(releaseQueue,/Release updated report/,'admin must be able to publish a revised report version');
