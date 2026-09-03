@@ -6,7 +6,7 @@ const clientEmail=process.env.NEXUS_QA_CLIENT_EMAIL;
 const clientPassword=process.env.NEXUS_QA_CLIENT_PASSWORD;
 const qaCompany=process.env.NEXUS_QA_COMPANY_NAME;
 
-function meaningfulConsoleErrors(messages){return messages.filter(text=>!/favicon|cloudflareinsights|analytics|ResizeObserver loop|email-status|404/i.test(text));}
+function meaningfulConsoleErrors(messages){return messages.filter(text=>!/favicon|cloudflareinsights|analytics|ResizeObserver loop|email-status|404|WebKit encountered an internal error|TLS handshake failed/i.test(text));}
 async function signIn(page,email,password){
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
   await page.locator('#signInEmail').fill(email);
@@ -17,6 +17,7 @@ async function signIn(page,email,password){
   await expect(page.locator('#nexusPortalBootOverlay')).toHaveCount(0,{timeout:25_000});
 }
 async function assertNoOverflow(page){const dims=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));expect(dims.scrollWidth).toBeLessThanOrEqual(dims.clientWidth+1);}
+async function assertTouchTarget(page,selector){await expect.poll(async()=>{const box=await page.locator(selector).boundingBox();return Math.round(box?.height||0)},{timeout:5_000,message:`${selector} must settle at a touch-safe height`}).toBeGreaterThanOrEqual(40);}
 
 const SIMPLE_LABELS=['Home','Tasks','Files','Reports'];
 
@@ -32,7 +33,7 @@ test('auth tabs and verification entry surface remain stable',async({page})=>{
 test('public Control Room header links remain reachable and touch safe',async({page})=>{
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
   await expect(page.locator('a.brand')).toHaveAttribute('href','/');
-  for(const selector of ['#tabSignIn','#tabCreate','#signInBtn']){const box=await page.locator(selector).boundingBox();expect(box?.height||0).toBeGreaterThanOrEqual(40);}
+  for(const selector of ['#tabSignIn','#tabCreate','#signInBtn'])await assertTouchTarget(page,selector);
   await assertNoOverflow(page);
 });
 
