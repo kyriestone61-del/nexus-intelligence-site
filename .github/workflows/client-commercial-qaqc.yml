@@ -6,6 +6,8 @@ on:
       - 'portal-app.js'
       - 'portal-client-commercial.js'
       - 'supabase/migrations/20260903153500_nexus_commercial_entitlements_and_solution_requests.sql'
+      - 'supabase/migrations/20260903154000_nexus_commercial_request_reopen_and_admin_entitlement.sql'
+      - 'supabase/migrations/20260903155800_nexus_solution_request_inbox_routing.sql'
       - 'tests/client-commercial-qaqc.mjs'
       - '.github/workflows/client-commercial-qaqc.yml'
   push:
@@ -14,6 +16,8 @@ on:
       - 'portal-app.js'
       - 'portal-client-commercial.js'
       - 'supabase/migrations/20260903153500_nexus_commercial_entitlements_and_solution_requests.sql'
+      - 'supabase/migrations/20260903154000_nexus_commercial_request_reopen_and_admin_entitlement.sql'
+      - 'supabase/migrations/20260903155800_nexus_solution_request_inbox_routing.sql'
       - 'tests/client-commercial-qaqc.mjs'
       - '.github/workflows/client-commercial-qaqc.yml'
 
