@@ -1,276 +1,251 @@
-import {
-  buildDiscoveryCapturePayload,
-  buildDiscoveryPacket,
-  chooseNewestDraft,
-  draftFromDiagnosisRun,
-  hasDiscoveryContext,
-  normalizeDiscoveryDraft
-} from './portal-discovery-capture.js';
+import {buildDiscoveryPacket} from './portal-discovery-capture.js';
 
 const portal=window.NexusPortal;
-if(!portal) throw new Error('Nexus portal context is unavailable.');
-
-const {sb,state,$,toast,workspace,log}=portal;
+if(!portal)throw new Error('Nexus portal context is unavailable.');
+const {sb,state,$,toast,workspace,log,downloadDocument}=portal;
 const BUCKET='nexus-client-documents';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const arr=v=>Array.isArray(v)?v:[];
 const dt=v=>v?new Date(v).toLocaleString():'—';
-let diagnosisRuns=[];
-let lastCompanyId=null;
-
-const discoverySections=[
-  ['Business basics',[
-    'What does the company sell or provide?',
-    'Who is the ideal customer?',
-    'What are the best-selling or highest-value products/services?',
-    'How does the company make money today?',
-    'What are the top three business goals for the next 6–12 months?'
-  ]],
-  ['Customer journey & sales',[
-    'How do new customers usually find the business?',
-    'What happens from first inquiry to completed sale?',
-    'Where do leads or opportunities get tracked?',
-    'What questions do customers ask repeatedly?',
-    'Where do leads, sales, or follow-ups fall through the cracks?'
-  ]],
-  ['Marketing & content',[
-    'Which marketing channels are used today?',
-    'How is content planned, created, approved, and published?',
-    'What marketing activity appears to work best?',
-    'What marketing work is inconsistent because there is not enough time?',
-    'What customer or campaign data is available but underused?'
-  ]],
-  ['Operations',[
-    'Walk me through how the core work gets done from start to finish.',
-    'Which tasks are repeated every day or every week?',
-    'Which tasks require copying information between systems?',
-    'Where do delays, mistakes, rework, or confusion happen most often?',
-    'What depends too heavily on one person remembering what to do?'
-  ]],
-  ['Systems & information',[
-    'What software, spreadsheets, inboxes, calendars, or paper systems are used?',
-    'Where is customer, order, project, or operational information stored?',
-    'Which systems do not communicate with each other?',
-    'Are there SOPs, templates, checklists, reports, or dashboards today?',
-    'What information is difficult to find when someone needs it?'
-  ]],
-  ['Time, pain points & constraints',[
-    'What takes the most time each week?',
-    'What work is the most frustrating or mentally draining?',
-    'What important work keeps getting postponed?',
-    'What cannot be automated because it requires judgment, approval, or a human relationship?',
-    'Are there privacy, security, compliance, budget, or technology constraints Nexus should know about?'
-  ]],
-  ['Measurement & desired state',[
-    'What would a noticeably better operation look like 90 days from now?',
-    'Which metrics matter most: time saved, response time, sales, errors, throughput, customer experience, or something else?',
-    'What baseline numbers can we measure before making changes?',
-    'If AI or automation could remove one burden immediately, what should it be?',
-    'What would make this engagement unquestionably valuable to the business?'
-  ]]
-];
-
-const allQuestionsText=()=>discoverySections.map(([section,questions])=>`${section}\n${questions.map((q,i)=>`${i+1}. ${q}`).join('\n')}`).join('\n\n');
-const company=()=>state.companies.find(c=>c.id===state.companyId)||null;
-const project=()=>state.projects?.[0]||null;
 const safeName=name=>String(name||'file').replace(/[^a-zA-Z0-9._-]/g,'_');
 const formatBytes=v=>{const n=Number(v||0);if(!n)return '';if(n<1024)return `${n} B`;if(n<1048576)return `${(n/1024).toFixed(1)} KB`;return `${(n/1048576).toFixed(1)} MB`};
-const draftKey=()=>`nexus_admin_intake_draft_${state.companyId||'none'}`;
+const complete=s=>['completed','approved','done','not_applicable'].includes(String(s||''));
+let diagnosisRuns=[];
+let gapAnalyses=[];
+let contextEntries=[];
+let discoveryTasks=[];
+let lastCompanyId=null;
+let loading=false;
 
-function capturedRun(){
-  const projectId=project()?.id;
-  return diagnosisRuns.find(run=>run.status==='draft'&&(!projectId||run.project_id===projectId))||null;
-}
-function localDraft(){try{return JSON.parse(localStorage.getItem(draftKey())||'{}')}catch{return {}}}
-function getDraft(){return chooseNewestDraft(localDraft(),capturedRun())}
-function saveDraft(){
-  if(!state.admin||!state.companyId)return;
-  const draft=normalizeDiscoveryDraft({meeting_date:$('intakeMeetingDate')?.value||'',participants:$('intakeParticipants')?.value||'',notes:$('intakeNotes')?.value||'',transcript:$('intakeTranscriptText')?.value||'',updated_at:new Date().toISOString()});
-  localStorage.setItem(draftKey(),JSON.stringify(draft));
-  return draft;
-}
-function clearDraft(){localStorage.removeItem(draftKey())}
+const company=()=>state.companies?.find(c=>c.id===state.companyId)||null;
+const project=()=>window.NexusFoundationHardening?.activeProject?.()||state.projects?.[0]||null;
+const evidenceDocs=()=>[...(state.docs||[])].filter(d=>!project()?.id||!d.project_id||d.project_id===project().id).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+const latestContext=()=>contextEntries.find(x=>x.is_current)||contextEntries[0]||null;
+const latestGap=()=>gapAnalyses[0]||null;
+const latestRun=()=>diagnosisRuns.find(r=>!['draft','archived'].includes(r.status))||null;
+const latestResponseAt=()=>Math.max(0,...discoveryTasks.filter(t=>t.response_data&&Object.keys(t.response_data||{}).length).map(t=>Date.parse(t.updated_at||t.created_at||'')||0));
+const latestInputAt=()=>Math.max(0,...evidenceDocs().map(d=>Date.parse(d.evidence_ingested_at||d.created_at||'')||0),...contextEntries.map(c=>Date.parse(c.created_at||'')||0),latestResponseAt());
+const gapIsStale=()=>!!latestGap()&&latestInputAt()>(Date.parse(latestGap().created_at||'')||0);
+const diagnosisIsStale=()=>!!latestRun()?.analysis_completed_at&&latestInputAt()>(Date.parse(latestRun().analysis_completed_at||'')||0);
 
 function ensureModeChrome(){
   const topbar=document.querySelector('.topbar');if(!topbar)return;
   let badge=$('accountModeBadge');
   if(!badge){badge=document.createElement('span');badge.id='accountModeBadge';badge.className='account-mode-badge';topbar.querySelector('.pill')?.after(badge)}
-  badge.textContent=state.admin?'NEXUS ADMIN ACCOUNT':'CLIENT ACCOUNT';
-  badge.classList.toggle('admin',!!state.admin);badge.classList.toggle('client',!state.admin);
+  badge.textContent=state.admin?'NEXUS ADMIN ACCOUNT':'CLIENT ACCOUNT';badge.classList.toggle('admin',!!state.admin);badge.classList.toggle('client',!state.admin);
   let link=$('adminConsoleLink');
-  if(state.admin){
-    if(!link){link=document.createElement('a');link.id='adminConsoleLink';link.className='btn secondary admin-console-link';link.href='/operations';link.textContent='Admin Console →';$('companySelect')?.after(link)}
-    link.style.display='inline-flex';document.title='Nexus Admin Client Workspace | Nexus Intelligence';
-  }else{
-    if(link)link.style.display='none';document.title='Client Control Room | Nexus Intelligence';
-  }
+  if(state.admin){if(!link){link=document.createElement('a');link.id='adminConsoleLink';link.className='btn secondary admin-console-link';link.href='/operations';link.textContent='Admin Console →';$('companySelect')?.after(link)}link.style.display='inline-flex';document.title='Nexus Admin Client Workspace | Nexus Intelligence'}
+  else{if(link)link.style.display='none';document.title='Client Control Room | Nexus Intelligence'}
 }
-
 function openSection(name){
   document.querySelectorAll('.side-nav button').forEach(b=>b.classList.toggle('active',b.dataset.section===name));
-  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===`section-${name}`));
-  window.scrollTo(0,0);
+  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===`section-${name}`));window.scrollTo(0,0);
 }
-
 function ensureAdminIntake(){
   const nav=document.querySelector('.side-nav'),main=document.querySelector('.main');if(!nav||!main)return;
   let button=document.querySelector('.side-nav button[data-section="intake"]'),section=$('section-intake');
   if(!state.admin){button?.remove();section?.remove();return}
-  if(!button){
-    button=document.createElement('button');button.type='button';button.dataset.section='intake';button.textContent='Client Intake & Diagnosis';
-    document.querySelector('.side-nav button[data-section="overview"]')?.after(button);
-    button.addEventListener('click',()=>openSection('intake'));
-  }
-  if(!section){
-    section=document.createElement('section');section.id='section-intake';section.className='section admin-intake-section';
-    $('section-overview')?.after(section);renderAdminIntake();
-  }
+  if(!button){button=document.createElement('button');button.type='button';button.dataset.section='intake';button.textContent='Discovery & Diagnosis';document.querySelector('.side-nav button[data-section="overview"]')?.after(button);button.addEventListener('click',()=>openSection('intake'))}
+  else button.textContent='Discovery & Diagnosis';
+  if(!section){section=document.createElement('section');section.id='section-intake';section.className='section admin-intake-section nexus-step2-v2';$('section-overview')?.after(section)}
 }
 
-function questionsMarkup(){return discoverySections.map(([section,questions])=>`<div class="intake-question-group"><h4>${esc(section)}</h4><ol>${questions.map(q=>`<li>${esc(q)}</li>`).join('')}</ol></div>`).join('')}
-function evidenceOptions(){
-  const docs=(state.docs||[]).filter(d=>d.source_role==='client'||d.category==='Discovery Transcript');
-  if(!docs.length)return '<div class="empty">No client-source evidence has been uploaded for this company yet.</div>';
-  return docs.map(d=>`<label class="intake-evidence-row"><input class="diagnosis-supporting-doc" type="checkbox" value="${d.id}"><span><b>${esc(d.file_name)}</b><small>${esc(d.category)} · ${dt(d.created_at)}${d.size_bytes?' · '+formatBytes(d.size_bytes):''}</small></span></label>`).join('');
-}
-function transcriptOptions(){
-  const docs=(state.docs||[]).filter(d=>d.category==='Discovery Transcript');
-  return `<option value="">${docs.length?'Select transcript file':'No transcript file uploaded yet'}</option>`+docs.map(d=>`<option value="${d.id}">${esc(d.file_name)} · ${dt(d.created_at)}</option>`).join('');
-}
-function runMarkup(run){
-  const manifest=Array.isArray(run.analysis_packet?.evidence_manifest)?run.analysis_packet.evidence_manifest:[];
-  const result=run.analysis_result&&Object.keys(run.analysis_result).length?'<span class="pill">Result stored</span>':'';
-  const captured=run.status==='draft';
-  return `<article class="diagnosis-run-card ${captured?'discovery-capture-card':''}"><div class="diagnosis-run-head"><div><span class="pill">${captured?'Meeting record':'Client Diagnosis Agent'}</span> ${result}<h3>${esc(company()?.name||'Client')} · ${dt(run.updated_at||run.created_at)}</h3></div><span class="diagnosis-status ${esc(run.status)}">${captured?'context captured':esc(String(run.status||'ready_for_analysis').replaceAll('_',' '))}</span></div><p class="small">${run.meeting_date?`Meeting ${esc(run.meeting_date)} · `:''}${esc(run.participants||'Participants not recorded')}</p><p>${esc(run.discovery_notes||'No separate discovery notes were saved.')}</p><div class="diagnosis-manifest">${manifest.slice(0,6).map(x=>`<span>${esc(x.file_name||'Evidence')}</span>`).join('')}${manifest.length>6?`<span>+${manifest.length-6} more</span>`:''}</div><div class="diagnosis-run-actions">${captured?'<span class="small">Saved to this client engagement. Add evidence, then queue diagnosis when ready.</span>':`<button class="btn secondary copy-agent-packet" type="button" data-id="${run.id}">Copy agent packet</button><select class="diagnosis-status-select" data-id="${run.id}">${[['ready_for_analysis','Ready for analysis'],['in_review','In review'],['blocked','Blocked'],['approved','Approved'],['archived','Archived']].map(([v,l])=>`<option value="${v}" ${run.status===v?'selected':''}>${l}</option>`).join('')}</select>`}</div></article>`;
+async function loadStep2Data(){
+  if(!state.admin||!state.companyId||loading)return;loading=true;
+  try{
+    const p=project();
+    const contexts=sb.from('nexus_discovery_context_entries').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}).limit(30);
+    const gaps=sb.from('nexus_discovery_gap_analyses').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}).limit(10);
+    const runs=sb.from('nexus_diagnosis_runs').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}).limit(30);
+    const tasks=sb.from('nexus_tasks').select('id,title,status,form_schema,response_data,created_at,updated_at,project_id,source_gap_analysis_id').eq('company_id',state.companyId).eq('task_type','discovery_information_request').order('created_at',{ascending:false}).limit(30);
+    if(p?.id){contexts.eq('project_id',p.id);gaps.eq('project_id',p.id);runs.eq('project_id',p.id)}
+    const [cr,gr,rr,tr]=await Promise.all([contexts,gaps,runs,tasks]);
+    if(cr.error)throw cr.error;if(gr.error)throw gr.error;if(rr.error)throw rr.error;if(tr.error)throw tr.error;
+    contextEntries=cr.data||[];gapAnalyses=gr.data||[];diagnosisRuns=rr.data||[];discoveryTasks=(tr.data||[]).filter(t=>!p?.id||!t.project_id||t.project_id===p.id);
+  }catch(error){console.error('Step 2 data load failed',error);toast?.(error.message||'Discovery & Diagnosis data could not be loaded.')}
+  finally{loading=false}
 }
 
+function evidenceMarkup(){
+  const docs=evidenceDocs();
+  if(!docs.length)return '<div class="step2-empty"><b>No evidence added yet.</b><span>Add the materials that best show how this client actually operates. A transcript is optional.</span></div>';
+  return `<div class="step2-evidence-list">${docs.map(d=>{
+    const summary=d.evidence_summary?`<div class="step2-evidence-summary">${esc(d.evidence_summary)}</div>`:'';
+    const parser=d.evidence_parser?` · ${esc(d.evidence_parser)}`:'';
+    return `<article class="step2-evidence-row"><div class="step2-evidence-icon">${/image/i.test(d.mime_type||'')?'IMG':'DOC'}</div><div class="step2-evidence-copy"><b>${esc(d.file_name)}</b><small>${esc(d.category||'Evidence')} · ${esc(dt(d.created_at))}${d.size_bytes?' · '+esc(formatBytes(d.size_bytes)):''}${parser}</small>${summary}</div><button class="btn secondary step2-download" data-doc="${esc(d.id)}" type="button">Open</button></article>`
+  }).join('')}</div>`;
+}
+function gapMarkup(){
+  const gap=latestGap(),result=gap?.result||{},gaps=arr(result.gaps),stale=gapIsStale();
+  if(!gap)return `<div class="step2-inline-state"><b>Ready to check coverage.</b><span>Nexus will compare the evidence already collected against the reusable Discovery Framework and surface only material information that is still missing.</span></div><button id="runGapAnalysisBtn" class="btn primary" type="button">Analyze Missing Information</button>`;
+  if(!gaps.length)return `<div class="step2-inline-state success"><b>No material discovery gaps found.</b><span>${esc(result.summary||'The current evidence is sufficient for a bounded diagnosis.')}</span></div><div class="step2-actions"><button id="runGapAnalysisBtn" class="btn secondary" type="button">${stale?'Refresh Gap Analysis':'Recheck Coverage'}</button></div>`;
+  return `<div class="step2-gap-summary"><div><b>${gaps.length}</b><span>material gap${gaps.length===1?'':'s'}</span></div><p>${esc(result.summary||'Nexus found information that could materially improve diagnosis confidence.')}${stale?' <b>New evidence has been added since this analysis.</b>':''}</p></div><div class="step2-actions"><button id="reviewGapsBtn" class="btn primary" type="button">Review Missing Information</button><button id="runGapAnalysisBtn" class="btn secondary" type="button">${stale?'Refresh Gap Analysis':'Recheck Coverage'}</button></div><div id="gapRequestEditor" class="step2-gap-editor" hidden>${gapEditorMarkup(gaps)}</div>`;
+}
+function gapEditorMarkup(gaps){
+  return `<div class="step2-editor-head"><div><div class="kicker">Client request</div><h3>Send only what is still needed</h3><p class="small">Nexus generated these from the evidence gaps. Edit the wording, deselect anything unnecessary, then send.</p></div></div>${gaps.map((g,i)=>`<label class="step2-gap-item"><input class="step2-gap-check" type="checkbox" data-index="${i}" checked><span><b>${esc(g.domain||'Discovery gap')}</b><textarea class="step2-gap-question" data-index="${i}">${esc(g.question||'')}</textarea><small>${esc(g.reason||'')}${g.desired_evidence?` · Useful evidence: ${esc(g.desired_evidence)}`:''}</small></span></label>`).join('')}<div class="step2-actions"><button id="sendGapRequestBtn" class="btn primary" type="button">Send Request</button><button id="cancelGapRequestBtn" class="btn secondary" type="button">Cancel</button></div>`;
+}
+function contextMarkup(){
+  const ctx=latestContext(),run=latestRun();
+  return `<div class="field"><label for="adminContextText">What should Nexus know that the files or client answers may not show?</label><textarea id="adminContextText" class="step2-context" placeholder="Add observations, priorities, constraints, exceptions, ownership details, or other context. Nexus will treat this as ADMIN CONTEXT—not as a verified fact.">${esc(ctx?.content||'')}</textarea></div><div class="step2-actions"><button id="saveAdminContextBtn" class="btn secondary" type="button">Save Brief</button>${run?'<button id="runUpdatedDiagnosisBtn" class="btn secondary" type="button">Run Updated Diagnosis</button>':''}</div><div id="contextStatus" class="step2-save-status">${ctx?`Saved ${esc(dt(ctx.created_at))}. This context will be included in the next diagnosis run.`:'Not saved yet.'}</div>`;
+}
+function executionMarkup(){
+  const docs=evidenceDocs(),gap=latestGap(),gapResult=gap?.result||{},run=latestRun();
+  const responseCount=discoveryTasks.filter(t=>t.response_data&&Object.keys(t.response_data||{}).length).length;
+  const contextCount=latestContext()?1:0;
+  const sourceCount=docs.length+responseCount+contextCount;
+  const sufficient=gap?gapResult.sufficient_for_diagnosis===true:sourceCount>0;
+  const stale=diagnosisIsStale();
+  if(run&&['queued','analyzing'].includes(run.status))return `<div class="step2-diagnosis-ready"><b>${run.status==='queued'?'Diagnosis queued.':'Analyzing authorized evidence…'}</b><span>Nexus is processing ${sourceCount} available source${sourceCount===1?'':'s'}. The state will move to Ready for Review when analysis finishes.</span></div>`;
+  if(run?.status==='ready_for_review')return `<div class="step2-diagnosis-ready success"><b>Diagnosis ready for review.</b><span>${stale?'New information has arrived since this run. Review it, or run an updated diagnosis.':'Review the evidence-backed findings before approval.'}</span></div><div class="step2-actions"><button id="reviewDiagnosisBtn" class="btn primary" type="button">Review Diagnosis</button>${stale?'<button id="runUpdatedDiagnosisBtn" class="btn secondary" type="button">Run Updated Diagnosis</button>':''}</div>`;
+  if(run?.status==='approved')return `<div class="step2-diagnosis-ready success"><b>Diagnosis approved.</b><span>${stale?'New information has arrived since approval. Run an updated diagnosis if it materially changes the current state.':'The approved diagnosis is now the root record for downstream work.'}</span></div><div class="step2-actions"><button id="reviewDiagnosisBtn" class="btn secondary" type="button">View Diagnosis</button>${stale?'<button id="runUpdatedDiagnosisBtn" class="btn primary" type="button">Run Updated Diagnosis</button>':''}</div>`;
+  if(run&&['failed','blocked','revision_requested','ready_for_analysis'].includes(run.status))return `<div class="step2-diagnosis-ready warning"><b>Diagnosis needs attention.</b><span>${esc(run.execution_error||'The run can be retried without losing the evidence already collected.')}</span></div><div class="step2-actions"><button id="retryDiagnosisBtn" class="btn primary" type="button">Retry Diagnosis</button><button id="reviewDiagnosisBtn" class="btn secondary" type="button">Review Status</button></div>`;
+  return `<div class="step2-diagnosis-ready ${sufficient?'success':''}"><b>Evidence ready: ${sourceCount} source${sourceCount===1?'':'s'}.</b><span>${gap?(sufficient?'Nexus has sufficient information to perform a bounded diagnosis.':`Nexus still sees ${arr(gapResult.gaps).length} material gap${arr(gapResult.gaps).length===1?'':'s'}. You can close them first or run a diagnosis that preserves those unknowns.`):'Run Information Gaps first for the strongest diagnosis coverage.'}</span></div><div class="step2-actions"><button id="queueDiagnosisBtn" class="btn primary" type="button" ${sourceCount?'':'disabled'}>Run Diagnosis</button></div>`;
+}
+function score(v){return v===null||v===undefined||v===''?'—':esc(v)}
+function diagnosisMarkup(run){
+  const r=run?.analysis_result||{};if(!run||!Object.keys(r).length)return '<div class="step2-empty"><b>No diagnosis has been run yet.</b><span>Add evidence and run the diagnosis to create structured findings.</span></div>';
+  const claims=arr(r.claims).slice(0,18).map(c=>`<div class="step2-claim"><span class="claim-type claim-${esc(String(c.type||'unknown').toLowerCase().replaceAll(' ','-'))}">${esc(c.type||'UNKNOWN')}</span><p>${esc(c.statement||'')}</p>${arr(c.evidence_refs).length?`<small>Evidence: ${arr(c.evidence_refs).map(esc).join(' · ')}</small>`:''}</div>`).join('');
+  const process=arr(r.process_map).map((p,i)=>`<article class="step2-process"><div class="kicker">${esc(p.name||`Process ${i+1}`)}</div><div class="step2-process-grid"><div><b>Trigger</b><span>${esc(p.trigger||'Unknown')}</span></div><div><b>Owner</b><span>${esc(p.owner||'Unknown')}</span></div><div><b>Inputs</b><span>${esc(arr(p.inputs).join(' · ')||'Unknown')}</span></div><div><b>Systems</b><span>${esc(arr(p.systems).join(' · ')||'Unknown')}</span></div><div><b>Handoffs</b><span>${esc(arr(p.handoffs).join(' · ')||'None confirmed')}</span></div><div><b>Delays</b><span>${esc(arr(p.delays).join(' · ')||'None confirmed')}</span></div><div><b>Exceptions</b><span>${esc(arr(p.exceptions).join(' · ')||'None confirmed')}</span></div><div><b>Output</b><span>${esc(p.output||'Unknown')}</span></div></div>${arr(p.steps).length?`<ol>${arr(p.steps).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:''}</article>`).join('');
+  const bottlenecks=arr(r.bottlenecks).map(b=>`<article class="step2-finding"><b>${esc(b.title||'Bottleneck')}</b><p>${esc(b.description||'')}</p>${b.root_cause?`<small><b>Root cause:</b> ${esc(b.root_cause)}</small>`:''}<small>${esc(b.impact||'')}</small></article>`).join('');
+  const roots=arr(r.root_causes).map(x=>`<article class="step2-finding"><b>${esc(x.title||'Root cause')}</b><p>${esc(x.description||'')}</p></article>`).join('');
+  const baselines=arr(r.baseline_measurements).map(x=>`<article class="step2-finding"><b>${esc(x.name||'Baseline')}</b><p>${x.baseline_value===null||x.baseline_value===undefined||x.baseline_value===''?'Unknown':`${esc(x.baseline_value)} ${esc(x.unit||'')}`}</p><small>${esc(x.measurement_method||x.notes||'')}</small></article>`).join('');
+  const opps=arr(r.opportunity_backlog).map(o=>`<article class="step2-opportunity"><div class="step2-opportunity-head"><div><div class="kicker">Priority ${esc(o.rank||'—')}</div><b>${esc(o.title||'Opportunity')}</b></div><div class="step2-score"><span>Impact ${score(o.impact_score||o.value_score)}</span><span>Feasibility ${score(o.feasibility_score||o.readiness_score)}</span><span>Cost ${score(o.cost_score||o.effort_score)}</span><span>Time ${score(o.time_to_value_score)}</span><span>Risk ${score(o.risk_score)}</span></div></div><p>${esc(o.problem||'')}</p><small>${esc(o.recommendation||'')}</small></article>`).join('');
+  const unknowns=arr(r.unknowns).map(u=>`<article class="step2-finding"><b>${esc(u.question||'Unknown')}</b><p>${esc(u.why_it_matters||'')}</p></article>`).join('');
+  const evidence=arr(r.evidence).map(e=>`<article class="step2-finding"><b>${esc(e.source_name||e.evidence_ref||'Evidence')}</b><p>${esc(arr(e.supports).join(' · '))}</p><small>${esc(e.evidence_ref||'')}</small></article>`).join('');
+  const first=r.recommended_first_intervention||r.smallest_safe_pilot||{};
+  return `<div class="step2-diagnosis-summary"><div class="kicker">Executive summary</div><p>${esc(r.executive_summary||r.current_state?.summary||'')}</p></div>
+  <details class="step2-findings" open><summary>Current State</summary><div class="step2-findings-body"><p>${esc(r.current_state?.summary||'')}</p>${r.current_state?.operating_model?`<p><b>Operating model:</b> ${esc(r.current_state.operating_model)}</p>`:''}</div></details>
+  <details class="step2-findings"><summary>Evidence & Claim Ledger</summary><div class="step2-findings-body"><div class="step2-claims">${claims||'<div class="empty">No claim ledger returned.</div>'}</div><div class="step2-finding-grid">${evidence}</div></div></details>
+  <details class="step2-findings" open><summary>Process Map</summary><div class="step2-findings-body">${process||'<div class="empty">No process map returned.</div>'}</div></details>
+  <details class="step2-findings" open><summary>Bottlenecks & Root Causes</summary><div class="step2-findings-body"><div class="step2-finding-grid">${bottlenecks}${roots}</div></div></details>
+  <details class="step2-findings"><summary>Baseline</summary><div class="step2-findings-body"><div class="step2-finding-grid">${baselines||'<div class="empty">No defensible baseline was available.</div>'}</div></div></details>
+  <details class="step2-findings" open><summary>Opportunities & Priorities</summary><div class="step2-findings-body">${opps||'<div class="empty">No opportunities returned.</div>'}</div></details>
+  <details class="step2-findings"><summary>Unknowns</summary><div class="step2-findings-body"><div class="step2-finding-grid">${unknowns||'<div class="empty">No material unknowns returned.</div>'}</div></div></details>
+  <section class="step2-first-intervention"><div class="kicker">Recommended First Intervention</div><h3>${esc(first.title||'Not defined')}</h3><p>${esc(first.summary||first.why_first||'')}</p>${first.success_metric?`<small><b>Success metric:</b> ${esc(first.success_metric)}</small>`:''}</section>`;
+}
+function reviewMarkup(){
+  const run=latestRun();
+  if(!run||!run.analysis_result)return '<div class="step2-empty"><b>No diagnosis is ready for review.</b><span>Run Diagnosis after evidence collection to populate this section.</span></div>';
+  const actions=run.status==='ready_for_review'?`<div class="step2-review-actions"><button id="editDiagnosisBtn" class="btn secondary" type="button">Edit</button><button id="requestFurtherAnalysisBtn" class="btn secondary" type="button">Request Further Analysis</button><button id="approveDiagnosisBtn" class="btn primary" type="button">Approve Diagnosis</button></div><div id="furtherAnalysisPanel" class="step2-revision-panel" hidden><div class="field"><label for="furtherAnalysisNote">What should Nexus reconsider or analyze more deeply?</label><textarea id="furtherAnalysisNote" placeholder="Point to the finding, evidence, assumption, or missing angle that should be revisited."></textarea></div><button id="submitFurtherAnalysisBtn" class="btn primary" type="button">Run Further Analysis</button></div>`:`<div class="step2-review-actions"><button id="editDiagnosisBtn" class="btn secondary" type="button">View Full Diagnosis</button>${diagnosisIsStale()?'<button id="runUpdatedDiagnosisBtn" class="btn primary" type="button">Run Updated Diagnosis</button>':''}</div>`;
+  return `${diagnosisMarkup(run)}${actions}`;
+}
+function historyMarkup(){
+  const items=[];
+  evidenceDocs().slice(0,12).forEach(d=>items.push({at:d.created_at,label:'Evidence added',text:d.file_name}));
+  contextEntries.slice(0,8).forEach(c=>items.push({at:c.created_at,label:'Admin context saved',text:c.content.slice(0,120)+(c.content.length>120?'…':'')}));
+  gapAnalyses.slice(0,5).forEach(g=>items.push({at:g.created_at,label:'Information gaps analyzed',text:`${arr(g.result?.gaps).length} material gap${arr(g.result?.gaps).length===1?'':'s'} identified`}));
+  discoveryTasks.slice(0,8).forEach(t=>items.push({at:t.updated_at||t.created_at,label:'Client information request',text:complete(t.status)?'Client response completed':String(t.status||'sent').replaceAll('_',' ')}));
+  diagnosisRuns.filter(r=>r.status!=='draft').slice(0,8).forEach(r=>items.push({at:r.updated_at||r.created_at,label:'Diagnosis',text:String(r.status||'').replaceAll('_',' ')}));
+  items.sort((a,b)=>new Date(b.at||0)-new Date(a.at||0));
+  return items.length?`<div class="step2-history-list">${items.slice(0,20).map(x=>`<div><small>${esc(dt(x.at))}</small><b>${esc(x.label)}</b><span>${esc(x.text)}</span></div>`).join('')}</div>`:'<div class="empty">History begins when evidence, context, or a diagnosis run is added.</div>';
+}
 function renderAdminIntake(){
   const root=$('section-intake');if(!root||!state.admin)return;
-  const c=company(),draft=getDraft(),captured=capturedRun();
-  root.innerHTML=`
-    <div class="admin-intake-banner"><div><div class="eyebrow">ADMIN ONLY · INTERNAL WORKSPACE</div><h1>Discovery Intake & Diagnosis</h1><p>This is where you put the Teams transcript, your meeting notes, and client-provided evidence after discovery. Client accounts cannot see diagnosis-run records or this page.</p></div><a class="btn secondary" href="/operations">Open Admin Console →</a></div>
-    <div class="intake-flow"><span><b>1</b> Run discovery</span><span><b>2</b> Add transcript</span><span><b>3</b> Add evidence</span><span><b>4</b> Queue diagnosis</span><span><b>5</b> Review output</span></div>
-    <div class="intake-grid">
-      <section class="box intake-card"><div class="kicker">Selected client</div><h2>${esc(c?.name||'No company selected')}</h2><p class="small">The company selector in the top bar controls which client record receives the transcript, documents, and diagnosis run.</p><div class="note"><b>Role boundary:</b> Admin intake is internal Nexus work. The client portal remains for client actions, requested information, approvals, delivery plan, and results.</div></section>
-      <section class="box intake-card"><div class="toolbar"><div><div class="kicker">Reusable template</div><h2>General Discovery Questions</h2></div><button id="copyDiscoveryQuestions" class="btn secondary" type="button">Copy questions</button></div><details class="intake-questions"><summary>Open the discovery guide</summary><div class="intake-question-grid">${questionsMarkup()}</div></details></section>
-    </div>
-    <section class="box intake-card"><div class="kicker">Step 1 · Meeting record</div><h2>Capture the discovery context</h2><div class="form-grid"><div class="field"><label for="intakeMeetingDate">Meeting date</label><input id="intakeMeetingDate" type="date" value="${esc(draft.meeting_date||'')}"></div><div class="field"><label for="intakeParticipants">Participants</label><input id="intakeParticipants" placeholder="Names / roles" value="${esc(draft.participants||'')}"></div></div><div class="field"><label for="intakeNotes">Admin notes</label><textarea id="intakeNotes" placeholder="Key goals, pain points, constraints, follow-ups, observations, or anything that may not be obvious from the transcript.">${esc(draft.notes||'')}</textarea></div><div class="field"><label for="intakeTranscriptText">Paste transcript text <span class="small">(optional if you upload a file)</span></label><textarea id="intakeTranscriptText" class="transcript-text" placeholder="Paste the Teams transcript here for a self-contained diagnosis packet. You can also upload TXT, SRT, VTT, PDF, or DOCX below.">${esc(draft.transcript||'')}</textarea></div><div class="capture-actions"><button id="captureDiscoveryContextBtn" class="btn primary" type="button">${captured?'Update captured context':'Capture discovery context →'}</button><span id="discoveryCaptureStatus" class="capture-status ${captured?'saved':''}" role="status" aria-live="polite">${captured?`Captured ${esc(dt(captured.updated_at||captured.created_at))} · linked to ${esc(project()?.name||'active engagement')}`:'Not captured yet. Browser autosave protects your typing, but this button saves it to the client engagement.'}</span></div></section>
-    <div class="intake-grid">
-      <section class="box intake-card"><div class="kicker">Step 2 · Transcript</div><h2>Upload the meeting transcript</h2><form id="adminTranscriptForm"><div class="field"><label>Transcript file</label><input id="adminTranscriptFile" type="file" required accept=".txt,.srt,.vtt,.pdf,.docx"></div><div class="field"><label>Context note</label><input id="adminTranscriptNote" placeholder="Example: Initial discovery call, 45 minutes"></div><div class="actions"><button class="btn primary" type="submit">Upload transcript →</button></div></form><p class="small">TXT, SRT, and VTT files are also read into the internal diagnosis packet. PDF and DOCX are stored securely and referenced as evidence.</p></section>
-      <section class="box intake-card"><div class="kicker">Step 3 · Supporting evidence</div><h2>Add client documents</h2><form id="adminEvidenceForm"><div class="field"><label>Client-provided file</label><input id="adminEvidenceFile" type="file" required accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg"></div><div class="field"><label>Type</label><select id="adminEvidenceCategory"><option>Client Source</option><option>Process Document</option><option>Measurement</option><option>Report</option><option>General</option></select></div><div class="field"><label>Context note</label><input id="adminEvidenceNote" placeholder="What is it and what does it help explain?"></div><div class="actions"><button class="btn primary" type="submit">Upload evidence →</button></div></form></section>
-    </div>
-    <section class="box intake-card"><div class="kicker">Step 4 · Diagnosis packet</div><h2>Choose the evidence and queue the Client Diagnosis Agent</h2><p class="small">This creates an internal, auditable diagnosis run in <b>shadow / draft-only mode</b>. It prepares the evidence packet and analysis instruction. It does not send emails, modify client systems, or take external action.</p><div class="field"><label>Primary transcript file</label><select id="diagnosisTranscriptDoc">${transcriptOptions()}</select></div><div class="field"><label>Supporting documents</label><div id="diagnosisEvidenceList" class="intake-evidence-list">${evidenceOptions()}</div></div><div class="actions"><button id="queueDiagnosisBtn" class="btn primary" type="button">Queue diagnosis →</button></div><div class="note admin-intake-help"><b>Current execution boundary:</b> Nexus stores and structures the source packet here. “Copy agent packet” gives you the exact Client Diagnosis Agent instruction for the current shadow-mode workflow. Automated model execution is not shown as live until a secured model endpoint is connected.</div></section>
-    <section class="box intake-card"><div class="toolbar"><div><div class="kicker">Step 5 · Internal queue</div><h2>Captured context & diagnosis runs</h2></div><a class="btn secondary" href="/operations">Admin Console →</a></div><div id="diagnosisRunList" class="diagnosis-run-list">${diagnosisRuns.length?diagnosisRuns.map(runMarkup).join(''):'<div class="empty">No meeting context has been captured and no diagnosis run has been queued for this company yet.</div>'}</div></section>`;
-
-  ['intakeMeetingDate','intakeParticipants','intakeNotes','intakeTranscriptText'].forEach(id=>$(id)?.addEventListener('input',saveDraft));
-  $('captureDiscoveryContextBtn')?.addEventListener('click',event=>captureDiscoveryContext({button:event.currentTarget}));
-  $('copyDiscoveryQuestions')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(allQuestionsText());toast('Discovery questions copied.')}catch{toast('Copy failed. Select and copy the questions manually.')}});
-  $('adminTranscriptForm')?.addEventListener('submit',uploadTranscript);
-  $('adminEvidenceForm')?.addEventListener('submit',uploadSupportingEvidence);
-  $('queueDiagnosisBtn')?.addEventListener('click',queueDiagnosis);
-  root.querySelectorAll('.copy-agent-packet').forEach(b=>b.addEventListener('click',()=>copyAgentPacket(b.dataset.id)));
-  root.querySelectorAll('.diagnosis-status-select').forEach(s=>s.addEventListener('change',()=>updateRunStatus(s.dataset.id,s.value)));
+  const c=company(),p=project();
+  root.innerHTML=`<div class="admin-intake-banner step2-hero"><div><div class="eyebrow">STEP 2 · DISCOVERY & DIAGNOSIS</div><h1>Turn evidence into an approved diagnosis.</h1><p>Nexus handles the framework, provenance, gap detection, and agent orchestration behind the scenes. Your job is to review what is known, close material gaps, add context, run the diagnosis, and approve the result.</p></div><div class="step2-client"><span>Client</span><b>${esc(c?.name||'No company selected')}</b><small>${esc(p?.name||'No active engagement')}</small></div></div>
+  <div class="intake-flow step2-flow"><span><b>1</b> Evidence</span><span><b>2</b> Gaps</span><span><b>3</b> Request</span><span><b>4</b> Context</span><span><b>5</b> Diagnose</span><span><b>6</b> Approve</span></div>
+  <section class="box intake-card step2-module" data-module="evidence"><div class="step2-module-head"><div><div class="kicker">01 · Evidence Collected</div><h2>What Nexus already knows</h2><p class="small">Transcripts are optional. Upload any relevant current-state evidence that helps explain the company, workflow, systems, volume, performance, or constraints.</p></div><button id="toggleEvidenceUploadBtn" class="btn primary" type="button">+ Add Evidence</button></div><div id="evidenceUploadPanel" class="step2-upload-panel" hidden><form id="adminEvidenceForm"><div class="form-grid"><div class="field"><label>Evidence file</label><input id="adminEvidenceFile" type="file" required accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt,.md,.json,.xml,.srt,.vtt,.png,.jpg,.jpeg,.webp,.gif"></div><div class="field"><label>Type</label><select id="adminEvidenceCategory"><option>Client Source</option><option>Process Document</option><option>Measurement</option><option>Report</option><option>SOP</option><option>Screenshot</option><option>General</option></select></div></div><div class="field"><label>Context note <span class="small">(optional)</span></label><input id="adminEvidenceNote" placeholder="What is this, and what does it help Nexus understand?"></div><div class="step2-actions"><button class="btn primary" type="submit">Upload Evidence</button><button id="cancelEvidenceUploadBtn" class="btn secondary" type="button">Cancel</button></div><p class="small">PDF, DOCX, PPTX, spreadsheets, CSV, text, JSON/XML, transcripts, and common images · Maximum 25 MB.</p></form></div>${evidenceMarkup()}<details class="step2-history"><summary>Discovery history & audit trail</summary>${historyMarkup()}</details></section>
+  <section class="box intake-card step2-module" data-module="gaps"><div class="step2-module-head"><div><div class="kicker">02–03 · Information Gaps & Requests</div><h2>Ask only for what is still missing</h2><p class="small">The Master Discovery Framework stays in the backend. Nexus compares it against current evidence and client answers, then surfaces only material gaps.</p></div></div>${gapMarkup()}</section>
+  <section class="box intake-card step2-module" data-module="context"><div class="step2-module-head"><div><div class="kicker">04 · Admin Context</div><h2>Add what the files may not show</h2><p class="small">Your observations directly influence the next diagnosis, but remain explicitly labeled as ADMIN CONTEXT until independently supported.</p></div></div>${contextMarkup()}</section>
+  <section class="box intake-card step2-module" data-module="diagnosis"><div class="step2-module-head"><div><div class="kicker">05 · Diagnosis Execution</div><h2>Run Diagnosis</h2><p class="small">Nexus analyzes all authorized evidence, current admin context, and completed client discovery answers. Evidence is selected automatically.</p></div></div>${executionMarkup()}</section>
+  <section class="box intake-card step2-module" data-module="review"><div class="step2-module-head"><div><div class="kicker">06 · Review & Approve</div><h2>Approve the diagnosis that drives the engagement</h2><p class="small">Approval makes this diagnosis the root record for downstream opportunities, action items, requests, measurements, and the recommended first intervention.</p></div></div>${reviewMarkup()}</section>`;
+  bindStep2();
 }
 
-async function captureDiscoveryContext({button=null,silent=false,refresh=true}={}){
-  if(!state.admin||!state.companyId)throw new Error('Select a client company before capturing discovery context.');
-  const activeProject=project();
-  if(!activeProject?.id){const error=new Error('Set the active client engagement before capturing discovery context.');if(!silent)toast(error.message);throw error}
-  const draft=saveDraft()||getDraft();
-  if(!hasDiscoveryContext(draft)){const error=new Error('Enter a meeting date, participants, notes, or transcript text before capturing.');if(!silent)toast(error.message);throw error}
-  const existing=capturedRun(),capturedAt=existing?.analysis_packet?.capture?.captured_at||existing?.created_at||new Date().toISOString();
-  const evidence=(state.docs||[]).filter(item=>item.category==='Discovery Transcript'||item.source_role==='client');
-  const payload=buildDiscoveryCapturePayload({draft,company:company(),project:activeProject,evidence,userId:state.user.id,capturedAt});
-  const original=button?.textContent;if(button){button.disabled=true;button.textContent=existing?'Updating…':'Capturing…'}
-  try{
-    let result;
-    if(existing){
-      const update={...payload};delete update.company_id;delete update.project_id;delete update.created_by;
-      const {data,error}=await sb.from('nexus_diagnosis_runs').update(update).eq('id',existing.id).eq('status','draft').select('*').single();if(error)throw error;result=data;
-    }else{
-      const {data,error}=await sb.from('nexus_diagnosis_runs').insert(payload).select('*').single();if(error)throw error;result=data;
-    }
-    localStorage.setItem(draftKey(),JSON.stringify({...draft,updated_at:result.updated_at||capturedAt}));
-    try{await log(existing?'discovery_context_updated':'discovery_context_captured','diagnosis',result.id,`${existing?'Updated':'Captured'} discovery meeting context for ${company()?.name||'client'} and linked it to ${activeProject.name}.`)}catch{}
-    if(refresh){await loadRuns();renderAdminIntake()}
-    window.dispatchEvent(new CustomEvent('nexus:discovery-context-captured',{detail:{companyId:state.companyId,projectId:activeProject.id,runId:result.id,updated:!!existing}}));
-    if(!silent)toast(existing?'Discovery context updated in the client engagement.':'Discovery context captured in the client engagement.');
-    return result;
-  }catch(error){if(!silent)toast(error.message||'Discovery context could not be captured.');throw error}
-  finally{if(button?.isConnected){button.disabled=false;button.textContent=original||'Capture discovery context →'}}
-}
-
-async function uploadDocument(file,category,note,{readText=false}={}){
-  if(!state.admin||!state.companyId)throw new Error('Select a client company before uploading.');
-  if(file.size>26214400)throw new Error('File exceeds the 25 MB limit.');
+async function uploadEvidence(event){
+  event.preventDefault();const file=$('adminEvidenceFile')?.files?.[0];if(!file)return;if(file.size>26214400)return toast?.('File exceeds the 25 MB limit.');
+  const allowed=/\.(pdf|docx|pptx|xlsx|xls|csv|txt|md|json|xml|srt|vtt|png|jpg|jpeg|webp|gif)$/i;if(!allowed.test(file.name))return toast?.('Use a supported evidence file type.');
+  const button=event.submitter;button.disabled=true;button.textContent='Uploading…';
   const path=`${state.companyId}/${Date.now()}-${crypto.randomUUID()}-${safeName(file.name)}`;
-  const {error:uploadError}=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||undefined});if(uploadError)throw uploadError;
-  const row={company_id:state.companyId,project_id:project()?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category,status:'shared',note:note||null,uploaded_by:state.user.id,sensitivity:'standard',request_id:null,data_requirement_id:null,document_area:'client_submission',source_role:'client'};
-  const {data,error}=await sb.from('nexus_documents').insert(row).select().single();
-  if(error){await sb.storage.from(BUCKET).remove([path]);throw error}
-  let text='';if(readText&&/\.(txt|srt|vtt)$/i.test(file.name)){try{text=(await file.text()).slice(0,120000)}catch{}}
-  return {document:data,text};
-}
-
-async function uploadTranscript(e){
-  e.preventDefault();saveDraft();const file=$('adminTranscriptFile')?.files?.[0];if(!file)return;
-  if(!/\.(txt|srt|vtt|pdf|docx)$/i.test(file.name))return toast('Use TXT, SRT, VTT, PDF, or DOCX for the meeting transcript.');
-  const button=e.submitter;button.disabled=true;button.textContent='Uploading…';
   try{
-    const {text}=await uploadDocument(file,'Discovery Transcript',$('adminTranscriptNote').value.trim()||'Discovery meeting transcript',{readText:true});
-    if(text){const draft=getDraft();draft.transcript=text;draft.updated_at=new Date().toISOString();localStorage.setItem(draftKey(),JSON.stringify(draft))}
-    toast(text?'Transcript uploaded and added to the diagnosis draft.':'Transcript uploaded securely.');e.target.reset();await workspace();await loadRuns();renderAdminIntake();
-  }catch(error){toast(error.message||'Transcript upload failed.')}
-  finally{button.disabled=false;button.textContent='Upload transcript →'}
+    const {error:u}=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||undefined});if(u)throw u;
+    const row={company_id:state.companyId,project_id:project()?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category:$('adminEvidenceCategory')?.value||'Client Source',status:'shared',note:$('adminEvidenceNote')?.value?.trim()||null,uploaded_by:state.user.id,sensitivity:'standard',request_id:null,data_requirement_id:null,document_area:'client_submission',source_role:'client'};
+    const {data,error}=await sb.from('nexus_documents').insert(row).select().single();if(error){await sb.storage.from(BUCKET).remove([path]);throw error}
+    try{await log?.('step2_evidence_uploaded','document',data.id,`Evidence added for ${company()?.name||'client'}: ${file.name}`)}catch{}
+    toast?.('Evidence uploaded. Nexus is classifying what it contributes…');
+    try{const r=await sb.functions.invoke('nexus-diagnosis-execute',{body:{operation:'ingest_evidence',document_id:data.id}});if(r.error||r.data?.ok===false)throw new Error(r.data?.error||r.error?.message)}catch(err){console.warn('Evidence classification deferred',err);toast?.('Evidence is saved. Automated classification will be retried during analysis.')}
+    event.target.reset();await workspace?.();await refresh({reload:true});
+  }catch(error){toast?.(error.message||'Evidence upload failed.')}
+  finally{if(button?.isConnected){button.disabled=false;button.textContent='Upload Evidence'}}
 }
-
-async function uploadSupportingEvidence(e){
-  e.preventDefault();saveDraft();const file=$('adminEvidenceFile')?.files?.[0];if(!file)return;const button=e.submitter;button.disabled=true;button.textContent='Uploading…';
-  try{await uploadDocument(file,$('adminEvidenceCategory').value,$('adminEvidenceNote').value.trim());toast('Client evidence uploaded securely.');e.target.reset();await workspace();await loadRuns();renderAdminIntake()}
-  catch(error){toast(error.message||'Evidence upload failed.')}
-  finally{button.disabled=false;button.textContent='Upload evidence →'}
-}
-
-async function queueDiagnosis(){
-  if(!state.admin||!state.companyId)return;const draft=saveDraft()||getDraft();
-  const transcriptId=$('diagnosisTranscriptDoc')?.value||null;
-  const selected=[...document.querySelectorAll('.diagnosis-supporting-doc:checked')].map(x=>x.value);if(transcriptId&&!selected.includes(transcriptId))selected.unshift(transcriptId);
-  if(!transcriptId&&!draft.transcript&&!draft.notes)return toast('Add a transcript, paste transcript text, or enter discovery notes before queueing a diagnosis.');
-  const c=company(),p=project(),docs=(state.docs||[]).filter(d=>selected.includes(d.id));
-  const button=$('queueDiagnosisBtn');button.disabled=true;button.textContent='Queueing…';
+async function runGapAnalysis(){
+  const button=$('runGapAnalysisBtn');if(button){button.disabled=true;button.textContent='Analyzing…'}
   try{
-    const captured=await captureDiscoveryContext({silent:true,refresh:false});
-    const packet=buildDiscoveryPacket({draft,company:c,project:p,evidence:docs,mode:'shadow',capturedAt:captured.analysis_packet?.capture?.captured_at||captured.created_at});
-    const {error}=await sb.from('nexus_diagnosis_runs').update({status:'ready_for_analysis',transcript_document_id:transcriptId,supporting_document_ids:selected,analysis_packet:packet,updated_at:new Date().toISOString()}).eq('id',captured.id).eq('status','draft');if(error)throw error;
-    clearDraft();toast('Diagnosis packet queued for internal review.');window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await loadRuns();renderAdminIntake();
-  }
-  catch(error){toast(error.message||'Diagnosis could not be queued.')}
-  finally{if(button?.isConnected){button.disabled=false;button.textContent='Queue diagnosis →'}}
+    const p=project();const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{operation:'gap_analysis',company_id:state.companyId,project_id:p?.id||null}});
+    if(error||data?.ok===false)throw new Error(data?.error||error?.message||'Gap analysis failed.');
+    toast?.(`Information coverage analyzed. ${arr(data.result?.gaps).length} material gap${arr(data.result?.gaps).length===1?'':'s'} remain.`);await refresh({reload:true});
+  }catch(error){toast?.(error.message||'Information gaps could not be analyzed.')}
+  finally{if(button?.isConnected){button.disabled=false;button.textContent='Recheck Coverage'}}
+}
+async function sendGapRequest(){
+  const gap=latestGap(),gaps=arr(gap?.result?.gaps);if(!gap||!gaps.length)return;
+  const selected=[...document.querySelectorAll('.step2-gap-check:checked')].map(box=>Number(box.dataset.index)).filter(Number.isFinite);
+  if(!selected.length)return toast?.('Select at least one item to request.');
+  const items=selected.map(i=>{const g=gaps[i]||{},q=document.querySelector(`.step2-gap-question[data-index="${i}"]`)?.value?.trim()||g.question;return {...g,question:q,required:true}}).filter(x=>x.question);
+  const button=$('sendGapRequestBtn');button.disabled=true;button.textContent='Sending…';
+  try{
+    const {data,error}=await sb.rpc('nexus_send_discovery_information_request',{p_company_id:state.companyId,p_project_id:project()?.id||null,p_gap_analysis_id:gap.id,p_items:items});if(error)throw error;
+    toast?.('Request sent to the client workspace. No separate approval chain is required.');try{await log?.('discovery_information_requested','task',data?.task_id||null,`Requested ${items.length} remaining discovery item${items.length===1?'':'s'} from ${company()?.name||'client'}.`)}catch{}await workspace?.();await refresh({reload:true});
+  }catch(error){toast?.(error.message||'The client request could not be sent.')}
+  finally{if(button?.isConnected){button.disabled=false;button.textContent='Send Request'}}
+}
+async function saveAdminContext({silent=false}={}){
+  const content=$('adminContextText')?.value?.trim()||latestContext()?.content||'';if(!content){if(!silent)toast?.('Add context before saving.');return null}
+  const button=$('saveAdminContextBtn');if(button){button.disabled=true;button.textContent='Saving…'}
+  try{
+    const {data,error}=await sb.rpc('nexus_save_discovery_admin_context',{p_company_id:state.companyId,p_project_id:project()?.id||null,p_content:content});if(error)throw error;
+    if(!silent)toast?.('Brief saved. This context will be included in the next diagnosis run.');try{await log?.('discovery_admin_context_saved','discovery_context',data,`Admin context saved for ${company()?.name||'client'}.`)}catch{}await refresh({reload:true});return {id:data,content,created_at:new Date().toISOString()};
+  }catch(error){if(!silent)toast?.(error.message||'Admin context could not be saved.');throw error}
+  finally{if(button?.isConnected){button.disabled=false;button.textContent='Save Brief'}}
+}
+async function openDiagnosis(){const run=latestRun();if(!run)return;try{if(window.NexusDiagnosisReviewRuntime?.openReview)return await window.NexusDiagnosisReviewRuntime.openReview(run.id);return await window.NexusDiagnosisController?.openRun?.(run)}catch(error){toast?.(error.message||'Diagnosis could not be opened.')}}
+async function approveDiagnosis(){
+  const run=latestRun();if(!run||run.status!=='ready_for_review')return;const button=$('approveDiagnosisBtn');button.disabled=true;button.textContent='Approving…';
+  try{const {error}=await sb.rpc('nexus_approve_diagnosis',{p_run_id:run.id,p_note:null});if(error)throw error;toast?.('Diagnosis approved. Nexus generated the downstream engagement records and mapped reusable action templates where applicable.');window.NexusDiagnosisController?.invalidateLatest?.();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await workspace?.();await refresh({reload:true})}
+  catch(error){toast?.(error.message||'Diagnosis could not be approved.')}
+  finally{if(button?.isConnected){button.disabled=false;button.textContent='Approve Diagnosis'}}
+}
+async function requestFurtherAnalysis(){
+  const run=latestRun(),note=$('furtherAnalysisNote')?.value?.trim()||'';if(!run||run.status!=='ready_for_review')return;if(!note)return toast?.('Describe what Nexus should reconsider or analyze more deeply.');
+  const button=$('submitFurtherAnalysisBtn');button.disabled=true;button.textContent='Running…';
+  try{const {error}=await sb.rpc('nexus_request_diagnosis_revision',{p_run_id:run.id,p_note:note});if(error)throw error;toast?.('Further analysis requested. Nexus is re-running the diagnosis with your review instruction.');const result=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:run.id}});if(result.error||result.data?.ok===false)throw new Error(result.data?.error||result.error?.message||'Further analysis failed.');window.NexusDiagnosisController?.invalidateLatest?.();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await refresh({reload:true})}
+  catch(error){toast?.(error.message||'Further analysis could not be completed.')}
+  finally{if(button?.isConnected){button.disabled=false;button.textContent='Run Further Analysis'}}
+}
+async function runUpdatedDiagnosis(){
+  try{const text=$('adminContextText')?.value?.trim();if(text&&text!==latestContext()?.content)await saveAdminContext({silent:true});await window.NexusDiagnosisController?.securedQueue?.({forceNew:true})}catch(error){toast?.(error.message||'Updated diagnosis could not be started.')}
+}
+function bindStep2(){
+  $('toggleEvidenceUploadBtn')?.addEventListener('click',()=>{$('evidenceUploadPanel').hidden=false;$('adminEvidenceFile')?.focus()});
+  $('cancelEvidenceUploadBtn')?.addEventListener('click',()=>{$('evidenceUploadPanel').hidden=true});
+  $('adminEvidenceForm')?.addEventListener('submit',uploadEvidence);
+  document.querySelectorAll('.step2-download').forEach(b=>b.addEventListener('click',()=>downloadDocument?.(b.dataset.doc)));
+  $('runGapAnalysisBtn')?.addEventListener('click',runGapAnalysis);
+  $('reviewGapsBtn')?.addEventListener('click',()=>{$('gapRequestEditor').hidden=false;$('reviewGapsBtn').scrollIntoView({behavior:'smooth',block:'start'})});
+  $('cancelGapRequestBtn')?.addEventListener('click',()=>{$('gapRequestEditor').hidden=true});
+  $('sendGapRequestBtn')?.addEventListener('click',sendGapRequest);
+  $('saveAdminContextBtn')?.addEventListener('click',()=>saveAdminContext());
+  document.querySelectorAll('#runUpdatedDiagnosisBtn').forEach(b=>b.addEventListener('click',runUpdatedDiagnosis));
+  $('reviewDiagnosisBtn')?.addEventListener('click',openDiagnosis);$('editDiagnosisBtn')?.addEventListener('click',openDiagnosis);
+  $('approveDiagnosisBtn')?.addEventListener('click',approveDiagnosis);
+  $('requestFurtherAnalysisBtn')?.addEventListener('click',()=>{$('furtherAnalysisPanel').hidden=false;$('furtherAnalysisNote')?.focus()});
+  $('submitFurtherAnalysisBtn')?.addEventListener('click',requestFurtherAnalysis);
+  $('retryDiagnosisBtn')?.addEventListener('click',()=>window.NexusDiagnosisController?.executeExisting?.(latestRun()?.id));
 }
 
-async function loadRuns(){
-  if(!state.admin||!state.companyId){diagnosisRuns=[];return}
-  const activeProject=project();if(!activeProject?.id){diagnosisRuns=[];return}
-  const {data,error}=await sb.from('nexus_diagnosis_runs').select('*').eq('company_id',state.companyId).eq('project_id',activeProject.id).order('created_at',{ascending:false}).limit(50);
-  if(error){console.error('Diagnosis queue load failed',error);diagnosisRuns=[];return}diagnosisRuns=data||[];
-}
-
-function buildAgentPrompt(run){
-  const p=run.analysis_packet||{},manifest=Array.isArray(p.evidence_manifest)?p.evidence_manifest:[];
-  return `NEXUS INTELLIGENCE — CLIENT DIAGNOSIS AGENT\n\nMODE\nShadow / draft-only. Analyze only. Do not send emails, contact anyone, modify systems, publish, purchase, or take external action.\n\nMISSION\nConvert authorized discovery evidence into a grounded current-state diagnosis. Separate facts, client statements, inferences, and unknowns. Do not invent missing information.\n\nCLIENT\nCompany: ${p.company?.name||company()?.name||''}\nIndustry: ${p.company?.industry||''}\nWebsite: ${p.company?.website||''}\nProject: ${p.project?.name||''}\nMeeting date: ${p.meeting?.date||run.meeting_date||''}\nParticipants: ${p.meeting?.participants||run.participants||''}\n\nADMIN DISCOVERY NOTES\n${p.discovery_notes||run.discovery_notes||'None provided.'}\n\nTRANSCRIPT TEXT\n${p.transcript_text||'[Transcript is stored as an uploaded file. Review the selected evidence file before analysis.]'}\n\nAUTHORIZED EVIDENCE MANIFEST\n${manifest.length?manifest.map((x,i)=>`${i+1}. ${x.file_name} | ${x.category}${x.note?' | '+x.note:''}`).join('\n'):'No supporting files selected.'}\n\nREQUIRED OUTPUT\n1. Facts — directly supported by evidence.\n2. Client statements — important claims or preferences stated by the client.\n3. Inferences — clearly labeled hypotheses, with supporting evidence.\n4. Unknowns — missing information that materially affects the diagnosis.\n5. Current-state process map — people, steps, systems, handoffs, inputs, outputs.\n6. Bottlenecks and failure points — ranked by operational impact and confidence.\n7. Baseline gaps — what must be measured before claiming improvement.\n8. AI / automation opportunity backlog — rank each opportunity by value, feasibility, risk, evidence quality, and required human approval.\n9. Smallest safe pilot — one narrow, measurable starting implementation with success metric, guardrails, owner, inputs, outputs, and rollback.\n10. Follow-up questions — only questions that would materially change the recommendation.\n\nQUALITY RULES\n- Quote or paraphrase evidence conservatively.\n- Distinguish process problems from technology problems.\n- Prefer simple process fixes or deterministic automation when AI is unnecessary.\n- Do not make ROI, time-savings, or revenue claims without a defensible baseline.\n- Flag privacy, security, permissions, customer-impact, and change-management risks.\n- Keep all recommendations inside the evidence and stated business goals.\n`;
-}
-
-async function copyAgentPacket(id){const run=diagnosisRuns.find(r=>r.id===id);if(!run)return;try{await navigator.clipboard.writeText(buildAgentPrompt(run));toast('Client Diagnosis Agent packet copied.')}catch{toast('Could not copy the agent packet.')}}
-async function updateRunStatus(id,status){const {error}=await sb.from('nexus_diagnosis_runs').update({status,updated_at:new Date().toISOString()}).eq('id',id);if(error)return toast(error.message||'Diagnosis status could not be updated.');toast('Diagnosis status updated.');await loadRuns();renderAdminIntake()}
+async function captureDiscoveryContext({silent=false}={}){const ctx=await saveAdminContext({silent});return ctx||latestContext()}
+function getDraft(){return {meeting_date:'',participants:'',notes:latestContext()?.content||'',transcript:'',updated_at:latestContext()?.created_at||''}}
+function clearDraft(){}
+async function loadRuns(){await loadStep2Data();renderAdminIntake();return diagnosisRuns}
+async function refresh({reload=false}={}){if(reload)await loadStep2Data();renderAdminIntake()}
 
 async function reconcile(force=false){
   ensureModeChrome();ensureAdminIntake();
-  if(state.admin&&state.companyId&&(force||state.companyId!==lastCompanyId)){lastCompanyId=state.companyId;await loadRuns();renderAdminIntake()}
+  if(state.admin&&state.companyId&&(force||state.companyId!==lastCompanyId)){lastCompanyId=state.companyId;await loadStep2Data();renderAdminIntake()}
+  else if(state.admin&&state.companyId&&!$('section-intake')?.innerHTML)renderAdminIntake();
 }
-
-window.NexusAdminIntake={captureDiscoveryContext,getCapturedRun:capturedRun,getDraft,clearDraft,loadRuns};
-
+window.NexusAdminIntake={captureDiscoveryContext,getCapturedRun:()=>null,getDraft,clearDraft,loadRuns,refresh,latestAdminContext:latestContext,latestGapAnalysis:latestGap,latestDiagnosisRun:latestRun,buildDiscoveryPacket};
 $('companySelect')?.addEventListener('change',()=>setTimeout(()=>reconcile(true),160));
 sb.auth.onAuthStateChange(()=>setTimeout(()=>reconcile(true),160));
-new MutationObserver(()=>{ensureModeChrome();ensureAdminIntake()}).observe(document.body,{childList:true,subtree:true,characterData:true});
+window.addEventListener('nexus:diagnosis-changed',()=>setTimeout(()=>reconcile(true),120));
 await reconcile(true);
-setTimeout(()=>reconcile(false),600);
