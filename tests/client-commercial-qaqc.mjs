@@ -4,6 +4,8 @@ import fs from 'node:fs';
 const app=fs.readFileSync('portal-app.js','utf8');
 const ui=fs.readFileSync('portal-client-commercial.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260903153500_nexus_commercial_entitlements_and_solution_requests.sql','utf8');
+const entitlement=fs.readFileSync('supabase/migrations/20260903154000_nexus_commercial_request_reopen_and_admin_entitlement.sql','utf8');
+const routing=fs.readFileSync('supabase/migrations/20260903155800_nexus_solution_request_inbox_routing.sql','utf8');
 
 assert.match(app,/portal-client-commercial\.js/,'client commercial controls must load in the client shell');
 assert.match(ui,/nexus_client_commercial_context/,'client UI must use the server-authoritative entitlement context');
@@ -27,5 +29,17 @@ assert.match(migration,/v_opp:=v_release\.client_report->'opportunities'->p_oppo
 assert.match(migration,/v_type:=case when v_has_build then 'included_activation' else 'standalone_scope' end/,'server must determine included-vs-standalone status from entitlements');
 assert.match(migration,/Scope the work and provide the authoritative price before checkout/,'standalone purchase flow must require authoritative pricing before payment');
 assert.doesNotMatch(migration,/stripe_price|price_cents|unit_amount|checkout_session/,'foundation must not create payment data before prices are authoritative');
+
+assert.match(entitlement,/nexus_set_company_entitlement/,'admin must have a governed server-side control for company Find/Build/Run access');
+assert.match(entitlement,/public\.nexus_is_platform_admin\(\)/,'entitlement mutation must be platform-admin only');
+assert.match(entitlement,/commercial_entitlement_updated/,'entitlement changes must be auditable');
+assert.match(entitlement,/status=case when public\.nexus_solution_purchase_requests\.status in \('declined','cancelled'\) then 'requested'/,'a client must be able to reopen a previously closed solution request');
+
+assert.match(routing,/insert into public\.nexus_tasks/,'client solution requests must create a Nexus-owned action, not only a passive update');
+assert.match(routing,/'commercial_scope'/,'solution request actions must have an explicit commercial-scoping task type');
+assert.match(routing,/'nexus','open','high'/,'new commercial requests must enter the Nexus Action Inbox as high-priority Nexus-owned work');
+assert.match(routing,/Do not create or present checkout until those terms are approved/,'standalone solution tasks must preserve the no-invented-price boundary');
+assert.match(routing,/\/portal\?view=inbox&task=/,'commercial request notifications must deep-link to the actionable task');
+assert.match(routing,/'nexus_task_id',v_task_id/,'solution request response must expose its server-created action record');
 
 console.log('NEXUS CLIENT COMMERCIAL QAQC PASS');
