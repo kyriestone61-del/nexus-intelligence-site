@@ -80,14 +80,15 @@ async function openIntake(){
 async function openRun(run){
   if(!run)return openIntake();
   if(canOpenDirectly(run)&&window.NexusDiagnosisReviewRuntime?.openReview){await window.NexusDiagnosisReviewRuntime.openReview(run.id);return true}
-  await openIntake();return true;
+  if(!await openIntake())return false;
+  return true;
 }
-function diagnosisJourneyButton(button){if(!button?.closest?.('#adminJourneyRoot'))return false;const step=button.closest('.journey-step');if(step?.querySelector('h3')?.textContent?.trim()==='Diagnose')return true;const focus=button.closest('.journey-focus');return /Step\s*3\s*of\s*7/i.test(focus?.querySelector('.kicker')?.textContent||'')}
+function diagnosisJourneyButton(button){if(!button?.closest?.('#adminJourneyRoot'))return false;const step=button.closest('.journey-step');if(step?.querySelector('h3')?.textContent?.trim()==='Discovery & Diagnosis')return true;const focus=button.closest('.journey-focus');return /Step\s*2\s*of\s*6/i.test(focus?.querySelector('.kicker')?.textContent||'')}
 function labelFor(run){if(!run)return 'Open Discovery & Diagnosis →';if(run.status==='approved'&&hasResult(run))return 'View Approved Diagnosis →';if(['queued','analyzing'].includes(run.status))return 'View Diagnosis Status →';if(['failed','blocked','revision_requested','ready_for_analysis'].includes(run.status))return 'Resolve Diagnosis Issue →';if(['ready_for_review','in_review'].includes(run.status)||hasResult(run))return 'Review Diagnosis →';return 'Open Discovery & Diagnosis →'}
 function applyJourneyLabels(run){
   const root=byId('adminJourneyRoot');if(!root)return;const label=labelFor(run);
-  const step=[...root.querySelectorAll('.journey-step')].find(x=>x.querySelector('h3')?.textContent?.trim()==='Diagnose');step?.querySelectorAll('button').forEach(button=>{if(!button.hasAttribute('data-current-records'))button.textContent=label});
-  const focus=root.querySelector('.journey-focus');if(/Step\s*3\s*of\s*7/i.test(focus?.querySelector('.kicker')?.textContent||'')){const primary=focus.querySelector('button[data-primary-action]');if(primary)primary.textContent=label}
+  const step=[...root.querySelectorAll('.journey-step')].find(x=>x.querySelector('h3')?.textContent?.trim()==='Discovery & Diagnosis');step?.querySelectorAll('button').forEach(button=>{if(!button.hasAttribute('data-current-records'))button.textContent=label});
+  const focus=root.querySelector('.journey-focus');if(/Step\s*2\s*of\s*6/i.test(focus?.querySelector('.kicker')?.textContent||'')){const primary=focus.querySelector('button[data-primary-action]');if(primary)primary.textContent=label}
 }
 async function refreshJourneyLabels({force=false}={}){try{applyJourneyLabels(await latestRun({force}))}catch(error){console.error('Diagnosis journey refresh failed',error)}}
 function scheduleJourney(){if(journeyScheduled)return;journeyScheduled=true;setTimeout(async()=>{journeyScheduled=false;await refreshJourneyLabels()},160)}
