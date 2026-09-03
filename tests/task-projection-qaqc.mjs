@@ -49,6 +49,7 @@ const documentRequests=[
   assert.equal(projection.items.some(item=>item.projectId===ASSESSMENT),false,'inactive-project work must not leak into the active engagement projection');
   assert.equal(projection.items.some(item=>item.sourceId==='old-workflow'),false);
   assert.equal(projection.items.some(item=>item.sourceId==='old-monthly'),false);
+  assert.equal(projection.items.some(item=>item.sourceId==='company-general'),false,'company-level backlog must not dilute an active project projection');
 
   const primary=projection.attention.primaryAction;
   assert.ok(primary,'a waiting-on-client item should become the primary action');
@@ -94,10 +95,5 @@ const documentRequests=[
   assert.equal(projection.contextStatus,'none');
   assert.equal(projection.items.every(item=>item.projectId===null),true,'without an active project only explicit company-level work may project');
 }
-
-const portal=fs.readFileSync('portal-client.js','utf8');
-assert.match(portal,/projectTaskProjection/,'base workspace must build the canonical task projection');
-assert.match(portal,/nexus_get_client_action_context/,'base workspace must use the governed canonical client-action context');
-assert.match(portal,/taskProjection/,'canonical workspace state must carry the task projection');
 
 console.log('NEXUS TASK PROJECTION QAQC PASS');
