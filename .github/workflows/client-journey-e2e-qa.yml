@@ -18,6 +18,8 @@ on:
       - 'portal-journey-qaqc.css'
       - 'portal-app.js'
       - 'functions/portal.js'
+      - 'supabase/functions/nexus-diagnosis-execute/**'
+      - 'supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql'
       - '.github/workflows/client-journey-e2e-qa.yml'
 
 permissions:
@@ -46,37 +48,51 @@ jobs:
           node --input-type=module --check < portal-journey-task-guard.js
           node --input-type=module --check < portal-app.js
           node --check functions/portal.js
-      - name: Transcript-first Step 2 assertions
+      - name: Unified evidence-first Step 2 assertions
         run: |
           set -euo pipefail
-          grep -Fq "title:'Collect Information'" portal-admin-journey.js
-          grep -Fq 'Open Discovery Intake' portal-admin-journey.js
-          grep -Fq 'Send Client Checklist (optional)' portal-admin-journey.js
+          grep -Fq "title:'Discovery & Diagnosis'" portal-admin-journey.js
+          ! grep -Fq "title:'Collect Information'" portal-admin-journey.js
+          ! grep -Fq "title:'Diagnose'" portal-admin-journey.js
           grep -Fq "['intake','Discovery & Diagnosis']" portal-admin-journey.js
           grep -Fq "section.id='section-intake'" portal-admin-intake.js
-          grep -Fq "category==='Discovery Transcript'" portal-diagnosis-controller-v2.js
-          grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller-v2.js
-          grep -Fq 'resolveTranscriptId' portal-diagnosis-controller-v2.js
-          grep -Fq 'Capture discovery context' portal-admin-intake.js
-          grep -Fq 'buildDiscoveryCapturePayload' portal-admin-intake.js
-          grep -Fq 'nexus:discovery-context-captured' portal-admin-journey.js
-      - name: Step 3 diagnosis assertions
+          grep -Fq 'Evidence Collected' portal-admin-intake.js
+          grep -Fq 'Analyze Missing Information' portal-admin-intake.js
+          grep -Fq 'Review Missing Information' portal-admin-intake.js
+          grep -Fq 'Send Request' portal-admin-intake.js
+          grep -Fq 'Admin Context' portal-admin-intake.js
+          grep -Fq 'Run Diagnosis' portal-admin-intake.js
+          grep -Fq 'Approve Diagnosis' portal-admin-intake.js
+          grep -Fq 'nexus_save_discovery_admin_context' portal-admin-intake.js
+          grep -Fq "operation:'gap_analysis'" portal-admin-intake.js
+          grep -Fq "task_type==='discovery_information_request'" portal-diagnosis-controller-v2.js
+          grep -Fq 'supporting_document_ids:docs.map' portal-diagnosis-controller-v2.js
+          ! grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller-v2.js
+          ! grep -Fq 'resolveTranscriptId' portal-diagnosis-controller-v2.js
+      - name: Diagnosis intelligence and approval assertions
         run: |
           set -euo pipefail
-          grep -Fq "title:'Diagnose'" portal-admin-journey.js
           grep -Fq 'diagnosisApproved' portal-admin-journey.js
           grep -Fq 'analysis_result' portal-admin-journey.js
           grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller-v2.js
+          grep -Fq 'Step\s*2\s*of\s*6' portal-diagnosis-controller-v2.js
           grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller-v2.js
           grep -Fq 'Review Diagnosis' portal-diagnosis-controller-v2.js
           grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
-          grep -Fq 'existingRunForTranscript' portal-diagnosis-controller-v2.js
           grep -Fq 'ready_for_review' portal-diagnosis-v2.js
-          grep -Fq 'Approve diagnosis →' portal-diagnosis-v2.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
-          grep -Fq 'Smallest safe pilot' portal-diagnosis-v2.js
-          grep -Fq 'Finish Step 3 with ChatGPT' portal-diagnosis-manual-fallback.js
+          grep -Fq 'Finish Step 2 with ChatGPT' portal-diagnosis-manual-fallback.js
           grep -Fq 'Save diagnosis for review' portal-diagnosis-manual-fallback.js
+          grep -Fq 'FACT, CLIENT STATEMENT, ADMIN CONTEXT, INFERENCE, ESTIMATE, and UNKNOWN' supabase/functions/nexus-diagnosis-execute/index.ts
+          grep -Fq 'nexus_discovery_framework_requirements' supabase/functions/nexus-diagnosis-execute/index.ts
+          grep -Fq 'nexus_map_diagnosis_action_templates' supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql
+      - name: Direct request and no faux approval-chain assertions
+        run: |
+          set -euo pipefail
+          grep -Fq 'nexus_send_discovery_information_request' portal-admin-intake.js
+          grep -Fq 'No separate approval chain is required' portal-admin-intake.js
+          grep -Fq 'drop trigger if exists nexus_document_request_release_chain' supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql
+          grep -Fq 'create or replace function public.nexus_release_document_request' supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql
       - name: Silent-click and failure-feedback assertions
         run: |
           set -euo pipefail
@@ -87,7 +103,7 @@ jobs:
           grep -Fq 'journey-inline-notice.error' portal-journey-qaqc.css
           grep -Fq 'event.stopImmediatePropagation' portal-diagnosis-controller-v2.js
           grep -Fq 'Diagnosis execution failed.' portal-diagnosis-controller-v2.js
-          grep -Fq 'already exists for this transcript' portal-diagnosis-controller-v2.js
+          grep -Fq 'A diagnosis already exists.' portal-diagnosis-controller-v2.js
       - name: Task dependency and exception assertions
         run: |
           set -euo pipefail

@@ -4,12 +4,17 @@ on:
   pull_request:
     paths:
       - 'portal-app.js'
+      - 'portal-admin-intake.js'
+      - 'portal-admin-intake.css'
+      - 'portal-discovery-capture.js'
+      - 'portal-diagnosis-controller-v2.js'
       - 'portal-vnext-experience.js'
       - 'portal-vnext-experience.css'
       - 'supabase/functions/nexus-diagnosis-execute/**'
       - 'supabase/functions/nexus-diagnosis-report-pdf/**'
       - 'supabase/functions/nexus-sms-worker/**'
       - 'supabase/migrations/20260831_nexus_diagnosis_release_qa_inbox.sql'
+      - 'supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql'
       - 'qa/contracts/vnext-diagnosis-experience.test.mjs'
       - '.github/workflows/vnext-diagnosis-experience-qa.yml'
 
@@ -28,6 +33,9 @@ jobs:
         run: |
           node --input-type=module --check < portal-vnext-experience.js
           node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-admin-intake.js
+          node --input-type=module --check < portal-discovery-capture.js
+          node --input-type=module --check < portal-diagnosis-controller-v2.js
       - name: vNext product and security contract
         shell: bash
         run: |
@@ -43,18 +51,33 @@ jobs:
           name: vnext-contract-diagnostics
           path: vnext-contract-output.txt
           if-no-files-found: error
-      - name: Frozen diagnosis schema check
+      - name: Diagnosis schema check
         shell: bash
         run: |
           set -euo pipefail
           file='supabase/functions/nexus-diagnosis-execute/index.ts'
-          for key in facts client_statements inferences unknowns process_map bottlenecks baseline_gaps baseline_measurements opportunity_backlog risks follow_up_questions smallest_safe_pilot nexus_actions client_action_items document_requests decision_items executive_summary; do
+          for key in current_state claims facts client_statements admin_context inferences estimates unknowns evidence process_map bottlenecks root_causes baseline_gaps baseline_measurements opportunity_backlog risks follow_up_questions smallest_safe_pilot recommended_first_intervention nexus_actions client_action_items document_requests decision_items executive_summary; do
             grep -q "$key" "$file"
           done
           grep -q 'Evidence Analyst' "$file"
           grep -q 'Process & Opportunity Analyst' "$file"
           grep -q 'Independent QA / Governance Verifier' "$file"
           grep -q 'Final Diagnosis Composer' "$file"
+          grep -q 'operation==="gap_analysis"' "$file"
+          grep -q 'imageText' "$file"
+      - name: Step 2 UX and workflow contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -q 'General Discovery Questions' portal-admin-intake.js
+          ! grep -qi 'Diagnosis packet' portal-admin-intake.js
+          grep -q 'Analyze Missing Information' portal-admin-intake.js
+          grep -q 'Review Missing Information' portal-admin-intake.js
+          grep -q 'Run Diagnosis' portal-admin-intake.js
+          grep -q 'Approve Diagnosis' portal-admin-intake.js
+          grep -q 'nexus_send_discovery_information_request' supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql
+          grep -q 'drop trigger if exists nexus_document_request_release_chain' supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql
+          grep -q 'nexus_map_diagnosis_action_templates' supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql
       - name: Client privacy contract
         shell: bash
         run: |

@@ -132,11 +132,18 @@ jobs:
           grep -q 'NEXUS ADMIN ACCOUNT' portal-admin-intake.js
           grep -q 'CLIENT ACCOUNT' portal-admin-intake.js
           grep -q 'nexus_diagnosis_runs' portal-admin-intake.js
-          grep -q 'Client Diagnosis Agent' portal-admin-intake.js
-          grep -q 'shadow / draft-only' portal-admin-intake.js
-          grep -qi 'Capture discovery context' portal-admin-intake.js
-          grep -q 'discovery_context_captured' portal-admin-intake.js
+          grep -q 'Discovery & Diagnosis' portal-admin-intake.js
+          grep -q 'Evidence Collected' portal-admin-intake.js
+          grep -q 'Analyze Missing Information' portal-admin-intake.js
+          grep -q 'Review Missing Information' portal-admin-intake.js
+          grep -q 'nexus_save_discovery_admin_context' portal-admin-intake.js
+          grep -q 'This context will be included in the next diagnosis run' portal-admin-intake.js
+          grep -q 'Run Diagnosis' portal-admin-intake.js
+          grep -q 'Approve Diagnosis' portal-admin-intake.js
           grep -q "DISCOVERY_CAPTURE_STATUS='draft'" portal-discovery-capture.js
+          grep -q "capture:{source:'evidence_first_step2'" portal-discovery-capture.js
+          ! grep -q 'General Discovery Questions' portal-admin-intake.js
+          ! grep -qi 'Diagnosis packet' portal-admin-intake.js
           if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal-auth.js portal-runtime-core.js portal-client-core.js portal-client-upload-service.js portal-client-shell-v2.js portal.html portal-client-shell-v2.css portal-ops.js portal-admin-intake.js portal-admin-intake.css portal-discovery-capture.js portal-discovery-capture.css portal-action-workflow.js portal-action-workflow.css; then
             echo 'Privileged server credential reference found in browser-delivered portal files.' >&2
             exit 1
