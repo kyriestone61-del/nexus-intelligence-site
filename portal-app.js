@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260903-inline-action-files1';
+const BUILD='20260903-simple-client-shell1';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -68,7 +68,7 @@ const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='clie
 const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell;
 
 if(useClientShell){
-  await loadStyles(['portal-client-shell-v2.css','portal-client-action-execution.css']);
+  await loadStyles(['portal-client-shell-v2.css','portal-client-shell-simple.css','portal-client-action-execution.css']);
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
   await requiredImport(asset(`portal-client-upload-service.js?v=${BUILD}`),'client upload service');
   await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
