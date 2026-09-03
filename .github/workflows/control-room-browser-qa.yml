@@ -80,13 +80,21 @@ jobs:
           from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
           from urllib.parse import urlsplit
 
-          os.chdir(os.environ['GITHUB_WORKSPACE'])
+          root=os.environ['GITHUB_WORKSPACE']
+          os.chdir(root)
 
           class NexusHandler(SimpleHTTPRequestHandler):
               def do_GET(self):
                   parsed=urlsplit(self.path)
                   if parsed.path in ('/portal','/portal/'):
-                      self.path='/portal.html'+(('?'+parsed.query) if parsed.query else '')
+                      with open(os.path.join(root,'portal.html'),'rb') as handle:
+                          body=handle.read().replace(b' upgrade-insecure-requests',b'')
+                      self.send_response(200)
+                      self.send_header('Content-Type','text/html; charset=utf-8')
+                      self.send_header('Content-Length',str(len(body)))
+                      self.end_headers()
+                      self.wfile.write(body)
+                      return
                   return super().do_GET()
 
           ThreadingHTTPServer(('127.0.0.1',4173),NexusHandler).serve_forever()
