@@ -115,7 +115,7 @@ jobs:
           grep -q '03 Improvement Record' portal-client-shell-v2.js
           grep -q 'YOUR NEXT STEP' portal-client-shell-v2.js
           grep -q 'Complete this step →' portal-client-shell-v2.js
-          grep -q 'UP NEXT —' portal-client-shell-v2.js
+          grep -q 'ALSO READY —' portal-client-shell-v2.js
           grep -q 'Needs action' portal-client-shell-v2.js
           grep -q 'Updates' portal-client-shell-v2.js
           grep -q 'Available after Nexus completes' portal-client-shell-v2.js
