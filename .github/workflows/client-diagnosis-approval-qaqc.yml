@@ -1,0 +1,45 @@
+name: Nexus Client Diagnosis Approval QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-report-decision.js'
+      - 'supabase/migrations/20260903160500_nexus_client_diagnosis_approval.sql'
+      - 'tests/client-diagnosis-approval-qaqc.mjs'
+      - '.github/workflows/client-diagnosis-approval-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-report-decision.js'
+      - 'supabase/migrations/20260903160500_nexus_client_diagnosis_approval.sql'
+      - 'tests/client-diagnosis-approval-qaqc.mjs'
+      - '.github/workflows/client-diagnosis-approval-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  client-diagnosis-approval-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-client-report-decision.js
+      - name: Client diagnosis approval contract
+        run: node tests/client-diagnosis-approval-qaqc.mjs
+      - name: No privileged browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|STRIPE_SECRET|TWILIO_AUTH_TOKEN' portal-client-report-decision.js; then
+            echo 'Privileged server credential reference found in client diagnosis approval controls.' >&2
+            exit 1
+          fi
