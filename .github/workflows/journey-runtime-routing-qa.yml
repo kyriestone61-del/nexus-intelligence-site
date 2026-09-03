@@ -87,7 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller-v2.js
-          grep -Fq 'Step\\s*2\\s*of\\s*6' portal-diagnosis-controller-v2.js
+          grep -Fq 'Step\s*2\s*of\s*6' portal-diagnosis-controller-v2.js
           grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller-v2.js
           grep -Fq 'Review Diagnosis' portal-diagnosis-controller-v2.js
           grep -Fq 'Diagnosis execution failed.' portal-diagnosis-controller-v2.js
