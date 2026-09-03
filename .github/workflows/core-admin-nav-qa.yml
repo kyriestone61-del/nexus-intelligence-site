@@ -36,9 +36,13 @@ jobs:
           grep -Fq "intake.textContent='Discovery & Diagnosis'" portal-admin-journey-router.js
           grep -Fq "journey.insertAdjacentElement('afterend',intake)" portal-admin-journey-router.js
           grep -Fq "section.id='section-intake'" portal-admin-intake.js
-          grep -Fq 'captureDiscoveryContextBtn' portal-admin-intake.js
-          grep -Fq "status:DISCOVERY_CAPTURE_STATUS" portal-discovery-capture.js
+          grep -Fq 'Evidence Collected' portal-admin-intake.js
+          grep -Fq 'Analyze Missing Information' portal-admin-intake.js
+          grep -Fq 'nexus_save_discovery_admin_context' portal-admin-intake.js
+          grep -Fq 'Run Diagnosis' portal-admin-intake.js
+          grep -Fq "capture:{source:'evidence_first_step2'" portal-discovery-capture.js
           grep -Fq "['intake','Discovery & Diagnosis']" portal-admin-journey.js
+          grep -Fq "title:'Discovery & Diagnosis'" portal-admin-journey.js
       - name: No hidden-core regression
         run: |
           set -euo pipefail
