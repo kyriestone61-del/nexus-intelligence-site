@@ -1,0 +1,50 @@
+name: Nexus Document Service QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'core/document-context.js'
+      - 'core/document-service.js'
+      - 'portal-client.js'
+      - 'portal-client-upload-service.js'
+      - 'tests/document-service-qaqc.mjs'
+      - '.github/workflows/document-service-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'core/document-context.js'
+      - 'core/document-service.js'
+      - 'portal-client.js'
+      - 'portal-client-upload-service.js'
+      - 'tests/document-service-qaqc.mjs'
+      - '.github/workflows/document-service-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  document-service-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < core/document-context.js
+          node --input-type=module --check < core/document-service.js
+          node --input-type=module --check < portal-client.js
+          node --input-type=module --check < portal-client-upload-service.js
+          node --check tests/document-service-qaqc.mjs
+      - name: Canonical document ownership contract
+        run: node tests/document-service-qaqc.mjs
+      - name: No privileged browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY' core/document-context.js core/document-service.js portal-client-upload-service.js; then
+            echo 'Privileged credential reference found in browser document code.' >&2
+            exit 1
+          fi
