@@ -20,6 +20,11 @@
 /assessment*
   Cache-Control: no-store, max-age=0
 
+# Homepage behavioral patches are intentionally non-cacheable so a production fix
+# is visible immediately instead of leaving returning browsers on stale UI behavior.
+/phase-five.js
+  Cache-Control: no-store, max-age=0
+
 # Keep the Cloudflare Pages project domain and branch/version preview URLs out of search results.
 # The root Pages Function also applies this header because _headers does not affect Function-generated responses.
 https://:project.pages.dev/*
