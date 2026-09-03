@@ -3,118 +3,144 @@
 **Directive:** NEXUS-MR-1.0  
 **Assessment date:** 2026-09-03  
 **Production repository:** `kyriestone61-del/nexus-intelligence-site`  
-**Production branch / SHA:** `main` @ `4d16ebde15e089773afbc86fbf116ae266bfed85`  
+**Production application:** `main` @ `4d16ebde15e089773afbc86fbf116ae266bfed85`  
 **Readiness branch:** `readiness/nexus-market-readiness-2026-09-03`  
-**Readiness PR:** #95  
+**Readiness PR:** #95 (draft; do not merge while P0 gates are open)
 
 ## 1. Executive status
 
-# NO-GO
+# NO-GO FOR ACTIVE MARKETING
 
-Nexus is materially closer to market readiness than the prior working assumptions suggested. The Step 2 discovery/diagnosis redesign is merged, the diagnosis engine is producing structured results, the public Snapshot funnel is instrumented, the client/admin architecture is covered by green regression contracts, and current application/security QA is green.
+Nexus is substantially operational. The public experience, Step 2 discovery/evidence pipeline, diagnosis engine, core client/admin architecture, governed task lifecycle, action-template catalog, CI, security boundaries, and diagnosis-to-workspace orchestration are functioning at a materially stronger level than the baseline assumptions suggested.
 
-Nexus is **not yet approved for active marketing** because two live production conversion/communication dependencies are broken:
+Two live production P0 blockers remain and are both external configuration dependencies:
 
 1. **Transactional email:** Resend rejects production mail because `nexusintelligence.live` is not verified. Forty-two real failed outbox rows remain affected.
-2. **Fit-call booking:** the new live runtime gate returns **HTTP 503** with `configured:false` and `Live calendar booking is not configured yet.` The production Cloudflare Pages environment is missing required Google Calendar configuration.
+2. **Fit-call booking:** `https://nexusintelligence.live/api/booking-availability` returns HTTP **503** with `configured:false` and `Live calendar booking is not configured yet.` The Cloudflare production runtime lacks the required Google Calendar configuration.
 
-A third P1 closure item remains in diagnosis orchestration: the diagnosis-generated action path does not yet prove explicit dependency sequencing from the standard action-package dependency graph.
-
-No production client diagnosis was auto-approved during this readiness run. Moon Wax remains at the human-review boundary.
+The prior diagnosis/action dependency P1 is now **resolved in production and verified with isolated QA data**. No real client diagnosis was auto-approved during that test. Moon Wax remains at `ready_for_review` behind the intended human approval boundary.
 
 ---
 
-## 2. Verified current architecture
+## 2. Verified architecture
 
 Nexus currently operates as:
 
 - **Public + portal application:** Cloudflare Pages / Pages Functions
-- **Primary application repository:** GitHub `kyriestone61-del/nexus-intelligence-site`
+- **Repository / release control:** GitHub
 - **Database / Auth / Storage / RPC:** Supabase
 - **Diagnosis execution:** Supabase Edge Function `nexus-diagnosis-execute`
-- **Transactional email:** Supabase outbox + `nexus-email-worker` + Resend
-- **Email scheduling:** Supabase `pg_cron`, every five minutes
-- **SMS:** optional provider path; currently unconfigured, while in-app delivery remains active
-- **Booking:** Cloudflare Pages Function backed by Google Calendar FreeBusy/event creation
-- **Analytics / lead attribution:** Nexus analytics tables + governed revenue-lead objects
-- **Release QA:** GitHub Actions static, architecture, diagnosis, admin, portal-access, security, pre-marketing and production-runtime gates
+- **Transactional email:** `nexus_email_outbox` + `nexus-email-worker` + Resend
+- **Email scheduler:** Supabase `pg_cron`, every five minutes
+- **Booking:** Cloudflare Pages Function + Google Calendar FreeBusy/event APIs
+- **Analytics / lead attribution:** Nexus analytics tables + governed revenue-lead records
+- **Release QA:** GitHub Actions covering core QA, admin journey, diagnosis, portal access, security, control-room reconciliation, pre-marketing checks, production runtime and live booking runtime
 
-The repository is the intended application/migration source of truth. Production Supabase migration state was reconciled for every database change made during this run.
+The repository remains the intended source of truth for application and migration code. Every production database change made during this readiness execution has been mirrored to PR #95.
 
 ---
 
-## 3. Core operating workflow
+## 3. Core workflow
 
 **Traffic**  
 → public Nexus pages  
 → **AI Opportunity Snapshot / Fit Call**  
-→ governed lead / attribution record  
-→ **Client workspace activation**  
+→ governed lead + attribution  
+→ **Client workspace**  
 → discovery context + evidence packet  
 → **Diagnosis execution**  
-→ structured findings / evidence / recommended actions  
+→ structured findings / baselines / opportunities / recommended actions  
 → human review / revision / approval  
 → **diagnosis orchestration**  
-→ opportunities + tasks + document requests + approvals + metrics + milestones  
-→ client / Nexus execution  
+→ project + opportunities + tasks + document requests + approvals + metrics + milestones  
+→ dependency-aware execution  
 → evidence / review / completion  
 → improvement measurement.
 
-A controlled QA diagnosis has successfully executed approval/orchestration and created downstream objects atomically. The current Moon Wax diagnosis has executed successfully to `ready_for_review` and remains intentionally unapproved pending human review.
+A controlled QA diagnosis previously proved the atomic approval/orchestration transition. During this readiness run, an additional isolated QA scenario proved diagnosis action-template mapping and prerequisite behavior without touching Moon Wax or other real client data.
 
 ---
 
-## 4. Changes implemented during this readiness run
+## 4. Changes implemented in this execution
 
-### MR-SEC-01 — Narrow anonymous SECURITY DEFINER exposure
+### MR-SEC-01 — Reduced anonymous SECURITY DEFINER exposure
 
-Four Nexus `SECURITY DEFINER` functions were directly executable by `anon`. Their internal authorization checks prevented a confirmed privilege escalation, but the exposure was unnecessary.
+Removed unnecessary anonymous EXECUTE access from Nexus functions identified by the Supabase Security Advisor, including admin diagnosis and inbox-related functions. Internal authorization checks already existed; the ACL change reduced exposed surface area.
 
-Implemented:
-
-- revoked anonymous EXECUTE from `nexus_admin_apply_manual_diagnosis`
-- revoked PUBLIC/anonymous EXECUTE from `nexus_get_client_action_context`, retaining authenticated + service-role access
-- revoked anonymous EXECUTE from `nexus_get_inbox_admin_preview`
-- revoked anonymous direct EXECUTE from trigger function `nexus_sync_roi_from_approval_chain`
-
-**Production migration:** `20260903074430_nexus_revoke_anon_security_definer_execute`  
+**Production:** `20260903074430_nexus_revoke_anon_security_definer_execute`  
 **Repository:** `supabase/migrations/20260903_nexus_revoke_anon_security_definer_execute.sql`
 
-Verification: Supabase Security Advisor no longer reports the Nexus anonymous-definer warnings found at baseline.
+**Verification:** the Nexus anonymous-definer warnings found at baseline no longer appear in the current Security Advisor output.
 
-### MR-OPS-01 — Add governed failed-email recovery
+### MR-OPS-01 — Added governed failed-email recovery
 
-Resend 4xx responses are treated as permanent by the worker, so correcting the provider would not automatically recover existing failed rows.
+Added admin-only recovery functions:
 
-Implemented:
+- `nexus_admin_retry_failed_email(uuid)`
+- `nexus_admin_requeue_unverified_domain_failures()`
 
-- `nexus_admin_retry_failed_email(uuid)` — requeue one failed Nexus email
-- `nexus_admin_requeue_unverified_domain_failures()` — requeue only the exact failed Resend-403 domain-verification cohort
-- both require `nexus_is_platform_admin()`, deny `anon`, and are granted only to authenticated/service-role callers
+They require the existing Nexus platform-admin check, deny anonymous execution, and allow the stranded Resend-domain cohort to be safely requeued after the sender domain is fixed.
 
-**Production migration:** `20260903075725_nexus_admin_email_retry_controls`  
+**Production:** `20260903075725_nexus_admin_email_retry_controls`  
 **Repository:** `supabase/migrations/20260903_nexus_admin_email_retry_controls.sql`
 
-### MR-DIAG-01 — Remove transcript-only standard-action wording
+### MR-DIAG-01 — Removed transcript-only diagnosis wording
 
-Step 2 is evidence/file-agnostic, but one standard template still displayed `Review discovery transcript`. The stable internal code remains `diagnosis_review_transcript`; its title is now `Review discovery evidence`, and the description now covers the authorized evidence packet + captured context.
+The stable template code `diagnosis_review_transcript` remains unchanged for compatibility, but its user/model-facing title is now **Review discovery evidence** and its description is evidence-packet/file-agnostic.
 
-**Production migration:** `20260903075843_nexus_file_agnostic_discovery_template`  
+**Production:** `20260903075843_nexus_file_agnostic_discovery_template`  
 **Repository:** `supabase/migrations/20260903_nexus_file_agnostic_discovery_template.sql`
 
-### MR-QA-01 — Add live booking runtime gate
+### MR-ORCH-01 — Enforced diagnosis-generated prerequisite links
 
-Added `.github/workflows/booking-runtime-smoke.yml`. It requires the production endpoint to return HTTP 200 with `ok:true`, `configured:true`, and a `slots` payload. Failure evidence is preserved as a workflow artifact.
+Updated `private.nexus_map_diagnosis_action_templates(uuid)` so that, after mapping diagnosis-generated actions to standardized templates, it also applies package prerequisite relationships when:
 
-**First live finding:** HTTP **503**, `configured:false`, `Live calendar booking is not configured yet.`
+- both tasks exist in the same diagnosis run;
+- both belong to the same company;
+- both belong to the same project;
+- the dependency rule is unambiguous; and
+- the prerequisite task exists exactly once.
 
-### MR-DATA-01 — Remove synthetic QA funnel contamination
+The mapper never invents a missing prerequisite and never links across clients/runs/projects. It now records:
 
-- Removed three synthetic `website_opportunity_snapshot` revenue leads restricted to `QA *` companies and `qa-*@example.com` recipients.
-- Reclassified three failed `@example.com` email records as `cancelled` / `qa_synthetic`.
-- No real lead or client record was deleted.
+- `template_mapped_actions`
+- `template_dependencies_applied`
+- `template_dependencies_missing`
 
-Current outbox after cleanup:
+Dependent action-template descriptions also expose prerequisite semantics to the diagnosis model. If accepted evidence or previously completed work already satisfies a prerequisite, the model is instructed not to generate redundant work.
+
+Production migration sequence:
+
+- `nexus_diagnosis_action_dependencies`
+- `nexus_diagnosis_action_dependencies_alias_fix`
+- `nexus_diagnosis_action_dependencies_uuid_fix`
+
+Repository mirrors:
+
+- `supabase/migrations/20260903_nexus_diagnosis_action_dependencies.sql`
+- `supabase/migrations/20260903_nexus_diagnosis_action_dependencies_alias_fix.sql`
+- `supabase/migrations/20260903_nexus_diagnosis_action_dependencies_uuid_fix.sql`
+
+### MR-QA-01 — Added live booking runtime gate
+
+Added `.github/workflows/booking-runtime-smoke.yml`.
+
+It requires production to return:
+
+- HTTP 200
+- `ok:true`
+- `configured:true`
+- a `slots` payload
+
+and preserves failure evidence as a workflow artifact.
+
+**Current result:** FAIL — production returns HTTP 503 / `configured:false`.
+
+### MR-DATA-01 — Removed synthetic QA contamination
+
+Removed only explicitly synthetic Snapshot revenue-lead records (`QA *` companies with `qa-*@example.com`) and reclassified synthetic failed `@example.com` email records as cancelled/QA-only. No real lead/client record was deleted.
+
+Current email outbox state:
 
 - **42 failed** — real Resend domain-verification failures
 - **4 cancelled**
@@ -122,108 +148,145 @@ Current outbox after cleanup:
 
 ---
 
-## 5. Release-gate status
+## 5. Dependency QA evidence — PASSED
 
-| Gate | Status | Evidence / reason |
-|---|---|---|
-| A — Public conversion | **FAIL** | Public pages/Snapshot are live, but production fit-call availability returns HTTP 503 because calendar booking is not configured. |
-| B — Authentication / tenancy | **PASS WITH P1 HARDENING** | RLS and client-update boundaries are present; security/admin gates are green; anonymous definer exposure found here was removed. Leaked-password protection remains disabled. |
-| C — Discovery | **PASS** | Step 2 evidence-first redesign is merged; live context/evidence structures exist; current real-client diagnosis executed from the redesigned lane. |
-| D — Diagnosis | **PASS** | Two production diagnosis runs have structured results and no execution error; one controlled QA approval and one real-client run at human review. |
-| E — Orchestration | **PARTIAL / FAIL** | Atomic downstream orchestration is proven, but diagnosis-generated actions do not yet prove explicit prerequisite links from the standard package dependency graph. |
-| F — Client execution | **PARTIAL** | Task state machine, review handoff, documents, approvals and dependency-aware action context exist; no fresh fully authenticated browser E2E was available from this control environment. |
-| G — Admin operation | **PASS / PARTIAL** | Admin Journey QA and Control Room Reconciliation are green; governed email recovery now exists. |
-| H — Communications | **FAIL — LAUNCH BLOCKER** | 42 production transactional emails failed because Resend reports the Nexus domain is not verified. |
-| I — Security | **PASS FOR P0** | Parallel Security QA is green and no credible Nexus cross-tenant P0 was found; leaked-password protection remains P1. |
-| J — Reliability | **FAIL** | Email health is failed and live booking config is absent. |
-| K — CI | **PASS EXCEPT INTENTIONAL BOOKING GATE FAILURE** | Application, Diagnosis Step 4, Admin Journey, Parallel Security and Control Room gates are green on PR #95; booking runtime correctly fails against current production. |
-| L — Mobile | **PARTIAL** | Diagnosis/mobile and responsive admin contracts are green; no fresh full authenticated device regression was available from this execution environment. |
-| M — Red team | **FAIL** | Live email + booking failures and unresolved orchestration-dependency proof prevent certification. |
+A synthetic diagnosis run was created only inside **Nexus QA Sandbox**, then deleted after assertions.
+
+### Nexus-owned chain
+
+Three synthetic diagnosis actions mapped to:
+
+1. `diagnosis_review_transcript` — Review discovery evidence
+2. `diagnosis_map_workflow` — Map current workflow
+3. `diagnosis_bottlenecks` — Identify bottlenecks and friction
+
+Result:
+
+- `template_mapped_actions = 3`
+- `template_dependencies_applied = 2`
+- `template_dependencies_missing = 0`
+
+The resulting graph was:
+
+**Review discovery evidence**  
+→ **Map current workflow**  
+→ **Identify bottlenecks and friction**
+
+### Client-owned unlock behavior
+
+A separate synthetic client pair mapped to:
+
+**Confirm top business goals**  
+→ **Complete discovery meeting**
+
+Before prerequisite completion, the client action-context engine returned:
+
+- downstream state: `UPCOMING`
+- `prerequisites_satisfied = false`
+- blocker: Confirm top business goals
+- no cycle detected
+
+After completing the prerequisite through the governed Nexus admin transition, the downstream action returned:
+
+- downstream state: `WAITING_ON_YOU`
+- `prerequisites_satisfied = true`
+- no blocking task
+- no cycle detected
+
+This proves the expected DAG behavior: incomplete prerequisites remain Upcoming; completing the prerequisite unlocks the dependent action.
+
+### Cleanup
+
+After the assertion:
+
+- remaining synthetic diagnosis run: **0**
+- remaining synthetic tasks: **0**
+- remaining synthetic activity records: **0**
+
+No Moon Wax record was changed by this test.
 
 ---
 
-## 6. Consolidated P0 / P1 readiness backlog
+## 6. Release-gate status
 
-### NX-MR-P0-01 — Resend production domain is not verified
+| Gate | Status | Current evidence |
+|---|---|---|
+| A — Public conversion | **FAIL** | Snapshot/public funnel is live, but fit-call booking returns HTTP 503 because production Calendar configuration is absent. |
+| B — Authentication / tenancy | **PASS WITH P1 HARDENING** | RLS, tenancy boundaries and client-update guards are present; security/admin QA is green. Supabase leaked-password protection remains disabled. |
+| C — Discovery | **PASS** | Evidence-first Step 2 redesign is merged and the real-client diagnosis lane has executed successfully. |
+| D — Diagnosis | **PASS** | Production diagnosis runs have structured results and no execution error; Moon Wax remains at human review. |
+| E — Orchestration | **PASS** | Atomic orchestration exists; standardized prerequisite mapping and client blocked→unlock behavior were proven in isolated QA. |
+| F — Client execution | **PASS / PARTIAL BROWSER EVIDENCE** | Task lifecycle, dependency state engine, evidence/review flow and admin transitions are operational; a fresh full authenticated browser session was not available from this control runtime. |
+| G — Admin operation | **PASS** | Admin Journey QA and Control Room Reconciliation are green; governed email recovery was added. |
+| H — Communications | **FAIL — P0** | 42 real emails remain failed because the Resend production sender domain is unverified. |
+| I — Security | **PASS FOR P0** | Parallel Security QA is green; no credible Nexus cross-tenant P0 found; baseline anonymous-definer exposure reduced. |
+| J — Reliability | **FAIL — P0 DEPENDENCIES** | Email provider configuration and booking configuration are not healthy. |
+| K — CI | **PASS EXCEPT EXPECTED BOOKING FAILURE** | Application/admin/security/diagnosis/control-room gates are green; booking runtime correctly fails against the live defect. |
+| L — Mobile | **PARTIAL** | Diagnosis/mobile and responsive admin contracts are green; no fresh full authenticated physical-device regression from this control runtime. |
+| M — Red team | **FAIL** | Live booking and email failures are sufficient to deny launch approval. |
 
-**Subsystem:** transactional communications  
-**Severity:** P0 launch blocker  
-**Evidence:** 42 current outbox rows failed with Resend HTTP 403 stating `nexusintelligence.live` is not verified.  
-**User impact:** Snapshot/client/admin email can fail.  
-**Business impact:** leads and clients cannot be reliably progressed through email-dependent workflows.  
-**Root cause:** external Resend domain/DNS configuration.  
-**Correction:** verify the production sender domain in Resend, invoke the governed requeue control, and verify provider acceptance + real delivery.  
-**Owner:** Founder / DNS + Resend account owner.  
+---
+
+## 7. Remaining P0/P1 backlog
+
+### NX-MR-P0-01 — Verify production sender domain in Resend
+
+**Evidence:** 42 outbox records failed with Resend HTTP 403 because `nexusintelligence.live` is not verified.  
+**Required action:** verify the production sender domain/DNS in Resend.  
+**After verification:** invoke the governed domain-failure requeue, confirm provider message IDs, confirm real delivery, and require email health to recover.  
+**Owner:** founder / DNS + Resend account owner.  
 **Status:** BLOCKED ON EXTERNAL CONFIGURATION.
 
-### NX-MR-P0-02 — Production Google Calendar booking is not configured
+### NX-MR-P0-02 — Configure production Google Calendar booking
 
-**Subsystem:** public conversion / fit-call booking  
-**Severity:** P0 launch blocker because booking is a primary public CTA  
-**Evidence:** PR #95 live booking smoke returns HTTP 503 and `configured:false`.  
-**Root cause:** Cloudflare runtime lacks the minimum Google Calendar configuration required by `bookingConfigured()`.
-
-Required production values:
+**Evidence:** live booking runtime smoke returns HTTP 503 / `configured:false`.  
+**Required production values:**
 
 - `GOOGLE_CALENDAR_CLIENT_EMAIL`
 - `GOOGLE_CALENDAR_PRIVATE_KEY`
 - at least one of:
-  - `NEXUS_CALENDAR_ID`, or
-  - `GOOGLE_CALENDAR_ID`, or
+  - `NEXUS_CALENDAR_ID`
+  - `GOOGLE_CALENDAR_ID`
   - `GOOGLE_CALENDAR_IMPERSONATE`
 
-Operational defaults exist for timezone/duration/lead-time/wall-times, but they should be explicitly reviewed before launch:
+Review these optional runtime values as well:
 
-- `NEXUS_BOOKING_TIMEZONE` (default `America/New_York`)
-- `NEXUS_BOOKING_DURATION_MINUTES` (default `20`)
-- `NEXUS_BOOKING_MIN_LEAD_HOURS` (default `12`)
-- `NEXUS_BOOKING_WALL_TIMES` (default `10:00,11:30,14:00,15:30`)
+- `NEXUS_BOOKING_TIMEZONE` — default `America/New_York`
+- `NEXUS_BOOKING_DURATION_MINUTES` — default `20`
+- `NEXUS_BOOKING_MIN_LEAD_HOURS` — default `12`
+- `NEXUS_BOOKING_WALL_TIMES` — default `10:00,11:30,14:00,15:30`
 
-The selected service account must also have the required Calendar access to FreeBusy/create/update/delete events for the target calendar.
+The service account/calendar target must allow FreeBusy plus event create/update/delete behavior used by Nexus.
 
-**Correction:** configure the variables in the Cloudflare production environment, redeploy if required, then require the live booking smoke to pass and perform one controlled fit-call booking/cancel test.  
-**Owner:** Founder / Cloudflare + Google Calendar configuration.  
+**After configuration:** rerun the live booking gate and complete one controlled book/reschedule/cancel test.  
+**Owner:** founder / Cloudflare + Google Calendar account owner.  
 **Status:** BLOCKED ON EXTERNAL CONFIGURATION.
 
-### NX-MR-P1-01 — Diagnosis-generated dependency semantics are incomplete
+### NX-MR-P1-01 — Enable Supabase leaked-password protection
 
-**Subsystem:** diagnosis → workspace orchestration  
-**Severity:** P1  
-**Evidence:** 42 active templates / 6 packages contain 19 dependency edges, but the legacy approved QA diagnosis produced zero `dependency_task_id` links and the diagnosis output contract currently exposes template code rather than an explicit client-specific dependency relationship.  
-**Impact:** generated work can be correct as a set while sequencing/prerequisites remain implicit.  
-**Correction:** define one authoritative diagnosis-generated dependency contract, apply only valid same-run/same-company relationships, and add an integration test proving blocked → prerequisite complete → downstream unlock.  
-**Owner:** Engineering.  
-**Status:** OPEN.
-
-### NX-MR-P1-02 — Supabase leaked-password protection disabled
-
-**Subsystem:** authentication  
-**Severity:** P1 hardening  
-**Evidence:** Supabase Auth Security Advisor warning.  
-**Correction:** enable leaked-password protection and retest password flows.  
-**Owner:** Founder / Supabase configuration.  
+**Evidence:** current Supabase Auth Security Advisor warning.  
+**Required action:** enable leaked-password protection in Supabase Auth and retest password flows.  
+**Owner:** founder / Supabase Auth configuration.  
 **Status:** OPEN.
 
 ---
 
-## 7. P2 / P3 post-launch backlog
+## 8. P2/P3 backlog
 
-Do not displace P0/P1 work with these:
+Do not let these displace the P0s:
 
-- SMS provider unconfigured; in-app notification delivery remains active. Keep P2 unless SMS becomes a contractual requirement.
-- Supabase performance advisor reports Nexus foreign-key-index and RLS init-plan optimization opportunities.
-- Review duplicate Nexus indexes before removing any.
-- `main` is currently not protected by a required-status-check rule; add branch/ruleset protection as release governance hardening.
-- Expand live authenticated mobile E2E coverage beyond existing responsive/mobile contracts.
-- Add direct operator UI for email retry if provider-recovery work becomes recurrent; the governed DB primitive now exists.
+- SMS provider remains unconfigured; in-app notification delivery remains available. Keep P2 unless SMS becomes contractual.
+- Supabase performance advisor reports Nexus foreign-key index and RLS init-plan optimization opportunities.
+- Review duplicate Nexus indexes before deleting any.
+- Add required-status-check/branch protection to `main` as release-governance hardening.
+- Expand full authenticated mobile browser/device E2E coverage.
+- Add operator UI for email retry only if provider-recovery becomes a recurrent operational task; the governed recovery primitive now exists.
 
 ---
 
-## 8. Test and evidence summary
+## 9. QA / security evidence
 
-### Current production / `main`
-
-Green at `4d16ebd`:
+Current production/main gates are green for:
 
 - Nexus Pre-Marketing QAQC
 - Nexus Diagnosis Step 4 QA
@@ -232,9 +295,7 @@ Green at `4d16ebd`:
 - Nexus Control Room Reconciliation QA
 - Nexus Production Runtime Smoke
 
-### PR #95 current gates
-
-Green:
+PR #95 has also produced green results for:
 
 - Nexus Admin Journey QA
 - Nexus Control Room Reconciliation QA
@@ -242,58 +303,28 @@ Green:
 - Nexus Parallel Security QA
 - Nexus QA
 
-Failing by design against the current production defect:
+The added live booking gate remains red because it correctly detects the current production configuration failure.
 
-- **Nexus Booking Runtime Smoke** — HTTP 503 / `configured:false`
-
-The production runtime and admin/security gates cover deployed portal markers, the restored client-login path, prior Inbox lockout regression protection, protected-route rejection, six-stage admin workflow assertions, Step 2/diagnosis gates, responsive admin contracts, Company Memory privacy boundaries and atomic onboarding architecture.
-
-### Production data/runtime checks performed here
-
-- Supabase project health and migration history inspected
-- Security Advisor audited before/after ACL hardening
-- RLS / table-policy / task-update-boundary contracts inspected
-- diagnosis runs + execution-error state inspected
-- approved diagnosis orchestration summary inspected
-- action-template/package integrity and dependency graph inspected
-- transactional outbox/failure signatures inspected
-- five-minute email scheduler confirmed active
-- synthetic QA lead/email contamination cleaned with explicit QA-only filters
-- analytics/funnel activity inspected
-- public marketing pages and Snapshot re-crawled on 2026-09-03
-- live booking endpoint probed from GitHub Actions and failure artifact preserved
-
-### Not fully executable from this control environment
-
-- fresh authenticated browser E2E as a real client/admin
-- fresh full-device mobile browser regression
-- direct Resend account/DNS mutation
-- direct Cloudflare environment-secret mutation
-
-No Cloudflare connector is available in this execution environment, and no installable Cloudflare plugin was found. Those configuration blockers are therefore explicitly founder-owned rather than silently assumed complete.
+The latest Supabase Security Advisor sweep contains no recurrence of the Nexus anonymous SECURITY DEFINER warnings removed during this run. It still reports numerous authenticated SECURITY DEFINER functions across the shared database; these are not being mass-revoked because Nexus intentionally exposes authenticated RPC contracts with internal role/membership checks. Each must be treated according to its authorization contract rather than disabled indiscriminately.
 
 ---
 
-## 9. Production status
-
-**Production application:** `main` @ `4d16ebde15e089773afbc86fbf116ae266bfed85`  
-**Readiness changes:** PR #95, intentionally draft.  
-**Database:** production includes the three readiness migrations described above.  
-**Promotion:** no readiness-branch application/workflow changes have been merged to `main`.  
-
-The application rollback target immediately preceding the Step 2 merge should remain available until the next release is certified. No destructive DB rollback was performed.
-
----
-
-## 10. Founder manual actions required before active marketing
+## 10. Founder actions required before active marketing
 
 1. **Resend:** verify `nexusintelligence.live` for the production sender.
-2. **Cloudflare / Google Calendar:** configure `GOOGLE_CALENDAR_CLIENT_EMAIL`, `GOOGLE_CALENDAR_PRIVATE_KEY`, and a valid calendar target (`NEXUS_CALENDAR_ID`, `GOOGLE_CALENDAR_ID`, or impersonated account); review booking timezone/wall-times.
+2. **Cloudflare / Google Calendar:** add the required production Calendar credentials/target and validate service-account access.
 3. **Supabase Auth:** enable leaked-password protection.
 
-After Resend verification, Engineering can invoke the new governed domain-failure requeue and confirm actual delivery. After Cloudflare configuration, PR #95's live booking smoke provides an objective pass/fail signal.
+No founder action is required for:
 
-No founder action is required for the QA data cleanup, Nexus ACL hardening, email-retry primitives, or file-agnostic diagnosis-template correction; those changes are already implemented in production and mirrored to PR #95.
+- diagnosis dependency mapping;
+- action-template prerequisite semantics;
+- QA synthetic-data cleanup;
+- Nexus anonymous-definer ACL hardening;
+- failed-email recovery primitives;
+- file-agnostic diagnosis template wording.
+
+Those are implemented.
 
 ---
 
@@ -303,38 +334,38 @@ No founder action is required for the QA data cleanup, Nexus ACL hardening, emai
 
 - paid acquisition
 - broad automated outreach
-- large-volume partnerships/promotion
-- campaigns that depend on automated email or fit-call booking
+- large-volume partnership promotion
+- campaigns that rely on automated email or self-service fit-call booking
 
-### Can continue while blockers close
+### Safe to continue now
 
 - founder-led sales preparation
-- content/SEO preparation
-- case-study/evidence preparation
-- low-volume manual conversations personally managed by the founder
-- product QA with controlled/synthetic data
+- content / SEO preparation
+- case-study development
+- low-volume manually managed prospect conversations
+- controlled product QA
 
-Move from **NO-GO** to **CONDITIONAL GO** only after:
+Nexus can move from **NO-GO** to **CONDITIONAL GO** once:
 
-1. Resend verification + successful real delivery;
-2. email queue health recovers after controlled requeue;
-3. Cloudflare booking configuration is present and the live booking smoke passes; and
-4. diagnosis-generated dependency behavior is implemented/tested or explicitly constrained so prerequisites cannot be misrepresented.
+1. Resend verification is complete and a real controlled email delivers;
+2. the 42-domain-failure cohort is safely requeued/cleared;
+3. production Calendar booking is configured and the live runtime gate passes; and
+4. Supabase leaked-password protection is enabled.
 
-A **MARKET READY** verdict additionally requires the authenticated client/admin and mobile regression evidence defined by NEXUS-MR-1.0.
+A full **MARKET READY** verdict still requires the final authenticated client/admin browser regression and mobile-critical regression required by NEXUS-MR-1.0.
 
 ---
 
 ## 12. Immediate execution order
 
 1. Founder completes Resend domain verification.
-2. Founder configures Google Calendar booking credentials/target in Cloudflare production.
-3. Engineering requeues the exact Resend-domain failure cohort and verifies real delivery.
-4. Re-run the booking runtime gate and perform one controlled booking/cancel flow.
-5. Implement/test diagnosis-generated dependency semantics using isolated QA data; do not use Moon Wax as destructive test data.
-6. Run authenticated client/admin regression and mobile-critical flows.
-7. Re-run the full release matrix and update this verdict.
-8. Promote PR #95 only after the release gates are green.
+2. Founder configures Google Calendar production secrets/target in Cloudflare.
+3. Founder enables Supabase leaked-password protection.
+4. Engineering requeues the exact Resend-domain failure cohort and confirms delivery.
+5. Re-run the booking runtime gate and perform controlled booking/reschedule/cancel QA.
+6. Run final authenticated client/admin browser regression and mobile-critical flows.
+7. Re-run the release matrix.
+8. Only then promote PR #95 and update the verdict to Conditional Go / Market Ready as supported by evidence.
 
 ---
 
@@ -342,4 +373,4 @@ A **MARKET READY** verdict additionally requires the authenticated client/admin 
 
 **NEXUS INTELLIGENCE IS CURRENTLY: NO-GO FOR ACTIVE MARKETING.**
 
-The system is not broadly broken. Diagnosis, the data model, portal/admin architecture, CI, public positioning and core orchestration foundation are substantially operational. The live blockers are now bounded and proven: production email sender verification, production Calendar booking configuration, and explicit orchestration-dependency closure.
+The application is not broadly broken. Diagnosis, evidence ingestion, task governance, prerequisite sequencing, portal/admin architecture, security controls and core orchestration are substantially operational. The remaining hard blockers are now narrow and proven: **production Resend sender verification and production Google Calendar booking configuration**. Supabase leaked-password protection remains a P1 hardening item before active marketing.
