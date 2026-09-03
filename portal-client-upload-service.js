@@ -1,3 +1,5 @@
+import {resolveDocumentContext} from '/app/services/document-context.js';
+
 /**
  * Client upload service: one owner for client uploads from the Data Room and
  * from an individual client action. All uploads use the same private bucket,
@@ -11,7 +13,7 @@ const BUCKET='nexus-client-documents';
 const MAX_BYTES=26214400;
 let selection={requestId:null,requirementId:null,taskId:null,title:''};
 const $=id=>document.getElementById(id);
-const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
 
 function clear(){selection={requestId:null,requirementId:null,taskId:null,title:''};const box=$('uploadContext');if(box){box.classList.remove('show');box.innerHTML=''}}
 function prepare({requestId=null,requirementId=null,taskId=null,title=''}){
@@ -23,8 +25,6 @@ function prepare({requestId=null,requirementId=null,taskId=null,title=''}){
 }
 
 function taskFor(id){return id?(state.tasks||[]).find(task=>String(task.id)===String(id))||null:null}
-function requestFor(id){return id?(state.docRequests||[]).find(row=>String(row.id)===String(id))||null:null}
-function requirementFor(id){return id?(state.dataRequirements||[]).find(row=>String(row.id)===String(id))||null:null}
 function assertTaskBoundary(taskId){
   if(!taskId)return null;
   const task=taskFor(taskId);
@@ -38,10 +38,20 @@ async function uploadFile({file,requestId=null,requirementId=null,taskId=null,ti
   if(!file)throw new Error('Choose a file first.');
   if(file.size>MAX_BYTES)throw new Error('File exceeds the 25 MB limit.');
   const companyId=state.companyId;if(!companyId)throw new Error('Client company context is unavailable.');
-  const task=assertTaskBoundary(taskId),request=requestFor(requestId),requirement=requirementFor(requirementId);
+  const task=assertTaskBoundary(taskId);
+  const context=resolveDocumentContext({
+    companyId,
+    projects:state.projects||[],
+    tasks:state.tasks||[],
+    docRequests:state.docRequests||[],
+    dataRequirements:state.dataRequirements||[],
+    taskId,
+    requestId,
+    requirementId
+  });
+  const {projectId,request,requirement}=context;
   const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=`${companyId}/${Date.now()}-${crypto.randomUUID()}-${safe}`;
   const sensitivity=request?.sensitivity||requirement?.catalog?.sensitivity||'standard';
-  const projectId=task?.project_id||state.projects?.[0]?.id||null;
   const upload=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||undefined});if(upload.error)throw upload.error;
   try{
     const row={company_id:companyId,project_id:projectId,task_id:task?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category,status:'shared',note:(note||title)?String(note||`File for ${title}`):null,uploaded_by:state.user.id,sensitivity,request_id:requestId||null,data_requirement_id:requirementId||null,document_area:'client_submission',source_role:'client'};
