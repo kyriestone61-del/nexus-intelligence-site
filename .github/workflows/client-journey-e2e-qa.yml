@@ -75,7 +75,7 @@ jobs:
           grep -Fq 'diagnosisApproved' portal-admin-journey.js
           grep -Fq 'analysis_result' portal-admin-journey.js
           grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller-v2.js
-          grep -Fq 'Step\\s*2\\s*of\\s*6' portal-diagnosis-controller-v2.js
+          grep -Fq 'Step\s*2\s*of\s*6' portal-diagnosis-controller-v2.js
           grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller-v2.js
           grep -Fq 'Review Diagnosis' portal-diagnosis-controller-v2.js
           grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
