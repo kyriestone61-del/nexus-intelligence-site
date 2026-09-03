@@ -19,3 +19,6 @@ window.addEventListener('nexus:workspace-ready',schedule);
 window.addEventListener('nexus:client-context-ready',schedule);
 const observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true});
 schedule();
+
+const DIAGNOSIS_FLOW_BUILD='20260903-diagnosis-flow1';
+import(`/portal-client-diagnosis-flow.js?v=${DIAGNOSIS_FLOW_BUILD}`).catch(error=>console.error('Nexus diagnosis approval flow failed to load.',error));

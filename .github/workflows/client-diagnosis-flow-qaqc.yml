@@ -1,0 +1,49 @@
+name: Nexus Client Diagnosis Flow QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'portal-client-diagnosis-flow.js'
+      - 'portal-task-file-attachments-live.js'
+      - '_headers'
+      - 'supabase/migrations/20260903191000_nexus_diagnosis_client_flow_guardrails.sql'
+      - 'tests/client-diagnosis-flow-qaqc.mjs'
+      - '.github/workflows/client-diagnosis-flow-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-client-diagnosis-flow.js'
+      - 'portal-task-file-attachments-live.js'
+      - '_headers'
+      - 'supabase/migrations/20260903191000_nexus_diagnosis_client_flow_guardrails.sql'
+      - 'tests/client-diagnosis-flow-qaqc.mjs'
+      - '.github/workflows/client-diagnosis-flow-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  client-diagnosis-flow-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-client-diagnosis-flow.js
+          node --input-type=module --check < portal-task-file-attachments-live.js
+          node --check tests/client-diagnosis-flow-qaqc.mjs
+      - name: Guided diagnosis flow contract
+        run: node tests/client-diagnosis-flow-qaqc.mjs
+      - name: No privileged browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY' portal-client-diagnosis-flow.js portal-task-file-attachments-live.js; then
+            echo 'Privileged credential reference found in client diagnosis flow.' >&2
+            exit 1
+          fi
