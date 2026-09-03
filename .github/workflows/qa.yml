@@ -26,6 +26,8 @@ jobs:
           node --input-type=module --check < portal-auth.js
           node --input-type=module --check < portal-runtime-core.js
           node --input-type=module --check < portal-client-core.js
+          node --input-type=module --check < core/document-context.js
+          node --input-type=module --check < core/document-service.js
           node --input-type=module --check < portal-client-upload-service.js
           node --input-type=module --check < portal-client-shell-v2.js
           node --input-type=module --check < portal-task-file-attachments.js
@@ -129,10 +131,12 @@ jobs:
           grep -q 'min-height:44px' portal-client-shell-v2.css
           grep -q 'env(safe-area-inset-bottom)' portal-client-shell-v2.css
           grep -q 'overflow-x:hidden' portal-client-shell-v2.css
-          grep -Fq 'request_id:requestId||null' portal-client-upload-service.js
-          grep -Fq 'data_requirement_id:requirementId||null' portal-client-upload-service.js
-          grep -Fq 'task_id:task?.id||null' portal-client-upload-service.js
-          grep -q 'uploadFilesForTask' portal-client-upload-service.js
+          grep -Fq 'request_id:requestId||null' core/document-service.js
+          grep -Fq 'data_requirement_id:requirementId||null' core/document-service.js
+          grep -Fq 'task_id:task?.id||null' core/document-service.js
+          grep -q 'documents.uploadFile' portal-client-upload-service.js
+          grep -q 'documents.uploadFilesForTask' portal-client-upload-service.js
+          grep -q 'documents.createDownloadTarget' portal-client-upload-service.js
           grep -q 'portal-task-file-attachments.js' portal-client-upload-service.js
           grep -q 'data-task-file-upload' portal-task-file-attachments.js
           grep -q 'data-task-file-download' portal-task-file-attachments.js
@@ -152,7 +156,7 @@ jobs:
           grep -q "capture:{source:'evidence_first_step2'" portal-discovery-capture.js
           ! grep -q 'General Discovery Questions' portal-admin-intake.js
           ! grep -qi 'Diagnosis packet' portal-admin-intake.js
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal-auth.js portal-runtime-core.js portal-client-core.js portal-client-upload-service.js portal-client-shell-v2.js portal-task-file-attachments.js portal-task-file-attachments-live.js portal.html portal-client-shell-v2.css portal-task-file-attachments.css portal-ops.js portal-admin-intake.js portal-admin-intake.css portal-discovery-capture.js portal-discovery-capture.css portal-action-workflow.js portal-action-workflow.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-app.js portal-client.js portal-auth.js portal-runtime-core.js portal-client-core.js core/document-context.js core/document-service.js portal-client-upload-service.js portal-client-shell-v2.js portal-task-file-attachments.js portal-task-file-attachments-live.js portal.html portal-client-shell-v2.css portal-task-file-attachments.css portal-ops.js portal-admin-intake.js portal-admin-intake.css portal-discovery-capture.js portal-discovery-capture.css portal-action-workflow.js portal-action-workflow.css; then
             echo 'Privileged server credential reference found in browser-delivered portal files.' >&2
             exit 1
           fi
