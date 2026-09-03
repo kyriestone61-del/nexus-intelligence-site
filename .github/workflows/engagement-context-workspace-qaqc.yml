@@ -1,0 +1,47 @@
+name: Nexus Engagement Context Workspace QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'portal-client.js'
+      - 'core/engagement-context.js'
+      - 'core/workspace-query-coordinator.js'
+      - 'tests/engagement-context-workspace-qaqc.mjs'
+      - '.github/workflows/engagement-context-workspace-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-client.js'
+      - 'core/engagement-context.js'
+      - 'core/workspace-query-coordinator.js'
+      - 'tests/engagement-context-workspace-qaqc.mjs'
+      - '.github/workflows/engagement-context-workspace-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  engagement-context-workspace-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-client.js
+          node --input-type=module --check < core/engagement-context.js
+          node --input-type=module --check < core/workspace-query-coordinator.js
+          node --check tests/engagement-context-workspace-qaqc.mjs
+      - name: Canonical engagement and single-flight workspace contracts
+        run: node tests/engagement-context-workspace-qaqc.mjs
+      - name: No privileged browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY' core/engagement-context.js core/workspace-query-coordinator.js; then
+            echo 'Privileged credential reference found in browser-delivered core services.' >&2
+            exit 1
+          fi
