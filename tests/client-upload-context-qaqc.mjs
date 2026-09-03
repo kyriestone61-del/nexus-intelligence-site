@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const contextSource=fs.readFileSync('app/services/document-context.js','utf8');
-const contextModule=await import(`data:text/javascript;base64,${Buffer.from(contextSource).toString('base64')}`);
+const contextDataUrl=`data:text/javascript;base64,${Buffer.from(contextSource).toString('base64')}`;
+const contextModule=await import(contextDataUrl);
 const {resolveDocumentContext}=contextModule;
 
 const COMPANY='04acb60c-0f99-4743-9b7e-effedfd1df18';
@@ -82,5 +83,67 @@ assert.doesNotMatch(upload,/state\.projects\?\.\[0\]\?\.id/,'upload service must
 const contextIndex=upload.indexOf('resolveDocumentContext({');
 const storageIndex=upload.indexOf('.storage.from(BUCKET).upload');
 assert.ok(contextIndex>=0&&storageIndex>=0&&contextIndex<storageIndex,'document context must be resolved before any storage upload begins');
+
+// Browser-module transaction harness. It executes the actual uploadFile implementation
+// with mocked Supabase adapters and strips only the unrelated task-file dynamic-import tail.
+{
+  let storageUploads=0;
+  let storageRemovals=0;
+  const insertedRows=[];
+  const state={
+    user:{id:'client-user'},
+    companyId:COMPANY,
+    projects:base.projects,
+    tasks:base.tasks,
+    docRequests:base.docRequests,
+    dataRequirements:base.dataRequirements
+  };
+  const sb={
+    storage:{from:()=>({
+      upload:async()=>{storageUploads+=1;return {error:null}},
+      remove:async()=>{storageRemovals+=1;return {error:null}}
+    })},
+    from:table=>({
+      insert:row=>({select:()=>({single:async()=>{
+        assert.equal(table,'nexus_documents');
+        insertedRows.push(row);
+        return {data:{id:`doc-${insertedRows.length}`,...row},error:null};
+      }})})
+    })
+  };
+  const runtime={events:{bind:()=>{}},boundary:{wrap:(_label,fn)=>fn}};
+  globalThis.document={getElementById:()=>null,querySelector:()=>null,head:{appendChild:()=>{}},createElement:()=>({})};
+  globalThis.window={NexusPortal:{sb,state,runtime,toast:()=>{},log:async()=>{},workspace:async()=>{}}};
+
+  const executableUpload=upload
+    .replace("from '/app/services/document-context.js'",`from '${contextDataUrl}'`)
+    .replace(/\nconst TASK_FILE_BUILD=[\s\S]*$/,'');
+  await import(`data:text/javascript;base64,${Buffer.from(executableUpload).toString('base64')}`);
+  const service=globalThis.window.NexusClientUploadService;
+  assert.ok(service,'actual upload module must expose the client upload service');
+
+  await service.uploadFile({
+    file:{name:'Representative_Monthly_Volume_Reports.xlsx',size:1024,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'},
+    requestId:'request-monthly-volume',
+    refresh:false
+  });
+  assert.equal(storageUploads,1,'valid request-bound upload should write storage exactly once');
+  assert.equal(insertedRows.length,1,'valid request-bound upload should write one document row');
+  assert.equal(insertedRows[0].project_id,ASSESSMENT,'document metadata must use the selected request project');
+  assert.equal(insertedRows[0].request_id,'request-monthly-volume');
+
+  const beforeConflictUploads=storageUploads;
+  await assert.rejects(
+    service.uploadFile({
+      file:{name:'conflicting.xlsx',size:100,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'},
+      taskId:'task-pilot',
+      requestId:'request-monthly-volume',
+      refresh:false
+    }),
+    /multiple projects|same project|conflicting/i
+  );
+  assert.equal(storageUploads,beforeConflictUploads,'conflicting lineage must fail before storage is called');
+  assert.equal(storageRemovals,0,'pre-storage context rejection must not require rollback cleanup');
+}
 
 console.log('NEXUS CLIENT UPLOAD CONTEXT QAQC PASS');
