@@ -1,8 +1,8 @@
 import {createDocumentService} from './core/document-service.js';
 
 /**
- * Client upload UI/facade. Canonical persistence, lineage validation, rollback,
- * file-size enforcement, and download behavior live in core/document-service.js.
+ * Client upload/download UI facade. Canonical persistence, lineage validation,
+ * rollback, file-size enforcement, and storage access live in core/document-service.js.
  */
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Nexus portal context is unavailable for upload service.');
@@ -58,6 +58,22 @@ async function uploadFilesForTask({taskId,files,note=null,onProgress=null}={}){
   });
 }
 
+async function downloadDocument(id){
+  const buttons=[...document.querySelectorAll(`.download[data-id="${CSS.escape(String(id))}"],[data-download-document="${CSS.escape(String(id))}"]`)];
+  buttons.forEach(button=>{button.disabled=true;button.dataset.nexusDownloadLabel=button.textContent;button.textContent='Preparing…'});
+  try{
+    const target=await documents.createDownloadTarget(id);
+    const anchor=document.createElement('a');
+    anchor.download=target.fileName;
+    anchor.rel='noopener';
+    if(target.kind==='signed_url')anchor.href=target.url;
+    else anchor.href=URL.createObjectURL(target.blob);
+    document.body.appendChild(anchor);anchor.click();anchor.remove();
+    if(target.kind==='blob')setTimeout(()=>URL.revokeObjectURL(anchor.href),2500);
+  }catch(error){console.error('Document download failed',error);toast?.(`Download failed: ${error.message||'access could not be verified'}`)}
+  finally{buttons.forEach(button=>{button.disabled=false;button.textContent=button.dataset.nexusDownloadLabel||'Download ↓';delete button.dataset.nexusDownloadLabel})}
+}
+
 async function submit(event){
   event.preventDefault();event.stopImmediatePropagation();
   const form=event.currentTarget,file=$('docFile')?.files?.[0];if(!file)return;
@@ -67,8 +83,9 @@ async function submit(event){
 }
 
 const form=$('uploadForm');if(form)events.bind(form,'submit','client-upload:submit',boundary.wrap('client secure upload',submit),true);
-const service=Object.freeze({prepare,clear,uploadFile,uploadFilesForTask,getSelection:()=>({...selection})});
+const service=Object.freeze({prepare,clear,uploadFile,uploadFilesForTask,downloadDocument,getSelection:()=>({...selection})});
 portal.services.clientUpload=service;
+portal.downloadDocument=downloadDocument;
 Object.defineProperty(portal,'prepareUpload',{value:prepare,configurable:true,enumerable:false});
 window.NexusClientUploadService=service;
 
