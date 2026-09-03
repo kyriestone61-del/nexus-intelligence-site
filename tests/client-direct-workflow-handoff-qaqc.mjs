@@ -8,7 +8,8 @@ const base=fs.readFileSync('portal-client.js','utf8');
 
 assert.match(app,/portal-client-action-execution\.js/,'client execution controller must be loaded');
 assert.ok(app.indexOf('portal-client-shell-v2.js')<app.indexOf('portal-client-action-execution.js'),'execution controller must load after the client shell so it can reconcile the shell without replacing it');
-assert.match(app,/20260903-client-direct-handoff1/,'client assets must use a cache-busting build id');
+assert.match(app,/^const BUILD='[0-9]{8}-[A-Za-z0-9._-]+';/m,'client assets must use a cache-busting build id');
+assert.match(app,/portal-client-action-execution\.js\?v=\$\{BUILD\}/,'client execution controller must use the shared cache-busting build id');
 
 assert.match(execution,/sb\.rpc\('nexus_submit_task_for_review'/,'client submission must use the secured handoff RPC');
 assert.match(execution,/event\.stopImmediatePropagation\(\)/,'controller must stop the obsolete direct-update submit handler');
