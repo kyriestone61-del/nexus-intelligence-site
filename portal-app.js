@@ -5,6 +5,14 @@ window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
 document.body.classList.add('nexus-runtime-booting');
 
+// This rule is intentionally permanent rather than part of the removable boot
+// overlay. If a remote dependency prevents the authenticated runtime from
+// loading, the public sign-in/create controls must still remain touch safe.
+const authSafetyStyle=document.createElement('style');
+authSafetyStyle.id='nexusPortalAuthSafetyStyle';
+authSafetyStyle.textContent='.portal-body .tabs button{min-height:44px}';
+document.head.appendChild(authSafetyStyle);
+
 const bootStyle=document.createElement('style');
 bootStyle.id='nexusPortalBootStyle';
 bootStyle.textContent=`
