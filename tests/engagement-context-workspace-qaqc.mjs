@@ -18,13 +18,8 @@ const projects=[
   {id:ASSESSMENT,company_id:COMPANY,name:'Nexus Opportunity Assessment',status:'planning',engagement_stage:'diagnosis'}
 ];
 
-// Moon Wax regression: two open projects exist, so array order must never select the engagement.
 {
-  const context=resolveEngagementContext({
-    companyId:COMPANY,
-    projects,
-    activeEngagement:{company_id:COMPANY,project_id:PILOT}
-  });
+  const context=resolveEngagementContext({companyId:COMPANY,projects,activeEngagement:{company_id:COMPANY,project_id:PILOT}});
   assert.equal(context.activeProjectId,PILOT);
   assert.equal(context.activeProject.id,PILOT);
   assert.equal(context.source,'explicit');
@@ -32,17 +27,11 @@ const projects=[
   assert.deepEqual(context.openProjectIds,[PILOT,ASSESSMENT]);
 }
 
-// Explicit active engagement must win even if projects are reordered.
 {
-  const context=resolveEngagementContext({
-    companyId:COMPANY,
-    projects:[...projects].reverse(),
-    activeEngagement:{company_id:COMPANY,project_id:PILOT}
-  });
+  const context=resolveEngagementContext({companyId:COMPANY,projects:[...projects].reverse(),activeEngagement:{company_id:COMPANY,project_id:PILOT}});
   assert.equal(context.activeProjectId,PILOT);
 }
 
-// A single open project is a safe compatibility fallback.
 {
   const context=resolveEngagementContext({companyId:COMPANY,projects:[projects[1]],activeEngagement:null});
   assert.equal(context.activeProjectId,ASSESSMENT);
@@ -50,7 +39,6 @@ const projects=[
   assert.equal(context.ambiguous,false);
 }
 
-// Multiple open projects without an explicit pointer must fail closed, never pick projects[0].
 {
   const context=resolveEngagementContext({companyId:COMPANY,projects,activeEngagement:null});
   assert.equal(context.activeProjectId,null);
@@ -60,19 +48,9 @@ const projects=[
   assert.throws(()=>requireActiveProject(context),/active engagement|multiple open projects|ambiguous/i);
 }
 
-assert.throws(
-  ()=>resolveEngagementContext({companyId:COMPANY,projects,activeEngagement:{company_id:'other-company',project_id:PILOT}}),
-  /company/i,
-  'cross-company active engagement must fail closed'
-);
+assert.throws(()=>resolveEngagementContext({companyId:COMPANY,projects,activeEngagement:{company_id:'other-company',project_id:PILOT}}),/company/i);
+assert.throws(()=>resolveEngagementContext({companyId:COMPANY,projects,activeEngagement:{company_id:COMPANY,project_id:'missing-project'}}),/project.*not found|active engagement.*project/i);
 
-assert.throws(
-  ()=>resolveEngagementContext({companyId:COMPANY,projects,activeEngagement:{company_id:COMPANY,project_id:'missing-project'}}),
-  /project.*not found|active engagement.*project/i,
-  'stale active-engagement pointers must fail closed'
-);
-
-// Single-flight workspace queries: concurrent duplicate loads share one underlying request.
 {
   const coordinator=createWorkspaceQueryCoordinator();
   let calls=0;
@@ -87,12 +65,10 @@ assert.throws(
   const [a,b]=await Promise.all([one,two]);
   assert.deepEqual(a,b);
   assert.equal(calls,1);
-
   await coordinator.run(`company:${COMPANY}`,async()=>{calls+=1;return {revision:calls}});
   assert.equal(calls,2,'a completed load must not become a permanent cache');
 }
 
-// Explicit invalidation creates a fresh generation instead of reusing an older request.
 {
   const coordinator=createWorkspaceQueryCoordinator();
   let calls=0;
@@ -107,15 +83,21 @@ assert.throws(
 }
 
 const portal=fs.readFileSync('portal-client.js','utf8');
-assert.match(portal,/resolveEngagementContext/,'base portal must resolve a canonical engagement context');
-assert.match(portal,/nexus_active_engagements/,'base portal must read the explicit active-engagement pointer');
-assert.match(portal,/engagementContext/,'workspace state must carry canonical engagement context');
-assert.match(portal,/activeProjectId/,'workspace state must expose the canonical active project id');
-assert.match(portal,/createWorkspaceQueryCoordinator/,'workspace must use the single-flight query coordinator');
-assert.match(portal,/workspaceQueryCoordinator\.run/,'workspace loads must be coalesced through the coordinator');
-assert.match(portal,/fetchDataRequirements\(engagementContext\.activeProject\)/,'project-scoped preparation must load from the canonical active engagement');
-assert.match(portal,/state\.engagementContext\?\.activeProject/,'project rendering must consume canonical engagement context');
-assert.doesNotMatch(portal,/state\.projects\[0\]/,'base portal must not use projects[0] as business context');
-assert.doesNotMatch(portal,/state\.projects\?\.\[0\]\?\.id/,'base portal must not infer project ids from projects[0]');
+assert.match(portal,/resolveEngagementContext/);
+assert.match(portal,/nexus_active_engagements/);
+assert.match(portal,/engagementContext/);
+assert.match(portal,/activeProjectId/);
+assert.match(portal,/createWorkspaceQueryCoordinator/);
+assert.match(portal,/workspaceQueryCoordinator\.run/);
+assert.match(portal,/fetchDataRequirements\(engagementContext\.activeProject\)/);
+assert.match(portal,/state\.engagementContext\?\.activeProject/);
+assert.doesNotMatch(portal,/state\.projects\[0\]/);
+assert.doesNotMatch(portal,/state\.projects\?\.\[0\]\?\.id/);
+
+const baseUploadStart=portal.indexOf('async function handleUpload');
+const baseUploadEnd=portal.indexOf('async function handleTaskCreate',baseUploadStart);
+const baseUpload=portal.slice(baseUploadStart,baseUploadEnd);
+assert.ok(baseUpload.includes('requireActiveProject(state.engagementContext)'),'legacy/base upload path must use canonical engagement context when no request/requirement owns the project');
+assert.ok(baseUpload.indexOf('requireActiveProject(state.engagementContext)')<baseUpload.indexOf('sb.storage.from(BUCKET).upload'),'base upload must resolve active project context before storage is touched');
 
 console.log('NEXUS ENGAGEMENT CONTEXT + WORKSPACE DEDUP QAQC PASS');
