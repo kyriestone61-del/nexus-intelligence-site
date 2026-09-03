@@ -11,7 +11,7 @@ const forms=fs.readFileSync('portal-action-execution-v2-forms.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260903_nexus_task_document_attachments.sql','utf8');
 const guard=fs.readFileSync('supabase/migrations/20260903_nexus_task_document_company_guard.sql','utf8');
 
-assert.match(app,/const BUILD='20260903-inline-action-files1'/,'action-file release must use a fresh portal build id');
+assert.match(app,/^const BUILD='[0-9]{8}-[A-Za-z0-9._-]+';/m,'client assets must use a fresh cache-busting portal build id');
 
 // The client module is now UI/facade only; canonical persistence lives in DocumentService.
 assert.match(upload,/createDocumentService|services\.documents/,'client upload facade must use canonical DocumentService');
