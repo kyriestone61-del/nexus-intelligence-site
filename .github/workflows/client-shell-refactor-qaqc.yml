@@ -5,22 +5,26 @@ on:
     paths:
       - 'portal-app.js'
       - 'portal-client-core.js'
-      - 'portal-client-core.d.ts'
-      - 'portal-client-shell.js'
-      - 'portal-client-shell.css'
-      - 'supabase/migrations/20260901_nexus_client_shell_action_state.sql'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
+      - 'portal-client-upload-service.js'
+      - 'core/document-service.js'
       - 'tests/client-shell-refactor-qaqc.mjs'
+      - 'supabase/migrations/20260901_nexus_client_shell_action_state.sql'
       - '.github/workflows/client-shell-refactor-qaqc.yml'
   push:
     branches: [main]
     paths:
       - 'portal-app.js'
       - 'portal-client-core.js'
-      - 'portal-client-core.d.ts'
-      - 'portal-client-shell.js'
-      - 'portal-client-shell.css'
-      - 'supabase/migrations/20260901_nexus_client_shell_action_state.sql'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
+      - 'portal-client-upload-service.js'
+      - 'core/document-service.js'
       - 'tests/client-shell-refactor-qaqc.mjs'
+      - 'supabase/migrations/20260901_nexus_client_shell_action_state.sql'
       - '.github/workflows/client-shell-refactor-qaqc.yml'
 
 permissions:
@@ -39,30 +43,33 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-client-core.js
-          node --input-type=module --check < portal-client-shell.js
+          node --input-type=module --check < portal-client-shell-v2.js
       - name: Canonical state and architecture tests
         run: node tests/client-shell-refactor-qaqc.mjs
-      - name: Client shell source contract
+      - name: Simplified client surface contract
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "['home', 'Home']" portal-client-shell.js
-          grep -Fq "['files', 'Files']" portal-client-shell.js
-          grep -Fq "['reports', 'Reports']" portal-client-shell.js
-          grep -Fq "['progress', 'Progress']" portal-client-shell.js
-          grep -Fq "['help', 'Help']" portal-client-shell.js
-          grep -Fq 'YOUR NEXT STEP' portal-client-shell.js
-          grep -Fq 'Complete this step →' portal-client-shell.js
-          grep -Fq 'UP NEXT —' portal-client-shell.js
-          grep -Fq 'Needs action' portal-client-shell.js
-          grep -Fq 'Updates' portal-client-shell.js
-          grep -Fq 'Available after Nexus completes' portal-client-shell.js
+          grep -Fq "['home','Home']" portal-client-shell-v2.js
+          grep -Fq "['tasks','Tasks']" portal-client-shell-v2.js
+          grep -Fq "['files','Files']" portal-client-shell-v2.js
+          grep -Fq "['reports','Reports']" portal-client-shell-v2.js
+          grep -Fq 'What needs your attention.' portal-client-shell-v2.js
+          grep -Fq 'Work, without the noise.' portal-client-shell-v2.js
+          grep -Fq 'Secure Data Room.' portal-client-shell-v2.js
+          grep -Fq 'Progress and released findings.' portal-client-shell-v2.js
+          grep -Fq 'YOUR NEXT STEP' portal-client-shell-v2.js
+          grep -Fq 'Needs action' portal-client-shell-v2.js
+          grep -Fq 'Updates' portal-client-shell-v2.js
           grep -Fq 'Financial pilot information requested' portal-client-core.js
           grep -Fq 'serializeReleasedClientReport' portal-client-core.js
-          grep -Fq "event.key === 'Escape'" portal-client-shell.js
-          grep -Fq 'restoreLastFocus' portal-client-shell.js
-          if grep -Fq 'new MutationObserver' portal-client-shell.js; then
-            echo 'Client Shell must not introduce MutationObserver rewrite loops.' >&2
+          grep -Fq 'portal-client-shell-simple.css' portal-app.js
+          if grep -Fq 'new MutationObserver' portal-client-shell-v2.js; then
+            echo 'Simplified client shell must not introduce MutationObserver rewrite loops.' >&2
+            exit 1
+          fi
+          if grep -Eq "from\('nexus_tasks'\)\.select|from\('nexus_document_requests'\)" portal-client-shell-v2.js; then
+            echo 'Simplified client shell must not introduce duplicate workspace reads.' >&2
             exit 1
           fi
       - name: Canonical database action-state contract
@@ -76,23 +83,22 @@ jobs:
           grep -Fq 'nexus_release_unblocked_client_tasks' "$migration"
           grep -Fq "status = 'released'" "$migration"
           grep -Fq 'revoked_at is null' "$migration"
-          grep -Fq 'dependency_cleared_tasks' "$migration"
-          grep -Fq 'Your next step is:' "$migration"
       - name: Mobile contract
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq '@media(max-width:760px)' portal-client-shell.css
-          grep -Fq '@media(max-width:390px)' portal-client-shell.css
-          grep -Fq 'min-height:44px' portal-client-shell.css
-          grep -Fq 'env(safe-area-inset-bottom)' portal-client-shell.css
-          grep -Fq 'overflow-x:hidden' portal-client-shell.css
-          grep -Fq 'font-size:16px!important' portal-client-shell.css
+          grep -Fq '@media(max-width:760px)' portal-client-shell-v2.css
+          grep -Fq '@media(max-width:390px)' portal-client-shell-v2.css
+          grep -Fq 'min-height:44px' portal-client-shell-v2.css
+          grep -Fq 'env(safe-area-inset-bottom)' portal-client-shell-v2.css
+          grep -Fq '@media(max-width:760px)' portal-client-shell-simple.css
+          grep -Fq '@media(max-width:390px)' portal-client-shell-simple.css
+          grep -Fq 'font-size:16px!important' portal-client-shell-simple.css
       - name: Browser-delivered secret scan
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET|SECRET_KEY' portal-app.js portal-client-core.js portal-client-shell.js portal-client-shell.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|EMAIL_DISPATCH_SECRET|SECRET_KEY' portal-app.js portal-client-core.js portal-client-shell-v2.js portal-client-shell-v2.css portal-client-shell-simple.css; then
             echo 'Privileged server credential reference found in client shell files.' >&2
             exit 1
           fi

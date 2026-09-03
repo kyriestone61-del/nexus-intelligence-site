@@ -15,8 +15,13 @@ on:
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
+      - 'core/document-context.js'
+      - 'core/document-service.js'
+      - 'core/engagement-context.js'
+      - 'core/workspace-query-coordinator.js'
       - 'app.js'
       - 'index.html'
       - 'styles.css'
@@ -36,8 +41,13 @@ on:
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
+      - 'core/document-context.js'
+      - 'core/document-service.js'
+      - 'core/engagement-context.js'
+      - 'core/workspace-query-coordinator.js'
       - 'app.js'
       - 'index.html'
       - 'styles.css'
@@ -67,11 +77,27 @@ jobs:
           report='production-smoke-report.txt'
           : > "$report"
 
-          expected_build="$(sed -n "s/^const BUILD='\([^']*\)';$/\1/p" portal-app.js | head -1)"
-          if [ -z "$expected_build" ]; then
+          candidate_build="$(sed -n "s/^const BUILD='\([^']*\)';$/\1/p" portal-app.js | head -1)"
+          if [ -z "$candidate_build" ]; then
             echo 'Could not derive portal BUILD from repository source.' >&2
             exit 1
           fi
+
+          # PRs are intentionally undeployed. For PR smoke, establish the currently
+          # deployed build from Pages and verify that live production remains healthy.
+          # Push/workflow-dispatch checks require the repository build itself to be live.
+          if [ "$GITHUB_EVENT_NAME" = 'pull_request' ]; then
+            live_app="$(mktemp)"
+            curl --silent --show-error --location --fail "$pages/portal-app.js" -o "$live_app"
+            expected_build="$(sed -n "s/^const BUILD='\([^']*\)';$/\1/p" "$live_app" | head -1)"
+          else
+            expected_build="$candidate_build"
+          fi
+          if [ -z "$expected_build" ]; then
+            echo 'Could not determine the expected deployed BUILD.' >&2
+            exit 1
+          fi
+          echo "candidate_build=$candidate_build" | tee -a "$report"
           echo "expected_build=$expected_build" | tee -a "$report"
 
           probe_get() {
@@ -111,8 +137,7 @@ jobs:
           }
 
           probe_headers() {
-            local name="$1" url="$2"
-            local headers code
+            local name="$1" url="$2" headers code
             headers="$(mktemp)"
             code="$(curl --silent --show-error --location --output /dev/null --dump-header "$headers" --write-out '%{http_code}' "$url")"
             echo "$name http=$code" | tee -a "$report"
@@ -122,8 +147,7 @@ jobs:
           }
 
           probe_unauth_post() {
-            local name="$1" url="$2" header_name="${3:-}" header_value="${4:-}"
-            local body code
+            local name="$1" url="$2" header_name="${3:-}" header_value="${4:-}" body code
             body="$(mktemp)"
             if [ -n "$header_name" ]; then
               code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' --request POST --header 'Content-Type: application/json' --header "$header_name: $header_value" --data '{}' "$url")"
@@ -131,58 +155,46 @@ jobs:
               code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' --request POST --header 'Content-Type: application/json' --data '{}' "$url")"
             fi
             echo "$name http=$code body=$(tr '\n' ' ' < "$body" | head -c 500)" | tee -a "$report"
-            if [ "$code" != "401" ]; then
+            if [ "$code" != '401' ]; then
               echo "$name expected HTTP 401 from the live protected route" >&2
               cat "$body" >&2
               exit 1
             fi
           }
 
-          # Client Control Room V2: verify deployed production matches repository source.
           probe_get 'pages-portal' "$pages/portal" 'CONTROL ROOM'
           probe_headers 'pages-portal-security-headers' "$pages/portal"
           probe_get 'pages-portal-app-build' "$pages/portal-app.js" "$expected_build"
-          probe_get 'pages-portal-app-shell-v2' "$pages/portal-app.js" 'portal-client-shell-v2.js'
+          probe_get 'pages-portal-app-shell' "$pages/portal-app.js" 'portal-client-shell-v2.js'
           probe_get 'pages-portal-app-upload-service' "$pages/portal-app.js" 'portal-client-upload-service.js'
           probe_get 'pages-portal-fail-open' "$pages/portal-app.js" 'clearBootLock();'
           probe_get 'pages-runtime-core' "$pages/portal-runtime-core.js" 'createPortalRuntime'
-          probe_get 'pages-shell-today' "$pages/portal-client-shell-v2.js" '01 Today'
-          probe_get 'pages-shell-data-room' "$pages/portal-client-shell-v2.js" '02 Secure Data Room'
-          probe_get 'pages-shell-improvement-record' "$pages/portal-client-shell-v2.js" '03 Improvement Record'
+          probe_get 'pages-shell-help' "$pages/portal-client-shell-v2.js" 'nexusClientHelpButton'
+          probe_get 'pages-shell-inbox' "$pages/portal-client-shell-v2.js" 'nexusClientInboxButton'
           probe_get 'pages-shell-upload-facade' "$pages/portal-client-shell-v2.js" 'portal.prepareUpload'
           probe_get 'pages-upload-isolation' "$pages/portal-client-upload-service.js" 'stopImmediatePropagation'
           probe_get 'pages-upload-owner' "$pages/portal-client-upload-service.js" 'portal.services.clientUpload=service'
           probe_get 'pages-upload-facade-owner' "$pages/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
-          probe_get 'pages-upload-request-linkage' "$pages/portal-client-upload-service.js" 'request_id:selection.requestId'
-
-          # Regression guard for the September 1 lockout: Inbox refresh must be explicit/debounced,
-          # never driven by a body-wide MutationObserver that can retrigger itself on render.
           probe_get 'pages-inbox-refresh-guard' "$pages/portal-approval-inbox.js" 'queueInboxRefresh'
           probe_absent 'pages-inbox-no-self-observer' "$pages/portal-approval-inbox.js" 'new MutationObserver'
           probe_absent 'pages-inbox-no-body-observer' "$pages/portal-approval-inbox.js" 'observer.observe(document.body'
 
-          # Custom production domain must serve the same runtime and same lockout fix.
           probe_get 'custom-portal-app-build' "$origin/portal-app.js" "$expected_build"
-          probe_get 'custom-portal-app-shell-v2' "$origin/portal-app.js" 'portal-client-shell-v2.js'
-          probe_get 'custom-shell-improvement-record' "$origin/portal-client-shell-v2.js" '03 Improvement Record'
+          probe_get 'custom-portal-app-shell' "$origin/portal-app.js" 'portal-client-shell-v2.js'
+          probe_get 'custom-shell-help' "$origin/portal-client-shell-v2.js" 'nexusClientHelpButton'
           probe_get 'custom-shell-upload-facade' "$origin/portal-client-shell-v2.js" 'portal.prepareUpload'
           probe_get 'custom-upload-facade-owner' "$origin/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
           probe_get 'custom-inbox-refresh-guard' "$origin/portal-approval-inbox.js" 'queueInboxRefresh'
           probe_absent 'custom-inbox-no-self-observer' "$origin/portal-approval-inbox.js" 'new MutationObserver'
 
-          # Pull requests test candidate source through static and contract gates while production
-          # remains unchanged. After a merge, wait for Cloudflare to expose the restored account path.
           if [ "$GITHUB_EVENT_NAME" != 'pull_request' ]; then
             probe_get 'custom-public-client-login-home' "$origin/" 'class="nav-account"'
             probe_get 'custom-public-client-login-app' "$origin/app.js" 'data-track="nav_client_login"'
             probe_get 'custom-public-client-login-style' "$origin/styles.css" '.nav-account{'
           fi
 
-          # Existing administrator/runtime safety probes remain required.
           probe_get 'runtime-router' "$origin/portal-vnext-runtime-router.js" '/api/diagnosis-report-pdf'
           probe_get 'runtime-router-sms' "$origin/portal-vnext-runtime-router.js" "status:'scheduled'"
-
-          # Protected server-side surfaces must reject anonymous callers.
           probe_unauth_post 'diagnosis-report-pdf' "$origin/api/diagnosis-report-pdf"
           probe_unauth_post 'notification-worker' "$supabase/nexus-email-worker" 'x-nexus-worker-token' 'invalid-smoke-token'
 

@@ -1,3 +1,5 @@
+import {projectTaskProjection} from './core/task-projection.js';
+
 /**
  * Nexus Client Core
  * Canonical client-side state engine for dependency evaluation, notification rollups,
@@ -206,11 +208,14 @@ export function buildWorkspaceContextFromTasks(tasks) {
 
 /**
  * Single asynchronous consumer for Home, Inbox, Guide, email jobs, and mobile notification producers.
- * The database RPC is authoritative for dependency state so hidden Nexus prerequisites do not need
- * to be exposed to the client browser merely to evaluate whether a client task is ready.
+ * The database RPC remains authoritative for hidden task dependency state. The consumer then
+ * projects already-loaded tasks and document requests through the canonical EngagementContext.
  */
 export async function getWorkspaceCurrentActionContext(clientId, options = {}) {
+  const portalState = options.state || window.NexusPortal?.state || {};
   const sb = options.sb || window.NexusPortal?.sb;
+  const engagementContext = options.engagementContext || portalState.engagementContext || null;
+  const documentRequests = Array.isArray(options.documentRequests) ? options.documentRequests : (Array.isArray(portalState.docRequests) ? portalState.docRequests : []);
   if (!clientId) throw new Error('Client/company id is required.');
   if (!sb && !Array.isArray(options.tasks)) throw new Error('Nexus data client is unavailable.');
   let tasks = Array.isArray(options.tasks) ? options.tasks : null;
@@ -242,7 +247,14 @@ export async function getWorkspaceCurrentActionContext(clientId, options = {}) {
       };
     });
   }
-  return buildWorkspaceContextFromEvaluated(evaluated);
+  const compatibility = buildWorkspaceContextFromEvaluated(evaluated);
+  const taskProjection = engagementContext ? projectTaskProjection({
+    engagementContext,
+    tasks: tasks || [],
+    actionContexts: canonicalRows || [],
+    documentRequests
+  }) : null;
+  return { ...compatibility, taskProjection };
 }
 
 const CLIENT_REPORT_ALLOWED_KEYS = new Set(['title', 'executive_summary', 'summary', 'overview', 'findings', 'recommendations', 'priorities', 'opportunities', 'risks', 'next_steps', 'implementation_plan', 'expected_outcomes', 'metrics', 'baseline', 'client_actions', 'nexus_actions', 'appendix', 'generated_at', 'report_date']);
