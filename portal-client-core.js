@@ -1,4 +1,4 @@
-import {projectTaskProjection} from '/core/task-projection.js';
+import {projectTaskProjection} from './core/task-projection.js';
 
 /**
  * Nexus Client Core
