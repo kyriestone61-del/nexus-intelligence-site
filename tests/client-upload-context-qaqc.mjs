@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const contextSource=fs.readFileSync('app/services/document-context.js','utf8');
+const contextSource=fs.readFileSync('core/document-context.js','utf8');
 const contextDataUrl=`data:text/javascript;base64,${Buffer.from(contextSource).toString('base64')}`;
 const contextModule=await import(contextDataUrl);
 const {resolveDocumentContext}=contextModule;
@@ -116,7 +116,7 @@ assert.ok(contextIndex>=0&&storageIndex>=0&&contextIndex<storageIndex,'document 
   globalThis.window={NexusPortal:{sb,state,runtime,toast:()=>{},log:async()=>{},workspace:async()=>{}}};
 
   const executableUpload=upload
-    .replace("from '/app/services/document-context.js'",`from '${contextDataUrl}'`)
+    .replace("from '/core/document-context.js'",`from '${contextDataUrl}'`)
     .replace(/\nconst TASK_FILE_BUILD=[\s\S]*$/,'');
   await import(`data:text/javascript;base64,${Buffer.from(executableUpload).toString('base64')}`);
   const service=globalThis.window.NexusClientUploadService;
