@@ -30,8 +30,15 @@ jobs:
           set -euo pipefail
           url='https://nexusintelligence.live/api/booking-availability'
           body="$(mktemp)"
-          code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' "$url")"
-          echo "booking_availability http=$code body=$(tr '\n' ' ' < "$body" | head -c 1200)"
+          report='booking-runtime-report.txt'
+          code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' "$url" || true)"
+          {
+            echo "url=$url"
+            echo "http=${code:-curl_error}"
+            echo 'body:'
+            cat "$body" || true
+          } > "$report"
+          echo "booking_availability http=${code:-curl_error} body=$(tr '\n' ' ' < "$body" | head -c 1200)"
           if [ "$code" != '200' ]; then
             echo 'Live Nexus booking availability is not healthy.' >&2
             exit 1
@@ -40,3 +47,11 @@ jobs:
           grep -Eq '"configured"[[:space:]]*:[[:space:]]*true' "$body"
           grep -Eq '"slots"[[:space:]]*:' "$body"
           echo 'BOOKING_RUNTIME_SMOKE=PASS'
+
+      - name: Upload booking runtime report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-booking-runtime-smoke
+          path: booking-runtime-report.txt
+          retention-days: 30
