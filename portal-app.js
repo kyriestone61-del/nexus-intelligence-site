@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260901-control-room-reconcile5';
+const BUILD='20260903-client-direct-handoff1';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -71,6 +71,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
   await requiredImport(asset(`portal-client-upload-service.js?v=${BUILD}`),'client upload service');
   await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
+  await requiredImport(asset(`portal-client-action-execution.js?v=${BUILD}`),'client action execution and handoff');
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
 }else if(useAdminShell){
