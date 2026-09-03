@@ -19,6 +19,9 @@ const requirementById=id=>state.dataRequirements?.find(row=>String(row.id)===Str
 const isClientOwned=task=>task&&String(task.assignee||'').toLowerCase()==='client'&&!REVIEW_STATUSES.has(normalize(task.status))&&!TERMINAL_STATUSES.has(normalize(task.status));
 const isFileTask=task=>task&&FILE_TASK_TYPES.has(normalize(task.task_type));
 const isRequirementAddressed=row=>ADDRESSED_REQUIREMENT_STATUSES.has(normalize(row?.status));
+const isReadOnlyPreview=()=>state.previewReadOnly===true;
+const previewMessage='Client View is read-only from the administrator account. The signed-in client can use these controls.';
+function requireWritable(){if(isReadOnlyPreview())throw new Error(previewMessage)}
 
 function taskFormData(form){
   const data={};
@@ -31,6 +34,7 @@ function taskFormData(form){
 }
 
 async function submitTaskForReview(taskId,responseData={}){
+  requireWritable();
   if(submissionInFlight)return;
   const task=taskById(taskId);
   if(!isClientOwned(task))throw new Error('This action is no longer waiting on the client.');
@@ -44,6 +48,7 @@ async function submitTaskForReview(taskId,responseData={}){
 }
 
 async function saveTaskProgress(form){
+  requireWritable();
   const task=taskById(form.dataset.taskId);
   if(!isClientOwned(task))throw new Error('This action is no longer editable by the client.');
   const now=new Date().toISOString();
@@ -54,6 +59,7 @@ async function saveTaskProgress(form){
 }
 
 async function saveRequirementAnswer(requirementId){
+  requireWritable();
   const row=requirementById(requirementId);
   if(!row)throw new Error('Preparation item not found.');
   const input=$(`nexus-prep-note-${row.id}`);
@@ -67,6 +73,7 @@ async function saveRequirementAnswer(requirementId){
 }
 
 async function setRequirementStatus(requirementId,status){
+  requireWritable();
   if(!['build_with_nexus','not_applicable'].includes(status))throw new Error('Unsupported preparation status.');
   const row=requirementById(requirementId);
   if(!row)throw new Error('Preparation item not found.');
@@ -80,15 +87,20 @@ function enhanceTaskForm(){
   const form=$('nexusClientTaskForm');
   if(!form||form.dataset.directExecutionReady==='true')return;
   form.dataset.directExecutionReady='true';
+  const preview=isReadOnlyPreview();
   const actions=form.querySelector('.actions');
   const submit=actions?.querySelector('button[type="submit"]');
-  if(submit)submit.textContent='Submit to Nexus →';
+  if(submit){
+    submit.textContent=preview?'Client can submit to Nexus':'Submit to Nexus →';
+    if(preview){submit.disabled=true;submit.title=previewMessage}
+  }
   if(actions&&!actions.querySelector('[data-client-save-progress]')){
     const save=document.createElement('button');
     save.type='button';
     save.className='btn secondary';
     save.dataset.clientSaveProgress='true';
-    save.textContent='Save progress';
+    save.textContent=preview?'Client can save progress':'Save progress';
+    if(preview){save.disabled=true;save.title=previewMessage}
     actions.insertBefore(save,submit||actions.firstChild);
   }
 }
@@ -113,7 +125,10 @@ function requirementCard(row){
   const fileLike=['file','export'].includes(type);
   const answerLike=['answer','list','access_context'].includes(type);
   const addressed=isRequirementAddressed(row);
-  const controls=state.admin?'':`<div class="req-actions">${fileLike?`<button class="btn primary" type="button" data-prep-upload="${esc(row.id)}" data-prep-title="${esc(catalog.title||'Preparation evidence')}">Upload evidence</button>`:''}${answerLike?`<button class="btn secondary" type="button" data-prep-answer-toggle="${esc(row.id)}">Answer here</button>`:''}<button class="btn secondary" type="button" data-prep-build="${esc(row.id)}">Build with Nexus</button><button class="btn secondary" type="button" data-prep-na="${esc(row.id)}">Not applicable</button></div>${answerLike?`<div class="req-answer" data-prep-answer="${esc(row.id)}"><textarea id="nexus-prep-note-${esc(row.id)}" placeholder="Be specific. A short list or clear explanation is enough.">${esc(row.client_note||'')}</textarea><div class="actions" style="margin-top:8px"><button class="btn primary" type="button" data-prep-save="${esc(row.id)}">Save response</button></div></div>`:''}`;
+  const preview=isReadOnlyPreview();
+  const disabled=preview?' disabled aria-disabled="true" title="Available to the signed-in client; administrator preview is read-only."':'';
+  const readOnly=preview?' readonly aria-readonly="true"':'';
+  const controls=`<div class="req-actions">${fileLike?`<button class="btn primary" type="button" data-prep-upload="${esc(row.id)}" data-prep-title="${esc(catalog.title||'Preparation evidence')}"${disabled}>Upload evidence</button>`:''}${answerLike?`<button class="btn secondary" type="button" data-prep-answer-toggle="${esc(row.id)}">Answer here</button>`:''}<button class="btn secondary" type="button" data-prep-build="${esc(row.id)}"${disabled}>Build with Nexus</button><button class="btn secondary" type="button" data-prep-na="${esc(row.id)}"${disabled}>Not applicable</button></div>${answerLike?`<div class="req-answer" data-prep-answer="${esc(row.id)}"><textarea id="nexus-prep-note-${esc(row.id)}" placeholder="Be specific. A short list or clear explanation is enough."${readOnly}>${esc(row.client_note||'')}</textarea><div class="actions" style="margin-top:8px"><button class="btn primary" type="button" data-prep-save="${esc(row.id)}"${disabled}>Save response</button></div></div>`:''}`;
   return `<article class="requirement-card ${addressed?'addressed':''}"><div class="requirement-head"><div><span class="pill">${esc(catalog.category||'Preparation')}</span> <span class="pill">${esc(String(catalog.importance||'helpful').replaceAll('_',' '))}</span></div><span class="req-status ${esc(normalize(row.status))}">${esc(String(row.status||'needed').replaceAll('_',' '))}</span></div><h3>${esc(catalog.title||'Preparation item')}</h3><div class="req-detail"><b>Why Nexus needs it</b><p>${esc(catalog.why_needed||'This helps Nexus understand the current state without guessing.')}</p></div><div class="req-detail"><b>How to find it</b><p>${esc(catalog.how_to_find||'Ask the person closest to the workflow or check the system where the work happens.')}</p></div><div class="req-detail"><b>Good examples</b><p>${esc(catalog.good_examples||'A representative example is enough.')}</p></div><div class="req-detail missing"><b>Don’t have it?</b><p>${esc(catalog.if_missing||'That is okay. Nexus can help build the minimum useful version with you.')}</p></div>${row.client_note?`<div class="req-detail"><b>Your saved response</b><p>${esc(row.client_note)}</p></div>`:''}${controls}</article>`;
 }
 
@@ -121,15 +136,23 @@ function renderPreparationWorkspace(panel){
   const rows=Array.isArray(state.dataRequirements)?state.dataRequirements:[];
   const task=preparationTask();
   const summary=addressedRequirementSummary();
+  const preview=isReadOnlyPreview();
   const hasWork=rows.length||task;
   panel.hidden=!hasWork;
   if(!hasWork){panel.innerHTML='';return}
 
   const isChecklist=normalize(task?.task_type)==='preparation_checklist';
   const readyForHandoff=!!task&&(!isChecklist||summary.total===0||summary.remaining===0);
-  const handoff=task?`<div class="nexus-client-preparation-handoff"><div><span>CLIENT → NEXUS HANDOFF</span><b>${readyForHandoff?'Ready to send this step back to Nexus.':'Finish the preparation items above before handing this step back.'}</b><small>${isChecklist&&summary.total?`${summary.addressed} of ${summary.total} preparation items addressed.`:'When you have provided the requested work for this action, submit it to Nexus.'}</small></div><button type="button" class="btn primary" data-submit-file-task="${esc(task.id)}" ${readyForHandoff?'':'disabled'}>${readyForHandoff?'Submit to Nexus →':`Address ${summary.remaining} more ${summary.remaining===1?'item':'items'}`}</button></div>`:'';
+  const previewNotice=preview?'<div class="nexus-client-preview-work-note"><b>Admin preview</b><span>This workspace is read-only for you. The signed-in client can use the controls below, save progress, upload and download files, and submit completed work to Nexus.</span></div>':'';
+  let handoff='';
+  if(task){
+    const text=readyForHandoff?'Ready to send this step back to Nexus.':'Finish the preparation items above before handing this step back.';
+    const progress=isChecklist&&summary.total?`${summary.addressed} of ${summary.total} preparation items addressed.`:'When you have provided the requested work for this action, submit it to Nexus.';
+    const action=preview?'<button type="button" class="btn primary" disabled aria-disabled="true" title="Available to the signed-in client; administrator preview is read-only.">Client can submit to Nexus</button>':`<button type="button" class="btn primary" data-submit-file-task="${esc(task.id)}" ${readyForHandoff?'':'disabled'}>${readyForHandoff?'Submit to Nexus →':`Address ${summary.remaining} more ${summary.remaining===1?'item':'items'}`}</button>`;
+    handoff=`<div class="nexus-client-preparation-handoff"><div><span>CLIENT → NEXUS HANDOFF</span><b>${text}</b><small>${progress}</small></div>${action}</div>`;
+  }
   const meter=rows.length?`<div class="data-room-meter"><div class="data-room-meter-track"><div class="data-room-meter-fill" style="width:${Math.round(summary.addressed/summary.total*100)}%"></div></div><strong>${summary.addressed} of ${summary.total} preparation items addressed</strong></div>`:'';
-  panel.innerHTML=`<div class="nexus-client-section-head"><div><div class="kicker">Preparation workspace</div><h2>Do the work here.</h2><p>Answer preparation items, upload existing evidence, choose <b>Build with Nexus</b> when an artifact does not exist, or mark an item <b>Not applicable</b>. You do not need separate permission to work through client-owned items.</p></div></div>${meter}${rows.length?`<div class="requirement-grid nexus-client-preparation-grid">${rows.map(requirementCard).join('')}</div>`:'<div class="nexus-client-empty-small">No preparation checklist items are assigned to this project.</div>'}${handoff}`;
+  panel.innerHTML=`<div class="nexus-client-section-head"><div><div class="kicker">Preparation workspace</div><h2>Do the work here.</h2><p>Answer preparation items, upload existing evidence, choose <b>Build with Nexus</b> when an artifact does not exist, or mark an item <b>Not applicable</b>. You do not need separate permission to work through client-owned items.</p></div></div>${previewNotice}${meter}${rows.length?`<div class="requirement-grid nexus-client-preparation-grid">${rows.map(requirementCard).join('')}</div>`:'<div class="nexus-client-empty-small">No preparation checklist items are assigned to this project.</div>'}${handoff}`;
 }
 
 function mountPreparationWorkspace(){
@@ -174,6 +197,7 @@ document.addEventListener('submit',event=>{
   if(!(form instanceof HTMLFormElement)||form.id!=='nexusClientTaskForm')return;
   event.preventDefault();
   event.stopImmediatePropagation();
+  if(isReadOnlyPreview()){toast?.(previewMessage);return}
   boundary.run('client action submission',async()=>{
     const button=form.querySelector('button[type="submit"]');
     if(button){button.disabled=true;button.textContent='Submitting…'}
@@ -183,6 +207,11 @@ document.addEventListener('submit',event=>{
 },true);
 
 document.addEventListener('click',event=>{
+  const previewMutation=event.target.closest?.('[data-client-save-progress],[data-prep-upload],[data-prep-save],[data-prep-build],[data-prep-na],[data-submit-file-task]');
+  if(previewMutation&&isReadOnlyPreview()){
+    event.preventDefault();event.stopImmediatePropagation();toast?.(previewMessage);return;
+  }
+
   const save=event.target.closest?.('[data-client-save-progress]');
   if(save){
     event.preventDefault();event.stopImmediatePropagation();
@@ -269,7 +298,7 @@ window.addEventListener('nexus:workspace-ready',event=>{
   if(event.detail?.companyId===state.companyId)scheduleEnhancements();
 });
 
-const service=Object.freeze({submitTaskForReview,saveTaskProgress,saveRequirementAnswer,setRequirementStatus,mountPreparationWorkspace,decorateToday,addressedRequirementSummary});
+const service=Object.freeze({submitTaskForReview,saveTaskProgress,saveRequirementAnswer,setRequirementStatus,mountPreparationWorkspace,decorateToday,addressedRequirementSummary,isReadOnlyPreview});
 portal.services=portal.services||{};
 portal.services.clientActionExecution=service;
 window.NexusClientActionExecution=service;
