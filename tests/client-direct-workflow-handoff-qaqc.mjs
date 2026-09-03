@@ -37,8 +37,10 @@ assert.match(execution,/signed-in client can use the controls below, save progre
 
 assert.match(upload,/BUCKET='nexus-client-documents'/);
 assert.match(upload,/\.upload\(path,file/,'client upload service must write to private company storage');
-assert.match(upload,/request_id:selection\.requestId/,'uploads must retain document-request lineage');
-assert.match(upload,/data_requirement_id:selection\.requirementId/,'uploads must retain preparation-item lineage');
+assert.match(upload,/request_id:requestId\|\|null/,'uploads must retain document-request lineage when supplied by the selected request');
+assert.match(upload,/data_requirement_id:requirementId\|\|null/,'uploads must retain preparation-item lineage when supplied by the selected requirement');
+assert.match(upload,/task_id:task\?\.id\|\|null/,'uploads from client actions must retain exact task lineage');
+assert.match(upload,/uploadFilesForTask/,'client upload service must support one or more files directly on a client action');
 assert.match(upload,/document_area:'client_submission'/);
 assert.match(upload,/source_role:'client'/);
 assert.match(base,/createSignedUrl\(doc\.storage_path,120,\{download:doc\.file_name\}\)/,'client download must use a short-lived signed URL');
