@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'portal-client.js'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
       - 'perspective-switcher.css'
       - 'portal-mobile-hardening.css'
       - '.github/workflows/mobile-perspectives-qaqc.yml'
@@ -11,6 +14,9 @@ on:
     branches: [main]
     paths:
       - 'portal-client.js'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
       - 'perspective-switcher.css'
       - 'portal-mobile-hardening.css'
       - '.github/workflows/mobile-perspectives-qaqc.yml'
@@ -21,7 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Portal JavaScript syntax
-        run: node --input-type=module --check < portal-client.js
+        run: |
+          node --input-type=module --check < portal-client.js
+          node --input-type=module --check < portal-client-shell-v2.js
       - name: Canonical administrator recovery contract
         run: |
           grep -q "sb.rpc('nexus_is_platform_admin')" portal-client.js
@@ -33,13 +41,18 @@ jobs:
           grep -q "@import url('/portal-mobile-hardening.css" perspective-switcher.css
           grep -q "@media(max-width:760px)" portal-mobile-hardening.css
           grep -q "diagnosis-review-card" portal-mobile-hardening.css
-      - name: Client mobile UX contract
+      - name: Simplified client mobile UX contract
         run: |
-          grep -q "portal-client-mode .client-primary-nav" perspective-switcher.css
-          grep -q "grid-template-columns:repeat(5" perspective-switcher.css
-          grep -q "portal-client-mode .client-action-grid" perspective-switcher.css
-          grep -q "portal-client-mode .nexus-guide-drawer" perspective-switcher.css
-          grep -q "safe-area-inset-bottom" perspective-switcher.css
+          grep -Fq "['home','Home']" portal-client-shell-v2.js
+          grep -Fq "['tasks','Tasks']" portal-client-shell-v2.js
+          grep -Fq "['files','Files']" portal-client-shell-v2.js
+          grep -Fq "['reports','Reports']" portal-client-shell-v2.js
+          grep -Fq '@media(max-width:760px)' portal-client-shell-simple.css
+          grep -Fq '@media(max-width:390px)' portal-client-shell-simple.css
+          grep -Fq 'grid-template-columns:repeat(4,minmax(0,1fr))' portal-client-shell-simple.css
+          grep -Fq 'min-height:48px' portal-client-shell-simple.css
+          grep -Fq 'font-size:16px!important' portal-client-shell-simple.css
+          grep -Fq 'safe-area-inset-bottom' portal-client-shell-v2.css
       - name: Admin mobile UX contract
         run: |
           grep -q "portal-body:not(.portal-client-mode) .journey-primary" perspective-switcher.css
