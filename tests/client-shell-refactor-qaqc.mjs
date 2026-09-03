@@ -63,7 +63,11 @@ assert.match(shell,/YOUR NEXT STEP/);assert.match(shell,/Complete this step →/
 assert.equal(shell.includes('new MutationObserver'),false);assert.equal(/\.onclick\s*=/.test(shell),false);assert.equal(/\.onchange\s*=/.test(shell),false);
 assert.match(shell,/runtime/);assert.match(shell,/events\.bind/);assert.match(shell,/boundary\.run|boundary\.wrap/);assert.match(shell,/modals\.open/);
 assert.match(shell,/portal\.prepareUpload\?\.\(\{requestId,title\}\)/,'V2 shell must use the explicit upload facade');
-assert.match(upload,/event\.stopImmediatePropagation\(\)/);assert.match(upload,/request_id:selection\.requestId/);assert.match(upload,/remove\(\[path\]\)/);
+assert.match(upload,/event\.stopImmediatePropagation\(\)/);
+assert.match(upload,/request_id:requestId\|\|null/,'upload service must preserve document-request lineage supplied by the current upload context');
+assert.match(upload,/data_requirement_id:requirementId\|\|null/,'upload service must preserve preparation-item lineage supplied by the current upload context');
+assert.match(upload,/task_id:task\?\.id\|\|null/,'upload service must preserve direct client-action lineage when files are uploaded from an action');
+assert.match(upload,/remove\(\[path\]\)/);
 assert.match(upload,/portal\.services\.clientUpload=service/,'upload service must remain the single upload owner');
 assert.match(upload,/Object\.defineProperty\(portal,'prepareUpload',\{value:prepare/,'upload facade must delegate to the upload owner');
 assert.match(css,/min-height:44px/);assert.match(css,/env\(safe-area-inset-bottom\)/);assert.match(css,/overflow-x:hidden/);assert.match(css,/@media\(max-width:760px\)/);assert.match(css,/@media\(max-width:390px\)/);
