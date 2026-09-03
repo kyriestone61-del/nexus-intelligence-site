@@ -17,6 +17,7 @@ on:
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
       - 'portal-task-file-attachments.js'
       - 'portal-task-file-attachments-live.js'
       - 'portal-task-file-attachments.css'
@@ -39,6 +40,7 @@ on:
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
       - 'portal-task-file-attachments.js'
       - 'portal-task-file-attachments-live.js'
       - 'portal-task-file-attachments.css'
@@ -82,10 +84,12 @@ jobs:
           ! grep -q "from '/portal-ops.js'" portal-client.js
           ! grep -q 'initOps(' portal-client.js
           grep -q 'nexus_activate_client_workspace' portal-client.js
-          grep -q '01 Today' portal-client-shell-v2.js
-          grep -q '02 Secure Data Room' portal-client-shell-v2.js
-          grep -q '03 Improvement Record' portal-client-shell-v2.js
+          grep -Fq "['home','Home']" portal-client-shell-v2.js
+          grep -Fq "['tasks','Tasks']" portal-client-shell-v2.js
+          grep -Fq "['files','Files']" portal-client-shell-v2.js
+          grep -Fq "['reports','Reports']" portal-client-shell-v2.js
           grep -q 'portal-runtime-hardening.css' portal-app.js
+          grep -q 'portal-client-shell-simple.css' portal-app.js
           grep -q 'portal-client-upload-service.js' portal-app.js
           grep -q 'portal-client-shell-v2.js' portal-app.js
           grep -q 'portal.prepareUpload' portal-client-shell-v2.js
@@ -102,6 +106,18 @@ jobs:
             echo 'Client Control Room core shell must not use DOM mutation rewrite loops.' >&2
             exit 1
           fi
+          if grep -Eq "from\('nexus_tasks'\)\.select|from\('nexus_document_requests'\)" portal-client-shell-v2.js; then
+            echo 'Client shell must not duplicate bounded workspace reads.' >&2
+            exit 1
+          fi
+      - name: Mobile simplified shell contract
+        run: |
+          set -euo pipefail
+          grep -Fq '@media(max-width:760px)' portal-client-shell-simple.css
+          grep -Fq '@media(max-width:390px)' portal-client-shell-simple.css
+          grep -Fq 'grid-template-columns:repeat(4,minmax(0,1fr))' portal-client-shell-simple.css
+          grep -Fq 'font-size:16px!important' portal-client-shell-simple.css
+          grep -Fq 'env(safe-area-inset-bottom)' portal-client-shell-v2.css
       - name: Database migration contract
         run: |
           set -euo pipefail
