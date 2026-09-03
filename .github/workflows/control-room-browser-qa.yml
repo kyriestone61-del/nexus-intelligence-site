@@ -21,8 +21,8 @@ on:
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
       - 'portal-perspective-switcher.js'
-      - 'portal-approval-inbox.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
@@ -39,8 +39,8 @@ on:
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
+      - 'portal-client-shell-simple.css'
       - 'portal-perspective-switcher.js'
-      - 'portal-approval-inbox.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
@@ -56,7 +56,7 @@ jobs:
       run:
         working-directory: qa/playwright
     env:
-      NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
+      NEXUS_QA_BASE_URL: ${{ github.event_name == 'pull_request' && 'http://127.0.0.1:4173' || github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
       NEXUS_QA_ADMIN_EMAIL: ${{ secrets.NEXUS_QA_ADMIN_EMAIL }}
       NEXUS_QA_ADMIN_PASSWORD: ${{ secrets.NEXUS_QA_ADMIN_PASSWORD }}
       NEXUS_QA_CLIENT_EMAIL: ${{ secrets.NEXUS_QA_CLIENT_EMAIL }}
@@ -69,6 +69,18 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium webkit
+      - name: Start checked-out portal for pull request QA
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory ../.. >/tmp/nexus-pr-portal.log 2>&1 &
+          echo $! >/tmp/nexus-pr-portal.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/portal >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/nexus-pr-portal.log || true
+          exit 1
       - name: Report authenticated QA coverage
         shell: bash
         run: |
