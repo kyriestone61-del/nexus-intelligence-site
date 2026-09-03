@@ -47,3 +47,7 @@ document.addEventListener('click',scheduleSoon,true);
 document.addEventListener('change',scheduleSoon,true);
 document.addEventListener('submit',scheduleSoon,true);
 setTimeout(scheduleSoon,120);setTimeout(scheduleSoon,700);setTimeout(scheduleSoon,1500);
+
+const TASK_FILE_BUILD='20260903-inline-action-files1';
+if(!document.querySelector('link[data-nexus-task-files]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`/portal-task-file-attachments.css?v=${TASK_FILE_BUILD}`;link.dataset.nexusTaskFiles='1';document.head.appendChild(link)}
+import(`/portal-task-file-attachments.js?v=${TASK_FILE_BUILD}`).then(()=>import(`/portal-task-file-attachments-live.js?v=${TASK_FILE_BUILD}`)).catch(error=>console.error('Nexus task file controls failed to load.',error));

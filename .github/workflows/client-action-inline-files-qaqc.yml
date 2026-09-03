@@ -1,0 +1,59 @@
+name: Nexus Client Action Inline Files QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-upload-service.js'
+      - 'portal-task-file-attachments.js'
+      - 'portal-task-file-attachments-live.js'
+      - 'portal-task-file-attachments.css'
+      - 'portal-action-execution-v2-forms.js'
+      - 'supabase/migrations/20260903_nexus_task_document_attachments.sql'
+      - 'supabase/migrations/20260903_nexus_task_document_company_guard.sql'
+      - 'tests/client-action-inline-files-qaqc.mjs'
+      - '.github/workflows/client-action-inline-files-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-client-upload-service.js'
+      - 'portal-task-file-attachments.js'
+      - 'portal-task-file-attachments-live.js'
+      - 'portal-task-file-attachments.css'
+      - 'portal-action-execution-v2-forms.js'
+      - 'supabase/migrations/20260903_nexus_task_document_attachments.sql'
+      - 'supabase/migrations/20260903_nexus_task_document_company_guard.sql'
+      - 'tests/client-action-inline-files-qaqc.mjs'
+      - '.github/workflows/client-action-inline-files-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  client-action-inline-files-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-client-upload-service.js
+          node --input-type=module --check < portal-task-file-attachments.js
+          node --input-type=module --check < portal-task-file-attachments-live.js
+          node --input-type=module --check < portal-action-execution-v2-forms.js
+          node --check tests/client-action-inline-files-qaqc.mjs
+      - name: Inline file contract
+        run: node tests/client-action-inline-files-qaqc.mjs
+      - name: No privileged client credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY' portal-client-upload-service.js portal-task-file-attachments.js portal-task-file-attachments-live.js; then
+            echo 'Privileged credential reference found in client attachment code.' >&2
+            exit 1
+          fi
