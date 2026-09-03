@@ -13,9 +13,12 @@ let submissionInFlight=false;
 
 const $=id=>document.getElementById(id);
 const normalize=value=>String(value||'').trim().toLowerCase().replaceAll(' ','_');
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const taskById=id=>state.tasks?.find(task=>String(task.id)===String(id))||null;
+const requirementById=id=>state.dataRequirements?.find(row=>String(row.id)===String(id))||null;
 const isClientOwned=task=>task&&String(task.assignee||'').toLowerCase()==='client'&&!REVIEW_STATUSES.has(normalize(task.status))&&!TERMINAL_STATUSES.has(normalize(task.status));
 const isFileTask=task=>task&&FILE_TASK_TYPES.has(normalize(task.task_type));
+const isRequirementAddressed=row=>ADDRESSED_REQUIREMENT_STATUSES.has(normalize(row?.status));
 
 function taskFormData(form){
   const data={};
@@ -50,6 +53,29 @@ async function saveTaskProgress(form){
   await portal.workspace?.();
 }
 
+async function saveRequirementAnswer(requirementId){
+  const row=requirementById(requirementId);
+  if(!row)throw new Error('Preparation item not found.');
+  const input=$(`nexus-prep-note-${row.id}`);
+  const note=String(input?.value||'').trim();
+  if(!note){toast?.('Add a response before saving.');return}
+  const now=new Date().toISOString();
+  const result=await sb.from('nexus_project_data_requirements').update({client_note:note,status:'ready',updated_by:state.user?.id,updated_at:now}).eq('id',row.id).eq('company_id',state.companyId);
+  if(result.error)throw result.error;
+  toast?.('Preparation response saved.');
+  await portal.workspace?.();
+}
+
+async function setRequirementStatus(requirementId,status){
+  if(!['build_with_nexus','not_applicable'].includes(status))throw new Error('Unsupported preparation status.');
+  const row=requirementById(requirementId);
+  if(!row)throw new Error('Preparation item not found.');
+  const result=await sb.from('nexus_project_data_requirements').update({status,updated_by:state.user?.id,updated_at:new Date().toISOString()}).eq('id',row.id).eq('company_id',state.companyId);
+  if(result.error)throw result.error;
+  toast?.(status==='build_with_nexus'?'This item is marked for Nexus to help build.':'Preparation item marked not applicable.');
+  await portal.workspace?.();
+}
+
 function enhanceTaskForm(){
   const form=$('nexusClientTaskForm');
   if(!form||form.dataset.directExecutionReady==='true')return;
@@ -69,7 +95,7 @@ function enhanceTaskForm(){
 
 function addressedRequirementSummary(){
   const rows=Array.isArray(state.dataRequirements)?state.dataRequirements:[];
-  const addressed=rows.filter(row=>ADDRESSED_REQUIREMENT_STATUSES.has(normalize(row.status))).length;
+  const addressed=rows.filter(isRequirementAddressed).length;
   return{total:rows.length,addressed,remaining:Math.max(0,rows.length-addressed)};
 }
 
@@ -81,6 +107,31 @@ function preparationTask(){
   return null;
 }
 
+function requirementCard(row){
+  const catalog=row.catalog||{};
+  const type=normalize(catalog.input_type);
+  const fileLike=['file','export'].includes(type);
+  const answerLike=['answer','list','access_context'].includes(type);
+  const addressed=isRequirementAddressed(row);
+  const controls=state.admin?'':`<div class="req-actions">${fileLike?`<button class="btn primary" type="button" data-prep-upload="${esc(row.id)}" data-prep-title="${esc(catalog.title||'Preparation evidence')}">Upload evidence</button>`:''}${answerLike?`<button class="btn secondary" type="button" data-prep-answer-toggle="${esc(row.id)}">Answer here</button>`:''}<button class="btn secondary" type="button" data-prep-build="${esc(row.id)}">Build with Nexus</button><button class="btn secondary" type="button" data-prep-na="${esc(row.id)}">Not applicable</button></div>${answerLike?`<div class="req-answer" data-prep-answer="${esc(row.id)}"><textarea id="nexus-prep-note-${esc(row.id)}" placeholder="Be specific. A short list or clear explanation is enough.">${esc(row.client_note||'')}</textarea><div class="actions" style="margin-top:8px"><button class="btn primary" type="button" data-prep-save="${esc(row.id)}">Save response</button></div></div>`:''}`;
+  return `<article class="requirement-card ${addressed?'addressed':''}"><div class="requirement-head"><div><span class="pill">${esc(catalog.category||'Preparation')}</span> <span class="pill">${esc(String(catalog.importance||'helpful').replaceAll('_',' '))}</span></div><span class="req-status ${esc(normalize(row.status))}">${esc(String(row.status||'needed').replaceAll('_',' '))}</span></div><h3>${esc(catalog.title||'Preparation item')}</h3><div class="req-detail"><b>Why Nexus needs it</b><p>${esc(catalog.why_needed||'This helps Nexus understand the current state without guessing.')}</p></div><div class="req-detail"><b>How to find it</b><p>${esc(catalog.how_to_find||'Ask the person closest to the workflow or check the system where the work happens.')}</p></div><div class="req-detail"><b>Good examples</b><p>${esc(catalog.good_examples||'A representative example is enough.')}</p></div><div class="req-detail missing"><b>Don’t have it?</b><p>${esc(catalog.if_missing||'That is okay. Nexus can help build the minimum useful version with you.')}</p></div>${row.client_note?`<div class="req-detail"><b>Your saved response</b><p>${esc(row.client_note)}</p></div>`:''}${controls}</article>`;
+}
+
+function renderPreparationWorkspace(panel){
+  const rows=Array.isArray(state.dataRequirements)?state.dataRequirements:[];
+  const task=preparationTask();
+  const summary=addressedRequirementSummary();
+  const hasWork=rows.length||task;
+  panel.hidden=!hasWork;
+  if(!hasWork){panel.innerHTML='';return}
+
+  const isChecklist=normalize(task?.task_type)==='preparation_checklist';
+  const readyForHandoff=!!task&&(!isChecklist||summary.total===0||summary.remaining===0);
+  const handoff=task?`<div class="nexus-client-preparation-handoff"><div><span>CLIENT → NEXUS HANDOFF</span><b>${readyForHandoff?'Ready to send this step back to Nexus.':'Finish the preparation items above before handing this step back.'}</b><small>${isChecklist&&summary.total?`${summary.addressed} of ${summary.total} preparation items addressed.`:'When you have provided the requested work for this action, submit it to Nexus.'}</small></div><button type="button" class="btn primary" data-submit-file-task="${esc(task.id)}" ${readyForHandoff?'':'disabled'}>${readyForHandoff?'Submit to Nexus →':`Address ${summary.remaining} more ${summary.remaining===1?'item':'items'}`}</button></div>`:'';
+  const meter=rows.length?`<div class="data-room-meter"><div class="data-room-meter-track"><div class="data-room-meter-fill" style="width:${Math.round(summary.addressed/summary.total*100)}%"></div></div><strong>${summary.addressed} of ${summary.total} preparation items addressed</strong></div>`:'';
+  panel.innerHTML=`<div class="nexus-client-section-head"><div><div class="kicker">Preparation workspace</div><h2>Do the work here.</h2><p>Answer preparation items, upload existing evidence, choose <b>Build with Nexus</b> when an artifact does not exist, or mark an item <b>Not applicable</b>. You do not need separate permission to work through client-owned items.</p></div></div>${meter}${rows.length?`<div class="requirement-grid nexus-client-preparation-grid">${rows.map(requirementCard).join('')}</div>`:'<div class="nexus-client-empty-small">No preparation checklist items are assigned to this project.</div>'}${handoff}`;
+}
+
 function mountPreparationWorkspace(){
   const filesRoot=$('nexus-client-files');
   if(!filesRoot)return;
@@ -90,43 +141,9 @@ function mountPreparationWorkspace(){
     panel.id='nexusClientPreparationWork';
     panel.className='nexus-client-files-panel nexus-client-preparation-work';
     const requestedPanel=filesRoot.querySelector('.nexus-client-files-panel');
-    filesRoot.insertBefore(panel,requestedPanel||filesRoot.firstChild?.nextSibling||null);
+    filesRoot.insertBefore(panel,requestedPanel||null);
   }
-
-  let heading=$('nexusClientPreparationHeading');
-  if(!heading){
-    heading=document.createElement('div');
-    heading.id='nexusClientPreparationHeading';
-    heading.className='nexus-client-section-head';
-    panel.prepend(heading);
-  }
-  heading.innerHTML='<div><div class="kicker">Preparation workspace</div><h2>Do the work here.</h2><p>Answer preparation items, upload existing evidence, choose <b>Build with Nexus</b> when an artifact does not exist, or mark an item <b>Not applicable</b>. You do not need separate permission to work through client-owned items.</p></div>';
-
-  const progress=$('dataRoomProgress');
-  const requirements=$('dataRoomRequirements');
-  if(progress&&progress.parentElement!==panel)panel.appendChild(progress);
-  if(requirements&&requirements.parentElement!==panel)panel.appendChild(requirements);
-
-  let handoff=$('nexusClientPreparationHandoff');
-  if(!handoff){
-    handoff=document.createElement('div');
-    handoff.id='nexusClientPreparationHandoff';
-    handoff.className='nexus-client-preparation-handoff';
-    panel.appendChild(handoff);
-  }
-  renderPreparationHandoff(handoff);
-}
-
-function renderPreparationHandoff(host){
-  const task=preparationTask();
-  if(!task){host.innerHTML='';host.hidden=true;return}
-  host.hidden=false;
-  const type=normalize(task.task_type);
-  const summary=addressedRequirementSummary();
-  const isChecklist=type==='preparation_checklist';
-  const ready=!isChecklist||summary.total===0||summary.remaining===0;
-  const progressText=isChecklist&&summary.total?`${summary.addressed} of ${summary.total} preparation items addressed.`:'When you have provided the requested work for this action, submit it to Nexus.';
-  host.innerHTML=`<div><span>CLIENT → NEXUS HANDOFF</span><b>${ready?'Ready to send this step back to Nexus.':'Finish the preparation items above before handing this step back.'}</b><small>${progressText}</small></div><button type="button" class="btn primary" data-submit-file-task="${task.id}" ${ready?'':'disabled'}>${ready?'Submit to Nexus →':`Address ${summary.remaining} more ${summary.remaining===1?'item':'items'}`}</button>`;
+  renderPreparationWorkspace(panel);
 }
 
 function decorateToday(){
@@ -174,6 +191,45 @@ document.addEventListener('click',event=>{
     return;
   }
 
+  const prepUpload=event.target.closest?.('[data-prep-upload]');
+  if(prepUpload){
+    event.preventDefault();event.stopImmediatePropagation();
+    portal.prepareUpload?.({requirementId:prepUpload.dataset.prepUpload,title:prepUpload.dataset.prepTitle||'Preparation evidence'});
+    $('nexusClientUploadHost')?.scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(()=>$('docFile')?.focus(),180);
+    return;
+  }
+
+  const answerToggle=event.target.closest?.('[data-prep-answer-toggle]');
+  if(answerToggle){
+    event.preventDefault();event.stopImmediatePropagation();
+    const answer=document.querySelector(`[data-prep-answer="${CSS.escape(answerToggle.dataset.prepAnswerToggle)}"]`);
+    answer?.classList.toggle('open');
+    if(answer?.classList.contains('open'))answer.querySelector('textarea')?.focus();
+    return;
+  }
+
+  const prepSave=event.target.closest?.('[data-prep-save]');
+  if(prepSave){
+    event.preventDefault();event.stopImmediatePropagation();
+    boundary.run('preparation response save',()=>saveRequirementAnswer(prepSave.dataset.prepSave));
+    return;
+  }
+
+  const prepBuild=event.target.closest?.('[data-prep-build]');
+  if(prepBuild){
+    event.preventDefault();event.stopImmediatePropagation();
+    boundary.run('preparation build with Nexus',()=>setRequirementStatus(prepBuild.dataset.prepBuild,'build_with_nexus'));
+    return;
+  }
+
+  const prepNa=event.target.closest?.('[data-prep-na]');
+  if(prepNa){
+    event.preventDefault();event.stopImmediatePropagation();
+    boundary.run('preparation not applicable',()=>setRequirementStatus(prepNa.dataset.prepNa,'not_applicable'));
+    return;
+  }
+
   const handoff=event.target.closest?.('[data-submit-file-task]');
   if(handoff){
     event.preventDefault();event.stopImmediatePropagation();
@@ -213,7 +269,7 @@ window.addEventListener('nexus:workspace-ready',event=>{
   if(event.detail?.companyId===state.companyId)scheduleEnhancements();
 });
 
-const service=Object.freeze({submitTaskForReview,saveTaskProgress,mountPreparationWorkspace,decorateToday,addressedRequirementSummary});
+const service=Object.freeze({submitTaskForReview,saveTaskProgress,saveRequirementAnswer,setRequirementStatus,mountPreparationWorkspace,decorateToday,addressedRequirementSummary});
 portal.services=portal.services||{};
 portal.services.clientActionExecution=service;
 window.NexusClientActionExecution=service;
