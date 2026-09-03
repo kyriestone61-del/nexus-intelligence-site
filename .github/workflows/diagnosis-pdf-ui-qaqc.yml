@@ -1,0 +1,46 @@
+name: Nexus Diagnosis PDF UI QAQC
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-diagnosis-pdf-ui.js'
+      - 'functions/api/diagnosis-report-pdf.js'
+      - 'tests/diagnosis-pdf-ui-qaqc.mjs'
+      - '.github/workflows/diagnosis-pdf-ui-qaqc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'portal-app.js'
+      - 'portal-diagnosis-pdf-ui.js'
+      - 'functions/api/diagnosis-report-pdf.js'
+      - 'tests/diagnosis-pdf-ui-qaqc.mjs'
+      - '.github/workflows/diagnosis-pdf-ui-qaqc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnosis-pdf-ui-qaqc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < portal-app.js
+          node --input-type=module --check < portal-diagnosis-pdf-ui.js
+          node --input-type=module --check < functions/api/diagnosis-report-pdf.js
+      - name: Diagnosis PDF contract
+        run: node tests/diagnosis-pdf-ui-qaqc.mjs
+      - name: No privileged browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -niE 'service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY' portal-diagnosis-pdf-ui.js; then
+            echo 'Privileged server credential reference found in browser PDF controls.' >&2
+            exit 1
+          fi
