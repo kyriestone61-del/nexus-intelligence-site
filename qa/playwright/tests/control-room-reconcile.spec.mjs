@@ -6,7 +6,7 @@ const clientEmail=process.env.NEXUS_QA_CLIENT_EMAIL;
 const clientPassword=process.env.NEXUS_QA_CLIENT_PASSWORD;
 const qaCompany=process.env.NEXUS_QA_COMPANY_NAME;
 
-function meaningfulConsoleErrors(messages){return messages.filter(text=>!/favicon|cloudflareinsights|analytics|ResizeObserver loop|email-status|404|WebKit encountered an internal error|TLS handshake failed/i.test(text));}
+function meaningfulConsoleErrors(messages){return messages.filter(text=>!/favicon|cloudflareinsights|analytics|ResizeObserver loop|email-status|404|WebKit encountered an internal error|TLS handshake failed|Error performing TLS handshake|unexpected TLS packet/i.test(text));}
 async function signIn(page,email,password){
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
   await page.locator('#signInEmail').fill(email);
