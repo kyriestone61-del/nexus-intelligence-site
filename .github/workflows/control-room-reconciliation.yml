@@ -12,6 +12,8 @@ on:
       - 'portal-runtime-hardening.css'
       - 'portal-accessibility.js'
       - 'portal-client-core.js'
+      - 'core/document-context.js'
+      - 'core/document-service.js'
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
@@ -32,6 +34,8 @@ on:
       - 'portal-runtime-hardening.css'
       - 'portal-accessibility.js'
       - 'portal-client-core.js'
+      - 'core/document-context.js'
+      - 'core/document-service.js'
       - 'portal-client-upload-service.js'
       - 'portal-client-shell-v2.js'
       - 'portal-client-shell-v2.css'
@@ -64,6 +68,8 @@ jobs:
           node --input-type=module --check < portal-runtime-core.js
           node --input-type=module --check < portal-accessibility.js
           node --input-type=module --check < portal-client-core.js
+          node --input-type=module --check < core/document-context.js
+          node --input-type=module --check < core/document-service.js
           node --input-type=module --check < portal-client-upload-service.js
           node --input-type=module --check < portal-client-shell-v2.js
           node --input-type=module --check < portal-task-file-attachments.js
@@ -85,9 +91,12 @@ jobs:
           grep -q 'portal.prepareUpload' portal-client-shell-v2.js
           grep -q 'portal.services.clientUpload=service' portal-client-upload-service.js
           grep -q "Object.defineProperty(portal,'prepareUpload'" portal-client-upload-service.js
-          grep -Fq 'request_id:requestId||null' portal-client-upload-service.js
-          grep -Fq 'data_requirement_id:requirementId||null' portal-client-upload-service.js
-          grep -Fq 'task_id:task?.id||null' portal-client-upload-service.js
+          grep -q 'documents.uploadFile' portal-client-upload-service.js
+          grep -q 'documents.uploadFilesForTask' portal-client-upload-service.js
+          grep -q 'documents.createDownloadTarget' portal-client-upload-service.js
+          grep -Fq 'request_id:requestId||null' core/document-service.js
+          grep -Fq 'data_requirement_id:requirementId||null' core/document-service.js
+          grep -Fq 'task_id:task?.id||null' core/document-service.js
           grep -q 'portal-task-file-attachments.js' portal-client-upload-service.js
           if grep -q 'new MutationObserver' portal-client-shell-v2.js portal-accessibility.js; then
             echo 'Client Control Room core shell must not use DOM mutation rewrite loops.' >&2
