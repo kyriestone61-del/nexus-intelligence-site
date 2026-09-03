@@ -43,6 +43,7 @@ const runtime=fs.readFileSync('portal-runtime-core.js','utf8');
 const shell=fs.readFileSync('portal-client-shell-v2.js','utf8');
 const css=fs.readFileSync('portal-client-shell-v2.css','utf8');
 const upload=fs.readFileSync('portal-client-upload-service.js','utf8');
+const documents=fs.readFileSync('core/document-service.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260901_nexus_atomic_client_workspace_activation.sql','utf8');
 
 assert.match(app,/const platformAdmin=!!portal\.state\?\.admin/);
@@ -50,7 +51,7 @@ assert.match(app,/preparePerspective\?\.\(portal\)[\s\S]*const useClientShell=is
 assert.match(app,/portal-client-shell-v2\.css/);assert.match(app,/portal-client-upload-service\.js/);assert.match(app,/portal-client-shell-v2\.js/);
 const clientBranch=app.match(/if\(useClientShell\)\{([\s\S]*?)\}\s*else if\(useAdminShell\)/)?.[1]||'';assert.ok(clientBranch);
 for(const legacy of ['portal-client-shell.js','portal-simplify.js','portal-action-workflow.js','portal-vnext-experience.js','portal-approval-inbox.js','portal-workflow-cohesion.js','portal-buildingblok-cohesion.js','portal-client-guide.js','portal-ux-refinement.js'])assert.equal(clientBranch.includes(legacy),false,`client branch must not load ${legacy}`);
-assert.ok(clientBranch.indexOf('portal-client-upload-service.js')<clientBranch.indexOf('portal-client-shell-v2.js'),'upload service must load before V2 shell');
+assert.ok(clientBranch.indexOf('portal-client-upload-service.js')<clientBranch.indexOf('portal-client-shell-v2.js'),'upload facade must load before V2 shell');
 
 assert.match(client,/createPortalRuntime/);assert.match(client,/stateController\.patch/);assert.match(client,/workspaceRequests\.begin\(\)/);assert.match(client,/workspaceRequests\.isCurrent\(token\)/);assert.match(client,/nexus_activate_client_workspace/);
 assert.equal(client.includes("from '/portal-ops.js'"),false,'base portal must not import Operations');assert.equal(client.includes('initOps('),false,'base portal must not initialize Operations');
@@ -64,12 +65,16 @@ assert.equal(shell.includes('new MutationObserver'),false);assert.equal(/\.oncli
 assert.match(shell,/runtime/);assert.match(shell,/events\.bind/);assert.match(shell,/boundary\.run|boundary\.wrap/);assert.match(shell,/modals\.open/);
 assert.match(shell,/portal\.prepareUpload\?\.\(\{requestId,title\}\)/,'V2 shell must use the explicit upload facade');
 assert.match(upload,/event\.stopImmediatePropagation\(\)/);
-assert.match(upload,/request_id:requestId\|\|null/,'upload service must preserve document-request lineage supplied by the current upload context');
-assert.match(upload,/data_requirement_id:requirementId\|\|null/,'upload service must preserve preparation-item lineage supplied by the current upload context');
-assert.match(upload,/task_id:task\?\.id\|\|null/,'upload service must preserve direct client-action lineage when files are uploaded from an action');
-assert.match(upload,/remove\(\[path\]\)/);
-assert.match(upload,/portal\.services\.clientUpload=service/,'upload service must remain the single upload owner');
-assert.match(upload,/Object\.defineProperty\(portal,'prepareUpload',\{value:prepare/,'upload facade must delegate to the upload owner');
+assert.match(upload,/documents\.uploadFile/,'client upload facade must delegate persistence to canonical DocumentService');
+assert.match(upload,/documents\.uploadFilesForTask/,'client task attachments must delegate batching to canonical DocumentService');
+assert.doesNotMatch(upload,/from\('nexus_documents'\)/,'client facade must not insert document rows directly');
+assert.doesNotMatch(upload,/\.storage\.from\([^)]*\)\.upload/,'client facade must not own storage writes');
+assert.match(upload,/portal\.services\.clientUpload=service/,'client upload facade must remain the UI owner');
+assert.match(upload,/Object\.defineProperty\(portal,'prepareUpload',\{value:prepare/,'upload facade must remain the selection facade');
+assert.match(documents,/request_id:requestId\|\|null/,'DocumentService must preserve document-request lineage');
+assert.match(documents,/data_requirement_id:requirementId\|\|null/,'DocumentService must preserve preparation-item lineage');
+assert.match(documents,/task_id:task\?\.id\|\|null/,'DocumentService must preserve task lineage');
+assert.match(documents,/remove\(\[path\]\)/,'DocumentService must own storage rollback');
 assert.match(css,/min-height:44px/);assert.match(css,/env\(safe-area-inset-bottom\)/);assert.match(css,/overflow-x:hidden/);assert.match(css,/@media\(max-width:760px\)/);assert.match(css,/@media\(max-width:390px\)/);
 
 console.log('NEXUS CONTROL ROOM RECONCILIATION QAQC PASS');
