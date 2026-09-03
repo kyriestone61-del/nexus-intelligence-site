@@ -13,7 +13,7 @@ const BUCKET='nexus-client-documents';
 const MAX_BYTES=26214400;
 let selection={requestId:null,requirementId:null,taskId:null,title:''};
 const $=id=>document.getElementById(id);
-const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
 function clear(){selection={requestId:null,requirementId:null,taskId:null,title:''};const box=$('uploadContext');if(box){box.classList.remove('show');box.innerHTML=''}}
 function prepare({requestId=null,requirementId=null,taskId=null,title=''}){
