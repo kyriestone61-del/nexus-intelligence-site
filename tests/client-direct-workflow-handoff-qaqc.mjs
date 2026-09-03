@@ -4,7 +4,7 @@ import fs from 'node:fs';
 const app=fs.readFileSync('portal-app.js','utf8');
 const execution=fs.readFileSync('portal-client-action-execution.js','utf8');
 const upload=fs.readFileSync('portal-client-upload-service.js','utf8');
-const base=fs.readFileSync('portal-client.js','utf8');
+const documents=fs.readFileSync('core/document-service.js','utf8');
 
 assert.match(app,/portal-client-action-execution\.js/,'client execution controller must be loaded');
 assert.ok(app.indexOf('portal-client-shell-v2.js')<app.indexOf('portal-client-action-execution.js'),'execution controller must load after the client shell so it can reconcile the shell without replacing it');
@@ -20,7 +20,7 @@ assert.match(execution,/Submitted to Nexus\. This step is now in Nexus review\./
 
 assert.match(execution,/nexus_project_data_requirements/,'preparation responses must persist to the canonical preparation table');
 assert.match(execution,/data-prep-upload/,'preparation workspace must expose direct upload');
-assert.match(execution,/portal\.prepareUpload/,'preparation upload must delegate to the canonical upload service');
+assert.match(execution,/portal\.prepareUpload/,'preparation upload must delegate to the canonical upload facade');
 assert.match(execution,/Answer here/,'preparation workspace must support in-app answers');
 assert.match(execution,/Build with Nexus/,'missing artifacts must be routable to Nexus');
 assert.match(execution,/Not applicable/,'client must be able to explicitly resolve non-applicable items');
@@ -35,15 +35,26 @@ assert.match(execution,/Client View is read-only from the administrator account/
 assert.match(execution,/Client can submit to Nexus/,'admin preview must show the real client capability without enabling the mutation');
 assert.match(execution,/signed-in client can use the controls below, save progress, upload and download files, and submit completed work to Nexus/,'preview must explain what the actual client can do');
 
-assert.match(upload,/BUCKET='nexus-client-documents'/);
-assert.match(upload,/\.upload\(path,file/,'client upload service must write to private company storage');
-assert.match(upload,/request_id:requestId\|\|null/,'uploads must retain document-request lineage when supplied by the selected request');
-assert.match(upload,/data_requirement_id:requirementId\|\|null/,'uploads must retain preparation-item lineage when supplied by the selected requirement');
-assert.match(upload,/task_id:task\?\.id\|\|null/,'uploads from client actions must retain exact task lineage');
-assert.match(upload,/uploadFilesForTask/,'client upload service must support one or more files directly on a client action');
-assert.match(upload,/document_area:'client_submission'/);
-assert.match(upload,/source_role:'client'/);
-assert.match(base,/createSignedUrl\(doc\.storage_path,120,\{download:doc\.file_name\}\)/,'client download must use a short-lived signed URL');
-assert.match(base,/storage\.from\(BUCKET\)\.download\(doc\.storage_path\)/,'download must retain the authenticated fallback path');
+// UI facade delegates all storage and metadata behavior to DocumentService.
+assert.match(upload,/createDocumentService/,'client upload facade must initialize or reuse canonical DocumentService');
+assert.match(upload,/documents\.uploadFile/,'direct client uploads must delegate persistence');
+assert.match(upload,/documents\.uploadFilesForTask/,'client action uploads must delegate batching');
+assert.match(upload,/documents\.createDownloadTarget/,'client downloads must delegate secure target generation');
+assert.match(upload,/portal\.downloadDocument=downloadDocument/,'existing download facade must route through DocumentService');
+assert.match(upload,/documentArea:'client_submission'/,'client boundary must remain explicit');
+assert.match(upload,/sourceRole:'client'/,'client provenance must remain explicit');
+assert.doesNotMatch(upload,/\.storage\.from\([^)]*\)\.upload/,'UI facade must not own storage writes');
+assert.doesNotMatch(upload,/from\('nexus_documents'\)/,'UI facade must not own document-row inserts');
+
+assert.match(documents,/DEFAULT_DOCUMENT_BUCKET='nexus-client-documents'/,'canonical service must own the private document bucket');
+assert.match(documents,/\.storage\.from\(bucket\)\.upload/,'canonical service must write to private company storage');
+assert.match(documents,/request_id:requestId\|\|null/,'canonical service must retain document-request lineage');
+assert.match(documents,/data_requirement_id:requirementId\|\|null/,'canonical service must retain preparation-item lineage');
+assert.match(documents,/task_id:task\?\.id\|\|null/,'canonical service must retain exact task lineage');
+assert.match(documents,/uploadFilesForTask/,'canonical service must support one or more files on a client action');
+assert.match(documents,/document_area:documentArea/,'canonical service must persist document-area boundaries');
+assert.match(documents,/source_role:sourceRole/,'canonical service must persist source role');
+assert.match(documents,/createSignedUrl\(record\.storage_path,expiresIn,\{download:record\.file_name\}\)/,'canonical download must use a short-lived signed URL');
+assert.match(documents,/storage\.download\(record\.storage_path\)/,'canonical download must retain authenticated blob fallback');
 
 console.log('NEXUS DIRECT CLIENT WORKFLOW + HANDOFF QAQC PASS');
