@@ -4,8 +4,9 @@ on:
   pull_request:
     paths:
       - 'portal-app.js'
-      - 'portal-client-guide.js'
-      - 'portal-client-guide.css'
+      - 'portal-client-core.js'
+      - 'portal-client-shell-v2.js'
+      - 'portal-client-shell-v2.css'
       - 'portal-foundation-hardening.js'
       - '.github/workflows/client-simple-guide-qa.yml'
 
@@ -23,51 +24,53 @@ jobs:
       - name: JavaScript syntax
         run: |
           set -euo pipefail
-          node --input-type=module --check < portal-client-guide.js
+          node --input-type=module --check < portal-client-core.js
+          node --input-type=module --check < portal-client-shell-v2.js
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-foundation-hardening.js
-      - name: Five-destination navigation contract
+      - name: Primary navigation and utilities contract
         run: |
           set -euo pipefail
-          grep -Fq "['overview','Home']" portal-client-guide.js
-          grep -Fq "['documents','Files']" portal-client-guide.js
-          grep -Fq "['diagnosis-reports','Reports']" portal-client-guide.js
-          grep -Fq "['progress','Progress']" portal-client-guide.js
-          grep -Fq "['help','Help']" portal-client-guide.js
-          grep -Fq "client-source-nav" portal-client-guide.js
-          grep -Fq "grid-template-columns:repeat(5,minmax(0,1fr))" portal-client-guide.css
+          grep -Fq "['today','01 Today']" portal-client-shell-v2.js
+          grep -Fq "['files','02 Secure Data Room']" portal-client-shell-v2.js
+          grep -Fq "['improvement','03 Improvement Record']" portal-client-shell-v2.js
+          grep -Fq "nexusClientReportsButton" portal-client-shell-v2.js
+          grep -Fq "nexusClientHelpButton" portal-client-shell-v2.js
+          grep -Fq "nexusClientInboxButton" portal-client-shell-v2.js
+          grep -Fq "nexus-client-legacy-nav" portal-client-shell-v2.css
       - name: Client status language contract
         run: |
           set -euo pipefail
-          grep -Fq "Waiting on you" portal-client-guide.js
-          grep -Fq "Nexus working" portal-client-guide.js
-          grep -Fq "Ready to review" portal-client-guide.js
-          grep -Fq "Complete" portal-client-guide.js
-          grep -Fq "Blocked" portal-client-guide.js
+          grep -Fq "WAITING_ON_YOU: 'Waiting on you'" portal-client-core.js
+          grep -Fq "NEXUS_WORKING: 'Nexus working'" portal-client-core.js
+          grep -Fq "READY_TO_REVIEW: 'Ready to review'" portal-client-core.js
+          grep -Fq "COMPLETE: 'Complete'" portal-client-core.js
+          grep -Fq "BLOCKED: 'Blocked'" portal-client-core.js
       - name: FAQ and Nexus Guide contract
         run: |
           set -euo pipefail
-          grep -Fq "const faqs=[" portal-client-guide.js
-          grep -Fq "clientFaqSearch" portal-client-guide.js
-          grep -Fq "nexusGuideDrawer" portal-client-guide.js
-          grep -Fq "What do I need to do?" portal-client-guide.js
-          grep -Fq "prepareRequest" portal-client-guide.js
-          grep -Fq "Review it, then tap Submit request" portal-client-guide.js
-          grep -Fq "NexusClientGuide" portal-client-guide.js
+          grep -Fq "const FAQS=[" portal-client-shell-v2.js
+          grep -Fq "nexusClientGuideDrawer" portal-client-shell-v2.js
+          grep -Fq "What do I need to do?" portal-client-shell-v2.js
+          grep -Fq "What should I upload?" portal-client-shell-v2.js
+          grep -Fq "Where is my report?" portal-client-shell-v2.js
+          grep -Fq "I do not have a confident workspace answer for that." portal-client-shell-v2.js
       - name: Client-only boot boundary
         run: |
           set -euo pipefail
-          grep -Fq "if(isSignedIn&&!isAdmin)await requiredImport(asset(\`portal-client-guide.js?v=\${BUILD}\`),'simple client experience and Nexus Guide');" portal-app.js
-          grep -Fq "if(state.admin)throw new Error('Client Guide must not load in the Nexus admin workspace.')" portal-client-guide.js
-          grep -Fq "portal-client-guide.css" portal-app.js
+          grep -Fq "portal-client-shell-v2.js?v=\${BUILD}" portal-app.js
+          grep -Fq "reconciled client shell" portal-app.js
+          grep -Fq "if(state.admin)throw new Error('Client Shell must not load in the Nexus admin workspace.')" portal-client-shell-v2.js
+          grep -Fq "portal-client-shell-v2.css" portal-app.js
       - name: Mobile client contract
         run: |
           set -euo pipefail
-          grep -Fq '@media(max-width:760px)' portal-client-guide.css
-          grep -Fq '@media(max-width:390px)' portal-client-guide.css
-          grep -Fq 'position:fixed!important' portal-client-guide.css
-          grep -Fq 'bottom:calc(78px + env(safe-area-inset-bottom))' portal-client-guide.css
-          grep -Fq 'font-size:16px' portal-client-guide.css
+          grep -Fq '@media(max-width:900px)' portal-client-shell-v2.css
+          grep -Fq '@media(max-width:760px)' portal-client-shell-v2.css
+          grep -Fq '@media(max-width:390px)' portal-client-shell-v2.css
+          grep -Fq 'font-size:16px!important' portal-client-shell-v2.css
+          grep -Fq 'min-height:44px' portal-client-shell-v2.css
+          grep -Fq 'padding-bottom:calc(20px + env(safe-area-inset-bottom))' portal-client-shell-v2.css
       - name: Client-safe Company Memory boundary
         run: |
           set -euo pipefail

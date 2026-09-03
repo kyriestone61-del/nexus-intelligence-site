@@ -72,6 +72,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-client-upload-service.js?v=${BUILD}`),'client upload service');
   await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
   await requiredImport(asset(`portal-client-action-execution.js?v=${BUILD}`),'client action execution and handoff');
+  await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   clearBootLock();
 }else if(useAdminShell){
@@ -105,6 +106,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-diagnosis-controller-v2.js?v=${BUILD}`),'diagnosis controller');
   await requiredImport(asset(`portal-diagnosis-release-queue.js?v=${BUILD}`),'diagnosis client release queue');
   await requiredImport(asset(`portal-diagnosis-review-ux.js?v=${BUILD}`),'diagnosis review UX');
+  await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
   await requiredImport(asset(`portal-journey-task-guard.js?v=${BUILD}`),'journey task guard');
   await requiredImport(asset(`portal-revenue-engine.js?v=${BUILD}`),'Revenue Engine');
   const finalAdminReady=await waitFor(()=>{const nav=document.querySelector('.side-nav');const labels=[...nav?.querySelectorAll('button')||[]].map(x=>x.textContent.trim());return document.querySelector('.journey-primary')&&document.querySelector('#adminJourneyRoot .journey-step')&&labels.includes('Client Journey')&&labels.includes('Discovery & Diagnosis')&&labels.includes('Revenue Engine')},{timeout:5200,step:70});
