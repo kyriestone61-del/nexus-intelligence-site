@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260903-client-direct-handoff1';
+const BUILD='20260903-founder-report-editor1';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -106,6 +106,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-diagnosis-controller-v2.js?v=${BUILD}`),'diagnosis controller');
   await requiredImport(asset(`portal-diagnosis-release-queue.js?v=${BUILD}`),'diagnosis client release queue');
   await requiredImport(asset(`portal-diagnosis-review-ux.js?v=${BUILD}`),'diagnosis review UX');
+  await requiredImport(asset(`portal-diagnosis-report-editor.js?v=${BUILD}`),'audited founder diagnosis report editor');
   await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
   await requiredImport(asset(`portal-journey-task-guard.js?v=${BUILD}`),'journey task guard');
   await requiredImport(asset(`portal-revenue-engine.js?v=${BUILD}`),'Revenue Engine');
