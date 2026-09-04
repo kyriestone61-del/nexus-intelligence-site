@@ -24,7 +24,6 @@ on:
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
       - 'portal-production-simplification.js'
-      - 'functions/api/qa-bootstrap.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
@@ -44,7 +43,6 @@ on:
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
       - 'portal-production-simplification.js'
-      - 'functions/api/qa-bootstrap.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
@@ -62,30 +60,28 @@ jobs:
         working-directory: qa/playwright
     env:
       NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
+      NEXUS_QA_BOOTSTRAP_URL: https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-calendar-config-check
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate QA bootstrap source
-        shell: bash
-        run: node --input-type=module --check < ../../functions/api/qa-bootstrap.js
       - run: npm install --no-audit --no-fund
       - name: Provision disposable authenticated QA identities
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
           set -euo pipefail
-          endpoint="${NEXUS_QA_BASE_URL%/}/api/qa-bootstrap"
+          endpoint="$NEXUS_QA_BOOTSTRAP_URL"
           ready=0
-          for attempt in $(seq 1 24); do
+          for attempt in $(seq 1 12); do
             code="$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST --header 'content-type: application/json' --data '{"action":"provision"}' "$endpoint" || true)"
             if [ "$code" = '401' ]; then ready=1; break; fi
-            echo "Waiting for QA bootstrap deployment (attempt $attempt, HTTP ${code:-curl_error})"
-            sleep 5
+            echo "Waiting for protected QA bootstrap endpoint (attempt $attempt, HTTP ${code:-curl_error})"
+            sleep 3
           done
           if [ "$ready" != '1' ]; then
-            echo '::error::The GitHub OIDC QA bootstrap endpoint did not become ready.'
+            echo '::error::The protected Supabase QA bootstrap endpoint is unavailable.'
             exit 1
           fi
           oidc_json="$(curl --silent --show-error --fail --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-qa")"
@@ -99,7 +95,7 @@ jobs:
           provision="$(cat "$provision_file")"
           if [ "$provision_code" != '200' ]; then
             echo "::error::Disposable QA provisioning failed with HTTP $provision_code."
-            printf '%s' "$provision" | jq '{ok,error,stage,upstream_status}' || true
+            printf '%s' "$provision" | jq '{ok,error,stage}' || true
             exit 1
           fi
           printf '%s' "$provision" | jq -e '.ok == true' >/dev/null
@@ -152,7 +148,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          endpoint="${NEXUS_QA_BASE_URL%/}/api/qa-bootstrap"
+          endpoint="$NEXUS_QA_BOOTSTRAP_URL"
           oidc_json="$(curl --silent --show-error --fail --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-qa")"
           oidc_token="$(printf '%s' "$oidc_json" | jq -r '.value')"
           cleanup_file="$(mktemp)"
@@ -160,7 +156,7 @@ jobs:
           cleanup="$(cat "$cleanup_file")"
           if [ "$cleanup_code" != '200' ]; then
             echo "::error::Disposable QA cleanup failed with HTTP $cleanup_code."
-            printf '%s' "$cleanup" | jq '{ok,error,stage,upstream_status}' || true
+            printf '%s' "$cleanup" | jq '{ok,error,stage}' || true
             exit 1
           fi
           printf '%s' "$cleanup" | jq -e '.ok == true' >/dev/null
