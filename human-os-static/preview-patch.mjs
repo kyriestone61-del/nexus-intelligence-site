@@ -9,11 +9,18 @@ async function patchFile(path, transforms) {
   await writeFile(path,text,'utf8');
 }
 
-await patchFile('dist/assets/tutor-v2.js',[[
-  "sb.functions.invoke('hlo-tutor'",
-  "sb.functions.invoke('hlo-tutor-stream'",
-  'Tutor candidate routing'
-]]);
+await patchFile('dist/assets/tutor-v2.js',[
+  [
+    "sb.functions.invoke('hlo-tutor'",
+    "sb.functions.invoke('hlo-tutor-stream'",
+    'Tutor candidate routing'
+  ],
+  [
+    "try{({data,error}=await sb.functions.invoke('hlo-tutor-stream',{body:{question:q,context}}))}catch(e){error=e}",
+    "try{({data,error}=await sb.functions.invoke('hlo-tutor-stream',{body:{question:q,context}}));if(data?.entitlement_required)window.HLOAnalytics?.track?.('paywall_viewed',{object_id:'tutor-limit',entitlement:data.entitlement_required});}catch(e){error=e}",
+    'Tutor Plus paywall telemetry'
+  ]
+]);
 
 await patchFile('dist/assets/core.js',[
   [
@@ -51,4 +58,4 @@ await patchFile('dist/assets/personalize.js',[
   ]
 ]);
 
-console.log('Human OS preview uses the AI-era Tutor candidate and explicit Free/Plus path-continuity gates.');
+console.log('Human OS preview uses AI-era Tutor plus explicit Free/Plus continuity and Tutor usage gates.');
