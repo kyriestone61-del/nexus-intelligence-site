@@ -5,7 +5,7 @@ const {state}=portal;
 const $=id=>document.getElementById(id);
 const terminal=new Set(['complete','completed','done','closed','resolved','cancelled','canceled','archived','approved','not_applicable']);
 const adminPrimaryCache={home:null,clients:null,decisions:null,sales:null};
-let scheduled=false;
+let scheduled=false,clientOverlayEscapeBound=false;
 
 function text(node,value){if(node&&node.textContent!==value)node.textContent=value}
 function hidden(node,value=true){if(!node)return;if(value){node.hidden=true;node.setAttribute('aria-hidden','true')}else{node.hidden=false;node.removeAttribute('aria-hidden')}}
@@ -45,12 +45,12 @@ function primaryAdminNodes(nav){
   const clients=(liveClients?.dataset.section==='companies'?liveClients:null)||adminPrimaryCache.clients||liveClients;
   const decisions=liveDecisions||adminPrimaryCache.decisions;
   const sales=liveSales||adminPrimaryCache.sales;
-  return [home,clients,decisions,sales].filter(Boolean);
+  return [...new Set([home,clients,decisions,sales].filter(Boolean))];
 }
 function labelSecondary(button){
   const key=button.dataset.section||'';
   const labels={
-    clients:'Client Setup',command:'Command Center',overview:'Client Today',discovery:'Diagnosis',tasks:'Work',documents:'Files',approvals:'Approval History',automations:'Systems',metrics:'Results',timeline:'Projects',requests:'Requests',activity:'Activity'
+    clients:'Client Setup',companies:'Client Records',command:'Command Center',overview:'Client Today',discovery:'Diagnosis',tasks:'Work',documents:'Files',approvals:'Approval History',automations:'Systems',metrics:'Results',timeline:'Projects',requests:'Requests',activity:'Activity'
   };
   if(labels[key])text(button,labels[key]);
 }
@@ -58,25 +58,27 @@ function simplifyAdminNav(){
   if(!state.admin||state.viewMode==='client')return;
   const nav=document.querySelector('.side-nav');if(!nav)return;
   const primaryNodes=primaryAdminNodes(nav);if(primaryNodes.length<4)return;
-  const existingPrimary=nav.querySelector(':scope > .nexus-production-primary-nav');
-  const existingRecords=nav.querySelector(':scope > details.nexus-production-records');
-  const correct=existingPrimary&&existingRecords&&primaryNodes.every(node=>existingPrimary.contains(node))&&[...nav.querySelectorAll('button')].every(node=>existingPrimary.contains(node)||existingRecords.contains(node));
-  if(!correct){
+  let primary=nav.querySelector(':scope > .nexus-production-primary-nav');
+  let records=nav.querySelector(':scope > details.nexus-production-records');
+  if(!primary||!records){
     const buttons=[...nav.querySelectorAll('button')];
-    const primarySet=new Set(primaryNodes);
-    const primary=document.createElement('div');primary.className='nexus-production-primary-nav';primary.setAttribute('aria-label','Primary workspace navigation');
-    const records=document.createElement('details');records.className='nexus-production-records';records.innerHTML='<summary>Records & Tools</summary><div class="nexus-production-record-buttons"></div>';
-    const recordsBox=records.querySelector('.nexus-production-record-buttons');
+    primary=document.createElement('div');primary.className='nexus-production-primary-nav';primary.setAttribute('aria-label','Primary workspace navigation');
+    records=document.createElement('details');records.className='nexus-production-records';records.innerHTML='<summary>Records & Tools</summary><div class="nexus-production-record-buttons"></div>';
+    const primarySet=new Set(primaryNodes),recordsBox=records.querySelector('.nexus-production-record-buttons');
     nav.replaceChildren(primary,records);
     primaryNodes.forEach(node=>primary.appendChild(node));
     buttons.filter(node=>!primarySet.has(node)).forEach(node=>{labelSecondary(node);recordsBox.appendChild(node)});
     recordsBox.addEventListener('click',event=>{if(event.target.closest('button'))records.open=true});
   }
-  const home=nav.querySelector('.journey-primary');text(home,'Home');
-  const clients=nav.querySelector('.nexus-production-primary-nav button[data-section="companies"]')||nav.querySelector('.nexus-production-primary-nav button[data-section="clients"]');text(clients,'Clients');
-  const decisions=nav.querySelector('.nexus-production-primary-nav button[data-section="notifications"]');text(decisions,'Decisions');decisions?.setAttribute('aria-label','Decisions');
-  const sales=nav.querySelector('.nexus-production-primary-nav button[data-section="revenue"]');text(sales,'Sales');sales?.setAttribute('aria-label','Sales');
-  nav.querySelectorAll('.nexus-production-record-buttons button').forEach(labelSecondary);
+  const recordsBox=records.querySelector('.nexus-production-record-buttons');
+  const primarySet=new Set(primaryNodes);
+  [...primary.querySelectorAll(':scope > button')].filter(node=>!primarySet.has(node)).forEach(node=>{labelSecondary(node);recordsBox?.appendChild(node)});
+  primaryNodes.forEach(node=>primary.appendChild(node));
+  const home=primary.querySelector('.journey-primary');text(home,'Home');
+  const clients=primary.querySelector('button[data-section="companies"]')||primary.querySelector('button[data-section="clients"]');text(clients,'Clients');
+  const decisions=primary.querySelector('button[data-section="notifications"]');text(decisions,'Decisions');decisions?.setAttribute('aria-label','Decisions');
+  const sales=primary.querySelector('button[data-section="revenue"]');text(sales,'Sales');sales?.setAttribute('aria-label','Sales');
+  recordsBox?.querySelectorAll('button').forEach(labelSecondary);
 }
 
 function simplifyJourney(){
@@ -141,8 +143,22 @@ function hideManualCreation(){
   ['newTaskBtn','newMetricBtn','newMilestoneBtn','newDocumentRequestBtn'].forEach(id=>hidden($(id),true));
 }
 
+function bindClientOverlayEscape(){
+  if(clientOverlayEscapeBound)return;clientOverlayEscapeBound=true;
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Escape')return;
+    const inbox=$('nexusClientInboxDrawer'),guide=$('nexusClientGuideDrawer');
+    const target=inbox?.classList.contains('show')?inbox:guide?.classList.contains('show')?guide:null;
+    if(!target)return;
+    event.preventDefault();event.stopPropagation();
+    const close=target.querySelector('[data-modal-close]');
+    if(close instanceof HTMLElement)close.click();
+    else{target.classList.remove('show');target.setAttribute('aria-hidden','true')}
+  },true);
+}
 function simplifyClient(){
   const clientMode=!state.admin||state.viewMode==='client';if(!clientMode)return;
+  bindClientOverlayEscape();
   const labels={today:'Today',files:'Files',improvement:'Results'};
   document.querySelectorAll('#nexusClientPrimaryNav [data-client-view]').forEach(button=>{const label=labels[button.dataset.clientView];if(label)text(button.querySelector('b'),label)});
   hidden($('nexusClientReportsButton'),true);hidden($('alertsBtn'),true);
