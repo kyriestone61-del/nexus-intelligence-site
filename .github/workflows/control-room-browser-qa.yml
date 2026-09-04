@@ -83,6 +83,32 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
+      - name: Wait for exact deployed portal loader
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(sha256sum ../../portal-app.js | awk '{print $1}')"
+          matched=0
+          for attempt in $(seq 1 60); do
+            deployed="$(mktemp)"
+            if curl --silent --show-error --fail --header 'cache-control: no-cache' "$NEXUS_QA_BASE_URL/portal-app.js?qa_sha=${GITHUB_SHA}&attempt=${attempt}" --output "$deployed"; then
+              actual="$(sha256sum "$deployed" | awk '{print $1}')"
+              if [ "$actual" = "$expected" ]; then
+                echo "PRODUCTION_PORTAL_ASSET_PARITY=CONFIRMED sha=$GITHUB_SHA attempt=$attempt"
+                matched=1
+                break
+              fi
+              echo "Waiting for exact portal-app.js deployment (attempt $attempt; expected $expected, received $actual)"
+            else
+              echo "Waiting for portal-app.js deployment (attempt $attempt; request failed)"
+            fi
+            sleep 5
+          done
+          if [ "$matched" != '1' ]; then
+            echo '::error::Production portal-app.js never matched the exact checked-out main build. Refusing to run authenticated QA against stale code.'
+            exit 1
+          fi
       - name: Provision disposable authenticated QA identities
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash
