@@ -6,7 +6,14 @@ on:
       - 'portal-action-execution-v2.js'
       - 'portal-action-execution-v2-forms.js'
       - 'portal-action-execution-v2.css'
+      - 'portal-action-processing-engine.js'
+      - 'portal-action-processing-engine.css'
+      - 'portal-client-upload-service.js'
+      - 'portal-ux-refinement.js'
       - 'portal-app.js'
+      - 'supabase/migrations/20260904_nexus_action_item_processing_engine.sql'
+      - 'supabase/migrations/20260904_nexus_action_item_processing_rls_hardening.sql'
+      - 'supabase/migrations/20260904_nexus_action_item_processing_rpc_grants.sql'
       - '.github/workflows/action-items-qa.yml'
 
 permissions:
@@ -25,6 +32,9 @@ jobs:
           set -euo pipefail
           node --input-type=module --check < portal-action-execution-v2.js
           node --input-type=module --check < portal-action-execution-v2-forms.js
+          node --input-type=module --check < portal-action-processing-engine.js
+          node --input-type=module --check < portal-client-upload-service.js
+          node --input-type=module --check < portal-ux-refinement.js
           node --input-type=module --check < portal-app.js
       - name: Delivery methodology assertions
         run: |
@@ -43,6 +53,34 @@ jobs:
           grep -Fq 'Submitted to Nexus for review.' portal-action-execution-v2.js
           grep -Fq 'Needs Your Attention' portal-action-execution-v2.js
           grep -Fq 'Workflow packages' portal-action-execution-v2.js
+      - name: Action processing engine assertions
+        run: |
+          set -euo pipefail
+          grep -Fq 'Every action. One clear next move.' portal-action-processing-engine.js
+          grep -Fq 'data-action-start' portal-action-processing-engine.js
+          grep -Fq 'data-action-upload' portal-action-processing-engine.js
+          grep -Fq 'data-action-comment' portal-action-processing-engine.js
+          grep -Fq 'data-action-help' portal-action-processing-engine.js
+          grep -Fq 'data-action-submit' portal-action-processing-engine.js
+          grep -Fq 'Convert to project' portal-action-processing-engine.js
+          grep -Fq 'Archive' portal-action-processing-engine.js
+          grep -Fq 'Edit workflow' portal-action-processing-engine.js
+          grep -Fq 'nexus_task_events' portal-action-processing-engine.js
+          grep -Fq 'nexus_start_task' portal-action-processing-engine.js
+          grep -Fq 'nexus_request_task_help' portal-action-processing-engine.js
+          grep -Fq 'nexus_admin_task_action' portal-action-processing-engine.js
+          grep -Fq 'required_evidence' supabase/migrations/20260904_nexus_action_item_processing_engine.sql
+          grep -Fq 'completion_criteria' supabase/migrations/20260904_nexus_action_item_processing_engine.sql
+          grep -Fq 'create table if not exists public.nexus_task_events' supabase/migrations/20260904_nexus_action_item_processing_engine.sql
+          grep -Fq 'enable row level security' supabase/migrations/20260904_nexus_action_item_processing_engine.sql
+          grep -Fq 'nexus members view task events' supabase/migrations/20260904_nexus_action_item_processing_engine.sql
+          grep -Fq 'private.nexus_guard_client_task_update' supabase/migrations/20260904_nexus_action_item_processing_rls_hardening.sql
+          grep -Fq 'Protected action fields must be changed through a governed Nexus workflow' supabase/migrations/20260904_nexus_action_item_processing_rls_hardening.sql
+          grep -Fq 'revoke execute on function public.nexus_start_task(uuid) from public, anon' supabase/migrations/20260904_nexus_action_item_processing_rpc_grants.sql
+          grep -Fq 'revoke execute on function public.nexus_admin_task_action(uuid,text,text,text) from public, anon' supabase/migrations/20260904_nexus_action_item_processing_rpc_grants.sql
+          grep -Fq 'grant execute on function public.nexus_submit_task_for_review(uuid,jsonb) to authenticated' supabase/migrations/20260904_nexus_action_item_processing_rpc_grants.sql
+          grep -Fq 'portal-action-processing-engine.js' portal-client-upload-service.js
+          grep -Fq 'portal-action-processing-engine.js' portal-ux-refinement.js
       - name: Client simplicity, structured input, and security assertions
         run: |
           set -euo pipefail
@@ -57,7 +95,7 @@ jobs:
           grep -Fq 'portal-action-execution-v2.css' portal-app.js
           grep -Fq 'portal-action-execution-v2.js' portal-app.js
           grep -Fq 'portal-action-execution-v2-forms.js' portal-app.js
-          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-action-execution-v2.js portal-action-execution-v2-forms.js portal-action-execution-v2.css; then
+          if grep -RniE 'service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY' portal-action-execution-v2.js portal-action-execution-v2-forms.js portal-action-processing-engine.js portal-action-processing-engine.css; then
             echo 'Privileged credential reference found in browser-delivered action workflow.' >&2
             exit 1
           fi
@@ -68,3 +106,6 @@ jobs:
           grep -Fq '.action-view-tabs' portal-action-execution-v2.css
           grep -Fq '.package-grid' portal-action-execution-v2.css
           grep -Fq '.dependency-note' portal-action-execution-v2.css
+          grep -Fq '@media(max-width:760px)' portal-action-processing-engine.css
+          grep -Fq '.action-engine-tabs' portal-action-processing-engine.css
+          grep -Fq '.action-engine-actions' portal-action-processing-engine.css
