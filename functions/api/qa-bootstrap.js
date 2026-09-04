@@ -21,6 +21,18 @@ const decodePart=value=>JSON.parse(new TextDecoder().decode(base64UrlBytes(value
 const audIncludes=(aud,expected)=>(Array.isArray(aud)?aud:[aud]).includes(expected);
 const safeRunPart=value=>String(value||'').replace(/[^0-9A-Za-z_-]/g,'').slice(0,80);
 
+class QaProvisionError extends Error{
+  constructor(stage,status=null){super(`QA provisioning failed at ${stage}.`);this.qaStage=stage;this.qaStatus=status;}
+}
+function provisioningStage(path,method){
+  if(path.startsWith('/auth/v1/admin/users'))return method==='POST'?'auth_create_user':method==='DELETE'?'auth_delete_user':'auth_list_users';
+  if(path.startsWith('/rest/v1/nexus_companies'))return method==='POST'?'company_create':'company_delete';
+  if(path.startsWith('/rest/v1/nexus_profiles'))return'profiles_create';
+  if(path.startsWith('/rest/v1/nexus_platform_members'))return'platform_admin_membership_create';
+  if(path.startsWith('/rest/v1/nexus_company_members'))return'company_memberships_create';
+  return'supabase_request';
+}
+
 async function verifyGithubOidc(request){
   const authorization=request.headers.get('authorization')||'';
   if(!authorization.startsWith('Bearer '))throw new Error('Missing GitHub OIDC token.');
@@ -50,15 +62,17 @@ async function verifyGithubOidc(request){
 
 function serviceHeaders(env,extra={}){
   const key=env.SUPABASE_SERVICE_ROLE_KEY;
-  if(!key)throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured in the Pages runtime.');
+  if(!key)throw new QaProvisionError('service_role_config');
   return {'content-type':'application/json','apikey':key,'authorization':`Bearer ${key}`,...extra};
 }
 
 async function serviceFetch(env,path,{method='GET',body,headers={}}={}){
-  const result=await fetch(`${SUPABASE_URL}${path}`,{method,headers:serviceHeaders(env,headers),body:body===undefined?undefined:JSON.stringify(body)});
+  const stage=provisioningStage(path,method);
+  let requestHeaders;try{requestHeaders=serviceHeaders(env,headers)}catch(error){throw error}
+  const result=await fetch(`${SUPABASE_URL}${path}`,{method,headers:requestHeaders,body:body===undefined?undefined:JSON.stringify(body)});
   const text=await result.text();
   let data=null;try{data=text?JSON.parse(text):null}catch{data=text}
-  if(!result.ok){const detail=typeof data==='string'?data:JSON.stringify(data);throw new Error(`Supabase ${method} ${path} failed (${result.status}): ${detail.slice(0,700)}`)}
+  if(!result.ok)throw new QaProvisionError(stage,result.status);
   return data;
 }
 
@@ -73,7 +87,7 @@ async function createUser(env,{email,password,fullName,runKey,companyName}){
     app_metadata:{nexus_qa:true,nexus_qa_run_key:runKey,disposable:true}
   }});
   const user=data?.user||data;
-  if(!user?.id)throw new Error('Supabase did not return a QA user id.');
+  if(!user?.id)throw new QaProvisionError('auth_create_user_response');
   return user;
 }
 async function deleteUser(env,id){
@@ -113,7 +127,7 @@ async function insertQaRows(env,{admin,client,companyName,runKey}){
     name:companyName,website:`https://qa.invalid/${encodeURIComponent(runKey)}`,industry:'Nexus QA',created_by:admin.id
   }});
   const company=Array.isArray(companyRows)?companyRows[0]:companyRows;
-  if(!company?.id)throw new Error('QA company creation did not return an id.');
+  if(!company?.id)throw new QaProvisionError('company_create_response');
   await serviceFetch(env,'/rest/v1/nexus_profiles',{method:'POST',headers:{Prefer:'return=minimal'},body:[
     {user_id:admin.id,full_name:'Nexus QA Administrator',job_title:'Automated QA'},
     {user_id:client.id,full_name:'Nexus QA Client',job_title:'Automated QA'}
@@ -147,18 +161,20 @@ async function provision(env,claims){
 }
 
 export async function onRequestPost(context){
+  let claims;
+  try{claims=await verifyGithubOidc(context.request)}catch(error){
+    console.error('Nexus QA bootstrap OIDC verification',error);
+    return response(401,{ok:false,error:'Unauthorized QA bootstrap request.',stage:'oidc_verification'});
+  }
   try{
-    const claims=await verifyGithubOidc(context.request);
     const body=await context.request.json().catch(()=>({}));
     const action=String(body?.action||'').toLowerCase();
     const runKey=`${safeRunPart(claims.run_id)}-${safeRunPart(claims.run_attempt||'1')}`;
     if(action==='provision')return response(200,await provision(context.env,claims));
     if(action==='cleanup')return response(200,{ok:true,run_key:runKey,deleted_users:await cleanupRun(context.env,runKey)});
-    return response(400,{ok:false,error:'Unsupported QA bootstrap action.'});
+    return response(400,{ok:false,error:'Unsupported QA bootstrap action.',stage:'request_validation'});
   }catch(error){
-    console.error('Nexus QA bootstrap',error);
-    const message=String(error?.message||'QA bootstrap failed.');
-    const authFailure=/OIDC|authorized|token|issuer|audience|subject|repository/i.test(message);
-    return response(authFailure?401:500,{ok:false,error:authFailure?'Unauthorized QA bootstrap request.':'QA bootstrap failed.'});
+    console.error('Nexus QA bootstrap provisioning',error);
+    return response(500,{ok:false,error:'QA bootstrap failed.',stage:error?.qaStage||'provisioning_unknown',upstream_status:error?.qaStatus||null});
   }
 }
