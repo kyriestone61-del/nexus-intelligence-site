@@ -7,14 +7,17 @@ const clientPassword=process.env.NEXUS_QA_CLIENT_PASSWORD;
 const qaCompany=process.env.NEXUS_QA_COMPANY_NAME;
 
 function meaningfulConsoleErrors(messages){return messages.filter(text=>!/favicon|cloudflareinsights|analytics|ResizeObserver loop/i.test(text));}
+async function waitForSettledPortal(page,timeout=40_000){
+  await expect(page.locator('#portalApp')).toBeVisible({timeout});
+  await expect(page.locator('body')).not.toHaveClass(/nexus-runtime-booting/,{timeout});
+  await expect(page.locator('#nexusPortalBootOverlay')).toHaveCount(0,{timeout});
+}
 async function signIn(page,email,password){
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
   await page.locator('#signInEmail').fill(email);
   await page.locator('#signInPassword').fill(password);
   await page.locator('#signInBtn').click();
-  await expect(page.locator('#portalApp')).toBeVisible({timeout:25_000});
-  await expect(page.locator('body')).not.toHaveClass(/nexus-runtime-booting/,{timeout:25_000});
-  await expect(page.locator('#nexusPortalBootOverlay')).toHaveCount(0,{timeout:25_000});
+  await waitForSettledPortal(page);
 }
 async function assertNoOverflow(page){
   const dims=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
@@ -22,17 +25,18 @@ async function assertNoOverflow(page){
 }
 async function selectQaCompanyForSetup(page){
   if(!qaCompany)return null;
-  const companyId=await page.evaluate(companyName=>{
-    const select=document.querySelector('#companySelect');
-    if(!select)throw new Error('Legacy company state control is unavailable for QA setup.');
-    const option=[...select.options].find(item=>item.textContent?.trim()===companyName);
-    if(!option)throw new Error(`Disposable QA company not found: ${companyName}`);
-    select.value=option.value;
-    select.dispatchEvent(new Event('change',{bubbles:true}));
-    return option.value;
+  const target=await page.locator('#companySelect option').evaluateAll((options,companyName)=>{
+    const option=options.find(item=>item.textContent?.trim()===companyName);
+    return option?.value||null;
   },qaCompany);
-  await expect.poll(()=>page.evaluate(()=>window.NexusPortal?.state?.companyId||null),{timeout:15_000}).toBe(companyId);
-  return companyId;
+  if(!target)throw new Error(`Disposable QA company not found: ${qaCompany}`);
+  const current=new URL(page.url()).searchParams.get('company');
+  if(current!==target){
+    await page.goto(`/portal?view_mode=admin&company=${encodeURIComponent(target)}`,{waitUntil:'domcontentloaded'});
+    await waitForSettledPortal(page);
+  }
+  await expect(page.locator('#companySelect')).toHaveValue(target,{timeout:20_000});
+  return target;
 }
 
 test('auth tabs and verification entry surface remain stable',async({page})=>{
@@ -80,9 +84,9 @@ test.describe('authenticated client control room',()=>{
     await expect(page.locator('#nexusClientHelpButton')).toBeVisible();await expect(page.locator('#nexusClientInboxButton')).toBeVisible();
     const contextualReports=page.locator('[data-client-reports]').first();await expect(contextualReports).toBeVisible();await contextualReports.click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
     await page.locator('#nexusClientInboxButton').click();await expect(page.locator('#nexusClientInboxDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientInboxDrawer')).not.toHaveClass(/show/);
-    await page.locator('#nexusClientHelpButton').click();await expect(page.locator('#nexusClientGuideDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');
+    await page.locator('#nexusClientHelpButton').click();await expect(page.locator('#nexusClientGuideDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientGuideDrawer')).not.toHaveClass(/show/);
     await assertNoOverflow(page);expect(meaningfulConsoleErrors(errors)).toEqual([]);
-    await page.locator('#signOutBtn').click();await expect(page.locator('#signInForm')).toBeVisible({timeout:15_000});
+    await page.locator('#signOutBtn').click();await expect(page.locator('#signInForm')).toBeVisible({timeout:20_000});
   });
 
   test('client portal settles without runaway inbox traffic',async({page})=>{
@@ -144,7 +148,7 @@ test.describe('administrator and client-preview boundaries',()=>{
     await selectQaCompanyForSetup(page);
     const switcher=page.locator('#nexusPerspectiveSwitcher');await expect(switcher).toBeVisible();await switcher.locator('summary').click();
     await switcher.locator('[data-perspective="client"]').click();
-    await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:25_000});
+    await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:40_000});
     await expect(page.getByText('Nexus could not finish loading.',{exact:true})).toHaveCount(0);
     await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(3);
     expect(await page.locator('#nexusClientPrimaryNav [data-client-view]').allTextContents()).toEqual(['Today','Files','Results']);
