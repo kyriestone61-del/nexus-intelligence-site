@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'portal-foundation-hardening.js'
+      - 'qa/relystra-qa-regression.test.cjs'
       - 'portal-diagnosis-v2.js'
       - 'portal-diagnosis-v2.css'
       - 'portal-diagnosis-controller-v2.js'
@@ -27,12 +28,11 @@ jobs:
           node --input-type=module --check < portal-foundation-hardening.js
           node --input-type=module --check < portal-diagnosis-v2.js
           node --input-type=module --check < portal-diagnosis-controller-v2.js
-      - name: Inbox contract
+      - name: Role-aware Inbox contract
         run: |
           set -euo pipefail
-          grep -Fq "heading.textContent!=='Inbox'" portal-foundation-hardening.js
+          node --test qa/relystra-qa-regression.test.cjs
           grep -Fq "button.dataset.section='notifications'" portal-foundation-hardening.js
-          grep -Fq "button.textContent='Inbox'" portal-foundation-hardening.js
           grep -Fq "section-notifications" portal-foundation-hardening.js
       - name: Cancellable diagnosis review contract
         run: |
