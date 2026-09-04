@@ -44,12 +44,12 @@ async function approve(button){
   setActionsDisabled(button,true);
   button.setAttribute('aria-busy','true');
   button.textContent='Approving…';
-  setFeedback(button,'Saving approval and building the controlled internal workspace records…');
+  setFeedback(button,'Saving diagnosis approval and preparing the recommended action plan…');
   try{
     const {data,error}=await sb.rpc('nexus_approve_diagnosis',{p_run_id:id,p_note:note||null});
     if(error)throw error;
-    setFeedback(button,'Diagnosis approved. The internal workspace records were created successfully.','success');
-    toast?.('Diagnosis approved. Workspace records generated.');
+    setFeedback(button,'Diagnosis approved. Recommended actions are ready for your selection. No downstream action items have been released yet.','success');
+    toast?.('Diagnosis approved. Review the recommended actions before anything is assigned.');
     window.NexusDiagnosisController?.invalidateLatest?.();
     await window.NexusDiagnosisReviewRuntime?.openReview?.(id,{force:true});
     window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed',{detail:{runId:id,action:'approved',summary:data||null}}));
@@ -89,4 +89,5 @@ document.addEventListener('click',event=>{
 document.addEventListener('click',hideReviewForDrilldown,true);
 
 window.NexusDiagnosisApprovalUX={approve};
-import('/portal-diagnosis-output-hub.js?v=20260901-step4').catch(error=>console.error('Diagnosis output hub failed to load',error));
+await import('/portal-resolution-plan.js?v=20260904-baseline-flow1').catch(error=>console.error('Resolution plan failed to load',error));
+import('/portal-diagnosis-output-hub.js?v=20260904-baseline-flow1').catch(error=>console.error('Diagnosis output hub failed to load',error));
