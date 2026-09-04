@@ -153,7 +153,7 @@ jobs:
           probe_get 'pages-upload-isolation' "$pages/portal-client-upload-service.js" 'stopImmediatePropagation'
           probe_get 'pages-upload-owner' "$pages/portal-client-upload-service.js" 'portal.services.clientUpload=service'
           probe_get 'pages-upload-facade-owner' "$pages/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
-          probe_get 'pages-upload-request-linkage' "$pages/portal-client-upload-service.js" 'request_id:selection.requestId'
+          probe_get 'pages-upload-request-linkage' "$pages/portal-client-upload-service.js" 'request_id:requestId||null'
 
           # Regression guard for the September 1 lockout: Inbox refresh must be explicit/debounced,
           # never driven by a body-wide MutationObserver that can retrigger itself on render.
