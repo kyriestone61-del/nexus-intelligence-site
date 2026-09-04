@@ -4,6 +4,18 @@
 /case-studies/ /methodology 301
 /case-studies.html /methodology 301
 
+# Canonical Nexus operating surfaces.
+# Retire duplicate/legacy founder and prospect workflows instead of maintaining parallel front ends.
+/operations /portal?view_mode=admin 301
+/operations/ /portal?view_mode=admin 301
+/operations.html /portal?view_mode=admin 301
+/assessment /quick-scan 301
+/assessment/ /quick-scan 301
+/assessment.html /quick-scan 301
+/prospect-workspace /portal 301
+/prospect-workspace/ /portal 301
+/prospect-workspace.html /portal 301
+
 # Cloudflare Pages route rewrites for dynamic detail views.
 # Service detail pages now use real /services/<slug>/index.html routes so the selected slug cannot be lost by pretty-URL canonicalization.
 /industries/* /industries.html 200

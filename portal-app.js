@@ -48,7 +48,7 @@ async function importWithoutRecurringIntervals(url,blockedDelays=[]){const nativ
 async function requiredImportWithoutRecurringIntervals(url,blockedDelays=[],label=url){try{return await importWithoutRecurringIntervals(url,blockedDelays)}catch(error){console.error(`Required Nexus portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
 async function waitFor(test,{timeout=5000,step=70}={}){const start=Date.now();while(Date.now()-start<timeout){try{if(test())return true}catch{}await new Promise(resolve=>setTimeout(resolve,step))}return false}
 
-await loadStyles(['portal-runtime-hardening.css']);
+await loadStyles(['portal-runtime-hardening.css','portal-production-simplification.css']);
 try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180])}catch(error){showCoreLoadFailure(error);throw error}
 await optionalImport(asset(`portal-client-plain-language.js?v=${BUILD}`));
 const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Nexus portal context is unavailable.'));throw new Error('Nexus portal context is unavailable.')}
@@ -76,6 +76,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
   window.NexusClientPlainLanguage?.apply?.();
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
+  await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
   clearBootLock();
 }else if(useAdminShell){
   const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css'];
@@ -122,7 +123,9 @@ if(useClientShell){
   await requiredImport(asset(`portal-buildingblok-cohesion.js?v=${BUILD}`),'Companies, Inbox and mobile operating model');
   await requiredImport(asset(`portal-ux-refinement.js?v=${BUILD}`),'front-end UX refinement');
   perspectiveModule?.mountPerspectiveSwitcher?.(portal);
+  await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
   clearBootLock();
 }else{
+  await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
   clearBootLock();
 }
