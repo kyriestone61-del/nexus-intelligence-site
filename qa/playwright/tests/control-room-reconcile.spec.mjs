@@ -20,6 +20,20 @@ async function assertNoOverflow(page){
   const dims=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
   expect(dims.scrollWidth).toBeLessThanOrEqual(dims.clientWidth+1);
 }
+async function selectQaCompanyForSetup(page){
+  if(!qaCompany)return null;
+  const companyId=await page.evaluate(companyName=>{
+    const select=document.querySelector('#companySelect');
+    if(!select)throw new Error('Legacy company state control is unavailable for QA setup.');
+    const option=[...select.options].find(item=>item.textContent?.trim()===companyName);
+    if(!option)throw new Error(`Disposable QA company not found: ${companyName}`);
+    select.value=option.value;
+    select.dispatchEvent(new Event('change',{bubbles:true}));
+    return option.value;
+  },qaCompany);
+  await expect.poll(()=>page.evaluate(()=>window.NexusPortal?.state?.companyId||null),{timeout:15_000}).toBe(companyId);
+  return companyId;
+}
 
 test('auth tabs and verification entry surface remain stable',async({page})=>{
   const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
@@ -112,7 +126,7 @@ test.describe('administrator and client-preview boundaries',()=>{
 
   test('founder navigation is reduced to Home, Clients, Decisions, Sales and each route opens',async({page})=>{
     await signIn(page,adminEmail,adminPassword);
-    if(qaCompany){const select=page.locator('#companySelect');if((await select.locator('option').allTextContents()).includes(qaCompany))await select.selectOption({label:qaCompany});}
+    await selectQaCompanyForSetup(page);
     const primary=page.locator('.nexus-production-primary-nav > button');
     await expect(primary).toHaveCount(4);
     expect(await primary.allTextContents()).toEqual(['Home','Clients','Decisions','Sales']);
@@ -127,7 +141,7 @@ test.describe('administrator and client-preview boundaries',()=>{
   test('administrator can enter Client View without boot failure',async({page})=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
     await signIn(page,adminEmail,adminPassword);
-    if(qaCompany){const select=page.locator('#companySelect');if((await select.locator('option').allTextContents()).includes(qaCompany))await select.selectOption({label:qaCompany});}
+    await selectQaCompanyForSetup(page);
     const switcher=page.locator('#nexusPerspectiveSwitcher');await expect(switcher).toBeVisible();await switcher.locator('summary').click();
     await switcher.locator('[data-perspective="client"]').click();
     await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:25_000});
