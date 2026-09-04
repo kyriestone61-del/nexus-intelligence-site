@@ -189,6 +189,7 @@ document.addEventListener('click',()=>scheduleSettled(),false);
 document.addEventListener('change',event=>{
   if(event.target?.matches?.('#companySelect,#nexusPerspectiveSelect,[data-company-switcher]'))scheduleSettled();
 },false);
+window.addEventListener('nexus:workspace-ready',scheduleSettled);
 window.addEventListener('nexus:diagnosis-changed',scheduleSettled);window.addEventListener('nexus:diagnosis-updated',scheduleSettled);window.addEventListener('resize',schedule,{passive:true});
 apply();setTimeout(apply,350);setTimeout(apply,1100);
 
