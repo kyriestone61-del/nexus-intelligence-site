@@ -12,6 +12,7 @@ on:
       - 'portal-ux-refinement.js'
       - 'portal-app.js'
       - 'supabase/migrations/20260904_nexus_action_item_processing_engine.sql'
+      - 'supabase/migrations/20260904_nexus_action_item_processing_rls_hardening.sql'
       - '.github/workflows/action-items-qa.yml'
 
 permissions:
@@ -72,7 +73,8 @@ jobs:
           grep -Fq 'create table if not exists public.nexus_task_events' supabase/migrations/20260904_nexus_action_item_processing_engine.sql
           grep -Fq 'enable row level security' supabase/migrations/20260904_nexus_action_item_processing_engine.sql
           grep -Fq 'nexus members view task events' supabase/migrations/20260904_nexus_action_item_processing_engine.sql
-          grep -Fq 'NexusActionProcessingEngine' portal-client-upload-service.js
+          grep -Fq 'private.nexus_guard_client_task_update' supabase/migrations/20260904_nexus_action_item_processing_rls_hardening.sql
+          grep -Fq 'Protected action fields must be changed through a governed Nexus workflow' supabase/migrations/20260904_nexus_action_item_processing_rls_hardening.sql
           grep -Fq 'portal-action-processing-engine.js' portal-client-upload-service.js
           grep -Fq 'portal-action-processing-engine.js' portal-ux-refinement.js
       - name: Client simplicity, structured input, and security assertions
