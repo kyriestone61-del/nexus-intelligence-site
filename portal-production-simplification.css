@@ -1,0 +1,17 @@
+/* Final production presentation layer. Business logic stays in the existing portal modules. */
+.nexus-production-primary-nav{display:grid;gap:7px;margin-bottom:14px}.nexus-production-primary-nav>button{width:100%;text-align:left}.nexus-production-primary-nav>button.active{font-weight:900}.nexus-production-records{margin-top:8px;border-top:1px solid var(--line);padding-top:10px}.nexus-production-records>summary{cursor:pointer;list-style:none;padding:10px 11px;border-radius:10px;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.02em}.nexus-production-records>summary::-webkit-details-marker{display:none}.nexus-production-records>summary:after{content:'+';float:right}.nexus-production-records[open]>summary:after{content:'−'}.nexus-production-record-buttons{display:grid;gap:5px;padding-top:6px}.nexus-production-record-buttons button{width:100%;text-align:left;opacity:.82;font-size:12px}.nexus-production-record-buttons button.active{opacity:1}.ops-nav-group,.admin-journey-only-note{display:none!important}
+
+#newTaskBtn[hidden],#newMetricBtn[hidden],#newMilestoneBtn[hidden],#newDocumentRequestBtn[hidden],#nexusClientReportsButton[hidden],#alertsBtn[hidden],#companySelect[hidden]{display:none!important}
+
+.nexus-decisions-advanced,.nexus-sales-advanced{margin:12px 0 18px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.015)}.nexus-decisions-advanced>summary,.nexus-sales-advanced>summary{cursor:pointer;padding:13px 15px;font-size:12px;font-weight:850;color:var(--muted);list-style:none}.nexus-decisions-advanced>summary::-webkit-details-marker,.nexus-sales-advanced>summary::-webkit-details-marker{display:none}.nexus-decisions-advanced>summary:after,.nexus-sales-advanced>summary:after{content:'Show';float:right;font-size:10px;text-transform:uppercase;letter-spacing:.06em}.nexus-decisions-advanced[open]>summary:after,.nexus-sales-advanced[open]>summary:after{content:'Hide'}.nexus-decisions-advanced>#nexusInboxAdvancedFilters{padding:0 14px 14px}.nexus-sales-advanced>.revenue-top-grid{padding:0 14px 14px;margin:0}
+
+#section-notifications [data-inbox-filter="update"][hidden],#section-notifications [data-inbox-filter="all"][hidden]{display:none!important}.nexus-inbox-controls{align-items:center}.nexus-inbox-filters{flex-wrap:wrap}.nexus-inbox-filters button{min-height:38px}
+
+.admin-journey-hero h1{max-width:760px}.journey-step h3{line-height:1.15}.journey-focus{max-width:920px}.journey-focus #journeyPrimaryAction{min-width:220px}
+
+.nexus-revenue-section .revenue-hero{align-items:start}.nexus-revenue-section .revenue-stats{grid-template-columns:repeat(6,minmax(0,1fr))}.nexus-revenue-section .revenue-panel{min-width:0}.nexus-sales-advanced .revenue-panel{box-shadow:none}
+
+.nexus-client-primary-nav{gap:6px}.nexus-client-primary-nav button b{font-size:13px}.nexus-client-primary-nav button b:first-letter{text-transform:uppercase}
+
+@media(max-width:900px){.nexus-revenue-section .revenue-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.nexus-production-primary-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.nexus-production-primary-nav>button{min-height:44px;text-align:center}.nexus-production-records>summary{min-height:42px}.nexus-revenue-section .revenue-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.nexus-sales-advanced>.revenue-top-grid{padding:0 10px 10px}.nexus-decisions-advanced>#nexusInboxAdvancedFilters{padding:0 10px 10px}}
