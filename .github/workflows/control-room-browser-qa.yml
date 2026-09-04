@@ -94,7 +94,14 @@ jobs:
           oidc_payload="$(printf '%s' "$oidc_token" | cut -d. -f2 | tr '_-' '/+' | awk '{l=length($0)%4;if(l==2)$0=$0"==";else if(l==3)$0=$0"=";print}' | base64 -d 2>/dev/null)"
           echo 'NEXUS_QA_OIDC_CLAIMS:'
           printf '%s' "$oidc_payload" | jq '{iss,aud,sub,repository,repository_id,repository_owner,repository_owner_id,ref,event_name,workflow_ref,run_id,run_attempt}'
-          provision="$(curl --silent --show-error --fail-with-body --request POST --header "Authorization: Bearer ${oidc_token}" --header 'content-type: application/json' --data '{"action":"provision"}' "$endpoint")"
+          provision_file="$(mktemp)"
+          provision_code="$(curl --silent --show-error --request POST --output "$provision_file" --write-out '%{http_code}' --header "Authorization: Bearer ${oidc_token}" --header 'content-type: application/json' --data '{"action":"provision"}' "$endpoint" || true)"
+          provision="$(cat "$provision_file")"
+          if [ "$provision_code" != '200' ]; then
+            echo "::error::Disposable QA provisioning failed with HTTP $provision_code."
+            printf '%s' "$provision" | jq '{ok,error,stage,upstream_status}' || true
+            exit 1
+          fi
           printf '%s' "$provision" | jq -e '.ok == true' >/dev/null
           admin_email="$(printf '%s' "$provision" | jq -r '.admin_email')"
           admin_password="$(printf '%s' "$provision" | jq -r '.admin_password')"
@@ -148,6 +155,13 @@ jobs:
           endpoint="${NEXUS_QA_BASE_URL%/}/api/qa-bootstrap"
           oidc_json="$(curl --silent --show-error --fail --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-qa")"
           oidc_token="$(printf '%s' "$oidc_json" | jq -r '.value')"
-          cleanup="$(curl --silent --show-error --fail-with-body --request POST --header "Authorization: Bearer ${oidc_token}" --header 'content-type: application/json' --data '{"action":"cleanup"}' "$endpoint")"
+          cleanup_file="$(mktemp)"
+          cleanup_code="$(curl --silent --show-error --request POST --output "$cleanup_file" --write-out '%{http_code}' --header "Authorization: Bearer ${oidc_token}" --header 'content-type: application/json' --data '{"action":"cleanup"}' "$endpoint" || true)"
+          cleanup="$(cat "$cleanup_file")"
+          if [ "$cleanup_code" != '200' ]; then
+            echo "::error::Disposable QA cleanup failed with HTTP $cleanup_code."
+            printf '%s' "$cleanup" | jq '{ok,error,stage,upstream_status}' || true
+            exit 1
+          fi
           printf '%s' "$cleanup" | jq -e '.ok == true' >/dev/null
           echo 'DISPOSABLE_NEXUS_QA_IDENTITIES=CLEANED'
