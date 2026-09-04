@@ -52,8 +52,8 @@ async function getText(url) {
 function localizeJs(text) {
   // Localize frontend asset references only. API/function calls without ?asset= remain on Supabase.
   return text
-    .replaceAll(`${EDGE}?asset=`, './')
-    .replaceAll('${CFG.assetBase}?asset=', './');
+    .replaceAll(`${EDGE}?asset=`, '/assets/')
+    .replaceAll('${CFG.assetBase}?asset=', '/assets/');
 }
 
 function policyPage(title, heading, body) {
