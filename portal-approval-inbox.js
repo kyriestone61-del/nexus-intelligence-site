@@ -65,9 +65,9 @@ function expectedNavigationAbort(error){
   return window.__nexusNavigationPending===true&&(/load failed|failed to fetch|network\s*error|abort/.test(message));
 }
 async function loadInbox(force=false){
-  if(loading||!state.user)return;if(!ensureShell())return;loading=true;
+  if(loading||!state.user||window.__nexusNavigationPending===true)return;if(!ensureShell())return;loading=true;
   try{
-    const params={p_company_id:state.admin?null:state.companyId};const {data,error}=await sb.rpc('nexus_get_inbox',params);if(error)throw error;items=data||[];render();
+    const params={p_company_id:state.admin?null:state.companyId};const {data,error}=await sb.rpc('nexus_get_inbox',params);if(error)throw error;if(window.__nexusNavigationPending===true)return;items=data||[];render();
     const paramsUrl=new URLSearchParams(location.search);if(paramsUrl.get('view')==='inbox'&&paramsUrl.get('approval_chain')){const id=paramsUrl.get('approval_chain');paramsUrl.delete('approval_chain');history.replaceState(null,'',`${location.pathname}?${paramsUrl.toString()}`.replace(/\?$/,''));setTimeout(()=>openChain(id),60)}
   }catch(error){if(expectedNavigationAbort(error))return;console.error('Nexus Inbox failed',error);const root=$('nexusInboxRoot');if(root)root.innerHTML=`<div class="note"><b>Inbox could not load.</b><br>${esc(error.message||'Refresh and try again.')}</div>`}
   finally{loading=false}
@@ -118,6 +118,8 @@ async function resubmit(){const note=$('approvalResubmitNote')?.value.trim()||''
 
 let refreshTimer=0;
 function queueInboxRefresh(delay=120){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>loadInbox(),delay)}
+window.addEventListener('pagehide',()=>{window.__nexusNavigationPending=true;clearTimeout(refreshTimer)});
+window.addEventListener('pageshow',event=>{if(event.persisted){window.__nexusNavigationPending=false;queueInboxRefresh(0)}});
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-perspective]'))window.__nexusNavigationPending=true;if(e.target.closest?.('.side-nav button[data-section="notifications"]'))setTimeout(()=>loadInbox(true),80)},true);
 document.addEventListener('change',e=>{if(e.target?.matches?.('#nexusPerspectiveCompany')||(state.platformAdmin===true&&e.target?.matches?.('#companySelect')))window.__nexusNavigationPending=true},true);
 $('companySelect')?.addEventListener('change',()=>setTimeout(()=>loadInbox(true),250));

@@ -11,6 +11,11 @@ async function waitForSettledPortal(page,timeout=40_000){
   await expect(page.locator('#portalApp')).toBeVisible({timeout});
   await expect(page.locator('body')).not.toHaveClass(/nexus-runtime-booting/,{timeout});
   await expect(page.locator('#nexusPortalBootOverlay')).toHaveCount(0,{timeout});
+  await expect.poll(()=>page.evaluate(()=>{
+    const state=window.NexusPortal?.state;
+    return window.__nexusPortalBooting===false&&!!state?.user&&
+      (state.viewMode==='admin'||state.viewMode==='client');
+  }),{timeout,message:'Authenticated role shell must finish loading'}).toBe(true);
 }
 async function signIn(page,email,password){
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
