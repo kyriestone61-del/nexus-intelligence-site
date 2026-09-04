@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'supabase/functions/hlo-tutor-stream/**'
+      - 'supabase/functions/hlo-eval-batch/**'
       - 'tests/human-os-response-contract.test.mjs'
       - '.github/workflows/human-os-tutor-contract.yml'
   workflow_dispatch:
