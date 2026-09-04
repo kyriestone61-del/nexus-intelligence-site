@@ -33,6 +33,12 @@ test('diagnosis step 3 is the resolution-selection gate, not the legacy package 
   assert.match(simplify,/openDecisions\(\)/);
 });
 
+test('final simplification does not use a body-wide mutation observer',()=>{
+  assert.doesNotMatch(simplify,/new MutationObserver/);
+  assert.doesNotMatch(simplify,/observer\.observe\(document\.body/);
+  assert.match(simplify,/scheduleSettled/);
+});
+
 test('decisions and sales hide operational complexity behind progressive disclosure',()=>{
   assert.match(simplify,/Search & advanced filters/);
   assert.match(simplify,/Advanced prospect intake & evidence/);
