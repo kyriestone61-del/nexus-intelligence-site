@@ -34,6 +34,11 @@ jobs:
           test -s dist/privacy/index.html
           grep -q 'Build My Learning Path' dist/index.html
           grep -q '\$29/month' dist/index.html
+          grep -q 'Why Human OS+ is recurring' dist/index.html
+          grep -q 'Living Learning Path' dist/index.html
+          grep -q 'Context-aware Tutor' dist/index.html
+          grep -q 'Evidence that compounds' dist/index.html
+          grep -q 'Current AI intelligence' dist/index.html
           grep -q 'Sitemap:' dist/robots.txt
       - name: Reject runtime static-asset dependency
         run: |
