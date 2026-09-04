@@ -7,6 +7,11 @@ on:
         description: 'Portal base URL'
         required: false
         default: 'https://nexus-intelligence-site.pages.dev'
+      full_baseline:
+        description: 'Run the full diagnosis-to-completion production workflow'
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -24,8 +29,13 @@ on:
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
       - 'portal-production-simplification.js'
+      - 'portal-diagnosis-approval-ux.js'
+      - 'portal-resolution-plan.js'
+      - 'portal-resolution-inline-approval-bridge.js'
+      - 'portal-action-processing-engine.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
+      - 'qa/playwright/tests/baseline-workflow.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
   pull_request:
     paths:
@@ -43,8 +53,13 @@ on:
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
       - 'portal-production-simplification.js'
+      - 'portal-diagnosis-approval-ux.js'
+      - 'portal-resolution-plan.js'
+      - 'portal-resolution-inline-approval-bridge.js'
+      - 'portal-action-processing-engine.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
+      - 'qa/playwright/tests/baseline-workflow.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
 
 permissions:
@@ -61,6 +76,7 @@ jobs:
     env:
       NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
       NEXUS_QA_BOOTSTRAP_URL: https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-calendar-config-check
+      NEXUS_QA_FULL_BASELINE: ${{ github.event.inputs.full_baseline == 'true' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
