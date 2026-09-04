@@ -76,7 +76,7 @@ jobs:
     env:
       NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
       NEXUS_QA_BOOTSTRAP_URL: https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-calendar-config-check
-      NEXUS_QA_FULL_BASELINE: ${{ github.event.inputs.full_baseline == 'true' && '1' || '0' }}
+      NEXUS_QA_FULL_BASELINE: ${{ github.event_name == 'push' && '1' || (github.event.inputs.full_baseline == 'true' && '1' || '0') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
