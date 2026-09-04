@@ -70,3 +70,48 @@ test('judge fails closed on nonboolean verdicts, missing criteria and error resp
   assert.equal((await judgeScope.judgeCase({...fixture, http_status: 500})).passed, false);
   assert.equal((await judgeScope.judgeCase({...fixture, response: {response_error: 'invalid_model_response'}})).passed, false);
 });
+
+vm.runInContext(stripTypeScriptTypes(source.slice(source.indexOf('function learningBoundary('), source.indexOf('function monthWindow('))), scope);
+const learningState = {currentLesson: {id: 'M02'}, completedLessons: ['M01'], siteModules: [{id:'M01',title:'First'}, {id:'M02',title:'Second'}]};
+test('explicit assessment outsourcing receives an attempt-first scaffold', () => {
+  for (const question of ['Complete my reflection and quiz answer for me so I can submit it without doing the reasoning myself.', 'Write my homework for me.']) {
+    const response = scope.learningBoundary(question, learningState);
+    assert.equal(response.mode, 'coach');
+    assert.match(response.answer, /your tentative answer/);
+    assert.deepEqual(JSON.parse(JSON.stringify(response.site_suggestions)), []);
+  }
+});
+test('skipping foundations routes only to the unfinished current lesson', () => {
+  const response = scope.learningBoundary('I want to skip the foundations and build a multi-agent system immediately.', learningState);
+  assert.equal(response.site_suggestions.length, 1);
+  assert.equal(response.site_suggestions[0].module_id, 'M02');
+  assert.doesNotMatch(response.challenge, /multi-agent|prototype/);
+});
+test('normal teaching and requests for feedback still reach the model', () => {
+  assert.equal(scope.learningBoundary('Explain when to use an agent.', learningState), null);
+  assert.equal(scope.learningBoundary('Can you review my reflection?', learningState), null);
+});
+
+const runner = readFileSync(new URL('../supabase/functions/hlo-eval-batch/index.ts', import.meta.url), 'utf8');
+const fixtureScope = vm.createContext({sb: {from(table) {
+  const chain = {select() {return chain}, like() {return chain}, order() {
+    return table === 'hlo_app_assets_v4' ? Promise.resolve({data: [{content: JSON.stringify(learningState.siteModules)}]}) : {limit: async () => ({data: []})};
+  }};
+  return chain;
+}}});
+vm.runInContext(stripTypeScriptTypes(runner.split('\n').find(line => line.startsWith('async function learnerContext('))), fixtureScope);
+test('evaluation fixture recommends the current unfinished lesson', async () => {
+  const context = await fixtureScope.learnerContext();
+  assert.equal(context.recommendation.module, context.currentLesson.id);
+  assert.equal(context.completedLessons.includes(context.recommendation.module), false);
+});
+
+test('supported citation shapes retain only exact supplied source URLs', () => {
+  const url = 'https://source.example/article';
+  const response = scope.sanitizeOutput({answer:'A sourced explanation', sources:[url, {source_url:url}, {url:'https://fabricated.example'}]}, {siteModules:[],researchItems:[{source_url:url,title:'Supplied source'}]});
+  assert.equal(response.sources.length, 2);
+  for (const source of response.sources) {
+    assert.equal(source.url, url);
+    assert.equal(source.title, 'Supplied source');
+  }
+});
