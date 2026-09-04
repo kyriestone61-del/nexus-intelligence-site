@@ -28,7 +28,7 @@ test('client daily navigation is constrained to Today, Files, Results',()=>{
 test('diagnosis step 3 is the resolution-selection gate, not the legacy package starter',()=>{
   assert.match(simplify,/Choose Solutions & Confirm Plan/);
   assert.match(simplify,/Review suggested solutions/);
-  assert.match(simplify,/data-start-package=\\"solution_design\\"|\[data-start-package=\\"solution_design\\"\]/);
+  assert.ok(simplify.includes('[data-start-package="solution_design"]'));
   assert.match(simplify,/stopImmediatePropagation/);
   assert.match(simplify,/openDecisions\(\)/);
 });
