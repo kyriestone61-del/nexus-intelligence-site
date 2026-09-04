@@ -62,7 +62,7 @@ jobs:
           test -f supabase/migrations/20260831_nexus_approval_chains_inbox.sql
           test -f supabase/migrations/20260831_z_nexus_approval_chain_enforcement.sql
           grep -Fq 'intentionally moved' supabase/migrations/20260831_nexus_approval_chain_enforcement.sql
-      - name: Unified Inbox contract
+      - name: Unified Inbox and founder Decisions contract
         run: |
           set -euo pipefail
           grep -Fq 'nexus_get_inbox' supabase/migrations/20260831_nexus_approval_chains_inbox.sql
@@ -71,7 +71,9 @@ jobs:
           grep -Fq "'document_request'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
           grep -Fq "'question'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
           grep -Fq "'founder_decision'" supabase/migrations/20260831_nexus_approval_chains_inbox.sql
-          grep -Fq "nav.textContent='Inbox'" portal-approval-inbox.js
+          grep -Fq "function founderDecisionsMode()" portal-approval-inbox.js
+          grep -Fq "label=founderMode?'Decisions':'Inbox'" portal-approval-inbox.js
+          ! grep -Fq "nav.textContent='Inbox'" portal-approval-inbox.js
           grep -Fq 'Needs action' portal-approval-inbox.js
           grep -Fq 'Review & decide' portal-approval-inbox.js
           grep -Fq 'Step ${x.step_order} of ${x.step_count' portal-approval-inbox.js
