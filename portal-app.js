@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260903-production-simple1';
+const BUILD='20260903-inline-action-files1';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
