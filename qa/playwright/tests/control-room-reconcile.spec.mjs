@@ -51,22 +51,24 @@ test('deployed inbox runtime contains the lockout regression guard',async({reque
 });
 
 test.describe('authenticated client control room',()=>{
-  test.skip(!clientEmail||!clientPassword,'Dedicated Nexus QA client credentials are required.');
+  test.skip(!clientEmail||!clientPassword,'Disposable Nexus QA client credentials are required.');
 
-  test('client sees exactly three primary surfaces and working utilities',async({page})=>{
+  test('client sees the canonical Today, Files, Results surfaces and working utilities',async({page})=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
     await signIn(page,clientEmail,clientPassword);
     const nav=page.locator('#nexusClientPrimaryNav [data-client-view]');
     await expect(nav).toHaveCount(3);
-    expect(await nav.allTextContents()).toEqual(['01 Today','02 Secure Data Room','03 Improvement Record']);
+    expect(await nav.allTextContents()).toEqual(['Today','Files','Results']);
     await expect(page.locator('#nexus-client-today')).toBeVisible();
     await nav.nth(1).click();await expect(page.locator('#nexus-client-files')).toBeVisible();await expect(page.locator('#uploadForm')).toBeVisible();
     await nav.nth(2).click();await expect(page.locator('#nexus-client-improvement')).toBeVisible();
-    await expect(page.locator('#nexusClientReportsButton')).toBeVisible();await expect(page.locator('#nexusClientHelpButton')).toBeVisible();await expect(page.locator('#nexusClientInboxButton')).toBeVisible();
-    await page.locator('#nexusClientReportsButton').click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
+    await expect(page.locator('#nexusClientReportsButton')).toBeHidden();
+    await expect(page.locator('#nexusClientHelpButton')).toBeVisible();await expect(page.locator('#nexusClientInboxButton')).toBeVisible();
+    const contextualReports=page.locator('[data-client-reports]').first();await expect(contextualReports).toBeVisible();await contextualReports.click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
     await page.locator('#nexusClientInboxButton').click();await expect(page.locator('#nexusClientInboxDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientInboxDrawer')).not.toHaveClass(/show/);
     await page.locator('#nexusClientHelpButton').click();await expect(page.locator('#nexusClientGuideDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');
     await assertNoOverflow(page);expect(meaningfulConsoleErrors(errors)).toEqual([]);
+    await page.locator('#signOutBtn').click();await expect(page.locator('#signInForm')).toBeVisible({timeout:15_000});
   });
 
   test('client portal settles without runaway inbox traffic',async({page})=>{
@@ -80,21 +82,18 @@ test.describe('authenticated client control room',()=>{
     await expect(page.locator('body')).not.toHaveClass(/nexus-runtime-booting/);
   });
 
-  test('company selector refreshes one coherent client workspace',async({page})=>{
+  test('QA client is isolated to the dedicated disposable company workspace',async({page})=>{
     await signIn(page,clientEmail,clientPassword);
-    const select=page.locator('#companySelect'),optionCount=await select.locator('option').count();
-    if(qaCompany)expect(await select.locator('option').allTextContents()).toContain(qaCompany);
-    if(optionCount>1){
-      const second=await select.locator('option').nth(1).getAttribute('value');
-      await select.selectOption(second);
-      await expect.poll(async()=>await page.locator('#nexusClientMiniContext b').textContent()).not.toBe('');
-      await expect(page.locator('#nexus-client-today')).toBeVisible();
-    }
+    const select=page.locator('#companySelect');
+    await expect(select.locator('option')).toHaveCount(1);
+    if(qaCompany)expect(await select.locator('option').allTextContents()).toEqual([qaCompany]);
+    await expect(page.locator('#nexusClientMiniContext b')).toHaveText(qaCompany||/Nexus QA/);
+    await expect(page.locator('#nexus-client-today')).toBeVisible();
   });
 });
 
 test.describe('administrator and client-preview boundaries',()=>{
-  test.skip(!adminEmail||!adminPassword,'Dedicated Nexus QA administrator credentials are required.');
+  test.skip(!adminEmail||!adminPassword,'Disposable Nexus QA administrator credentials are required.');
 
   test('administrator settles without runaway inbox traffic or boot lock',async({page})=>{
     let inboxCalls=0;
@@ -111,6 +110,20 @@ test.describe('administrator and client-preview boundaries',()=>{
     expect(meaningfulConsoleErrors(errors)).toEqual([]);
   });
 
+  test('founder navigation is reduced to Home, Clients, Decisions, Sales and each route opens',async({page})=>{
+    await signIn(page,adminEmail,adminPassword);
+    if(qaCompany){const select=page.locator('#companySelect');if((await select.locator('option').allTextContents()).includes(qaCompany))await select.selectOption({label:qaCompany});}
+    const primary=page.locator('.nexus-production-primary-nav > button');
+    await expect(primary).toHaveCount(4);
+    expect(await primary.allTextContents()).toEqual(['Home','Clients','Decisions','Sales']);
+    await primary.filter({hasText:'Clients'}).click();await expect(page.locator('#section-companies')).toHaveClass(/active/);
+    await primary.filter({hasText:'Decisions'}).click();await expect(page.locator('#section-notifications')).toHaveClass(/active/);
+    await primary.filter({hasText:'Sales'}).click();await expect(page.locator('#section-revenue')).toHaveClass(/active/);
+    await primary.filter({hasText:'Home'}).click();await expect(page.locator('#adminJourneyRoot')).toBeVisible();
+    const records=page.locator('details.nexus-production-records');await expect(records).toBeVisible();await records.locator('summary').click();await expect(records).toHaveAttribute('open','');
+    await assertNoOverflow(page);
+  });
+
   test('administrator can enter Client View without boot failure',async({page})=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
     await signIn(page,adminEmail,adminPassword);
@@ -120,16 +133,12 @@ test.describe('administrator and client-preview boundaries',()=>{
     await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:25_000});
     await expect(page.getByText('Nexus could not finish loading.',{exact:true})).toHaveCount(0);
     await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(3);
+    expect(await page.locator('#nexusClientPrimaryNav [data-client-view]').allTextContents()).toEqual(['Today','Files','Results']);
     expect(meaningfulConsoleErrors(errors)).toEqual([]);
   });
 
-  test('legacy admin modals open and close without scroll or focus leakage',async({page})=>{
+  test('legacy manual creation buttons remain hidden from the canonical workflow',async({page})=>{
     await signIn(page,adminEmail,adminPassword);
-    const cases=[['#newTaskBtn','#taskModal'],['#newMetricBtn','#metricModal'],['#newMilestoneBtn','#milestoneModal'],['#newDocumentRequestBtn','#documentRequestModal']];
-    for(const [buttonSelector,modalSelector] of cases){
-      const button=page.locator(buttonSelector);if(!(await button.isVisible().catch(()=>false)))continue;
-      await button.focus();await button.click();const modal=page.locator(modalSelector);await expect(modal).toHaveClass(/show/);await expect(page.locator('body')).toHaveClass(/nexus-modal-open/);
-      await page.keyboard.press('Escape');await expect(modal).not.toHaveClass(/show/);await expect(page.locator('body')).not.toHaveClass(/nexus-modal-open/);await expect(button).toBeFocused();
-    }
+    for(const selector of ['#newTaskBtn','#newMetricBtn','#newMilestoneBtn','#newDocumentRequestBtn'])await expect(page.locator(selector)).toBeHidden();
   });
 });

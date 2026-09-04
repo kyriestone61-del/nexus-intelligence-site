@@ -23,6 +23,8 @@ on:
       - 'portal-client-shell-v2.css'
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
+      - 'portal-production-simplification.js'
+      - 'functions/api/qa-bootstrap.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
@@ -41,12 +43,15 @@ on:
       - 'portal-client-shell-v2.css'
       - 'portal-perspective-switcher.js'
       - 'portal-approval-inbox.js'
+      - 'portal-production-simplification.js'
+      - 'functions/api/qa-bootstrap.js'
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   cross-browser-control-room:
@@ -57,29 +62,64 @@ jobs:
         working-directory: qa/playwright
     env:
       NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
-      NEXUS_QA_ADMIN_EMAIL: ${{ secrets.NEXUS_QA_ADMIN_EMAIL }}
-      NEXUS_QA_ADMIN_PASSWORD: ${{ secrets.NEXUS_QA_ADMIN_PASSWORD }}
-      NEXUS_QA_CLIENT_EMAIL: ${{ secrets.NEXUS_QA_CLIENT_EMAIL }}
-      NEXUS_QA_CLIENT_PASSWORD: ${{ secrets.NEXUS_QA_CLIENT_PASSWORD }}
-      NEXUS_QA_COMPANY_NAME: ${{ vars.NEXUS_QA_COMPANY_NAME }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate QA bootstrap source
+        shell: bash
+        run: node --input-type=module --check < ../../functions/api/qa-bootstrap.js
       - run: npm install --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium webkit
+      - name: Provision disposable authenticated QA identities
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint="${NEXUS_QA_BASE_URL%/}/api/qa-bootstrap"
+          ready=0
+          for attempt in $(seq 1 24); do
+            code="$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST --header 'content-type: application/json' --data '{"action":"provision"}' "$endpoint" || true)"
+            if [ "$code" = '401' ]; then ready=1; break; fi
+            echo "Waiting for QA bootstrap deployment (attempt $attempt, HTTP ${code:-curl_error})"
+            sleep 5
+          done
+          if [ "$ready" != '1' ]; then
+            echo '::error::The GitHub OIDC QA bootstrap endpoint did not become ready.'
+            exit 1
+          fi
+          oidc_json="$(curl --silent --show-error --fail --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-qa")"
+          oidc_token="$(printf '%s' "$oidc_json" | jq -r '.value')"
+          test -n "$oidc_token" && test "$oidc_token" != 'null'
+          provision="$(curl --silent --show-error --fail-with-body --request POST --header "Authorization: Bearer ${oidc_token}" --header 'content-type: application/json' --data '{"action":"provision"}' "$endpoint")"
+          printf '%s' "$provision" | jq -e '.ok == true' >/dev/null
+          admin_email="$(printf '%s' "$provision" | jq -r '.admin_email')"
+          admin_password="$(printf '%s' "$provision" | jq -r '.admin_password')"
+          client_email="$(printf '%s' "$provision" | jq -r '.client_email')"
+          client_password="$(printf '%s' "$provision" | jq -r '.client_password')"
+          company_name="$(printf '%s' "$provision" | jq -r '.company_name')"
+          for secret in "$admin_email" "$admin_password" "$client_email" "$client_password"; do echo "::add-mask::$secret"; done
+          {
+            echo "NEXUS_QA_ADMIN_EMAIL=$admin_email"
+            echo "NEXUS_QA_ADMIN_PASSWORD=$admin_password"
+            echo "NEXUS_QA_CLIENT_EMAIL=$client_email"
+            echo "NEXUS_QA_CLIENT_PASSWORD=$client_password"
+            echo "NEXUS_QA_COMPANY_NAME=$company_name"
+            echo 'NEXUS_AUTH_QA_READY=1'
+          } >> "$GITHUB_ENV"
+          echo "AUTHENTICATED_CONTROL_ROOM_QA=EPHEMERAL_READY company=$company_name"
       - name: Report authenticated QA coverage
         shell: bash
         run: |
-          if [ -n "${NEXUS_QA_ADMIN_EMAIL:-}" ] && [ -n "${NEXUS_QA_ADMIN_PASSWORD:-}" ] && [ -n "${NEXUS_QA_CLIENT_EMAIL:-}" ] && [ -n "${NEXUS_QA_CLIENT_PASSWORD:-}" ]; then
-            echo 'AUTHENTICATED_CONTROL_ROOM_QA=ENABLED'
-            echo 'NEXUS_AUTH_QA_READY=1' >> "$GITHUB_ENV"
+          if [ "${NEXUS_AUTH_QA_READY:-0}" = '1' ]; then
+            echo 'AUTHENTICATED_CONTROL_ROOM_QA=ENABLED_EPHEMERAL'
+          elif [ "${GITHUB_EVENT_NAME}" = 'pull_request' ]; then
+            echo 'AUTHENTICATED_CONTROL_ROOM_QA=PR_PUBLIC_ONLY'
           else
-            echo '::warning::Dedicated Nexus QA credentials are not configured. Authenticated cases will be skipped, and production-branch QA will be marked incomplete.'
-            echo 'AUTHENTICATED_CONTROL_ROOM_QA=NOT_CONFIGURED'
-            echo 'NEXUS_AUTH_QA_READY=0' >> "$GITHUB_ENV"
+            echo '::error::Disposable authenticated Nexus QA identities were not provisioned.'
+            exit 1
           fi
+      - run: npx playwright install --with-deps chromium webkit
       - name: Run desktop Chrome, Android Chrome, and iOS WebKit paths
         run: npx playwright test --config=control-room.config.mjs
       - name: Enforce authenticated coverage for production
@@ -87,7 +127,7 @@ jobs:
         shell: bash
         run: |
           if [ "${NEXUS_AUTH_QA_READY:-0}" != '1' ]; then
-            echo '::error::Production Control Room QA is incomplete. Configure dedicated NEXUS_QA_ADMIN_* and NEXUS_QA_CLIENT_* GitHub Actions secrets; do not use a personal production password.'
+            echo '::error::Production Control Room QA did not run with disposable authenticated admin/client identities.'
             exit 1
           fi
           echo 'AUTHENTICATED_CONTROL_ROOM_QA=REQUIRED_AND_PASSED'
@@ -97,3 +137,14 @@ jobs:
           name: nexus-control-room-browser-report
           path: qa/playwright/control-room-report
           if-no-files-found: ignore
+      - name: Delete disposable QA identities and company
+        if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint="${NEXUS_QA_BASE_URL%/}/api/qa-bootstrap"
+          oidc_json="$(curl --silent --show-error --fail --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-qa")"
+          oidc_token="$(printf '%s' "$oidc_json" | jq -r '.value')"
+          cleanup="$(curl --silent --show-error --fail-with-body --request POST --header "Authorization: Bearer ${oidc_token}" --header 'content-type: application/json' --data '{"action":"cleanup"}' "$endpoint")"
+          printf '%s' "$cleanup" | jq -e '.ok == true' >/dev/null
+          echo 'DISPOSABLE_NEXUS_QA_IDENTITIES=CLEANED'
