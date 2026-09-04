@@ -17,6 +17,8 @@ jobs:
         run: |
           node --input-type=module --check < portal-diagnosis-output-hub.js
           node --input-type=module --check < portal-diagnosis-approval-ux.js
+          node --input-type=module --check < portal-resolution-plan.js
+          node --input-type=module --check < portal-resolution-inline-approval-bridge.js
       - name: Diagnosis output drill-down contract
         run: |
           set -euo pipefail
@@ -27,7 +29,10 @@ jobs:
           grep -Fq "Proceed with this" portal-diagnosis-output-hub.js
           grep -Fq "data-document-owner" portal-diagnosis-output-hub.js
           grep -Fq "NexusRevenueEngine" portal-diagnosis-output-hub.js
-          grep -Fq "portal-diagnosis-output-hub.js?v=20260901-step4" portal-diagnosis-approval-ux.js
+          grep -Fq "portal-diagnosis-output-hub.js?v=" portal-diagnosis-approval-ux.js
+          grep -Fq "portal-resolution-plan.js?v=" portal-diagnosis-approval-ux.js
+          grep -Fq "nexus_get_resolution_plan" portal-resolution-plan.js
+          grep -Fq "nexus_confirm_resolution_plan" portal-resolution-plan.js
       - name: Mobile contract
         run: |
           set -euo pipefail
