@@ -3,6 +3,8 @@
 
 #newTaskBtn[hidden],#newMetricBtn[hidden],#newMilestoneBtn[hidden],#newDocumentRequestBtn[hidden],#nexusClientReportsButton[hidden],#alertsBtn[hidden],#companySelect[hidden]{display:none!important}
 
+#authView .tabs button,#authView #signInBtn,#authView #createBtn{min-height:44px}
+
 .nexus-decisions-advanced,.nexus-sales-advanced{margin:12px 0 18px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.015)}.nexus-decisions-advanced>summary,.nexus-sales-advanced>summary{cursor:pointer;padding:13px 15px;font-size:12px;font-weight:850;color:var(--muted);list-style:none}.nexus-decisions-advanced>summary::-webkit-details-marker,.nexus-sales-advanced>summary::-webkit-details-marker{display:none}.nexus-decisions-advanced>summary:after,.nexus-sales-advanced>summary:after{content:'Show';float:right;font-size:10px;text-transform:uppercase;letter-spacing:.06em}.nexus-decisions-advanced[open]>summary:after,.nexus-sales-advanced[open]>summary:after{content:'Hide'}.nexus-decisions-advanced>#nexusInboxAdvancedFilters{padding:0 14px 14px}.nexus-sales-advanced>.revenue-top-grid{padding:0 14px 14px;margin:0}
 
 #section-notifications [data-inbox-filter="update"][hidden],#section-notifications [data-inbox-filter="all"][hidden]{display:none!important}.nexus-inbox-controls{align-items:center}.nexus-inbox-filters{flex-wrap:wrap}.nexus-inbox-filters button{min-height:38px}
