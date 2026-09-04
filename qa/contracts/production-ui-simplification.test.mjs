@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const portalApp=readFileSync(new URL('../../portal-app.js',import.meta.url),'utf8');
 const simplify=readFileSync(new URL('../../portal-production-simplification.js',import.meta.url),'utf8');
+const inbox=readFileSync(new URL('../../portal-approval-inbox.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../../portal-production-simplification.css',import.meta.url),'utf8');
 const redirects=readFileSync(new URL('../../_redirects',import.meta.url),'utf8');
 
@@ -18,6 +19,14 @@ test('founder daily navigation is constrained to Home, Clients, Decisions, Sales
     assert.ok(simplify.includes(label),`missing ${label}`);
   }
   assert.match(simplify,/Records & Tools/);
+});
+
+test('approval inbox cannot overwrite founder Decisions and ignores only intentional navigation aborts',()=>{
+  assert.match(inbox,/function founderDecisionsMode\(\)/);
+  assert.match(inbox,/label=founderMode\?'Decisions':'Inbox'/);
+  assert.doesNotMatch(inbox,/nav\.textContent='Inbox'/);
+  assert.match(inbox,/function expectedNavigationAbort\(error\)/);
+  assert.match(inbox,/__nexusNavigationPending===true/);
 });
 
 test('client daily navigation is constrained to Today, Files, Results',()=>{
