@@ -40,3 +40,33 @@ test('well-formed instructional text and existing route/source filtering survive
   assert.deepEqual(result.site_suggestions, []);
   assert.deepEqual(result.sources, []);
 });
+
+const judgeScope = vm.createContext({
+  reply: {passed: true, ratings: {grounded: true}},
+  async proxyModel(messages) { judgeScope.messages = messages; return JSON.stringify(judgeScope.reply); }
+});
+const judgeCode = [
+  source.split('\n').find(line => line.startsWith('const JUDGE_SYSTEM=')),
+  ...['clean', 'safeContext'].map(pick),
+  source.split('\n').find(line => line.startsWith('async function judgeCase('))
+].join('\n');
+vm.runInContext(stripTypeScriptTypes(judgeCode), judgeScope);
+const fixture = {case_id: 'synthetic', pass_criteria: {grounded: true}, http_status: 200, response: {answer: 'Completed M01'}, learner_context: {completedLessons: ['M01'], weakConcepts: ['verification']}};
+
+test('judge receives the same explicit learning state supplied to the Tutor', async () => {
+  const result = await judgeScope.judgeCase(fixture);
+  const payload = JSON.parse(judgeScope.messages[1].content);
+  assert.deepEqual(payload.learner_context.completedLessons, ['M01']);
+  assert.deepEqual(payload.learner_context.weakConcepts, ['verification']);
+  assert.equal(result.passed, true);
+});
+
+test('judge fails closed on nonboolean verdicts, missing criteria and error responses', async () => {
+  for (const reply of [{passed: 'true', ratings: {grounded: true}}, {passed: true, ratings: {}}, {passed: true, ratings: {grounded: false}}]) {
+    judgeScope.reply = reply;
+    assert.equal((await judgeScope.judgeCase(fixture)).passed, false);
+  }
+  judgeScope.reply = {passed: true, ratings: {grounded: true}};
+  assert.equal((await judgeScope.judgeCase({...fixture, http_status: 500})).passed, false);
+  assert.equal((await judgeScope.judgeCase({...fixture, response: {response_error: 'invalid_model_response'}})).passed, false);
+});
