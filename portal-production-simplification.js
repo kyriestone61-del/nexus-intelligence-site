@@ -162,15 +162,18 @@ function apply(){
   simplifyAuth();simplifyTopbar();simplifyAdminNav();simplifyJourney();simplifyDecisions();simplifySales();hideManualCreation();simplifyClient();
 }
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;apply()})}
+function scheduleSettled(){schedule();setTimeout(apply,140);setTimeout(apply,700)}
 
 document.addEventListener('click',event=>{
   const target=event.target.closest('#journeyPrimaryAction,[data-start-package="solution_design"]');
   if(!target||target.dataset.productionResolutionGate!=='1')return;
   event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();openDecisions();
 },true);
-
-const observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true});
-window.addEventListener('nexus:diagnosis-changed',schedule);window.addEventListener('nexus:diagnosis-updated',schedule);window.addEventListener('resize',schedule,{passive:true});
+document.addEventListener('click',()=>scheduleSettled(),false);
+document.addEventListener('change',event=>{
+  if(event.target?.matches?.('#companySelect,#nexusPerspectiveSelect,[data-company-switcher]'))scheduleSettled();
+},false);
+window.addEventListener('nexus:diagnosis-changed',scheduleSettled);window.addEventListener('nexus:diagnosis-updated',scheduleSettled);window.addEventListener('resize',schedule,{passive:true});
 apply();setTimeout(apply,350);setTimeout(apply,1100);
 
 window.NexusProductionSimplification={apply,openDecisions};
