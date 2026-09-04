@@ -4,6 +4,7 @@ if(!portal)throw new Error('Nexus portal context is unavailable.');
 const {state}=portal;
 const $=id=>document.getElementById(id);
 const terminal=new Set(['complete','completed','done','closed','resolved','cancelled','canceled','archived','approved','not_applicable']);
+const adminPrimaryCache={home:null,clients:null,decisions:null,sales:null};
 let scheduled=false;
 
 function text(node,value){if(node&&node.textContent!==value)node.textContent=value}
@@ -11,7 +12,7 @@ function hidden(node,value=true){if(!node)return;if(value){node.hidden=true;node
 function activePlanTasks(){return (state.tasks||[]).filter(task=>String(task.phase||'').toLowerCase()==='solution_design'&&!terminal.has(String(task.status||'').toLowerCase()))}
 function currentPlanStep(){return [...document.querySelectorAll('#adminJourneyRoot .journey-step')].find(step=>step.querySelector('.journey-step-number')?.textContent.trim()==='3'||/Agree on the Plan|Choose Solutions/i.test(step.querySelector('h3')?.textContent||''))||null}
 function openDecisions(){
-  const button=document.querySelector('.side-nav button[data-section="notifications"]');
+  const button=document.querySelector('.side-nav button[data-section="notifications"]')||adminPrimaryCache.decisions;
   if(button){button.click();return true}
   portal.toast?.('Nexus could not open Decisions. Reload the workspace and try again.');
   return false;
@@ -32,10 +33,18 @@ function simplifyAuth(){
 }
 
 function primaryAdminNodes(nav){
-  const home=nav.querySelector('.journey-primary');
-  const clients=nav.querySelector('button[data-section="companies"]')||nav.querySelector('button[data-section="clients"]');
-  const decisions=nav.querySelector('button[data-section="notifications"]');
-  const sales=nav.querySelector('button[data-section="revenue"]');
+  const liveHome=nav.querySelector('.journey-primary');
+  const liveClients=nav.querySelector('button[data-section="companies"]')||nav.querySelector('button[data-section="clients"]');
+  const liveDecisions=nav.querySelector('button[data-section="notifications"]');
+  const liveSales=nav.querySelector('button[data-section="revenue"]');
+  if(liveHome)adminPrimaryCache.home=liveHome;
+  if(liveClients?.dataset.section==='companies'||!adminPrimaryCache.clients)adminPrimaryCache.clients=liveClients;
+  if(liveDecisions)adminPrimaryCache.decisions=liveDecisions;
+  if(liveSales)adminPrimaryCache.sales=liveSales;
+  const home=liveHome||adminPrimaryCache.home;
+  const clients=(liveClients?.dataset.section==='companies'?liveClients:null)||adminPrimaryCache.clients||liveClients;
+  const decisions=liveDecisions||adminPrimaryCache.decisions;
+  const sales=liveSales||adminPrimaryCache.sales;
   return [home,clients,decisions,sales].filter(Boolean);
 }
 function labelSecondary(button){
@@ -102,7 +111,7 @@ function simplifyDecisions(){
   text(section.querySelector('.eyebrow'),'Founder decisions');
   text(section.querySelector('h1'),'Decisions');
   text(section.querySelector('p.small'),'Approvals, client submissions, questions, and exceptions that require a human decision.');
-  const nav=document.querySelector('.side-nav button[data-section="notifications"]');text(nav,'Decisions');
+  const nav=document.querySelector('.side-nav button[data-section="notifications"]')||adminPrimaryCache.decisions;text(nav,'Decisions');
   const updates=section.querySelector('[data-inbox-filter="update"]'),all=section.querySelector('[data-inbox-filter="all"]');hidden(updates,true);hidden(all,true);
   const create=$('newApprovalChainBtn');if(create)text(create,'+ New decision');
   const advanced=$('nexusInboxAdvancedFilters');
@@ -115,7 +124,7 @@ function simplifyDecisions(){
 function simplifySales(){
   if(!state.admin||state.viewMode==='client')return;
   const section=$('section-revenue');if(!section)return;
-  const nav=document.querySelector('.side-nav button[data-section="revenue"]');text(nav,'Sales');
+  const nav=document.querySelector('.side-nav button[data-section="revenue"]')||adminPrimaryCache.sales;text(nav,'Sales');
   const hero=section.querySelector('.revenue-hero');
   if(hero){text(hero.querySelector('.eyebrow'),'Nexus · sales pipeline');text(hero.querySelector('h1'),'Sales');text(hero.querySelector('p'),'Qualified opportunities, outreach approvals, replies, bookings, and exceptions. Research and scoring stay behind this view.');const guard=hero.querySelector('.revenue-guard');if(guard){text(guard.querySelector('b'),'Human send approval is on');text(guard.querySelector('span'),'Nexus prepares outreach. Nothing external is sent from this console without approval.')}}
   const statLabels=['Prospects','Qualified','Needs approval','Contacted','Booked','Exceptions'];section.querySelectorAll('.revenue-stats > div span').forEach((span,index)=>{if(statLabels[index])text(span,statLabels[index])});
