@@ -127,5 +127,11 @@ if(useClientShell){
   clearBootLock();
 }else{
   await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
+  let roleShellReloading=false;
+  portal.sb.auth.onAuthStateChange((_event,session)=>{
+    if(!session?.user||roleShellReloading)return;
+    roleShellReloading=true;
+    location.reload();
+  });
   clearBootLock();
 }
