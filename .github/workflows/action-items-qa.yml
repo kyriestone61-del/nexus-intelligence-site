@@ -13,6 +13,7 @@ on:
       - 'portal-app.js'
       - 'supabase/migrations/20260904_nexus_action_item_processing_engine.sql'
       - 'supabase/migrations/20260904_nexus_action_item_processing_rls_hardening.sql'
+      - 'supabase/migrations/20260904_nexus_action_item_processing_rpc_grants.sql'
       - '.github/workflows/action-items-qa.yml'
 
 permissions:
@@ -75,6 +76,9 @@ jobs:
           grep -Fq 'nexus members view task events' supabase/migrations/20260904_nexus_action_item_processing_engine.sql
           grep -Fq 'private.nexus_guard_client_task_update' supabase/migrations/20260904_nexus_action_item_processing_rls_hardening.sql
           grep -Fq 'Protected action fields must be changed through a governed Nexus workflow' supabase/migrations/20260904_nexus_action_item_processing_rls_hardening.sql
+          grep -Fq 'revoke execute on function public.nexus_start_task(uuid) from public, anon' supabase/migrations/20260904_nexus_action_item_processing_rpc_grants.sql
+          grep -Fq 'revoke execute on function public.nexus_admin_task_action(uuid,text,text,text) from public, anon' supabase/migrations/20260904_nexus_action_item_processing_rpc_grants.sql
+          grep -Fq 'grant execute on function public.nexus_submit_task_for_review(uuid,jsonb) to authenticated' supabase/migrations/20260904_nexus_action_item_processing_rpc_grants.sql
           grep -Fq 'portal-action-processing-engine.js' portal-client-upload-service.js
           grep -Fq 'portal-action-processing-engine.js' portal-ux-refinement.js
       - name: Client simplicity, structured input, and security assertions
