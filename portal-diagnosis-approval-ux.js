@@ -90,4 +90,5 @@ document.addEventListener('click',hideReviewForDrilldown,true);
 
 window.NexusDiagnosisApprovalUX={approve};
 await import('/portal-resolution-plan.js?v=20260904-baseline-flow1').catch(error=>console.error('Resolution plan failed to load',error));
+await import('/portal-resolution-inline-approval-bridge.js?v=20260904-baseline-flow1').catch(error=>console.error('Resolution inline approval bridge failed to load',error));
 import('/portal-diagnosis-output-hub.js?v=20260904-baseline-flow1').catch(error=>console.error('Diagnosis output hub failed to load',error));
