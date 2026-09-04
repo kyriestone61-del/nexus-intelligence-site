@@ -1,6 +1,11 @@
 const SUPABASE_URL='https://dmdgkjksouhhsuojthav.supabase.co';
 const REPOSITORY='kyriestone61-del/nexus-intelligence-site';
+const REPOSITORY_ID='1350685035';
+const REPOSITORY_OWNER='kyriestone61-del';
+const REPOSITORY_OWNER_ID='322500944';
 const WORKFLOW_REF=`${REPOSITORY}/.github/workflows/control-room-browser-qa.yml@refs/heads/main`;
+const LEGACY_SUBJECT=`repo:${REPOSITORY}:ref:refs/heads/main`;
+const IMMUTABLE_SUBJECT=`repo:${REPOSITORY_OWNER}@${REPOSITORY_OWNER_ID}/nexus-intelligence-site@${REPOSITORY_ID}:ref:refs/heads/main`;
 const OIDC_ISSUER='https://token.actions.githubusercontent.com';
 const OIDC_AUDIENCE='nexus-qa';
 const JWKS_URL='https://token.actions.githubusercontent.com/.well-known/jwks';
@@ -33,10 +38,12 @@ async function verifyGithubOidc(request){
   const now=Math.floor(Date.now()/1000);
   if(claims.iss!==OIDC_ISSUER||!audIncludes(claims.aud,OIDC_AUDIENCE))throw new Error('GitHub OIDC issuer or audience is invalid.');
   if(!claims.exp||Number(claims.exp)<now-30||Number(claims.iat||0)>now+60)throw new Error('GitHub OIDC token is expired or not yet valid.');
-  if(claims.repository!==REPOSITORY||claims.repository_owner!=='kyriestone61-del')throw new Error('GitHub OIDC repository is not authorized.');
+  if(claims.repository!==REPOSITORY||claims.repository_owner!==REPOSITORY_OWNER)throw new Error('GitHub OIDC repository is not authorized.');
+  if(String(claims.repository_id||'')!==REPOSITORY_ID||String(claims.repository_owner_id||'')!==REPOSITORY_OWNER_ID)throw new Error('GitHub OIDC immutable repository identity is not authorized.');
   if(claims.ref!=='refs/heads/main'||!['push','workflow_dispatch'].includes(claims.event_name))throw new Error('Only main-branch production QA may provision identities.');
   if(claims.workflow_ref!==WORKFLOW_REF)throw new Error('GitHub OIDC workflow is not authorized.');
-  if(!String(claims.sub||'').startsWith(`repo:${REPOSITORY}:ref:refs/heads/main`))throw new Error('GitHub OIDC subject is not authorized.');
+  const subject=String(claims.sub||'');
+  if(subject!==IMMUTABLE_SUBJECT&&subject!==LEGACY_SUBJECT)throw new Error('GitHub OIDC subject is not authorized.');
   if(!safeRunPart(claims.run_id))throw new Error('GitHub OIDC run identifier is missing.');
   return claims;
 }
