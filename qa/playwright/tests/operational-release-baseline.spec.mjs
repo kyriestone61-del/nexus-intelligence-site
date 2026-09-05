@@ -261,7 +261,7 @@ test.describe('RELYSTRA Operational Release 1',()=>{
       await adminCard.locator('.admin-approve-task').click();
       await waitForTaskStatus(page,uploadTaskId,'completed',35_000);
 
-      const audit=await page.evaluate(async({taskId,runId,projectId})=>{
+      const audit=await page.evaluate(async({taskId,runId,projectId,companyId})=>{
         const sb=window.NexusPortal.sb;
         const task=await sb.from('nexus_tasks').select('status,submitted_at,completed_at').eq('id',taskId).single();
         if(task.error)throw new Error(task.error.message);
@@ -274,7 +274,7 @@ test.describe('RELYSTRA Operational Release 1',()=>{
         const active=await sb.from('nexus_active_engagements').select('project_id').eq('company_id',companyId).maybeSingle();
         if(active.error)throw new Error(active.error.message);
         return {task:task.data,events:events.data||[],docs:docs.data||[],diagnosis:diagnosis.data,activeProjectId:active.data?.project_id||null,projectId};
-      },{taskId:uploadTaskId,runId,projectId:setup.projectId});
+      },{taskId:uploadTaskId,runId,projectId:setup.projectId,companyId});
 
       expect(audit.task.status).toBe('completed');
       expect(audit.task.submitted_at).toBeTruthy();
