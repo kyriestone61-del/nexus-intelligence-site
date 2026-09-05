@@ -139,7 +139,7 @@ function labelNeedsAction(){
   document.querySelectorAll('.ops-action[data-jump]').forEach(button=>{
     const section=button.dataset.jump;
     const cta={approvals:'Review decision →',tasks:'Open action →',documents:'Review evidence request →',automations:'Resolve automation →',requests:'Review request →'}[section]||'Open item →';
-    const last=button.querySelector(':scope > span:last-child');if(last)last.textContent=cta;
+    const last=button.querySelector(':scope > span:last-child');if(last&&last.textContent!==cta)last.textContent=cta;
     button.dataset.cohesionAction='1';
     const title=button.querySelector('b')?.textContent?.trim();if(title)button.setAttribute('aria-label',`${cta.replace(' →','')}: ${title}`);
   });
@@ -155,7 +155,8 @@ function relabelIntakeSteps(){
   if(!state.admin)return;
   const intake=document.getElementById('section-intake');if(!intake)return;
   const flow=intake.querySelector('.intake-flow');
-  if(flow)flow.innerHTML='<span><b>1</b> Discovery brief</span><span><b>2</b> Review client requests</span><span><b>3</b> Add transcript</span><span><b>4</b> Add evidence</span><span><b>5</b> Queue diagnosis</span><span><b>6</b> Review output</span>';
+  const flowMarkup='<span><b>1</b> Discovery brief</span><span><b>2</b> Review client requests</span><span><b>3</b> Add transcript</span><span><b>4</b> Add evidence</span><span><b>5</b> Queue diagnosis</span><span><b>6</b> Review output</span>';
+  if(flow&&flow.innerHTML!==flowMarkup)flow.innerHTML=flowMarkup;
   intake.querySelectorAll('.intake-card .kicker').forEach(kicker=>{
     const t=kicker.textContent.trim();
     if(t==='Step 2 · Transcript')kicker.textContent='Step 3 · Transcript';

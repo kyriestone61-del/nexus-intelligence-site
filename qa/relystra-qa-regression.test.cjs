@@ -145,3 +145,32 @@ test('task controls remain disabled through saving and replacement-card refresh'
   finish();await loading;
   assert.equal(controls[0].disabled,false);
 });
+
+test('workflow reconciliation reaches a fixed point instead of scheduling itself forever',()=>{
+  let writes=0,html='',label='Open';
+  const flow={get innerHTML(){return html},set innerHTML(v){html=v;writes++}};
+  const cta={get textContent(){return label},set textContent(v){label=v;writes++}};
+  const button={dataset:{jump:'tasks'},querySelector:s=>s===':scope > span:last-child'?cta:null};
+  const intake={querySelector:()=>flow,querySelectorAll:()=>[]};
+  const document={getElementById:()=>intake,querySelectorAll:()=>[button]};
+  const src=source('portal-workflow-cohesion.js');
+  const labels='function labelNeedsAction(){'+src.split('function labelNeedsAction(){')[1].split('function scrollToNamedRecord')[0];
+  const steps='function relabelIntakeSteps(){'+src.split('function relabelIntakeSteps(){')[1].split('function compactLegacyRequestEditors')[0];
+  const run=vm.runInNewContext(`${labels}\n${steps}\n()=>{labelNeedsAction();relabelIntakeSteps()}`,{document,state:{admin:true}});
+  run();assert.equal(writes,2);
+  for(let i=0;i<10;i++)run();
+  assert.equal(writes,2,'observer callbacks must not recreate unchanged text or markup');
+});
+
+test('Actions uses the shell route and survives the same activation used by refresh',()=>{
+  const src=source('portal-client-shell-v2.js');
+  const declaration=src.match(/const ALL_SECTIONS=.*?;/)[0];
+  const activate='function activateView(view){'+src.split('function activateView(view){')[1].split('function renderToday')[0];
+  let renders=0;
+  const nodes=['today','actions'].map(clientView=>({dataset:{clientView},classList:{toggle(_key,v){this.active=v}},setAttribute(){}}));
+  const window={scrollTo(){},NexusActionProcessingEngine:{renderClientActions(){renders++}}};
+  const document={querySelectorAll:()=>nodes};
+  const shell=vm.runInNewContext(`${declaration}\nlet activeView='today';\n${activate}\n({activateView,refresh:()=>activateView(activeView)})`,{window,document,renderToday(){},renderFiles(){},renderImprovement(){},renderReports(){}});
+  shell.activateView('actions');shell.refresh();
+  assert.equal(nodes[0].classList.active,false);assert.equal(nodes[1].classList.active,true);assert.equal(renders,2);
+});

@@ -10,7 +10,7 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&
 const arr=value=>Array.isArray(value)?value:[];
 const terminal=new Set(['complete','completed','done','closed','resolved','cancelled','canceled','archived']);
 const PRIMARY_VIEWS=[['today','01 Today'],['files','02 Secure Data Room'],['improvement','03 Improvement Record']];
-const ALL_SECTIONS=['today','files','improvement','reports'];
+const ALL_SECTIONS=['today','files','improvement','reports','actions'];
 let currentContext=null,inboxRows=[],documentRequests=[],releases=[],activeView='today',inboxTab='action',refreshVersion=0;
 
 document.body.classList.add('portal-client-mode','nexus-client-shell-mode','nexus-client-shell-v2');
@@ -51,7 +51,7 @@ function activateView(view){
   if(!ALL_SECTIONS.includes(view))view='today';activeView=view;
   document.querySelectorAll('.nexus-client-shell-section').forEach(section=>section.classList.toggle('active',section.dataset.clientView===view));
   document.querySelectorAll('#nexusClientPrimaryNav [data-client-view]').forEach(button=>{const selected=button.dataset.clientView===view;button.classList.toggle('active',selected);button.setAttribute('aria-current',selected?'page':'false')});
-  if(view==='files')renderFiles();else if(view==='improvement')renderImprovement();else if(view==='reports')renderReports();else renderToday();
+  if(view==='actions')window.NexusActionProcessingEngine?.renderClientActions();else if(view==='files')renderFiles();else if(view==='improvement')renderImprovement();else if(view==='reports')renderReports();else renderToday();
   window.scrollTo({top:0,left:0,behavior:'auto'});
 }
 
