@@ -6,7 +6,7 @@ const clientEmail=process.env.NEXUS_QA_CLIENT_EMAIL;
 const clientPassword=process.env.NEXUS_QA_CLIENT_PASSWORD;
 const qaCompany=process.env.NEXUS_QA_COMPANY_NAME||'';
 
-const technicalJargon=/\b(?:RPC|RLS|Supabase|Postgres|PostgreSQL|schema cache|SECURITY DEFINER|service role|edge function|workflow metadata|JSONB?|payload|cron job|database trigger|canonical state|orchestration engine)\b/i;
+const technicalJargon=/\b(?:RPC|RLS|Supabase|Postgres|PostgreSQL|schema cache|SECURITY DEFINER|service role|edge function|workflow metadata|JSONB?|payload|cron job|database trigger|canonical state|orchestration engine|dependency-blocked|governed action(?:s| plan| chain)?|commercial gate|resolution proposals?|root record|gap analysis|bounded diagnosis|material (?:information|discovery) gaps|authorized evidence|structured findings|recommended intervention|optimization\s*\/?\s*closeout|unblocked action|baseline measurement|decision record|documented resolution)\b/i;
 const allowedLegacy=/formerly Nexus Intelligence/i;
 
 function cleanText(text=''){
@@ -33,13 +33,16 @@ async function signIn(page,email,password){
   await waitForPortal(page);
 }
 
-async function selectQaCompany(page){
-  if(!qaCompany)return;
-  const select=page.locator('#companySelect');
-  if(await select.isVisible().catch(()=>false)){
-    const target=await select.locator('option').evaluateAll((options,name)=>options.find(option=>option.textContent?.trim()===name)?.value||null,qaCompany);
-    if(target&&await select.inputValue()!==target){await select.selectOption(target);await page.waitForTimeout(250);await page.evaluate(()=>window.NexusPortal?.workspace?.())}
+async function selectQaCompany(page,{admin=false}={}){
+  if(!qaCompany)return null;
+  const target=await page.locator('#companySelect option').evaluateAll((options,name)=>options.find(option=>option.textContent?.trim()===name)?.value||null,qaCompany);
+  if(!target)throw new Error(`Disposable QA company not found: ${qaCompany}`);
+  if(admin){
+    const current=new URL(page.url()).searchParams.get('company');
+    if(current!==target){await page.goto(`/portal?view_mode=admin&company=${encodeURIComponent(target)}`,{waitUntil:'domcontentloaded'});await waitForPortal(page)}
   }
+  await expect(page.locator('#companySelect')).toHaveValue(target,{timeout:20_000});
+  return target;
 }
 
 async function visibleCopy(page){
@@ -58,11 +61,11 @@ async function assertPlainLanguage(page,{client=false}={}){
     const text=cleanText(row.text);
     if(!text)continue;
     if(technicalJargon.test(text))jargon.push({tag:row.tag,text:text.slice(0,220)});
-    if(['p','small'].includes(row.tag)&&text.length>360)longBlocks.push({tag:row.tag,length:text.length,text:text.slice(0,220)});
-    if(['button','a','summary'].includes(row.tag)&&text.length>52)longControls.push({tag:row.tag,length:text.length,text:text.slice(0,180)});
+    if(['p','small'].includes(row.tag)&&text.length>300)longBlocks.push({tag:row.tag,length:text.length,text:text.slice(0,220)});
+    if(['button','a','summary'].includes(row.tag)&&text.length>48)longControls.push({tag:row.tag,length:text.length,text:text.slice(0,180)});
     if(client&&/\bNexus\b/i.test(text)&&!allowedLegacy.test(text))staleBrand.push({tag:row.tag,text:text.slice(0,220)});
   }
-  expect(jargon,'Visible product copy must not expose backend jargon').toEqual([]);
+  expect(jargon,'Visible product copy must not expose backend/operator jargon').toEqual([]);
   expect(longBlocks,'User instructions should be brief and scannable').toEqual([]);
   expect(longControls,'Interactive labels must stay concise').toEqual([]);
   if(client)expect(staleBrand,'Client-facing copy must use RELYSTRA branding').toEqual([]);
@@ -82,6 +85,12 @@ async function assertMobileUsability(page){
   expect(tiny,'Visible mobile controls must be comfortably tappable').toEqual([]);
 }
 
+async function openAdminRecords(page){
+  const records=page.locator('details.nexus-production-records');await expect(records).toBeVisible({timeout:20_000});
+  if(!await records.evaluate(node=>node.open))await records.locator('summary').click();
+  await expect(records).toHaveAttribute('open','');return records;
+}
+
 function meaningful(errors){return errors.filter(text=>!/favicon|analytics|third-party cookie|ResizeObserver loop|cloudflareinsights/i.test(text));}
 
 test.describe('RELYSTRA full app UX QAQC',()=>{
@@ -93,73 +102,71 @@ test.describe('RELYSTRA full app UX QAQC',()=>{
     await expect(page.locator('#signInForm')).toBeVisible();
     await expect(page.getByRole('button',{name:/sign in/i})).toBeVisible();
     await expect(page.getByRole('button',{name:/create account/i})).toBeVisible();
-    await assertPlainLanguage(page,{client:true});
-    await assertNoDeadControls(page);
+    await assertPlainLanguage(page,{client:true});await assertNoDeadControls(page);
     expect(meaningful(errors)).toEqual([]);
   });
 
-  test('admin navigation and diagnosis workspace are coherent',async({page})=>{
+  test('admin navigation and diagnosis workspace are coherent and simple',async({page})=>{
     const consoleErrors=[];const pageErrors=[];
     page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text())});
     page.on('pageerror',error=>pageErrors.push(String(error?.message||error)));
-    await signIn(page,adminEmail,adminPassword);await selectQaCompany(page);
-    await expect(page.locator('.side-nav')).toBeVisible();
+    await signIn(page,adminEmail,adminPassword);await selectQaCompany(page,{admin:true});
+    await expect(page.locator('#adminJourneyRoot')).toBeVisible({timeout:20_000});
+    for(const label of ['Home','Clients','Decisions','Sales'])await expect(page.getByRole('button',{name:label,exact:true})).toBeVisible();
+    await assertPlainLanguage(page);await assertNoDeadControls(page);
 
-    const navButtons=page.locator('.side-nav button:visible');
-    expect(await navButtons.count()).toBeGreaterThan(3);
-    for(let i=0;i<await navButtons.count();i+=1){
-      const button=navButtons.nth(i);const label=cleanText(await button.innerText());
-      expect(label.length,`Admin nav label is too long: ${label}`).toBeLessThanOrEqual(34);
-    }
-
-    const diagnosis=page.getByRole('button',{name:/Discovery & Diagnosis/i}).first();
+    const records=await openAdminRecords(page);
+    const diagnosis=records.locator('button').filter({hasText:/Diagnosis|Discovery/i}).first();
     await expect(diagnosis).toBeVisible();await diagnosis.click();
     await expect(page.locator('#section-intake')).toHaveClass(/active/,{timeout:15_000});
-    await expect(page.getByRole('button',{name:/capture discovery context/i})).toBeVisible();
+    const saveNotes=page.locator('#captureDiscoveryContextBtn');if(await saveNotes.count())await expect(saveNotes).toBeVisible();
     await expect(page.locator('#toggleEvidenceUploadBtn')).toBeVisible();
     await expect(page.locator('#queueDiagnosisBtn')).toBeVisible();
-    await assertPlainLanguage(page);
-    await assertNoDeadControls(page);
+    await assertPlainLanguage(page);await assertNoDeadControls(page);
 
-    const safeSections=['overview','documents','tasks','timeline','metrics','notifications','activity'];
-    for(const section of safeSections){
-      const button=page.locator(`.side-nav button[data-section="${section}"]`);
-      if(!await button.isVisible().catch(()=>false))continue;
-      await button.click();
-      await expect(page.locator(`#section-${section}`)).toHaveClass(/active/,{timeout:10_000});
+    for(const label of ['Home','Clients','Decisions','Sales']){
+      const button=page.getByRole('button',{name:label,exact:true});await button.click();
       await expect(page.locator('body')).not.toHaveClass(/nexus-runtime-degraded/);
     }
     expect(meaningful(consoleErrors)).toEqual([]);expect(pageErrors).toEqual([]);
   });
 
-  test('client workspace is dummy-proof across every primary view',async({page})=>{
+  test('client workspace is dummy-proof across every primary view and utility',async({page})=>{
     const consoleErrors=[];const pageErrors=[];
     page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text())});
     page.on('pageerror',error=>pageErrors.push(String(error?.message||error)));
-    await signIn(page,clientEmail,clientPassword);
+    await signIn(page,clientEmail,clientPassword);await selectQaCompany(page);
     await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:30_000});
 
     const nav=page.locator('#nexusClientPrimaryNav [data-client-view]:visible');
-    expect(await nav.count()).toBeGreaterThanOrEqual(3);
-    const seen=[];
+    expect(await nav.count()).toBeGreaterThanOrEqual(3);const seen=[];
     for(let i=0;i<await nav.count();i+=1){
-      const button=nav.nth(i);const view=await button.getAttribute('data-client-view');const label=cleanText(await button.innerText());
+      const button=nav.nth(i),view=await button.getAttribute('data-client-view'),label=cleanText(await button.innerText());
       seen.push(view);expect(label.length,`Client nav label too long: ${label}`).toBeLessThanOrEqual(32);
-      await button.click();
-      await expect(page.locator(`#nexus-client-${view}`)).toHaveClass(/active/,{timeout:10_000});
-      await assertPlainLanguage(page,{client:true});
-      await assertNoDeadControls(page);
+      await button.click();await expect(page.locator(`#nexus-client-${view}`)).toHaveClass(/active/,{timeout:10_000});
+      await assertPlainLanguage(page,{client:true});await assertNoDeadControls(page);
     }
     expect(seen).toContain('today');expect(seen).toContain('files');expect(seen).toContain('improvement');
+
+    const help=page.locator('#nexusClientHelpButton');
+    if(await help.isVisible().catch(()=>false)){
+      await help.click();const drawer=page.locator('#nexusClientGuideDrawer');await expect(drawer).toHaveClass(/show/,{timeout:10_000});
+      await drawer.locator('[data-modal-close]').click();await expect(drawer).not.toHaveClass(/show/);
+    }
+    const inbox=page.locator('#nexusClientInboxButton');
+    if(await inbox.isVisible().catch(()=>false)){
+      await inbox.click();const drawer=page.locator('#nexusClientInboxDrawer');await expect(drawer).toHaveClass(/show/,{timeout:10_000});
+      await drawer.locator('[data-modal-close]').click();await expect(drawer).not.toHaveClass(/show/);
+    }
     expect(meaningful(consoleErrors)).toEqual([]);expect(pageErrors).toEqual([]);
   });
 
   test('client workspace remains simple and usable at phone width',async({page})=>{
     await page.setViewportSize({width:390,height:844});
-    await signIn(page,clientEmail,clientPassword);
+    await signIn(page,clientEmail,clientPassword);await selectQaCompany(page);
     await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:30_000});
     await assertMobileUsability(page);await assertPlainLanguage(page,{client:true});
     const nav=page.locator('#nexusClientPrimaryNav [data-client-view]:visible');
-    for(let i=0;i<await nav.count();i+=1){const button=nav.nth(i);const view=await button.getAttribute('data-client-view');await button.click();await expect(page.locator(`#nexus-client-${view}`)).toHaveClass(/active/,{timeout:10_000});await assertMobileUsability(page)}
+    for(let i=0;i<await nav.count();i+=1){const button=nav.nth(i),view=await button.getAttribute('data-client-view');await button.click();await expect(page.locator(`#nexus-client-${view}`)).toHaveClass(/active/,{timeout:10_000});await assertMobileUsability(page)}
   });
 });
