@@ -34,7 +34,26 @@ async function openQaAdminCompany(page){
   return target;
 }
 
+async function exposeWorkspaceNav(page){
+  const menu=page.getByRole('button',{name:/Workspace menu/i});
+  if(await menu.isVisible().catch(()=>false)){
+    const expanded=await menu.getAttribute('aria-expanded');
+    const text=(await menu.textContent().catch(()=>''))||'';
+    if(expanded==='false'||/\bshow\b/i.test(text))await menu.click();
+  }
+}
+
+async function collapseWorkspaceNav(page){
+  const menu=page.getByRole('button',{name:/Workspace menu/i});
+  if(await menu.isVisible().catch(()=>false)){
+    const expanded=await menu.getAttribute('aria-expanded');
+    const text=(await menu.textContent().catch(()=>''))||'';
+    if(expanded==='true'||/\bhide\b/i.test(text))await menu.click();
+  }
+}
+
 async function openRecords(page){
+  await exposeWorkspaceNav(page);
   const records=page.locator('details.nexus-production-records');
   await expect(records).toBeVisible({timeout:20_000});
   if(!await records.evaluate(node=>node.open))await records.locator('summary').click();
@@ -53,6 +72,7 @@ test.describe('authenticated role boundaries',()=>{
 
     await expect(page.locator('#adminJourneyRoot')).toBeVisible({timeout:20_000});
     await expect(page.getByRole('button',{name:'Client Journey',exact:true})).toHaveCount(0);
+    await exposeWorkspaceNav(page);
     for(const label of ['Home','Clients','Decisions','Sales'])await expect(page.getByRole('button',{name:label,exact:true})).toBeVisible();
 
     const records=await openRecords(page);
@@ -60,12 +80,15 @@ test.describe('authenticated role boundaries',()=>{
     await expect(diagnosis).toBeVisible();
     await diagnosis.click();
     await expect(page.locator('#section-intake')).toHaveClass(/active/,{timeout:15_000});
+    await expect(page.locator('#section-intake')).toBeVisible();
+    await collapseWorkspaceNav(page);
 
     await page.setViewportSize({width:390,height:844});
     await page.waitForTimeout(250);
     const dims=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
     expect(dims.scrollWidth).toBeLessThanOrEqual(dims.clientWidth+1);
-    await expect(page.locator('#adminJourneyRoot')).toBeVisible();
+    await expect(page.locator('#section-intake')).toBeVisible();
+    await expect(page.locator('#adminJourneyRoot')).toBeHidden();
     await expect(page.getByRole('button',{name:'Client Journey',exact:true})).toHaveCount(0);
     expect(consoleErrors.filter(x=>!/favicon|analytics|ResizeObserver loop/i.test(x))).toEqual([]);
   });
