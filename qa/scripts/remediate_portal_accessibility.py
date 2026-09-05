@@ -26,7 +26,7 @@ def remediate(text: str) -> str:
     # unnamed dialog; individual reset components may replace it with aria-labelledby.
     text = re.sub(
         r'<div\s+id="(?P<id>[^"]+)"\s+class="modal"(?![^>]*\brole=)(?P<rest>[^>]*)>',
-        lambda m: f'<div id="{m.group("id")}" class="modal" role="dialog" aria-modal="true" aria-label="Nexus workspace dialog"{m.group("rest")}>',
+        lambda m: f'<div id="{m.group("id")}" class="modal" role="dialog" aria-modal="true" aria-label="Relystra workspace dialog"{m.group("rest")}>',
         text,
         flags=re.IGNORECASE,
     )

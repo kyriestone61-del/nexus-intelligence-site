@@ -4,7 +4,7 @@
  * company scope, audit path, and 25 MB limit.
  */
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable for upload service.');
+if(!portal)throw new Error('Relystra portal context is unavailable for upload service.');
 const {sb,state,runtime,toast}=portal;
 const {events,boundary}=runtime;
 const BUCKET='nexus-client-documents';
@@ -49,7 +49,7 @@ async function uploadFile({file,requestId=null,requirementId=null,taskId=null,ti
     await portal.log?.('document_uploaded','document',insert.data.id,task?`Client uploaded ${file.name} for action: ${task.title}`:`Client uploaded ${file.name}`);
     if(refresh)await portal.workspace?.();
     return insert.data;
-  }catch(error){try{await sb.storage.from(BUCKET).remove([path])}catch(rollbackError){console.warn('Nexus upload rollback failed',rollbackError)}throw error}
+  }catch(error){try{await sb.storage.from(BUCKET).remove([path])}catch(rollbackError){console.warn('Relystra upload rollback failed',rollbackError)}throw error}
 }
 
 async function uploadFilesForTask({taskId,files,note=null,onProgress=null}={}){
@@ -80,13 +80,13 @@ window.NexusClientUploadService=service;
 
 const TASK_FILE_BUILD='20260903-inline-action-files1';
 if(!document.querySelector('link[data-nexus-task-files]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`/portal-task-file-attachments.css?v=${TASK_FILE_BUILD}`;link.dataset.nexusTaskFiles='1';document.head.appendChild(link)}
-import(`/portal-task-file-attachments.js?v=${TASK_FILE_BUILD}`).then(()=>import(`/portal-task-file-attachments-live.js?v=${TASK_FILE_BUILD}`)).catch(error=>console.error('Nexus task file controls failed to load.',error));
+import(`/portal-task-file-attachments.js?v=${TASK_FILE_BUILD}`).then(()=>import(`/portal-task-file-attachments-live.js?v=${TASK_FILE_BUILD}`)).catch(error=>console.error('Relystra task file controls failed to load.',error));
 
-const ACTION_PROCESSING_BUILD='20260905-action-processing3';
+const ACTION_PROCESSING_BUILD='20260905-action-processing-rebrand1';
 if(!document.querySelector('link[data-nexus-action-processing]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`/portal-action-processing-engine.css?v=${ACTION_PROCESSING_BUILD}`;link.dataset.nexusActionProcessing='1';document.head.appendChild(link)}
 function loadActionProcessingWhenReady(attempt=0){
   if(window.NexusActionProcessingEngine)return;
-  if(document.getElementById('nexusClientPrimaryNav')){import(`/portal-action-processing-engine.js?v=${ACTION_PROCESSING_BUILD}`).catch(error=>console.error('Nexus Action Item Processing Engine failed to load.',error));return}
+  if(document.getElementById('nexusClientPrimaryNav')){import(`/portal-action-processing-engine.js?v=${ACTION_PROCESSING_BUILD}`).catch(error=>console.error('Relystra Action Item Processing Engine failed to load.',error));return}
   if(attempt<80)setTimeout(()=>loadActionProcessingWhenReady(attempt+1),75);
 }
 loadActionProcessingWhenReady();

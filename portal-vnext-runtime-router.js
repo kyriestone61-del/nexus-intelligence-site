@@ -1,6 +1,6 @@
-// Nexus vNext runtime router.
+// Relystra vNext runtime router.
 // PDF export runs on the existing Cloudflare Pages runtime. SMS delivery is queued in
-// Supabase and processed by the existing scheduled Nexus notification worker, avoiding
+// Supabase and processed by the existing scheduled Relystra notification worker, avoiding
 // an additional Edge Function slot or browser-held worker credential.
 if(!window.__nexusVnextRuntimeRouter){
   window.__nexusVnextRuntimeRouter=true;

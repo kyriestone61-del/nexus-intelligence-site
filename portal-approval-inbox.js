@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,$,toast}=portal;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dt=v=>v?new Date(v).toLocaleString():'—';
@@ -53,7 +53,7 @@ function card(x){
 }
 function render(){
   const root=$('nexusInboxRoot');if(!root)return;
-  const list=filtered();root.innerHTML=list.map(card).join('')||'<div class="empty">Nothing in this view. Nexus will surface the next approval or action here when it needs attention.</div>';
+  const list=filtered();root.innerHTML=list.map(card).join('')||'<div class="empty">Nothing in this view. Relystra will surface the next approval or action here when it needs attention.</div>';
   const counts={all:items.length,approval:items.filter(x=>x.kind==='approval').length,update:items.filter(x=>x.kind==='update').length,action:items.filter(actionable).length};
   document.querySelectorAll('[data-count]').forEach(x=>x.textContent=counts[x.dataset.count]??0);
   navButton()?.classList.toggle('has-inbox',counts.action>0);
@@ -69,7 +69,7 @@ async function loadInbox(force=false){
   try{
     const params={p_company_id:state.admin?null:state.companyId};const {data,error}=await sb.rpc('nexus_get_inbox',params);if(error)throw error;if(window.__nexusNavigationPending===true)return;items=data||[];render();
     const paramsUrl=new URLSearchParams(location.search);if(paramsUrl.get('view')==='inbox'&&paramsUrl.get('approval_chain')){const id=paramsUrl.get('approval_chain');paramsUrl.delete('approval_chain');history.replaceState(null,'',`${location.pathname}?${paramsUrl.toString()}`.replace(/\?$/,''));setTimeout(()=>openChain(id),60)}
-  }catch(error){if(expectedNavigationAbort(error))return;console.error('Nexus Inbox failed',error);const root=$('nexusInboxRoot');if(root)root.innerHTML=`<div class="note"><b>Inbox could not load.</b><br>${esc(error.message||'Refresh and try again.')}</div>`}
+  }catch(error){if(expectedNavigationAbort(error))return;console.error('Relystra Inbox failed',error);const root=$('nexusInboxRoot');if(root)root.innerHTML=`<div class="note"><b>Inbox could not load.</b><br>${esc(error.message||'Refresh and try again.')}</div>`}
   finally{loading=false}
 }
 
@@ -84,13 +84,13 @@ function openItem(x){
 
 function ensureDialogs(){
   if(!$('approvalDecisionModal')){const el=document.createElement('div');el.id='approvalDecisionModal';el.className='modal';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.innerHTML='<div class="modal-card nexus-approval-dialog"><div class="toolbar"><div><div class="kicker">Approval chain</div><h2 id="approvalDecisionTitle" style="margin:4px 0">Review approval</h2></div><button class="btn secondary" data-close-approval type="button">Close</button></div><div id="approvalDecisionBody"></div></div>';document.body.appendChild(el);el.querySelector('[data-close-approval]').onclick=()=>el.classList.remove('show');el.onclick=e=>{if(e.target===el)el.classList.remove('show')}}
-  if(!$('newApprovalChainModal')&&state.admin){const el=document.createElement('div');el.id='newApprovalChainModal';el.className='modal';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.innerHTML=`<div class="modal-card nexus-approval-dialog"><div class="toolbar"><div><div class="kicker">Controlled decision</div><h2 style="margin:4px 0">New approval chain</h2></div><button class="btn secondary" data-close-new-approval type="button">Close</button></div><div class="field"><label for="approvalChainTitle">Approval title</label><input id="approvalChainTitle" maxlength="300" placeholder="e.g. Approve pilot scope"></div><div class="field"><label for="approvalChainDescription">What is being approved?</label><textarea id="approvalChainDescription" placeholder="State the decision, consequence, and what the approvers should verify."></textarea></div><div class="field"><label for="approvalChainPreset">Approval sequence</label><select id="approvalChainPreset"><option value="nexus">Nexus owner review</option><option value="client">Client owner decision</option><option value="nexus_client">Nexus review → Client owner</option><option value="client_nexus">Client owner → Nexus final review</option></select></div><div class="field"><label for="approvalChainDue">Due date/time <span class="small">(optional)</span></label><input id="approvalChainDue" type="datetime-local"></div><div class="actions"><button id="createApprovalChainBtn" class="btn primary" type="button">Create & submit →</button></div></div>`;document.body.appendChild(el);el.querySelector('[data-close-new-approval]').onclick=()=>el.classList.remove('show');el.onclick=e=>{if(e.target===el)el.classList.remove('show')};$('createApprovalChainBtn').onclick=createApproval}
+  if(!$('newApprovalChainModal')&&state.admin){const el=document.createElement('div');el.id='newApprovalChainModal';el.className='modal';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.innerHTML=`<div class="modal-card nexus-approval-dialog"><div class="toolbar"><div><div class="kicker">Controlled decision</div><h2 style="margin:4px 0">New approval chain</h2></div><button class="btn secondary" data-close-new-approval type="button">Close</button></div><div class="field"><label for="approvalChainTitle">Approval title</label><input id="approvalChainTitle" maxlength="300" placeholder="e.g. Approve pilot scope"></div><div class="field"><label for="approvalChainDescription">What is being approved?</label><textarea id="approvalChainDescription" placeholder="State the decision, consequence, and what the approvers should verify."></textarea></div><div class="field"><label for="approvalChainPreset">Approval sequence</label><select id="approvalChainPreset"><option value="nexus">Relystra owner review</option><option value="client">Client owner decision</option><option value="nexus_client">Relystra review → Client owner</option><option value="client_nexus">Client owner → Relystra final review</option></select></div><div class="field"><label for="approvalChainDue">Due date/time <span class="small">(optional)</span></label><input id="approvalChainDue" type="datetime-local"></div><div class="actions"><button id="createApprovalChainBtn" class="btn primary" type="button">Create & submit →</button></div></div>`;document.body.appendChild(el);el.querySelector('[data-close-new-approval]').onclick=()=>el.classList.remove('show');el.onclick=e=>{if(e.target===el)el.classList.remove('show')};$('createApprovalChainBtn').onclick=createApproval}
 }
 function openNewApproval(){ensureDialogs();$('approvalChainTitle').value='';$('approvalChainDescription').value='';$('approvalChainPreset').value='nexus_client';$('approvalChainDue').value='';$('newApprovalChainModal').classList.add('show');$('approvalChainTitle').focus()}
 function stepsForPreset(p){
-  const nexus={step_name:'Nexus review',approver_scope:'platform_admin',instructions:'Verify scope, evidence, risk, and downstream consequence.'};
+  const nexus={step_name:'Relystra review',approver_scope:'platform_admin',instructions:'Verify scope, evidence, risk, and downstream consequence.'};
   const client={step_name:'Client owner decision',approver_scope:'company_role',approver_role:'owner',instructions:'Confirm the client accepts the decision and its stated consequences.'};
-  if(p==='nexus')return[nexus];if(p==='client')return[client];if(p==='client_nexus')return[client,{...nexus,step_name:'Nexus final review'}];return[nexus,client];
+  if(p==='nexus')return[nexus];if(p==='client')return[client];if(p==='client_nexus')return[client,{...nexus,step_name:'Relystra final review'}];return[nexus,client];
 }
 async function createApproval(){
   const title=$('approvalChainTitle').value.trim(),description=$('approvalChainDescription').value.trim(),preset=$('approvalChainPreset').value,due=$('approvalChainDue').value;

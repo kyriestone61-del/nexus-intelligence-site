@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable for client action execution.');
+if(!portal)throw new Error('Relystra portal context is unavailable for client action execution.');
 
 const {sb,state,toast,runtime}=portal;
 const {boundary}=runtime;
@@ -42,7 +42,7 @@ async function submitTaskForReview(taskId,responseData={}){
   try{
     const result=await sb.rpc('nexus_submit_task_for_review',{p_task_id:task.id,p_response_data:responseData});
     if(result.error)throw result.error;
-    toast?.('Submitted to Nexus. This step is now in Nexus review.');
+    toast?.('Submitted to Relystra. This step is now in Relystra review.');
     await portal.workspace?.();
   }finally{submissionInFlight=false}
 }
@@ -79,7 +79,7 @@ async function setRequirementStatus(requirementId,status){
   if(!row)throw new Error('Preparation item not found.');
   const result=await sb.from('nexus_project_data_requirements').update({status,updated_by:state.user?.id,updated_at:new Date().toISOString()}).eq('id',row.id).eq('company_id',state.companyId);
   if(result.error)throw result.error;
-  toast?.(status==='build_with_nexus'?'This item is marked for Nexus to help build.':'Preparation item marked not applicable.');
+  toast?.(status==='build_with_nexus'?'This item is marked for Relystra to help build.':'Preparation item marked not applicable.');
   await portal.workspace?.();
 }
 
@@ -91,7 +91,7 @@ function enhanceTaskForm(){
   const actions=form.querySelector('.actions');
   const submit=actions?.querySelector('button[type="submit"]');
   if(submit){
-    submit.textContent=preview?'Client can submit to Nexus':'Submit to Nexus →';
+    submit.textContent=preview?'Client can submit to Relystra':'Submit to Relystra →';
     if(preview){submit.disabled=true;submit.title=previewMessage}
   }
   if(actions&&!actions.querySelector('[data-client-save-progress]')){
@@ -128,8 +128,8 @@ function requirementCard(row){
   const preview=isReadOnlyPreview();
   const disabled=preview?' disabled aria-disabled="true" title="Available to the signed-in client; administrator preview is read-only."':'';
   const readOnly=preview?' readonly aria-readonly="true"':'';
-  const controls=`<div class="req-actions">${fileLike?`<button class="btn primary" type="button" data-prep-upload="${esc(row.id)}" data-prep-title="${esc(catalog.title||'Preparation evidence')}"${disabled}>Upload evidence</button>`:''}${answerLike?`<button class="btn secondary" type="button" data-prep-answer-toggle="${esc(row.id)}">Answer here</button>`:''}<button class="btn secondary" type="button" data-prep-build="${esc(row.id)}"${disabled}>Build with Nexus</button><button class="btn secondary" type="button" data-prep-na="${esc(row.id)}"${disabled}>Not applicable</button></div>${answerLike?`<div class="req-answer" data-prep-answer="${esc(row.id)}"><textarea id="nexus-prep-note-${esc(row.id)}" placeholder="Be specific. A short list or clear explanation is enough."${readOnly}>${esc(row.client_note||'')}</textarea><div class="actions" style="margin-top:8px"><button class="btn primary" type="button" data-prep-save="${esc(row.id)}"${disabled}>Save response</button></div></div>`:''}`;
-  return `<article class="requirement-card ${addressed?'addressed':''}"><div class="requirement-head"><div><span class="pill">${esc(catalog.category||'Preparation')}</span> <span class="pill">${esc(String(catalog.importance||'helpful').replaceAll('_',' '))}</span></div><span class="req-status ${esc(normalize(row.status))}">${esc(String(row.status||'needed').replaceAll('_',' '))}</span></div><h3>${esc(catalog.title||'Preparation item')}</h3><div class="req-detail"><b>Why Nexus needs it</b><p>${esc(catalog.why_needed||'This helps Nexus understand the current state without guessing.')}</p></div><div class="req-detail"><b>How to find it</b><p>${esc(catalog.how_to_find||'Ask the person closest to the workflow or check the system where the work happens.')}</p></div><div class="req-detail"><b>Good examples</b><p>${esc(catalog.good_examples||'A representative example is enough.')}</p></div><div class="req-detail missing"><b>Don’t have it?</b><p>${esc(catalog.if_missing||'That is okay. Nexus can help build the minimum useful version with you.')}</p></div>${row.client_note?`<div class="req-detail"><b>Your saved response</b><p>${esc(row.client_note)}</p></div>`:''}${controls}</article>`;
+  const controls=`<div class="req-actions">${fileLike?`<button class="btn primary" type="button" data-prep-upload="${esc(row.id)}" data-prep-title="${esc(catalog.title||'Preparation evidence')}"${disabled}>Upload evidence</button>`:''}${answerLike?`<button class="btn secondary" type="button" data-prep-answer-toggle="${esc(row.id)}">Answer here</button>`:''}<button class="btn secondary" type="button" data-prep-build="${esc(row.id)}"${disabled}>Build with Relystra</button><button class="btn secondary" type="button" data-prep-na="${esc(row.id)}"${disabled}>Not applicable</button></div>${answerLike?`<div class="req-answer" data-prep-answer="${esc(row.id)}"><textarea id="nexus-prep-note-${esc(row.id)}" placeholder="Be specific. A short list or clear explanation is enough."${readOnly}>${esc(row.client_note||'')}</textarea><div class="actions" style="margin-top:8px"><button class="btn primary" type="button" data-prep-save="${esc(row.id)}"${disabled}>Save response</button></div></div>`:''}`;
+  return `<article class="requirement-card ${addressed?'addressed':''}"><div class="requirement-head"><div><span class="pill">${esc(catalog.category||'Preparation')}</span> <span class="pill">${esc(String(catalog.importance||'helpful').replaceAll('_',' '))}</span></div><span class="req-status ${esc(normalize(row.status))}">${esc(String(row.status||'needed').replaceAll('_',' '))}</span></div><h3>${esc(catalog.title||'Preparation item')}</h3><div class="req-detail"><b>Why Relystra needs it</b><p>${esc(catalog.why_needed||'This helps Relystra understand the current state without guessing.')}</p></div><div class="req-detail"><b>How to find it</b><p>${esc(catalog.how_to_find||'Ask the person closest to the workflow or check the system where the work happens.')}</p></div><div class="req-detail"><b>Good examples</b><p>${esc(catalog.good_examples||'A representative example is enough.')}</p></div><div class="req-detail missing"><b>Don’t have it?</b><p>${esc(catalog.if_missing||'That is okay. Relystra can help build the minimum useful version with you.')}</p></div>${row.client_note?`<div class="req-detail"><b>Your saved response</b><p>${esc(row.client_note)}</p></div>`:''}${controls}</article>`;
 }
 
 function renderPreparationWorkspace(panel){
@@ -143,16 +143,16 @@ function renderPreparationWorkspace(panel){
 
   const isChecklist=normalize(task?.task_type)==='preparation_checklist';
   const readyForHandoff=!!task&&(!isChecklist||summary.total===0||summary.remaining===0);
-  const previewNotice=preview?'<div class="nexus-client-preview-work-note"><b>Admin preview</b><span>This workspace is read-only for you. The signed-in client can use the controls below, save progress, upload and download files, and submit completed work to Nexus.</span></div>':'';
+  const previewNotice=preview?'<div class="nexus-client-preview-work-note"><b>Admin preview</b><span>This workspace is read-only for you. The signed-in client can use the controls below, save progress, upload and download files, and submit completed work to Relystra.</span></div>':'';
   let handoff='';
   if(task){
-    const text=readyForHandoff?'Ready to send this step back to Nexus.':'Finish the preparation items above before handing this step back.';
-    const progress=isChecklist&&summary.total?`${summary.addressed} of ${summary.total} preparation items addressed.`:'When you have provided the requested work for this action, submit it to Nexus.';
-    const action=preview?'<button type="button" class="btn primary" disabled aria-disabled="true" title="Available to the signed-in client; administrator preview is read-only.">Client can submit to Nexus</button>':`<button type="button" class="btn primary" data-submit-file-task="${esc(task.id)}" ${readyForHandoff?'':'disabled'}>${readyForHandoff?'Submit to Nexus →':`Address ${summary.remaining} more ${summary.remaining===1?'item':'items'}`}</button>`;
-    handoff=`<div class="nexus-client-preparation-handoff"><div><span>CLIENT → NEXUS HANDOFF</span><b>${text}</b><small>${progress}</small></div>${action}</div>`;
+    const text=readyForHandoff?'Ready to send this step back to Relystra.':'Finish the preparation items above before handing this step back.';
+    const progress=isChecklist&&summary.total?`${summary.addressed} of ${summary.total} preparation items addressed.`:'When you have provided the requested work for this action, submit it to Relystra.';
+    const action=preview?'<button type="button" class="btn primary" disabled aria-disabled="true" title="Available to the signed-in client; administrator preview is read-only.">Client can submit to Relystra</button>':`<button type="button" class="btn primary" data-submit-file-task="${esc(task.id)}" ${readyForHandoff?'':'disabled'}>${readyForHandoff?'Submit to Relystra →':`Address ${summary.remaining} more ${summary.remaining===1?'item':'items'}`}</button>`;
+    handoff=`<div class="nexus-client-preparation-handoff"><div><span>CLIENT → RELYSTRA HANDOFF</span><b>${text}</b><small>${progress}</small></div>${action}</div>`;
   }
   const meter=rows.length?`<div class="data-room-meter"><div class="data-room-meter-track"><div class="data-room-meter-fill" style="width:${Math.round(summary.addressed/summary.total*100)}%"></div></div><strong>${summary.addressed} of ${summary.total} preparation items addressed</strong></div>`:'';
-  panel.innerHTML=`<div class="nexus-client-section-head"><div><div class="kicker">Preparation workspace</div><h2>Do the work here.</h2><p>Answer preparation items, upload existing evidence, choose <b>Build with Nexus</b> when an artifact does not exist, or mark an item <b>Not applicable</b>. You do not need separate permission to work through client-owned items.</p></div></div>${previewNotice}${meter}${rows.length?`<div class="requirement-grid nexus-client-preparation-grid">${rows.map(requirementCard).join('')}</div>`:'<div class="nexus-client-empty-small">No preparation checklist items are assigned to this project.</div>'}${handoff}`;
+  panel.innerHTML=`<div class="nexus-client-section-head"><div><div class="kicker">Preparation workspace</div><h2>Do the work here.</h2><p>Answer preparation items, upload existing evidence, choose <b>Build with Relystra</b> when an artifact does not exist, or mark an item <b>Not applicable</b>. You do not need separate permission to work through client-owned items.</p></div></div>${previewNotice}${meter}${rows.length?`<div class="requirement-grid nexus-client-preparation-grid">${rows.map(requirementCard).join('')}</div>`:'<div class="nexus-client-empty-small">No preparation checklist items are assigned to this project.</div>'}${handoff}`;
 }
 
 function mountPreparationWorkspace(){
@@ -182,9 +182,9 @@ function decorateToday(){
     const label=next.querySelector('span'),title=next.querySelector('b');
     let detail=next.querySelector('small');
     if(label)label.textContent='After you submit';
-    if(title)title.textContent='Nexus reviews your submission';
+    if(title)title.textContent='Relystra reviews your submission';
     if(!detail){detail=document.createElement('small');next.appendChild(detail)}
-    detail.textContent='Nexus confirms scope or access boundaries only when the next controlled step requires it.';
+    detail.textContent='Relystra confirms scope or access boundaries only when the next controlled step requires it.';
   }
 }
 
@@ -202,7 +202,7 @@ document.addEventListener('submit',event=>{
     const button=form.querySelector('button[type="submit"]');
     if(button){button.disabled=true;button.textContent='Submitting…'}
     try{await submitTaskForReview(form.dataset.taskId,taskFormData(form))}
-    finally{if(button){button.disabled=false;button.textContent='Submit to Nexus →'}}
+    finally{if(button){button.disabled=false;button.textContent='Submit to Relystra →'}}
   });
 },true);
 
@@ -248,7 +248,7 @@ document.addEventListener('click',event=>{
   const prepBuild=event.target.closest?.('[data-prep-build]');
   if(prepBuild){
     event.preventDefault();event.stopImmediatePropagation();
-    boundary.run('preparation build with Nexus',()=>setRequirementStatus(prepBuild.dataset.prepBuild,'build_with_nexus'));
+    boundary.run('preparation build with Relystra',()=>setRequirementStatus(prepBuild.dataset.prepBuild,'build_with_nexus'));
     return;
   }
 
@@ -269,7 +269,7 @@ document.addEventListener('click',event=>{
     boundary.run('client file action submission',async()=>{
       handoff.disabled=true;handoff.textContent='Submitting…';
       try{await submitTaskForReview(taskId,{preparation_items_addressed:summary.addressed,preparation_items_total:summary.total,submitted_from:'client_workspace'})}
-      finally{handoff.disabled=false;handoff.textContent='Submit to Nexus →'}
+      finally{handoff.disabled=false;handoff.textContent='Submit to Relystra →'}
     });
     return;
   }

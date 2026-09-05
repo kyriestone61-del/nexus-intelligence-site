@@ -17,4 +17,4 @@ assert.match(editor,/original AI diagnosis remains immutable/i,'founder must be 
 assert.match(editor,/Client-safe preview/,'founder must preview the released projection');
 assert.equal(/\.from\('nexus_diagnosis_runs'\).*update/s.test(editor),false,'browser editor must never mutate the original diagnosis row');
 assert.equal(/service[_-]?role|SUPABASE_SERVICE|SECRET_KEY|RESEND_API_KEY|TWILIO_AUTH_TOKEN/.test(editor),false,'browser editor must not contain privileged credentials');
-console.log('NEXUS FOUNDER DIAGNOSIS REPORT EDITOR QAQC PASS');
+console.log('RELYSTRA FOUNDER DIAGNOSIS REPORT EDITOR QAQC PASS');

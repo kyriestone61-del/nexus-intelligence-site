@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable for task file attachments.');
+if(!portal)throw new Error('Relystra portal context is unavailable for task file attachments.');
 
 const {sb,state,toast,runtime}=portal;
 const FILE_TASK_TYPES=new Set(['upload','workflow_evidence']);
@@ -33,7 +33,7 @@ function uploader(task){
 
 function panelMarkup(task,{compact=false}={}){
   const count=taskDocs(task).length;
-  return `<section class="task-file-panel${compact?' compact':''}" data-task-file-panel="${esc(task.id)}"><div class="task-file-panel-head"><div><span>${compact?'ACTION FILES':'FILES FOR THIS ACTION'}</span><b>${count?`${count} ${count===1?'file':'files'} attached`:'Upload files here'}</b></div></div><p>${compact?'Files stay connected to this action so both the client and Nexus can find them later.':'Add the file or files requested for this action here. They stay attached to this action, so you do not need to leave the page or upload them again somewhere else.'}</p>${fileRows(task)}${uploader(task)}</section>`;
+  return `<section class="task-file-panel${compact?' compact':''}" data-task-file-panel="${esc(task.id)}"><div class="task-file-panel-head"><div><span>${compact?'ACTION FILES':'FILES FOR THIS ACTION'}</span><b>${count?`${count} ${count===1?'file':'files'} attached`:'Upload files here'}</b></div></div><p>${compact?'Files stay connected to this action so both the client and Relystra can find them later.':'Add the file or files requested for this action here. They stay attached to this action, so you do not need to leave the page or upload them again somewhere else.'}</p>${fileRows(task)}${uploader(task)}</section>`;
 }
 
 async function download(id){
@@ -94,10 +94,10 @@ function ensureFileTaskModal(){
 function openFileTask(task){
   const modal=ensureFileTaskModal(),body=modal.querySelector('#nexusInlineFileTaskBody');
   modal.querySelector('#nexusInlineFileTaskTitle').textContent=task.title||'Provide files';
-  body.innerHTML=`<div class="inline-file-task-instructions"><section><span>WHY THIS MATTERS</span><p>${esc(task.description||'Nexus needs this information to continue the work without guessing.')}</p></section><section><span>WHAT TO SEND OR DO</span><p>${esc(task.instructions||'Upload the requested file or files below.')}</p></section><section><span>WHAT HAPPENS NEXT</span><p>Upload the file or files here. When everything is attached, send this action to Nexus for review.</p></section></div>${panelMarkup(task)}<div class="inline-file-task-actions"><button type="button" class="btn primary" data-inline-file-submit="${esc(task.id)}">Send to Nexus for review →</button><button type="button" class="btn secondary" data-inline-file-close-bottom>Cancel</button></div>`;
+  body.innerHTML=`<div class="inline-file-task-instructions"><section><span>WHY THIS MATTERS</span><p>${esc(task.description||'Relystra needs this information to continue the work without guessing.')}</p></section><section><span>WHAT TO SEND OR DO</span><p>${esc(task.instructions||'Upload the requested file or files below.')}</p></section><section><span>WHAT HAPPENS NEXT</span><p>Upload the file or files here. When everything is attached, send this action to Relystra for review.</p></section></div>${panelMarkup(task)}<div class="inline-file-task-actions"><button type="button" class="btn primary" data-inline-file-submit="${esc(task.id)}">Send to Relystra for review →</button><button type="button" class="btn secondary" data-inline-file-close-bottom>Cancel</button></div>`;
   const panel=body.querySelector('[data-task-file-panel]');if(panel)bindPanel(panel,task);
   const submit=body.querySelector('[data-inline-file-submit]');
-  if(submit){submit.disabled=taskDocs(task).length===0;submit.title=submit.disabled?'Upload at least one file first.':'';submit.addEventListener('click',async()=>{const current=taskById(task.id)||task;if(!taskDocs(current).length){toast?.('Upload at least one file first.');return}submit.disabled=true;submit.textContent='Sending…';try{const result=await sb.rpc('nexus_submit_task_for_review',{p_task_id:task.id,p_response_data:task.response_data||{}});if(result.error)throw result.error;toast?.('Submitted to Nexus for review.');runtime?.modals?.close?.('nexusInlineFileTaskModal');await portal.workspace?.();await window.NexusClientShell?.refresh?.({force:true})}catch(error){console.error('File action submission failed',error);toast?.(error.message||'This action could not be submitted.')}finally{submit.disabled=false;submit.textContent='Send to Nexus for review →'}})}
+  if(submit){submit.disabled=taskDocs(task).length===0;submit.title=submit.disabled?'Upload at least one file first.':'';submit.addEventListener('click',async()=>{const current=taskById(task.id)||task;if(!taskDocs(current).length){toast?.('Upload at least one file first.');return}submit.disabled=true;submit.textContent='Sending…';try{const result=await sb.rpc('nexus_submit_task_for_review',{p_task_id:task.id,p_response_data:task.response_data||{}});if(result.error)throw result.error;toast?.('Submitted to Relystra for review.');runtime?.modals?.close?.('nexusInlineFileTaskModal');await portal.workspace?.();await window.NexusClientShell?.refresh?.({force:true})}catch(error){console.error('File action submission failed',error);toast?.(error.message||'This action could not be submitted.')}finally{submit.disabled=false;submit.textContent='Send to Relystra for review →'}})}
   body.querySelector('[data-inline-file-close-bottom]')?.addEventListener('click',()=>runtime?.modals?.close?.('nexusInlineFileTaskModal'));
   runtime?.modals?.open?.('nexusInlineFileTaskModal');
 }

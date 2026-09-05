@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 420" role="img" aria-labelledby="title desc">
+  <title id="title">RELYSTRA stacked logo</title>
+  <desc id="desc">Relystra geometric R mark above the uppercase wordmark.</desc>
+  <rect width="420" height="420" rx="40" fill="#F4F1E8"/>
+  <g transform="translate(126 58)">
+    <rect width="168" height="168" rx="37" fill="#07111A"/>
+    <path d="M45 132V36h46c26 0 41 14 41 36 0 22-14 35-38 35H45" fill="none" stroke="#F4F1E8" stroke-width="13" stroke-linecap="square" stroke-linejoin="round"/>
+    <path d="m90 107 42 33" fill="none" stroke="#48B7A7" stroke-width="13" stroke-linecap="square"/>
+    <rect x="45" y="36" width="13" height="13" fill="#C7A45A"/>
+  </g>
+  <text x="210" y="302" text-anchor="middle" fill="#07111A" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-size="48" font-weight="700" letter-spacing="7">RELYSTRA</text>
+  <text x="210" y="340" text-anchor="middle" fill="#536A75" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" letter-spacing="2">SYSTEMS THAT EARN THEIR PLACE.</text>
+</svg>

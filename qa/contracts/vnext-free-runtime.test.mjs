@@ -36,10 +36,10 @@ assert.match(worker,/status:'unavailable'/);
 assert.match(worker,/invalid_phone/);
 assert.match(worker,/status:'sending'/);
 assert.match(worker,/status:'sent'/);
-assert.match(worker,/https:\/\/nexusintelligence\.live/,'notifications should link to the production Nexus origin');
+assert.match(worker,/https:\/\/nexusintelligence\.live/,'notifications should link to the production Relystra origin');
 assert.doesNotMatch(worker,/nexus-intelligence-v3-preview\.vercel\.app/,'notification links must not point at the retired preview origin');
 
 assert.equal(fs.existsSync('functions/api/sms-dispatch.js'),false,'redundant Cloudflare SMS dispatcher should be removed');
 assert.equal(fs.existsSync('.github/workflows/email-dispatch.yml'),false,'duplicate GitHub notification scheduler should be removed');
 
-console.log('Nexus vNext consolidated delivery runtime contracts passed.');
+console.log('Relystra vNext consolidated delivery runtime contracts passed.');

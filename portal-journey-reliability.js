@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {state,toast}=portal;
 let repairing=false;
 
@@ -50,7 +50,7 @@ async function ensureAdminIntake({open=false,quiet=false}={}){
         return true;
       }
     }
-    if(!quiet)toast?.('Discovery & Diagnosis did not initialize. Nexus kept your current step unchanged; refresh once and try again.');
+    if(!quiet)toast?.('Discovery & Diagnosis did not initialize. Relystra kept your current step unchanged; refresh once and try again.');
     return false;
   }finally{repairing=false}
 }

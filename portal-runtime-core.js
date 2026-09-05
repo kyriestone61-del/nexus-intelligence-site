@@ -1,5 +1,5 @@
 /**
- * Nexus Portal Runtime Core
+ * Relystra Portal Runtime Core
  * One owner for mutable browser state, event bindings, async boundaries, storage,
  * workspace-load cancellation, and modal lifecycle.
  */
@@ -14,7 +14,7 @@ export function createStateController(initialState = {}) {
     const snapshot = Object.freeze({ ...source });
     for (const listener of [...subscribers]) {
       try { listener(snapshot, { revision, reason, changes }); }
-      catch (error) { console.error('Nexus state subscriber failed', error); }
+      catch (error) { console.error('Relystra state subscriber failed', error); }
     }
   };
 
@@ -52,7 +52,7 @@ export function createStateController(initialState = {}) {
 }
 
 export function createSafeStorage(storage = window.localStorage) {
-  const report = (operation, key, error) => console.warn(`Nexus storage ${operation} failed for ${key}`, error);
+  const report = (operation, key, error) => console.warn(`Relystra storage ${operation} failed for ${key}`, error);
   return Object.freeze({
     get(key, fallback = null) {
       try { const value = storage.getItem(key); return value == null ? fallback : value; }
@@ -78,11 +78,11 @@ export function createSafeStorage(storage = window.localStorage) {
 }
 
 export function createAsyncBoundary({ notify } = {}) {
-  const messageFor = error => error?.message || 'Nexus could not complete that action.';
+  const messageFor = error => error?.message || 'Relystra could not complete that action.';
   async function run(label, operation, options = {}) {
     try { return await operation(); }
     catch (error) {
-      console.error(`Nexus ${label} failed`, error);
+      console.error(`Relystra ${label} failed`, error);
       if (!options.silent) notify?.(options.message || messageFor(error));
       if (options.rethrow) throw error;
       return options.fallback;

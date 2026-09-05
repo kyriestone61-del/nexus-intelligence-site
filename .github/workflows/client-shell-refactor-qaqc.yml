@@ -56,7 +56,7 @@ jobs:
           grep -Fq 'UP NEXT —' portal-client-shell.js
           grep -Fq 'Needs action' portal-client-shell.js
           grep -Fq 'Updates' portal-client-shell.js
-          grep -Fq 'Available after Nexus completes' portal-client-shell.js
+          grep -Fq 'Available after Relystra completes' portal-client-shell.js
           grep -Fq 'Financial pilot information requested' portal-client-core.js
           grep -Fq 'serializeReleasedClientReport' portal-client-core.js
           grep -Fq "event.key === 'Escape'" portal-client-shell.js

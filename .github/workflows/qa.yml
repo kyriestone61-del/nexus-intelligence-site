@@ -118,7 +118,7 @@ jobs:
           grep -q 'UP NEXT —' portal-client-shell-v2.js
           grep -q 'Needs action' portal-client-shell-v2.js
           grep -q 'Updates' portal-client-shell-v2.js
-          grep -q 'Available after Nexus completes' portal-client-shell-v2.js
+          grep -q 'Available after Relystra completes' portal-client-shell-v2.js
           if grep -q 'new MutationObserver' portal-client-shell-v2.js; then
             echo 'Reconciled client shell must not use DOM mutation rewrite loops.' >&2
             exit 1
@@ -137,7 +137,7 @@ jobs:
           grep -q 'data-task-file-upload' portal-task-file-attachments.js
           grep -q 'data-task-file-download' portal-task-file-attachments.js
           grep -q 'stopImmediatePropagation' portal-client-upload-service.js
-          grep -q 'NEXUS ADMIN ACCOUNT' portal-admin-intake.js
+          grep -q 'RELYSTRA ADMIN ACCOUNT' portal-admin-intake.js
           grep -q 'CLIENT ACCOUNT' portal-admin-intake.js
           grep -q 'nexus_diagnosis_runs' portal-admin-intake.js
           grep -q 'Discovery & Diagnosis' portal-admin-intake.js
@@ -168,7 +168,7 @@ jobs:
           grep -Fq 'nexus_action_templates' portal-action-workflow.js
           grep -Fq 'nexus_diagnosis_request_drafts' portal-action-workflow.js
           grep -Fq 'nexus_send_diagnosis_request_draft' portal-action-workflow.js
-          grep -Fq 'Nexus has been notified' portal-action-workflow.js
+          grep -Fq 'Relystra has been notified' portal-action-workflow.js
           grep -Fq 'Save the required action responses before marking this complete.' portal-action-workflow.js
           grep -Fq 'Address ${remaining.length} remaining checklist item' portal-action-workflow.js
           grep -Fq 'setInterval(()=>reconcile(false).catch(console.error),1200);' portal-action-workflow.js
@@ -189,13 +189,13 @@ jobs:
           grep -q 'simplifyQuickScanHandoff' app.js
           grep -q "observer.observe(root,{childList:true,subtree:true})" app.js
           grep -q 'simplifyFitCallExperience' app.js
-          grep -q 'Request a Nexus Fit Call' app.js
+          grep -q 'Request a Relystra Fit Call' app.js
           grep -q 'appointment-driven service business' industries.html
           if grep -qi 'Moon Wax' industries.html; then
             echo 'Client-adjacent Moon Wax reference must not appear on the public industries page.' >&2
             exit 1
           fi
-          grep -q 'The Nexus Client Portal is an authenticated business workspace' security.html
+          grep -q 'The Relystra Client Portal is an authenticated business workspace' security.html
       - name: Email dispatcher assertions
         shell: bash
         run: |

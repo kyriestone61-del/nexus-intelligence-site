@@ -36,15 +36,15 @@ export function createBootstrapCoordinator(){
     },
     has(step){return completed.has(step)},
     advance(next,{requires=[]}={}){
-      if(NEXT[phase]!==next)throw new BootstrapStateError(`Illegal Nexus boot transition: ${phase} → ${next}`,{from:phase,to:next});
+      if(NEXT[phase]!==next)throw new BootstrapStateError(`Illegal Relystra boot transition: ${phase} → ${next}`,{from:phase,to:next});
       const missing=requires.filter(step=>!completed.has(step));
-      if(missing.length)throw new BootstrapStateError(`Nexus boot prerequisites missing: ${missing.join(', ')}`,{from:phase,to:next,missing});
+      if(missing.length)throw new BootstrapStateError(`Relystra boot prerequisites missing: ${missing.join(', ')}`,{from:phase,to:next,missing});
       phase=next;
       return phase;
     },
     canReveal(){return phase==='workspace_ready'&&completed.has('role_navigation')&&completed.has('workspace_data')&&completed.has('required_modules')},
     reveal(){
-      if(!this.canReveal())throw new BootstrapStateError('Nexus workspace cannot reveal before role navigation, workspace data, and required modules are ready.');
+      if(!this.canReveal())throw new BootstrapStateError('Relystra workspace cannot reveal before role navigation, workspace data, and required modules are ready.');
       phase='revealed';
       return phase;
     }

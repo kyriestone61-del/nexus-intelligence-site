@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 128" role="img" aria-labelledby="title desc">
+  <title id="title">RELYSTRA monochrome logo</title>
+  <desc id="desc">One-color Relystra geometric R mark with uppercase wordmark.</desc>
+  <rect width="680" height="128" fill="none"/>
+  <g transform="translate(8 8)" fill="none" stroke="#07111A">
+    <rect width="112" height="112" rx="25" stroke-width="4"/>
+    <path d="M30 88V24h31c17 0 27 9 27 24 0 14-9 23-25 23H30" stroke-width="9" stroke-linecap="square" stroke-linejoin="round"/>
+    <path d="m60 71 28 22" stroke-width="9" stroke-linecap="square"/>
+  </g>
+  <text x="154" y="86" fill="#07111A" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-size="66" font-weight="700" letter-spacing="8">RELYSTRA</text>
+</svg>

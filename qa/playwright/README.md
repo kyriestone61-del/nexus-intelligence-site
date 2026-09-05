@@ -1,4 +1,4 @@
-# Nexus browser QA lane
+# Relystra browser QA lane
 
 This harness is intentionally isolated from the application runtime. It does not load in production and does not change portal code.
 

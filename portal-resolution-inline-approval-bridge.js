@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable for diagnosis approval bridge.');
+if(!portal)throw new Error('Relystra portal context is unavailable for diagnosis approval bridge.');
 const {sb,state,toast,workspace,runtime}=portal;
 if(!state?.admin)throw new Error('Diagnosis approval bridge is admin-only.');
 

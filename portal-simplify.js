@@ -19,14 +19,14 @@ function ensureRoleGuide(admin){
   if(!guide){guide=document.createElement('div');guide.id='portalRoleGuide';guide.className='portal-role-guide';main.prepend(guide)}
   const html=admin
     ? '<b>ADMIN ACCOUNT · YOU RUN THE ENGAGEMENT</b><span>Review client requests, assign actions, request approvals, manage automations and projects, record improvements, and request files or information.</span>'
-    : '<b>CLIENT ACCOUNT · KEEP IT SIMPLE</b><span>Your workspace answers four questions: What does Nexus need from me? What do I need to decide? What is Nexus doing? What changed in my business?</span>';
+    : '<b>CLIENT ACCOUNT · KEEP IT SIMPLE</b><span>Your workspace answers four questions: What does Relystra need from me? What do I need to decide? What is Relystra doing? What changed in my business?</span>';
   setHtml(guide,html);
 }
 function simplifyNavigation(admin){
   if(admin){
     navLabel('command','Command Center');navLabel('clients','Clients');navLabel('overview','Client Today');navLabel('tasks','Action Items');navLabel('requests','Client Requests');navLabel('approvals','Approvals to Send');navLabel('automations','Automations');navLabel('metrics','Improvements');navLabel('timeline','Projects');navLabel('documents','Files & Information');navLabel('activity','Activity');
   }else{
-    navLabel('overview','Today');navLabel('requests','Ask Nexus');navLabel('approvals','Decisions');navLabel('tasks','My Actions');navLabel('automations','Systems');navLabel('metrics','Results');navLabel('timeline','Delivery Plan');navLabel('documents','Files & Information');navLabel('notifications','Alerts');
+    navLabel('overview','Today');navLabel('requests','Ask Relystra');navLabel('approvals','Decisions');navLabel('tasks','My Actions');navLabel('automations','Systems');navLabel('metrics','Results');navLabel('timeline','Delivery Plan');navLabel('documents','Files & Information');navLabel('notifications','Alerts');
   }
 }
 
@@ -45,7 +45,7 @@ function groupClientNavigation(admin){
   const bySection=s=>nav.querySelector(`button[data-section="${s}"]`);
   const groups=[
     ['Today',['overview']],
-    ['Work With Nexus',['tasks','approvals','requests']],
+    ['Work With Relystra',['tasks','approvals','requests']],
     ['Project',['timeline','automations']],
     ['Files & Information',['documents']],
     ['Results',['metrics','notifications']]
@@ -74,14 +74,14 @@ function simplifyControls(admin){
       const assignee=(row.querySelector('.pill')?.textContent||'').trim().toLowerCase();
       const select=row.querySelector('select.task-status');
       if(select&&assignee==='nexus'){
-        const chip=document.createElement('span');chip.className='portal-managed-chip';chip.textContent='Managed by Nexus';select.replaceWith(chip);
+        const chip=document.createElement('span');chip.className='portal-managed-chip';chip.textContent='Managed by Relystra';select.replaceWith(chip);
       }
     });
   }
 }
 function simplifySectionCopy(admin){
   const taskSection=$('section-tasks');
-  if(taskSection){const p=taskSection.querySelector('.toolbar .small');if(p)setText(p,admin?'Assign work to Nexus or the client. The owner is responsible for moving the action forward.':'These are the actions Nexus has assigned to you. Update only your own actions as you work through them.')}
+  if(taskSection){const p=taskSection.querySelector('.toolbar .small');if(p)setText(p,admin?'Assign work to Relystra or the client. The owner is responsible for moving the action forward.':'These are the actions Relystra has assigned to you. Update only your own actions as you work through them.')}
   const metricSection=$('section-metrics');if(metricSection){const h=metricSection.querySelector('h1');if(h)setText(h,admin?'Improvements & Results':'Results')}
   const timeline=$('section-timeline');if(timeline){const h=timeline.querySelector('h1');if(h)setText(h,admin?'Projects & Milestones':'Your Delivery Plan')}
 }
@@ -89,20 +89,20 @@ function simplifyDataRoom(admin){
   const section=$('section-documents');if(!section)return;
   const h1=section.querySelector('.toolbar h1');if(h1)setText(h1,'Files & Information');
   const intro=section.querySelector('.toolbar p.small');
-  if(intro)setText(intro,admin?'Request, review, and download the information needed to diagnose and deliver the engagement.':'Use this simple checklist to give Nexus what it needs. Provide what you already have; if something does not exist, choose Build with Nexus.');
+  if(intro)setText(intro,admin?'Request, review, and download the information needed to diagnose and deliver the engagement.':'Use this simple checklist to give Relystra what it needs. Provide what you already have; if something does not exist, choose Build with Relystra.');
 
   const hero=section.querySelector('.data-room-hero');
   if(hero){
     const kicker=hero.querySelector('.kicker');if(kicker)setText(kicker,admin?'Client preparation':'Start here');
-    const h2=hero.querySelector('h2');if(h2)setText(h2,admin?'What does Nexus still need from this client?':'What does Nexus need from you?');
+    const h2=hero.querySelector('h2');if(h2)setText(h2,admin?'What does Relystra still need from this client?':'What does Relystra need from you?');
     const p=hero.querySelector('p');
     if(p)setHtml(p,admin
-      ? 'Use the checklist below to see what has been provided, what is still missing, and where Nexus should help build the missing operating artifact.'
-      : 'For each item, choose one action: <b>Upload</b>, <b>Answer here</b>, <b>Build with Nexus</b>, or <b>Not applicable</b>. That is all you need to do.');
+      ? 'Use the checklist below to see what has been provided, what is still missing, and where Relystra should help build the missing operating artifact.'
+      : 'For each item, choose one action: <b>Upload</b>, <b>Answer here</b>, <b>Build with Relystra</b>, or <b>Not applicable</b>. That is all you need to do.');
   }
 
   const help=section.querySelector('.data-room-help');
-  if(help&&!admin)setHtml(help,'<div><b>Do not overthink it.</b><span>A few normal examples are usually better than a giant data dump.</span></div><div><b>Do not have something?</b><span>Choose “Build with Nexus.” Missing documentation is not a failure; Nexus can help create the minimum useful version.</span></div>');
+  if(help&&!admin)setHtml(help,'<div><b>Do not overthink it.</b><span>A few normal examples are usually better than a giant data dump.</span></div><div><b>Do not have something?</b><span>Choose “Build with Relystra.” Missing documentation is not a failure; Relystra can help create the minimum useful version.</span></div>');
 
 
   if(!admin){
@@ -121,11 +121,11 @@ function simplifyDataRoom(admin){
   }
 
   const prepSection=[...section.querySelectorAll('.secure-doc-section')].find(x=>x.querySelector('#dataRoomRequirements'));
-  if(prepSection){const h=prepSection.querySelector('h2');if(h)setText(h,admin?'Preparation checklist':'What Nexus needs from you');const k=prepSection.querySelector('.kicker');if(k)setText(k,admin?'Preparation checklist':'Step 1')}
+  if(prepSection){const h=prepSection.querySelector('h2');if(h)setText(h,admin?'Preparation checklist':'What Relystra needs from you');const k=prepSection.querySelector('.kicker');if(k)setText(k,admin?'Preparation checklist':'Step 1')}
 
   const requestSection=[...section.querySelectorAll('.secure-doc-section')].find(x=>x.querySelector('#explicitDocumentRequests'));
   if(requestSection){
-    const h=requestSection.querySelector('h2');if(h)setText(h,admin?'Specific client requests':'Additional requests from Nexus');
+    const h=requestSection.querySelector('h2');if(h)setText(h,admin?'Specific client requests':'Additional requests from Relystra');
     const k=requestSection.querySelector('.kicker');if(k)setText(k,admin?'Specific requests':'Only if needed');
     const rr=$('explicitDocumentRequests');requestSection.style.display=!admin&&rr&&/No additional one-off document requests are outstanding/i.test(rr.textContent||'')?'none':'block';
   }
@@ -134,7 +134,7 @@ function simplifyDataRoom(admin){
   if(upload){
     const k=upload.querySelector('.kicker');if(k)setText(k,admin?'Private upload':'Step 2');
     const h=upload.querySelector('h2');if(h)setText(h,admin?'Share a file securely':'Upload a file');
-    const p=upload.querySelector('p.small');if(p)setText(p,admin?'Attach evidence to a checklist item or specific client request whenever possible.':'Select a checklist item above first when possible, then upload the file here. Add a short note only if Nexus may not know what the file is.');
+    const p=upload.querySelector('p.small');if(p)setText(p,admin?'Attach evidence to a checklist item or specific client request whenever possible.':'Select a checklist item above first when possible, then upload the file here. Add a short note only if Relystra may not know what the file is.');
     const cat=$('docCategory')?.closest('.field');if(cat)cat.style.display=admin?'block':'none';if(!admin&&$('docCategory'))$('docCategory').value='Client Source';
     const noteLabel=$('docNote')?.closest('.field')?.querySelector('label');if(noteLabel&&!admin)setHtml(noteLabel,'What is this file? <span class="small">(optional)</span>');
   }

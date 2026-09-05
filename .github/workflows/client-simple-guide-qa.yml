@@ -42,7 +42,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq "WAITING_ON_YOU: 'Waiting on you'" portal-client-core.js
-          grep -Fq "NEXUS_WORKING: 'Nexus working'" portal-client-core.js
+          grep -Fq "NEXUS_WORKING: 'Relystra working'" portal-client-core.js
           grep -Fq "READY_TO_REVIEW: 'Ready to review'" portal-client-core.js
           grep -Fq "COMPLETE: 'Complete'" portal-client-core.js
           grep -Fq "BLOCKED: 'Blocked'" portal-client-core.js
@@ -60,7 +60,7 @@ jobs:
           set -euo pipefail
           grep -Fq "portal-client-shell-v2.js?v=\${BUILD}" portal-app.js
           grep -Fq "reconciled client shell" portal-app.js
-          grep -Fq "if(state.admin)throw new Error('Client Shell must not load in the Nexus admin workspace.')" portal-client-shell-v2.js
+          grep -Fq "if(state.admin)throw new Error('Client Shell must not load in the Relystra admin workspace.')" portal-client-shell-v2.js
           grep -Fq "portal-client-shell-v2.css" portal-app.js
       - name: Mobile client contract
         run: |

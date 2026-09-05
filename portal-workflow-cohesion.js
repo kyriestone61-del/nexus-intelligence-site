@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast}=portal;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 const fmt=v=>v?new Date(v).toLocaleString():'—';
@@ -14,7 +14,7 @@ const REQUEST_TEMPLATES=[
   {
     key:'kpi_report',
     title:'Existing KPI or performance report',
-    purpose:'A baseline lets Nexus measure improvement later instead of relying on impressions.',
+    purpose:'A baseline lets Relystra measure improvement later instead of relying on impressions.',
     examples:'Cycle time, response time, error/rework, labor hours, conversion, throughput.',
     redaction:'Share only information relevant to this request. Remove passwords, payment information, government identifiers, and unrelated customer or employee personal data.'
   },
@@ -23,12 +23,12 @@ const REQUEST_TEMPLATES=[
     title:'Current process, SOP, or workflow instructions',
     purpose:'This shows how the work is supposed to happen today and where handoffs, delays, or manual steps may exist.',
     examples:'SOP, checklist, written instructions, process map, screenshots, training notes.',
-    redaction:'Remove credentials, secrets, unrelated customer details, and any regulated information Nexus does not need.'
+    redaction:'Remove credentials, secrets, unrelated customer details, and any regulated information Relystra does not need.'
   },
   {
     key:'recent_examples',
     title:'Representative recent work examples',
-    purpose:'A few real examples help Nexus compare the documented process with how work actually happens.',
+    purpose:'A few real examples help Relystra compare the documented process with how work actually happens.',
     examples:'Three to ten representative requests, tickets, orders, projects, reports, or anonymized screenshots.',
     redaction:'Redact names, contact information, payment data, credentials, and other unnecessary personal information.'
   },
@@ -42,7 +42,7 @@ const REQUEST_TEMPLATES=[
   {
     key:'current_reporting',
     title:'Current report or dashboard example',
-    purpose:'This helps Nexus understand what the team can see today, what is missing, and how decisions are currently made.',
+    purpose:'This helps Relystra understand what the team can see today, what is missing, and how decisions are currently made.',
     examples:'Weekly report, dashboard screenshot, spreadsheet summary, management report, operating scorecard.',
     redaction:'Remove unnecessary customer identifiers, confidential account numbers, credentials, and unrelated sensitive data.'
   },
@@ -51,7 +51,7 @@ const REQUEST_TEMPLATES=[
 
 function activateSection(name){
   const section=document.getElementById(`section-${name}`);
-  if(!section){toast?.('That Nexus workspace is not available right now. Refresh once and try again.');return false}
+  if(!section){toast?.('That Relystra workspace is not available right now. Refresh once and try again.');return false}
   document.querySelectorAll('.section').forEach(node=>node.classList.toggle('active',node===section));
   document.querySelectorAll('.side-nav button').forEach(node=>node.classList.toggle('active',node.dataset.section===name));
   window.scrollTo({top:0,left:0,behavior:'auto'});
@@ -83,7 +83,7 @@ function ensureSettingsSection(){
     section=document.createElement('section');
     section.id='section-settings';
     section.className='section nexus-settings-section';
-    section.innerHTML=`<div class="toolbar"><div><div class="eyebrow">Profile & preferences</div><h1>Settings</h1><p class="small">Control how Nexus contacts you. You can change these preferences at any time.</p></div></div><div class="nexus-settings-account"><div class="kicker">Signed-in account</div><b>${esc(state.user?.email||'Nexus account')}</b></div><div id="nexusSettingsPreferencesHost"></div>`;
+    section.innerHTML=`<div class="toolbar"><div><div class="eyebrow">Profile & preferences</div><h1>Settings</h1><p class="small">Control how Relystra contacts you. You can change these preferences at any time.</p></div></div><div class="nexus-settings-account"><div class="kicker">Signed-in account</div><b>${esc(state.user?.email||'Relystra account')}</b></div><div id="nexusSettingsPreferencesHost"></div>`;
     main.appendChild(section);
   }
   return section;
@@ -115,7 +115,7 @@ function syncInboxSetupPrompt(){
   if(preferencesSaved()){prompt?.remove();return}
   if(!prompt){
     prompt=document.createElement('div');prompt.className='nexus-notification-setup-prompt';
-    prompt.innerHTML='<div><div class="kicker">One-time setup</div><b>Choose how Nexus should notify you.</b><p>Set email, report/Q&A, and optional SMS preferences once. After you save them, this setup card disappears from the Inbox and remains editable in Settings.</p></div><button class="btn primary" type="button" data-open-notification-settings>Open settings →</button>';
+    prompt.innerHTML='<div><div class="kicker">One-time setup</div><b>Choose how Relystra should notify you.</b><p>Set email, report/Q&A, and optional SMS preferences once. After you save them, this setup card disappears from the Inbox and remains editable in Settings.</p></div><button class="btn primary" type="button" data-open-notification-settings>Open settings →</button>';
     const controls=inbox.querySelector('.nexus-inbox-controls');
     if(controls)controls.before(prompt);else inbox.querySelector('.toolbar')?.after(prompt);
   }
@@ -179,10 +179,10 @@ function draftRow(row){
 function selectedDraft(){return draftRows.find(row=>row.id===selectedDraftId)||null}
 function selectedEditorMarkup(row){
   if(!row)return '<div class="empty nexus-request-empty-selection">Select a draft above to review or send it.</div>';
-  return `<form id="nexusDraftEditor" class="nexus-request-editor" data-id="${esc(row.id)}"><div class="toolbar"><div><div class="kicker">Selected draft</div><h3>${esc(row.title)}</h3></div><span class="pill">Not visible to client</span></div><div class="field"><label>Request title</label><input id="nexusDraftTitle" value="${esc(row.title)}" required></div><div class="field"><label>Why Nexus needs it</label><textarea id="nexusDraftPurpose">${esc(row.purpose||'')}</textarea></div><div class="field"><label>Good examples</label><textarea id="nexusDraftExamples">${esc(row.examples||'')}</textarea></div><div class="field"><label>Privacy / redaction guidance</label><textarea id="nexusDraftRedaction">${esc(row.redaction_guidance||'')}</textarea></div><div class="form-grid"><div class="field"><label>Sensitivity</label><select id="nexusDraftSensitivity"><option value="standard" ${row.sensitivity!=='confidential'?'selected':''}>Standard business information</option><option value="confidential" ${row.sensitivity==='confidential'?'selected':''}>Confidential business information</option></select></div><div class="field"><label>Due date <span class="small">(optional)</span></label><input id="nexusDraftDue" type="date" value="${esc(row.due_date||'')}"></div></div><div class="actions"><button class="btn secondary" type="submit">Save changes</button><button class="btn primary" type="button" data-send-request-draft="${esc(row.id)}">Send request to client →</button></div><p class="small">Sending makes this request client-visible and creates the appropriate client notification. Nothing is sent until you choose Send request to client.</p></form>`;
+  return `<form id="nexusDraftEditor" class="nexus-request-editor" data-id="${esc(row.id)}"><div class="toolbar"><div><div class="kicker">Selected draft</div><h3>${esc(row.title)}</h3></div><span class="pill">Not visible to client</span></div><div class="field"><label>Request title</label><input id="nexusDraftTitle" value="${esc(row.title)}" required></div><div class="field"><label>Why Relystra needs it</label><textarea id="nexusDraftPurpose">${esc(row.purpose||'')}</textarea></div><div class="field"><label>Good examples</label><textarea id="nexusDraftExamples">${esc(row.examples||'')}</textarea></div><div class="field"><label>Privacy / redaction guidance</label><textarea id="nexusDraftRedaction">${esc(row.redaction_guidance||'')}</textarea></div><div class="form-grid"><div class="field"><label>Sensitivity</label><select id="nexusDraftSensitivity"><option value="standard" ${row.sensitivity!=='confidential'?'selected':''}>Standard business information</option><option value="confidential" ${row.sensitivity==='confidential'?'selected':''}>Confidential business information</option></select></div><div class="field"><label>Due date <span class="small">(optional)</span></label><input id="nexusDraftDue" type="date" value="${esc(row.due_date||'')}"></div></div><div class="actions"><button class="btn secondary" type="submit">Save changes</button><button class="btn primary" type="button" data-send-request-draft="${esc(row.id)}">Send request to client →</button></div><p class="small">Sending makes this request client-visible and creates the appropriate client notification. Nothing is sent until you choose Send request to client.</p></form>`;
 }
 function managerMarkup(){
-  return `<div class="kicker">Step 2 · Client requests</div><h2>Review exactly what you want the client to provide.</h2><p class="small">Create one request at a time. Drafts stay compact until you select one. Nothing becomes client-visible until you explicitly send it.</p><div class="nexus-request-manager-grid"><details class="nexus-new-request" open><summary>Send a new request</summary><form id="nexusNewRequestForm"><div class="field"><label>Request title</label><select id="nexusNewRequestTemplate">${requestTemplateOptions()}</select></div><div class="field nexus-custom-title" style="display:none"><label>Custom request title</label><input id="nexusNewRequestTitle"></div><div class="field"><label>Why Nexus needs it</label><textarea id="nexusNewRequestPurpose"></textarea></div><div class="field"><label>Good examples</label><textarea id="nexusNewRequestExamples"></textarea></div><div class="field"><label>Privacy / redaction guidance</label><textarea id="nexusNewRequestRedaction"></textarea></div><div class="form-grid"><div class="field"><label>Sensitivity</label><select id="nexusNewRequestSensitivity"><option value="standard">Standard business information</option><option value="confidential">Confidential business information</option></select></div><div class="field"><label>Due date <span class="small">(optional)</span></label><input id="nexusNewRequestDue" type="date"></div></div><div class="actions"><button class="btn secondary" type="submit" data-save-new-draft>Save as draft</button><button class="btn primary" type="button" data-send-new-request>Send request to client →</button></div></form></details><section class="nexus-request-drafts"><div class="toolbar"><div><div class="kicker">Drafts</div><h3>${draftRows.length} request draft${draftRows.length===1?'':'s'}</h3></div></div><div class="nexus-request-draft-list">${draftRows.length?draftRows.map(draftRow).join(''):'<div class="empty">No request drafts. Create one above or approve a diagnosis to generate governed drafts.</div>'}</div><div id="nexusRequestDraftEditor">${selectedEditorMarkup(selectedDraft())}</div></section></div>`;
+  return `<div class="kicker">Step 2 · Client requests</div><h2>Review exactly what you want the client to provide.</h2><p class="small">Create one request at a time. Drafts stay compact until you select one. Nothing becomes client-visible until you explicitly send it.</p><div class="nexus-request-manager-grid"><details class="nexus-new-request" open><summary>Send a new request</summary><form id="nexusNewRequestForm"><div class="field"><label>Request title</label><select id="nexusNewRequestTemplate">${requestTemplateOptions()}</select></div><div class="field nexus-custom-title" style="display:none"><label>Custom request title</label><input id="nexusNewRequestTitle"></div><div class="field"><label>Why Relystra needs it</label><textarea id="nexusNewRequestPurpose"></textarea></div><div class="field"><label>Good examples</label><textarea id="nexusNewRequestExamples"></textarea></div><div class="field"><label>Privacy / redaction guidance</label><textarea id="nexusNewRequestRedaction"></textarea></div><div class="form-grid"><div class="field"><label>Sensitivity</label><select id="nexusNewRequestSensitivity"><option value="standard">Standard business information</option><option value="confidential">Confidential business information</option></select></div><div class="field"><label>Due date <span class="small">(optional)</span></label><input id="nexusNewRequestDue" type="date"></div></div><div class="actions"><button class="btn secondary" type="submit" data-save-new-draft>Save as draft</button><button class="btn primary" type="button" data-send-new-request>Send request to client →</button></div></form></details><section class="nexus-request-drafts"><div class="toolbar"><div><div class="kicker">Drafts</div><h3>${draftRows.length} request draft${draftRows.length===1?'':'s'}</h3></div></div><div class="nexus-request-draft-list">${draftRows.length?draftRows.map(draftRow).join(''):'<div class="empty">No request drafts. Create one above or approve a diagnosis to generate governed drafts.</div>'}</div><div id="nexusRequestDraftEditor">${selectedEditorMarkup(selectedDraft())}</div></section></div>`;
 }
 function fillNewTemplate(key){
   const template=REQUEST_TEMPLATES.find(t=>t.key===key)||REQUEST_TEMPLATES[0];
@@ -202,7 +202,7 @@ async function loadRequestDrafts({force=false}={}){
     if(selectedDraftId&&!draftRows.some(row=>row.id===selectedDraftId))selectedDraftId=null;
     lastDraftLoad={companyId:state.companyId,at:Date.now()};
     renderRequestManager();
-  }catch(error){console.error('Nexus request draft load failed',error);const root=document.getElementById('nexusClientRequestManager');if(root)root.innerHTML=`<div class="note error"><b>Request drafts could not load.</b><br>${esc(error.message||'Refresh and try again.')}</div>`}
+  }catch(error){console.error('Relystra request draft load failed',error);const root=document.getElementById('nexusClientRequestManager');if(root)root.innerHTML=`<div class="note error"><b>Request drafts could not load.</b><br>${esc(error.message||'Refresh and try again.')}</div>`}
   finally{draftLoadBusy=false}
 }
 function renderRequestManager(){
@@ -249,7 +249,7 @@ async function saveSelectedDraft(form){
 }
 async function releaseRequestDraft(id,{skipConfirm=false}={}){
   if(!id||!state.admin)return;
-  if(!skipConfirm&&!window.confirm('Send this request to the client workspace?\n\nThe request will become client-visible and Nexus will create the appropriate client notification.'))return;
+  if(!skipConfirm&&!window.confirm('Send this request to the client workspace?\n\nThe request will become client-visible and Relystra will create the appropriate client notification.'))return;
   const {error}=await sb.rpc('nexus_release_document_request',{p_request_id:id});
   if(error)return toast?.(error.message||'Request could not be sent.');
   toast?.('Request sent to the client workspace.');selectedDraftId=null;await loadRequestDrafts({force:true});window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));

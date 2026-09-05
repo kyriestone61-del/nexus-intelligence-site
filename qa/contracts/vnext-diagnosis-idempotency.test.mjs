@@ -9,4 +9,4 @@ assert.match(sql,/extensions\.digest\(v_answer,'sha256'\)/,'secure RPC must sche
 assert.doesNotMatch(sql,/(?<!extensions\.)digest\(v_answer,'sha256'\)/,'unqualified digest would fail with the empty search path');
 assert.doesNotMatch(sql,/extract\(epoch from now\(\)\)/,'time-based notification dedupe would permit duplicate retries');
 
-console.log('Nexus diagnosis Q&A idempotency contract passed.');
+console.log('Relystra diagnosis Q&A idempotency contract passed.');

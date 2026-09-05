@@ -70,7 +70,7 @@ if(releaseQueue&&!/nexus_release_client_task/.test(releaseQueue))add('P0','CLIEN
 
 const severities={P0:0,P1:0,P2:0};
 for(const f of findings)severities[f.severity]=(severities[f.severity]||0)+1;
-console.log(`# Nexus Current-State Static QA Audit\n`);
+console.log(`# Relystra Current-State Static QA Audit\n`);
 console.log(`Findings: ${findings.length} · P0 ${severities.P0||0} · P1 ${severities.P1||0} · P2 ${severities.P2||0}\n`);
 for(const f of findings){
   console.log(`## ${f.severity} · ${f.id} — ${f.title}`);

@@ -1,4 +1,4 @@
-/* Nexus workflow cohesion — settings, requests, actions */
+/* Relystra workflow cohesion — settings, requests, actions */
 .nexus-settings-section{max-width:980px}
 .nexus-settings-section> .toolbar{margin-bottom:16px}
 .nexus-settings-account{padding:16px 18px;border:1px solid var(--nx-line);border-radius:14px;background:rgba(255,255,255,.025);margin-bottom:16px;display:grid;gap:5px}

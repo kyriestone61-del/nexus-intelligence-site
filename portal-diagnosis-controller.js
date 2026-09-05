@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 
 const {sb,state,toast}=portal;
 const byId=id=>document.getElementById(id);
@@ -61,7 +61,7 @@ function normalizeCards(){
     setHTML(action,html);
   });
   const help=document.querySelector('.admin-intake-help');
-  setHTML(help,'<b>Execution boundary:</b> Diagnosis reads only the evidence selected here. The result remains an internal draft until a Nexus admin reviews it. Approval never sends external communications or changes client systems automatically.');
+  setHTML(help,'<b>Execution boundary:</b> Diagnosis reads only the evidence selected here. The result remains an internal draft until a Relystra admin reviews it. Approval never sends external communications or changes client systems automatically.');
 }
 
 function normalizeIntake(){
@@ -103,7 +103,7 @@ async function securedQueue(){
 
   const existing=await reusableProviderFailure(transcriptId);
   if(existing){
-    toast?.('Transcript found. The automatic provider is still unavailable, so Nexus is opening the saved diagnosis issue instead of creating a duplicate run.');
+    toast?.('Transcript found. The automatic provider is still unavailable, so Relystra is opening the saved diagnosis issue instead of creating a duplicate run.');
     return openRun(existing);
   }
 

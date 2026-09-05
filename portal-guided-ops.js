@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {$}=portal;
 let scheduled=false;
 
@@ -67,7 +67,7 @@ function syncSelect(select,input,rows){if(!select||!input)return;const update=()
 function approvalGuide(){
  const root=$('opsApprovalsRoot');if(!root||$('approvalTypeGuide'))return;
  const toolbar=root.querySelector('.ops-toolbar');if(!toolbar)return;
- const guide=document.createElement('div');guide.id='approvalTypeGuide';guide.className='guided-help-panel';guide.innerHTML=`<div><b>What belongs in Approvals to Send?</b><span>Use this only when the client must make an explicit decision before Nexus should proceed.</span></div><div class="guided-help-grid"><span><b>Launch</b>Put a new automation or workflow into production.</span><span><b>Design</b>Approve the future-state workflow or implementation plan.</span><span><b>Permission</b>Allow an automation to send, update, create, or take another meaningful action.</span><span><b>Access</b>Approve a connection, integration, or system-access boundary.</span><span><b>Client-facing output</b>Approve messages, campaigns, forms, or other material customers will see.</span><span><b>Scope / handoff</b>Approve a material implementation change, training acceptance, or handoff.</span></div>`;
+ const guide=document.createElement('div');guide.id='approvalTypeGuide';guide.className='guided-help-panel';guide.innerHTML=`<div><b>What belongs in Approvals to Send?</b><span>Use this only when the client must make an explicit decision before Relystra should proceed.</span></div><div class="guided-help-grid"><span><b>Launch</b>Put a new automation or workflow into production.</span><span><b>Design</b>Approve the future-state workflow or implementation plan.</span><span><b>Permission</b>Allow an automation to send, update, create, or take another meaningful action.</span><span><b>Access</b>Approve a connection, integration, or system-access boundary.</span><span><b>Client-facing output</b>Approve messages, campaigns, forms, or other material customers will see.</span><span><b>Scope / handoff</b>Approve a material implementation change, training acceptance, or handoff.</span></div>`;
  toolbar.after(guide);
 }
 

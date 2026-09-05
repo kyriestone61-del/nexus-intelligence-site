@@ -1,4 +1,4 @@
-/* Nexus Intelligence — client experience round two */
+/* Relystra — client experience round two */
 .navlinks a[aria-current="page"]{color:var(--text);position:relative}.navlinks a[aria-current="page"]:after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:2px;border-radius:2px;background:var(--accent)}
 
 /* Guided decision surfaces */

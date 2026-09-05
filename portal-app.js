@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260904-final-qagate1-relystra8';
+const BUILD='20260905-relystra-rebrand-integration1';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -22,15 +22,15 @@ document.head.appendChild(bootStyle);
 
 const bootOverlay=document.createElement('div');
 bootOverlay.id='nexusPortalBootOverlay';
-bootOverlay.innerHTML='<div class="nexus-boot-card"><div class="nexus-boot-mark">N</div><h2>Loading Nexus workspace…</h2><p>Confirming your account and opening the correct workspace.</p><div class="nexus-boot-line"></div></div>';
+bootOverlay.innerHTML='<div class="nexus-boot-card"><div class="nexus-boot-mark">R</div><h2>Loading Relystra workspace…</h2><p>Confirming your account and opening the correct workspace.</p><div class="nexus-boot-line"></div></div>';
 document.body.appendChild(bootOverlay);
 
-function loadStyle(file){return new Promise(resolve=>{const link=document.createElement('link');link.rel='stylesheet';link.href=asset(`${file}?v=${BUILD}`);link.onload=resolve;link.onerror=()=>{console.error(`Nexus stylesheet failed to load: ${file}`);resolve()};document.head.appendChild(link)})}
+function loadStyle(file){return new Promise(resolve=>{const link=document.createElement('link');link.rel='stylesheet';link.href=asset(`${file}?v=${BUILD}`);link.onload=resolve;link.onerror=()=>{console.error(`Relystra stylesheet failed to load: ${file}`);resolve()};document.head.appendChild(link)})}
 async function loadStyles(files){await Promise.all(files.map(loadStyle))}
 function setBootMessage(title,message){const card=bootOverlay.querySelector('.nexus-boot-card');if(!card)return;const h=card.querySelector('h2'),p=card.querySelector('p');if(h)h.textContent=title;if(p)p.textContent=message}
 function clearBootLock(){window.__nexusPortalBooting=false;document.body.classList.add('nexus-shell-ready');const app=document.getElementById('portalApp');if(app)app.style.visibility='';document.body.classList.remove('nexus-runtime-booting');bootOverlay.remove();bootStyle.remove()}
 function showCoreLoadFailure(error){
-  console.error('Nexus portal enhancement failed to initialize.',error);
+  console.error('Relystra portal enhancement failed to initialize.',error);
   clearBootLock();
   document.body.classList.add('nexus-runtime-degraded');
   if(document.getElementById('nexusPortalDegradedBanner'))return;
@@ -38,20 +38,20 @@ function showCoreLoadFailure(error){
   banner.id='nexusPortalDegradedBanner';
   banner.setAttribute('role','status');
   banner.style.cssText='position:relative;z-index:10000;padding:10px 16px;background:#2a2138;color:#f4f0e8;border-bottom:1px solid rgba(255,255,255,.12);font:600 13px/1.4 system-ui,sans-serif;text-align:center';
-  banner.textContent='Nexus opened in recovery mode because one workspace enhancement did not finish loading. Core portal access remains available.';
+  banner.textContent='Relystra opened in recovery mode because one workspace enhancement did not finish loading. Core portal access remains available.';
   const app=document.getElementById('portalApp');
   (app||document.body).prepend(banner);
 }
-async function optionalImport(url){try{return await import(url)}catch(error){console.error(`Optional Nexus portal module failed to load: ${url}`,error);return null}}
-async function requiredImport(url,label=url){try{return await import(url)}catch(error){console.error(`Required Nexus portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
+async function optionalImport(url){try{return await import(url)}catch(error){console.error(`Optional Relystra portal module failed to load: ${url}`,error);return null}}
+async function requiredImport(url,label=url){try{return await import(url)}catch(error){console.error(`Required Relystra portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
 async function importWithoutRecurringIntervals(url,blockedDelays=[]){const nativeSetInterval=window.setInterval;window.setInterval=(fn,delay,...args)=>blockedDelays.includes(Number(delay))?0:nativeSetInterval(fn,delay,...args);try{return await import(url)}finally{window.setInterval=nativeSetInterval}}
-async function requiredImportWithoutRecurringIntervals(url,blockedDelays=[],label=url){try{return await importWithoutRecurringIntervals(url,blockedDelays)}catch(error){console.error(`Required Nexus portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
+async function requiredImportWithoutRecurringIntervals(url,blockedDelays=[],label=url){try{return await importWithoutRecurringIntervals(url,blockedDelays)}catch(error){console.error(`Required Relystra portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
 async function waitFor(test,{timeout=5000,step=70}={}){const start=Date.now();while(Date.now()-start<timeout){try{if(test())return true}catch{}await new Promise(resolve=>setTimeout(resolve,step))}return false}
 
 await loadStyles(['portal-runtime-hardening.css','portal-production-simplification.css']);
 try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180])}catch(error){showCoreLoadFailure(error);throw error}
 await optionalImport(asset(`portal-client-plain-language.js?v=${BUILD}`));
-const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Nexus portal context is unavailable.'));throw new Error('Nexus portal context is unavailable.')}
+const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Relystra portal context is unavailable.'));throw new Error('Relystra portal context is unavailable.')}
 const platformAdmin=!!portal.state?.admin;
 const isSignedIn=!!portal.state?.user;
 let perspectiveModule=null;
@@ -86,7 +86,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-approval-bridge.js?v=${BUILD}`),'approval routing bridge');
   if(portal.state?.companyId){
     const opsModule=await requiredImport(asset(`portal-ops.js?v=${BUILD}`),'operations workspace');
-    if(!opsModule?.initOps){const error=new Error('Nexus operations module did not expose initOps.');showCoreLoadFailure(error);throw error}
+    if(!opsModule?.initOps){const error=new Error('Relystra operations module did not expose initOps.');showCoreLoadFailure(error);throw error}
     window.__nexusOpsInit=false;
     const opsClient=window.NexusFoundationHardening?.opsClient||portal.sb;
     await opsModule.initOps({sb:opsClient,state:portal.state,$:portal.$,toast:portal.toast,workspace:portal.workspace,log:portal.log});
@@ -114,7 +114,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-journey-task-guard.js?v=${BUILD}`),'journey task guard');
   await requiredImport(asset(`portal-revenue-engine.js?v=${BUILD}`),'Revenue Engine');
   const finalAdminReady=await waitFor(()=>{const nav=document.querySelector('.side-nav');const labels=[...nav?.querySelectorAll('button')||[]].map(x=>x.textContent.trim());return document.querySelector('.journey-primary')&&document.querySelector('#adminJourneyRoot .journey-step')&&labels.includes('Client Journey')&&labels.includes('Discovery & Diagnosis')&&labels.includes('Revenue Engine')},{timeout:5200,step:70});
-  if(!finalAdminReady){showCoreLoadFailure(new Error('Final Nexus admin navigation did not initialize.'));throw new Error('Final Nexus admin navigation did not initialize.')}
+  if(!finalAdminReady){showCoreLoadFailure(new Error('Final Relystra admin navigation did not initialize.'));throw new Error('Final Relystra admin navigation did not initialize.')}
   await window.NexusDiagnosisController?.refreshJourneyLabels?.({force:true});window.NexusDiagnosisController?.normalizeIntake?.();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   await requiredImport(asset(`portal-vnext-runtime-router.js?v=${BUILD}`),'vNext delivery runtime router');
   await requiredImport(asset(`portal-vnext-experience.js?v=${BUILD}`),'vNext diagnosis and client report experience');

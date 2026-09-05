@@ -50,7 +50,7 @@ jobs:
           grep -Fq 'nexus_assign_action_template' portal-action-execution-v2.js
           grep -Fq 'dependencyBlocked' portal-action-execution-v2.js
           grep -Fq 'nexus_task_comments' portal-action-execution-v2.js
-          grep -Fq 'Submitted to Nexus for review.' portal-action-execution-v2.js
+          grep -Fq 'Submitted to Relystra for review.' portal-action-execution-v2.js
           grep -Fq 'Needs Your Attention' portal-action-execution-v2.js
           grep -Fq 'Workflow packages' portal-action-execution-v2.js
       - name: Action processing engine assertions

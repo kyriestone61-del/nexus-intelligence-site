@@ -30,22 +30,22 @@
   },true);
 
   const pageMeta={
-    '/':{title:'Nexus Intelligence | Practical AI Implementation for SMB Operations',description:'Find high-value AI and automation opportunities, validate the workflow, and implement controlled improvements with measurable baselines.'},
-    '/services':{title:'AI Implementation Solutions | Nexus Intelligence',description:'Explore Nexus Intelligence solutions for workflow automation, knowledge systems, reporting, customer operations, and practical AI implementation.'},
-    '/quick-scan':{title:'Free AI Opportunity Snapshot | Nexus Intelligence',description:'A five-minute screening that identifies your highest-potential AI opportunities and the first workflow worth investigating.'},
-    '/assessment':{title:'Deeper AI Diagnostic | Nexus Intelligence',description:'A deeper operational diagnostic for qualified prospects who need a more defensible AI implementation recommendation.'},
-    '/book':{title:'Book a Nexus Fit Call | Nexus Intelligence',description:'Choose a real available time to discuss your AI opportunity and carry your Snapshot or diagnostic context into the call.'},
-    '/case-studies':{title:'Evidence & Results | Nexus Intelligence',description:'Nexus Intelligence evidence standards, measured improvement records, and verified case studies when client authorization is complete.'},
-    '/about':{title:'About Nexus Intelligence',description:'How Nexus Intelligence approaches practical AI implementation, evidence, human control, and measurable business improvement.'},
-    '/methodology':{title:'How Nexus Intelligence Works',description:'See the Nexus path from opportunity screening and diagnosis to a controlled pilot, implementation, and measurement.'}
+    '/':{title:'Relystra | Practical AI Implementation for SMB Operations',description:'Find high-value AI and automation opportunities, validate the workflow, and implement controlled improvements with measurable baselines.'},
+    '/services':{title:'AI Implementation Solutions | Relystra',description:'Explore Relystra solutions for workflow automation, knowledge systems, reporting, customer operations, and practical AI implementation.'},
+    '/quick-scan':{title:'Free AI Opportunity Snapshot | Relystra',description:'A five-minute screening that identifies your highest-potential AI opportunities and the first workflow worth investigating.'},
+    '/assessment':{title:'Deeper AI Diagnostic | Relystra',description:'A deeper operational diagnostic for qualified prospects who need a more defensible AI implementation recommendation.'},
+    '/book':{title:'Book a Relystra Fit Call | Relystra',description:'Choose a real available time to discuss your AI opportunity and carry your Snapshot or diagnostic context into the call.'},
+    '/case-studies':{title:'Evidence & Results | Relystra',description:'Relystra evidence standards, measured improvement records, and verified case studies when client authorization is complete.'},
+    '/about':{title:'About Relystra',description:'How Relystra approaches practical AI implementation, evidence, human control, and measurable business improvement.'},
+    '/methodology':{title:'How Relystra Works',description:'See the Relystra path from opportunity screening and diagnosis to a controlled pilot, implementation, and measurement.'}
   };
   function meta(name,content,property=false){let el=document.head.querySelector(`meta[${property?'property':'name'}="${name}"]`);if(!el){el=document.createElement('meta');el.setAttribute(property?'property':'name',name);document.head.appendChild(el)}el.content=content}
   function metadata(){
-    const path=location.pathname.replace(/\/$/,'')||'/',m=pageMeta[path]||{title:document.title,description:document.querySelector('meta[name="description"]')?.content||'Nexus Intelligence'};
+    const path=location.pathname.replace(/\/$/,'')||'/',m=pageMeta[path]||{title:document.title,description:document.querySelector('meta[name="description"]')?.content||'Relystra'};
     document.title=m.title;meta('description',m.description);const canonical=location.origin+path;
     let link=document.head.querySelector('link[rel="canonical"]');if(!link){link=document.createElement('link');link.rel='canonical';document.head.appendChild(link)}link.href=canonical;
     meta('og:title',m.title,true);meta('og:description',m.description,true);meta('og:url',canonical,true);meta('og:type','website',true);meta('twitter:card','summary_large_image');meta('twitter:title',m.title);meta('twitter:description',m.description);
-    if(!document.getElementById('nexusSchema')){const s=document.createElement('script');s.id='nexusSchema';s.type='application/ld+json';s.textContent=JSON.stringify({'@context':'https://schema.org','@type':'Organization','name':'Nexus Intelligence','url':location.origin,'description':'Practical AI implementation and workflow improvement for small and mid-sized businesses.'});document.head.appendChild(s)}
+    if(!document.getElementById('nexusSchema')){const s=document.createElement('script');s.id='nexusSchema';s.type='application/ld+json';s.textContent=JSON.stringify({'@context':'https://schema.org','@type':'Organization','name':'Relystra','url':location.origin,'description':'Practical AI implementation and workflow improvement for small and mid-sized businesses.'});document.head.appendChild(s)}
   }
   function vocabulary(){
     document.querySelectorAll('.navlinks a,footer a').forEach(a=>{const t=(a.textContent||'').trim().toLowerCase();if(t==='services')a.textContent='Solutions';else if(t==='results'||t==='case studies'||t==='results & evidence')a.textContent='Evidence & Results';else if(t==='opportunity scan'||t==='quick scan'||t==='assessment')a.textContent=a.href.includes('/assessment')?'Deeper Diagnostic':'Free AI Snapshot';else if(t==='client portal')a.textContent='Client Login'});

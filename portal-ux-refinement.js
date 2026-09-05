@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {state}=portal;
 
 document.body.classList.add('nexus-ux-refined');
@@ -68,7 +68,7 @@ function simplifyAdminTools(){
 function improveLabels(){
   replaceControlText();
   const role=document.getElementById('roleLabel');
-  if(role&&state.admin&&!document.body.classList.contains('portal-client-mode')&&role.textContent.trim()!=='Nexus admin')role.textContent='Nexus admin';
+  if(role&&state.admin&&!document.body.classList.contains('portal-client-mode')&&role.textContent.trim()!=='Relystra admin')role.textContent='Relystra admin';
   document.querySelectorAll('.empty').forEach(el=>{
     const text=el.textContent.trim();
     if(text==='No open actions.')el.textContent='Nothing needs action right now.';
@@ -91,8 +91,8 @@ const observer=new MutationObserver(()=>{
 observer.observe(document.body,{subtree:true,childList:true});
 window.NexusUXRefinement={refresh};
 
-const ACTION_PROCESSING_BUILD='20260905-action-processing3';
+const ACTION_PROCESSING_BUILD='20260905-action-processing-rebrand1';
 if(state.admin&&!document.body.classList.contains('portal-client-mode')){
   if(!document.querySelector('link[data-nexus-action-processing]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`/portal-action-processing-engine.css?v=${ACTION_PROCESSING_BUILD}`;link.dataset.nexusActionProcessing='1';document.head.appendChild(link)}
-  import(`/portal-action-processing-engine.js?v=${ACTION_PROCESSING_BUILD}`).catch(error=>console.error('Nexus Action Item Processing Engine failed to load.',error));
+  import(`/portal-action-processing-engine.js?v=${ACTION_PROCESSING_BUILD}`).catch(error=>console.error('Relystra Action Item Processing Engine failed to load.',error));
 }

@@ -1,7 +1,7 @@
 import {buildDiscoveryPacket} from './portal-discovery-capture.js';
 
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast,workspace}=portal;
 const byId=id=>document.getElementById(id);
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -66,7 +66,7 @@ async function securedQueue({forceNew=false}={}){
       if(['ready_for_review','in_review','approved'].includes(current.status)||hasResult(current)){toast?.('A diagnosis already exists. Opening the current result instead of creating a duplicate.');return await openRun(current)}
       if(['revision_requested','failed','blocked','ready_for_analysis'].includes(current.status)){toast?.('The existing diagnosis can be retried without creating a duplicate.');return await executeExisting(current.id)}
     }
-    const created=await createQueuedRun();invalidateLatest();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await window.NexusAdminIntake?.refresh?.({reload:true});toast?.('Diagnosis queued. Nexus is analyzing all authorized evidence…');
+    const created=await createQueuedRun();invalidateLatest();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await window.NexusAdminIntake?.refresh?.({reload:true});toast?.('Diagnosis queued. Relystra is analyzing all authorized evidence…');
     return await executeExisting(created.id);
   }catch(error){console.error('Diagnosis execution failed',error);toast?.(error.message||'Diagnosis could not be completed.');invalidateLatest();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await window.NexusAdminIntake?.refresh?.({reload:true});throw error}
   finally{queueBusy=false;if(button?.isConnected){button.disabled=false;button.textContent='Run Diagnosis'}}

@@ -77,7 +77,7 @@ test('deployed inbox runtime contains the lockout regression guard',async({reque
 });
 
 test.describe('authenticated client control room',()=>{
-  test.skip(!clientEmail||!clientPassword,'Disposable Nexus QA client credentials are required.');
+  test.skip(!clientEmail||!clientPassword,'Disposable Relystra QA client credentials are required.');
 
   test('client sees Today, Files, Results, Actions and working utilities',async({page})=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
@@ -118,13 +118,13 @@ test.describe('authenticated client control room',()=>{
     const select=page.locator('#companySelect');
     await expect(select.locator('option')).toHaveCount(1);
     if(qaCompany)expect(await select.locator('option').allTextContents()).toEqual([qaCompany]);
-    await expect(page.locator('#nexusClientMiniContext b')).toHaveText(qaCompany||/Nexus QA/);
+    await expect(page.locator('#nexusClientMiniContext b')).toHaveText(qaCompany||/Relystra QA/);
     await expect(page.locator('#nexus-client-today')).toBeVisible();
   });
 });
 
 test.describe('administrator and client-preview boundaries',()=>{
-  test.skip(!adminEmail||!adminPassword,'Disposable Nexus QA administrator credentials are required.');
+  test.skip(!adminEmail||!adminPassword,'Disposable Relystra QA administrator credentials are required.');
 
   test('administrator settles without runaway inbox traffic or boot lock',async({page})=>{
     let inboxCalls=0;
@@ -185,7 +185,7 @@ test.describe('administrator and client-preview boundaries',()=>{
     await expect(switcher.locator('[data-perspective="client"]')).toBeVisible();
     await switcher.locator('[data-perspective="client"]').click();
     await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:40_000});
-    await expect(page.getByText('Nexus could not finish loading.',{exact:true})).toHaveCount(0);
+    await expect(page.getByText('Relystra could not finish loading.',{exact:true})).toHaveCount(0);
     await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(4);
     expect(await page.locator('#nexusClientPrimaryNav [data-client-view]').allTextContents()).toEqual(['Today','Files','Results','Actions']);
     expect(meaningfulConsoleErrors(errors)).toEqual([]);

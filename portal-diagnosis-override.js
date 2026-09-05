@@ -63,7 +63,7 @@
         setHTML(action,html);
       });
       const help=document.querySelector('.admin-intake-help');
-      setHTML(help,'<b>Execution boundary:</b> The secured Client Diagnosis Agent reads only the evidence selected here. Its output remains an internal draft until a Nexus admin reviews it. Approval may generate controlled workspace records; it never sends external communications or changes client systems automatically.');
+      setHTML(help,'<b>Execution boundary:</b> The secured Client Diagnosis Agent reads only the evidence selected here. Its output remains an internal draft until a Relystra admin reviews it. Approval may generate controlled workspace records; it never sends external communications or changes client systems automatically.');
       const step4=[...document.querySelectorAll('.intake-card')].find(x=>x.querySelector('.kicker')?.textContent?.includes('Step 4'));
       if(step4){const p=step4.querySelector('h2 + p');setHTML(p,'Queueing starts secured analysis of the selected authorized evidence. The result is stored as a structured internal draft for human review.')}
     }finally{

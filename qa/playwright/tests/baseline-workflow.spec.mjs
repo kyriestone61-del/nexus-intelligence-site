@@ -117,7 +117,7 @@ async function processNexusTask(page,task){
   const refreshed=page.locator(`.action-v2-card[data-task-id="${task.id}"],.operational-action-card[data-task-id="${task.id}"]`).first();await expect(refreshed).toBeVisible();await refreshed.locator('.admin-complete-task').click();await waitForTaskStatus(page,task.id,'completed');
 }
 
-test.describe('full governed Nexus baseline workflow',()=>{
+test.describe('full governed Relystra baseline workflow',()=>{
   test.skip(!fullBaseline,'Run only from the protected production workflow_dispatch full-baseline gate.');
   test.skip(!adminEmail||!adminPassword||!clientEmail||!clientPassword||!qaCompany,'Disposable authenticated QA identities are required.');
 
@@ -150,7 +150,7 @@ test.describe('full governed Nexus baseline workflow',()=>{
 
     await page.evaluate(()=>document.querySelector('.side-nav button[data-section="intake"]')?.click());await expect(page.locator('#section-intake')).toHaveClass(/active/,{timeout:15_000});
     await page.locator('#toggleEvidenceUploadBtn').click();
-    await page.locator('#adminEvidenceFile').setInputFiles({name:'qa-baseline-transcript.txt',mimeType:'text/plain',buffer:Buffer.from('Discovery call transcript. Client says monthly financial transactions are exported manually and reporting is delayed. The client wants clear visibility into money coming in and going out, wants a repeatable monthly reporting process, and can provide a CSV export when requested. Existing workflow requires a human owner to approve system permissions and any production launch. Nexus should recommend the smallest controlled improvement and preserve human approval.')});
+    await page.locator('#adminEvidenceFile').setInputFiles({name:'qa-baseline-transcript.txt',mimeType:'text/plain',buffer:Buffer.from('Discovery call transcript. Client says monthly financial transactions are exported manually and reporting is delayed. The client wants clear visibility into money coming in and going out, wants a repeatable monthly reporting process, and can provide a CSV export when requested. Existing workflow requires a human owner to approve system permissions and any production launch. Relystra should recommend the smallest controlled improvement and preserve human approval.')});
     await page.locator('#adminEvidenceCategory').selectOption({label:'Client Source'});await page.locator('#adminEvidenceNote').fill('Disposable baseline QA transcript.');await page.locator('#adminEvidenceForm button[type="submit"]').click();
     await expect.poll(()=>page.evaluate(async({companyId,projectId})=>{
       const {count,error}=await window.NexusPortal.sb.from('nexus_documents').select('id',{count:'exact',head:true}).eq('company_id',companyId).eq('project_id',projectId).eq('file_name','qa-baseline-transcript.txt');
@@ -192,7 +192,7 @@ test.describe('full governed Nexus baseline workflow',()=>{
     const uploadTaskId=await page.evaluate(async({companyId,projectId})=>{
       const sb=window.NexusPortal.sb;
       const assigned=await sb.rpc('nexus_assign_action_template',{p_company_id:companyId,p_project_id:projectId,p_template_code:'discovery_kpi_reports',p_due_date:null,p_priority:'high'});if(assigned.error)throw new Error(assigned.error.message);const id=assigned.data;
-      const update=await sb.from('nexus_tasks').update({title:'Upload last 30 days of financial transactions (CSV)',description:'Provide the most recent 30 days of financial transactions as CSV or spreadsheet evidence for QA.',required_evidence:[{label:'CSV or spreadsheet containing the last 30 days of transactions',required:true,kind:'file'}],completion_criteria:['File is attached directly to this action','Nexus can review the transaction rows without a separate email'],updated_at:new Date().toISOString()}).eq('id',id);if(update.error)throw new Error(update.error.message);await window.NexusPortal.workspace?.();return id;
+      const update=await sb.from('nexus_tasks').update({title:'Upload last 30 days of financial transactions (CSV)',description:'Provide the most recent 30 days of financial transactions as CSV or spreadsheet evidence for QA.',required_evidence:[{label:'CSV or spreadsheet containing the last 30 days of transactions',required:true,kind:'file'}],completion_criteria:['File is attached directly to this action','Relystra can review the transaction rows without a separate email'],updated_at:new Date().toISOString()}).eq('id',id);if(update.error)throw new Error(update.error.message);await window.NexusPortal.workspace?.();return id;
     },{companyId,projectId:setup.projectId});
     // Generated recommendations may contain only internal work. The explicit upload
     // action guarantees help, comments, revision, resubmission, and approval coverage.

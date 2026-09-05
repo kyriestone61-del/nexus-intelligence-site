@@ -124,13 +124,13 @@ function randomPassword(){
 }
 async function insertQaRows(env,{admin,client,companyName,runKey}){
   const companyRows=await serviceFetch(env,'/rest/v1/nexus_companies?select=id,name',{method:'POST',headers:{Prefer:'return=representation'},body:{
-    name:companyName,website:`https://qa.invalid/${encodeURIComponent(runKey)}`,industry:'Nexus QA',created_by:admin.id
+    name:companyName,website:`https://qa.invalid/${encodeURIComponent(runKey)}`,industry:'Relystra QA',created_by:admin.id
   }});
   const company=Array.isArray(companyRows)?companyRows[0]:companyRows;
   if(!company?.id)throw new QaProvisionError('company_create_response');
   await serviceFetch(env,'/rest/v1/nexus_profiles',{method:'POST',headers:{Prefer:'return=minimal'},body:[
-    {user_id:admin.id,full_name:'Nexus QA Administrator',job_title:'Automated QA'},
-    {user_id:client.id,full_name:'Nexus QA Client',job_title:'Automated QA'}
+    {user_id:admin.id,full_name:'Relystra QA Administrator',job_title:'Automated QA'},
+    {user_id:client.id,full_name:'Relystra QA Client',job_title:'Automated QA'}
   ]});
   await serviceFetch(env,'/rest/v1/nexus_platform_members',{method:'POST',headers:{Prefer:'return=minimal'},body:{user_id:admin.id,platform_role:'admin',active:true,added_by:admin.id}});
   await serviceFetch(env,'/rest/v1/nexus_company_members',{method:'POST',headers:{Prefer:'return=minimal'},body:[
@@ -142,15 +142,15 @@ async function insertQaRows(env,{admin,client,companyName,runKey}){
 
 async function provision(env,claims){
   const runKey=`${safeRunPart(claims.run_id)}-${safeRunPart(claims.run_attempt||'1')}`;
-  const companyName=`Nexus QA ${runKey}`;
+  const companyName=`Relystra QA ${runKey}`;
   await cleanupRun(env,runKey);
   await cleanupStale(env,runKey);
   const adminPassword=randomPassword(),clientPassword=randomPassword();
   const adminEmail=`qa-admin+${runKey}@nexusintelligence.live`,clientEmail=`qa-client+${runKey}@nexusintelligence.live`;
   let admin=null,client=null;
   try{
-    admin=await createUser(env,{email:adminEmail,password:adminPassword,fullName:'Nexus QA Administrator',runKey,companyName});
-    client=await createUser(env,{email:clientEmail,password:clientPassword,fullName:'Nexus QA Client',runKey,companyName});
+    admin=await createUser(env,{email:adminEmail,password:adminPassword,fullName:'Relystra QA Administrator',runKey,companyName});
+    client=await createUser(env,{email:clientEmail,password:clientPassword,fullName:'Relystra QA Client',runKey,companyName});
     const company=await insertQaRows(env,{admin,client,companyName,runKey});
     return {ok:true,run_key:runKey,company_name:company.name,company_id:company.id,admin_email:adminEmail,admin_password:adminPassword,client_email:clientEmail,client_password:clientPassword};
   }catch(error){
@@ -163,7 +163,7 @@ async function provision(env,claims){
 export async function onRequestPost(context){
   let claims;
   try{claims=await verifyGithubOidc(context.request)}catch(error){
-    console.error('Nexus QA bootstrap OIDC verification',error);
+    console.error('Relystra QA bootstrap OIDC verification',error);
     return response(401,{ok:false,error:'Unauthorized QA bootstrap request.',stage:'oidc_verification'});
   }
   try{
@@ -174,7 +174,7 @@ export async function onRequestPost(context){
     if(action==='cleanup')return response(200,{ok:true,run_key:runKey,deleted_users:await cleanupRun(context.env,runKey)});
     return response(400,{ok:false,error:'Unsupported QA bootstrap action.',stage:'request_validation'});
   }catch(error){
-    console.error('Nexus QA bootstrap provisioning',error);
+    console.error('Relystra QA bootstrap provisioning',error);
     return response(500,{ok:false,error:'QA bootstrap failed.',stage:error?.qaStage||'provisioning_unknown',upstream_status:error?.qaStatus||null});
   }
 }

@@ -22,7 +22,7 @@ export async function onRequestPost({request,env}){
   try{
     // Digest generation is supplemental; it cannot strand already queued transactional email.
     const digest=await fetch(`${base}/rpc/nexus_queue_action_digests`,{method:'POST',headers:supaHeaders,body:'{}'});
-    if(!digest.ok)console.warn('Nexus action digest queueing failed',digest.status);
+    if(!digest.ok)console.warn('Relystra action digest queueing failed',digest.status);
 
     const claim=await fetch(`${base}/rpc/nexus_claim_email_batch`,{method:'POST',headers:supaHeaders,body:JSON.stringify({p_limit:20})});
     if(!claim.ok)throw new Error(`Email queue claim failed (${claim.status}).`);
@@ -33,7 +33,7 @@ export async function onRequestPost({request,env}){
       const attemptedAt=now();
       try{
         const action=row.action_url?`${new URL(request.url).origin}${row.action_url}`:null;
-        const body=safe(row.body_text,8000)+(action?`\n\nOpen Nexus: ${action}`:'');
+        const body=safe(row.body_text,8000)+(action?`\n\nOpen Relystra: ${action}`:'');
         const res=await fetch('https://api.resend.com/emails',{
           method:'POST',headers:{'authorization':`Bearer ${env.RESEND_API_KEY}`,'content-type':'application/json'},
           body:JSON.stringify({from:env.NEXUS_EMAIL_FROM,to:[row.recipient_email],subject:safe(row.subject,250),text:body})
@@ -45,12 +45,12 @@ export async function onRequestPost({request,env}){
       }catch(error){
         failed++;const terminal=Number(row.attempts||0)>=3;
         try{await patchOutbox(row.id,{status:terminal?'failed':'queued',available_at:new Date(Date.now()+15*60*1000).toISOString(),last_attempt_at:attemptedAt,provider_status:'failed',provider_event_at:attemptedAt,failure_class:'delivery',last_error:safe(error?.message||error,1000)})}
-        catch(updateError){console.error('Nexus email failure state could not be persisted',row.id,updateError)}
+        catch(updateError){console.error('Relystra email failure state could not be persisted',row.id,updateError)}
       }
     }
     return new Response(JSON.stringify({ok:true,claimed:rows.length,sent,failed}),{status:200,headers:jsonHeaders});
   }catch(error){
-    console.error('Nexus email dispatch error',error);
+    console.error('Relystra email dispatch error',error);
     return new Response(JSON.stringify({ok:false,error:'Email dispatch failed.'}),{status:500,headers:jsonHeaders});
   }
 }

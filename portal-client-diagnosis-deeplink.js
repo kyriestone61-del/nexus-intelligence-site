@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable for diagnosis deep links.');
+if(!portal)throw new Error('Relystra portal context is unavailable for diagnosis deep links.');
 let handled=false;
 
 function requestedRelease(){

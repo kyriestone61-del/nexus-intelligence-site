@@ -79,7 +79,7 @@ export function buildDiscoveryCapturePayload({draft,company,project,evidence=[],
   const value=normalizeDiscoveryDraft(draft);
   if(!company?.id)throw new Error('A client company is required.');
   if(!project?.id)throw new Error('An active engagement project is required.');
-  if(!userId)throw new Error('An authenticated Nexus administrator is required.');
+  if(!userId)throw new Error('An authenticated Relystra administrator is required.');
   if(!hasDiscoveryContext(value))throw new Error('Enter discovery context before capturing it.');
   const at=capturedAt||new Date().toISOString();
   return {

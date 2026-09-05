@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {state,toast}=portal;
 
 function canonical(){return window.NexusFoundationHardening?.activeProject?.()||null}
@@ -14,7 +14,7 @@ function guardCompanyProjectAction(event){
   const target=event.target.closest?.('#captureDiscoveryContextBtn,#queueDiagnosisBtn,#createApprovalChainBtn');if(!target)return;
   const active=normalizeLegacyOrder();if(active?.id)return;
   event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-  toast?.('Resolve one active engagement before continuing. Nexus will not guess which project should receive this record.');
+  toast?.('Resolve one active engagement before continuing. Relystra will not guess which project should receive this record.');
 }
 function reconcile(){normalizeLegacyOrder()}
 

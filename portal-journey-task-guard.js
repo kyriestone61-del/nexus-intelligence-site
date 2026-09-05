@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast,workspace}=portal;
 const terminal=s=>['completed','approved','done','not_applicable'].includes(String(s||'').toLowerCase());
 let scheduled=false,busy=false;

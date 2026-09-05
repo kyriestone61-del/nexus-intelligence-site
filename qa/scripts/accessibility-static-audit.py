@@ -53,7 +53,7 @@ def audit(file='portal.html'):
 
 if __name__=='__main__':
     findings=audit(sys.argv[1] if len(sys.argv)>1 and not sys.argv[1].startswith('--') else 'portal.html')
-    print('# Nexus accessibility static audit')
+    print('# Relystra accessibility static audit')
     for severity,code,message in findings:
         print(f'{severity} · {code} · {message}')
     if not findings:

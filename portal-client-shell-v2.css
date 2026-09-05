@@ -1,4 +1,4 @@
-/* Nexus Client Shell V2 — one client-facing stylesheet, three primary surfaces */
+/* Relystra Client Shell V2 — one client-facing stylesheet, three primary surfaces */
 .nexus-client-shell-v2{overflow-x:hidden}
 .nexus-client-shell-v2 .nexus-client-legacy-section,.nexus-client-shell-v2 .nexus-client-legacy-nav,.nexus-client-shell-v2 .nexus-client-legacy-mini{display:none!important}
 .nexus-client-shell-v2 .workspace{grid-template-columns:240px minmax(0,1fr)!important;min-width:0}
