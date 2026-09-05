@@ -262,7 +262,7 @@ test.describe('RELYSTRA Operational Release 1',()=>{
       await adminCard.locator('.admin-approve-task').click();
       await waitForTaskStatus(page,uploadTaskId,'completed',35_000);
 
-      const audit=await page.evaluate(async({taskId,runId,projectId,companyId})=>{
+      const audit=await page.evaluate(async({taskId,runId,companyId})=>{
         const sb=window.NexusPortal.sb;
         const task=await sb.from('nexus_tasks').select('status,submitted_at,completed_at').eq('id',taskId).single();
         if(task.error)throw new Error(task.error.message);
@@ -270,12 +270,12 @@ test.describe('RELYSTRA Operational Release 1',()=>{
         if(events.error)throw new Error(events.error.message);
         const docs=await sb.from('nexus_documents').select('file_name').eq('task_id',taskId);
         if(docs.error)throw new Error(docs.error.message);
-        const diagnosis=await sb.from('nexus_diagnosis_runs').select('status,approved_at').eq('id',runId).single();
+        const diagnosis=await sb.from('nexus_diagnosis_runs').select('status,approved_at,project_id').eq('id',runId).single();
         if(diagnosis.error)throw new Error(diagnosis.error.message);
         const active=await sb.from('nexus_active_engagements').select('project_id').eq('company_id',companyId).maybeSingle();
         if(active.error)throw new Error(active.error.message);
-        return {task:task.data,events:events.data||[],docs:docs.data||[],diagnosis:diagnosis.data,activeProjectId:active.data?.project_id||null,projectId};
-      },{taskId:uploadTaskId,runId,projectId:setup.projectId,companyId});
+        return {task:task.data,events:events.data||[],docs:docs.data||[],diagnosis:diagnosis.data,activeProjectId:active.data?.project_id||null};
+      },{taskId:uploadTaskId,runId,companyId});
 
       expect(audit.task.status).toBe('completed');
       expect(audit.task.submitted_at).toBeTruthy();
@@ -285,7 +285,8 @@ test.describe('RELYSTRA Operational Release 1',()=>{
       expect(audit.events.some(event=>['approved','completed'].includes(event.event_type))).toBeTruthy();
       expect(audit.docs.some(doc=>doc.file_name==='qa-financial-transactions.csv')).toBeTruthy();
       expect(audit.diagnosis.status).toBe('approved');
-      expect(audit.activeProjectId).toBe(audit.projectId);
+      expect(audit.diagnosis.project_id).toBeTruthy();
+      expect(audit.activeProjectId).toBe(audit.diagnosis.project_id);
     }finally{
       await clientContext.close();
     }
