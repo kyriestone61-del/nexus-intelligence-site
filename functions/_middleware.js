@@ -21,8 +21,8 @@ const organizationSchema={
   '@id':`${SITE_ORIGIN}/#organization`,
   name:'Relystra',
   url:`${SITE_ORIGIN}/`,
-  logo:`${SITE_ORIGIN}/logo.svg`,
-  image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`,
+  logo:`${SITE_ORIGIN}/assets/relystra-mark.svg`,
+  image:`${SITE_ORIGIN}/assets/relystra-og.png`,
   description:'Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.',
   areaServed:{'@type':'Country',name:'United States'},
   founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie Stone',url:`${SITE_ORIGIN}/about`,image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`}
@@ -60,6 +60,20 @@ const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><d
 const pricingSignal=`<p class="note" data-phase-five-pricing style="margin-top:18px"><b>Investment guidance is published below.</b> Each service shows a current starting point and typical planning window so you can assess fit before a call. Final fees and scope are defined in writing based on the actual engagement.</p>`;
 
 const productionRobots=`User-agent: *\nAllow: /\nDisallow: /portal\nDisallow: /operations\nDisallow: /prospect-workspace\nDisallow: /booking-manage\nDisallow: /api/\n`;
+const productionRelease={
+  brand:'Relystra',
+  release:'phase-00-in-progress-live',
+  state:'production-current-phase',
+  productionReadyForCurrentOrigin:true,
+  phase00Complete:false,
+  phase02Started:false,
+  currentProductionOrigin:SITE_ORIGIN,
+  retainExistingEmailAddresses:true,
+  domainMigration:'deferred-by-owner',
+  legalIdentityPresentation:'deferred-by-owner',
+  compatibilityIdentifiers:'retained',
+  crawlPolicy:'public-marketing-indexable-private-workspaces-noindex'
+};
 const privacyTransition='Brand transition notice: Relystra is the current public-facing brand, formerly presented as Nexus Intelligence. Existing signed agreements remain governed by their written terms.';
 const termsTransition='Brand transition notice: Relystra is the current public-facing brand, formerly presented as Nexus Intelligence. These website terms do not rename, replace, or amend any existing signed agreement.';
 const accessibilityContact='A monitored accessibility contact method will be published when available. Relystra does not invent a contact address that is not actively monitored.';
@@ -90,6 +104,9 @@ export async function onRequest(context){
 
   if(url.pathname==='/robots.txt'&&isProductionOrigin){
     return new Response(productionRobots,{status:200,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public, max-age=300'}});
+  }
+  if(url.pathname==='/relystra-release.json'&&isProductionOrigin){
+    return new Response(JSON.stringify(productionRelease,null,2),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
   }
 
   if(path==='/case-studies'){
