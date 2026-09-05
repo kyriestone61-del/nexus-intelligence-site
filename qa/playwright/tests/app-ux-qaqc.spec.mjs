@@ -100,7 +100,7 @@ test.describe('RELYSTRA full app UX QAQC',()=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
     await page.goto('/portal',{waitUntil:'domcontentloaded'});
     await expect(page.locator('#signInForm')).toBeVisible();
-    await expect(page.getByRole('button',{name:/sign in/i})).toBeVisible();
+    await expect(page.locator('#signInBtn')).toBeVisible();
     await expect(page.getByRole('button',{name:/create account/i})).toBeVisible();
     await assertPlainLanguage(page,{client:true});await assertNoDeadControls(page);
     expect(meaningful(errors)).toEqual([]);
