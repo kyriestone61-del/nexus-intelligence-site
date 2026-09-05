@@ -146,14 +146,16 @@ function ensureClientActionSurface(){
   if(state.admin||!state.user)return null;
   const nav=document.getElementById('nexusClientPrimaryNav'),main=document.querySelector('.main');if(!nav||!main)return null;
   let button=document.getElementById('nexusClientActionsButton');
-  if(!button){button=document.createElement('button');button.id='nexusClientActionsButton';button.type='button';button.className='nexus-client-action-engine-nav';button.innerHTML='<span aria-hidden="true"></span><b>Actions</b>';nav.appendChild(button);button.addEventListener('click',()=>openClientActions())}
-  nav.querySelectorAll('[data-client-view]').forEach(item=>{if(item.dataset.actionEngineBound)return;item.dataset.actionEngineBound='1';item.addEventListener('click',()=>button.classList.remove('active'))});
+  if(!button){button=document.createElement('button');button.id='nexusClientActionsButton';button.type='button';button.dataset.clientView='actions';button.className='nexus-client-action-engine-nav';button.innerHTML='<span aria-hidden="true"></span><b>Actions</b>';nav.appendChild(button);button.addEventListener('click',()=>openClientActions())}
+  nav.querySelectorAll('[data-client-view]').forEach(item=>{if(item===button||item.dataset.actionEngineBound)return;item.dataset.actionEngineBound='1';item.addEventListener('click',()=>button.classList.remove('active'))});
   let section=document.getElementById('nexus-client-actions');
   if(!section){section=document.createElement('section');section.id='nexus-client-actions';section.className='section nexus-client-shell-section nexus-action-engine-section';main.appendChild(section)}
+  section.dataset.clientView='actions';section.classList.add('nexus-action-engine-section');
   return section;
 }
 function openClientActions(){
   const section=ensureClientActionSurface();if(!section)return;
+  if(window.NexusClientShell?.activateView){window.NexusClientShell.activateView('actions');return}
   document.querySelectorAll('.nexus-client-shell-section').forEach(node=>node.classList.toggle('active',node===section));
   document.querySelectorAll('#nexusClientPrimaryNav [data-client-view]').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-current','false')});
   const button=document.getElementById('nexusClientActionsButton');button?.classList.add('active');button?.setAttribute('aria-current','page');
@@ -166,9 +168,17 @@ function renderClientActions(){
   const labels={needs_you:'Needs You',with_nexus:'With Nexus',upcoming:'Upcoming',completed:'Completed'};
   if(!Object.hasOwn(counts,clientFilter))clientFilter='needs_you';
   const visible=tasks.filter(task=>clientTaskGroup(task)===clientFilter).sort((a,b)=>String(a.due_date||'9999').localeCompare(String(b.due_date||'9999'))||Number(a.sort_order||100)-Number(b.sort_order||100));
-  root.innerHTML=`<header class="nexus-client-page-head compact action-engine-page-head"><div><div class="eyebrow">Action Items</div><h1>Every action. One clear next move.</h1><p>Start work, attach evidence, ask for help, comment, and hand completed work back to Nexus from one place.</p></div></header>
+  const disclosure=new Map([...root.querySelectorAll('[data-action-engine-task]')].map(card=>[card.dataset.actionEngineTask,['.action-engine-details','[data-history-panel]','[data-comment-box]','[data-help-box]'].filter(selector=>card.querySelector(selector)?.hidden===false)]));
+  const markup=`<header class="nexus-client-page-head compact action-engine-page-head"><div><div class="eyebrow">Action Items</div><h1>Every action. One clear next move.</h1><p>Start work, attach evidence, ask for help, comment, and hand completed work back to Nexus from one place.</p></div></header>
     <div class="action-engine-tabs">${Object.entries(labels).map(([key,label])=>`<button type="button" data-action-filter="${key}" class="${clientFilter===key?'active':''}"><b>${counts[key]}</b><span>${label}</span></button>`).join('')}</div>
     <div class="action-engine-list">${visible.length?visible.map(clientTaskCard).join(''):`<div class="action-engine-empty"><b>Nothing in ${esc(labels[clientFilter])}.</b><span>Your workflow is clear in this view.</span></div>`}</div>`;
+  if(root.__actionMarkup===markup)return;
+  root.__actionMarkup=markup;root.innerHTML=markup;
+  root.querySelectorAll('[data-action-engine-task]').forEach(card=>{
+    for(const selector of disclosure.get(card.dataset.actionEngineTask)||[]){const panel=card.querySelector(selector);if(panel)panel.hidden=false}
+    const details=card.querySelector('.action-engine-details');
+    if(details&&!details.hidden){const toggle=card.querySelector('.action-engine-detail-toggle');if(toggle)toggle.textContent='Hide details'}
+  });
   bindClientSurface(root);
 }
 function bindClientSurface(root){

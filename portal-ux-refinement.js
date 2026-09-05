@@ -91,7 +91,7 @@ const observer=new MutationObserver(()=>{
 observer.observe(document.body,{subtree:true,childList:true});
 window.NexusUXRefinement={refresh};
 
-const ACTION_PROCESSING_BUILD='20260904-action-processing1';
+const ACTION_PROCESSING_BUILD='20260905-action-processing2';
 if(state.admin&&!document.body.classList.contains('portal-client-mode')){
   if(!document.querySelector('link[data-nexus-action-processing]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`/portal-action-processing-engine.css?v=${ACTION_PROCESSING_BUILD}`;link.dataset.nexusActionProcessing='1';document.head.appendChild(link)}
   import(`/portal-action-processing-engine.js?v=${ACTION_PROCESSING_BUILD}`).catch(error=>console.error('Nexus Action Item Processing Engine failed to load.',error));

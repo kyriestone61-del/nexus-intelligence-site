@@ -66,14 +66,14 @@ function simplifyAdminNav(){
     records=document.createElement('details');records.className='nexus-production-records';records.innerHTML='<summary>Records & Tools</summary><div class="nexus-production-record-buttons"></div>';
     const primarySet=new Set(primaryNodes),recordsBox=records.querySelector('.nexus-production-record-buttons');
     nav.replaceChildren(primary,records);
-    primaryNodes.forEach(node=>primary.appendChild(node));
+    primaryNodes.forEach((node,index)=>{if(primary.children[index]!==node)primary.insertBefore(node,primary.children[index]||null)});
     buttons.filter(node=>!primarySet.has(node)).forEach(node=>{labelSecondary(node);recordsBox.appendChild(node)});
     recordsBox.addEventListener('click',event=>{if(event.target.closest('button'))records.open=true});
   }
   const recordsBox=records.querySelector('.nexus-production-record-buttons');
   const primarySet=new Set(primaryNodes);
   [...primary.querySelectorAll(':scope > button')].filter(node=>!primarySet.has(node)).forEach(node=>{labelSecondary(node);recordsBox?.appendChild(node)});
-  primaryNodes.forEach(node=>primary.appendChild(node));
+  primaryNodes.forEach((node,index)=>{if(primary.children[index]!==node)primary.insertBefore(node,primary.children[index]||null)});
   const home=primary.querySelector('.journey-primary');text(home,'Home');
   const clients=primary.querySelector('button[data-section="companies"]')||primary.querySelector('button[data-section="clients"]');text(clients,'Clients');
   const decisions=primary.querySelector('button[data-section="notifications"]');text(decisions,'Decisions');decisions?.setAttribute('aria-label','Decisions');
