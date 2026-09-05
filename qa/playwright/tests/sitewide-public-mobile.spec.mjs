@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 
+// Full RELYSTRA QAQC rerun marker after the FAQ mobile accordion correction.
 const paths=[
   '/','/about','/accessibility','/assessment','/capabilities','/construction','/delivery-standard','/faq','/industries','/methodology','/privacy','/problems','/quick-scan','/roi-calculator','/security','/services',
   '/services/ai-enablement-training','/services/ai-opportunity-assessment','/services/business-transformation','/services/fractional-ai-director','/services/implementation-sprint','/services/managed-ai-operations','/terms'
