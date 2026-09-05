@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260905-relystra-rebrand-integration1';
+const BUILD='20260905-relystra-phase-zero1';
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -68,18 +68,19 @@ const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='clie
 const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell;
 
 if(useClientShell){
-  await loadStyles(['portal-client-shell-v2.css','portal-client-action-execution.css']);
+  await loadStyles(['portal-client-shell-v2.css','portal-client-action-execution.css','portal-phase-zero-lifecycle.css']);
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
   await requiredImport(asset(`portal-client-upload-service.js?v=${BUILD}`),'client upload service');
   await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
   await requiredImport(asset(`portal-client-action-execution.js?v=${BUILD}`),'client action execution and handoff');
   await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
+  await requiredImport(asset(`portal-phase-zero-lifecycle.js?v=${BUILD}`),'Phase Zero engagement lifecycle');
   window.NexusClientPlainLanguage?.apply?.();
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
   clearBootLock();
 }else if(useAdminShell){
-  const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css'];
+  const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css','portal-phase-zero-lifecycle.css'];
   await loadStyles(adminStyles);
   await requiredImport(asset(`portal-foundation-hardening.js?v=${BUILD}`),'workspace foundation hardening');
   await requiredImport(asset(`portal-active-engagement-cohesion.js?v=${BUILD}`),'active engagement cohesion');
@@ -122,6 +123,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-workflow-cohesion.js?v=${BUILD}`),'workflow cohesion');
   await requiredImport(asset(`portal-buildingblok-cohesion.js?v=${BUILD}`),'Companies, Inbox and mobile operating model');
   await requiredImport(asset(`portal-ux-refinement.js?v=${BUILD}`),'front-end UX refinement');
+  await requiredImport(asset(`portal-phase-zero-lifecycle.js?v=${BUILD}`),'Phase Zero engagement lifecycle');
   perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
   clearBootLock();
