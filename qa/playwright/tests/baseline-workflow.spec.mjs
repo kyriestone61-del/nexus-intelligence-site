@@ -123,11 +123,20 @@ test.describe('full governed Nexus baseline workflow',()=>{
       const active=await sb.from('nexus_active_engagements').upsert({company_id:companyId,project_id:created.data.id,updated_by:userId,updated_at:new Date().toISOString()},{onConflict:'company_id'});if(active.error)throw new Error(active.error.message);
       await portal.workspace?.();return {projectId:created.data.id};
     },{companyId});
+    await expect.poll(()=>page.evaluate(async()=>{
+      await window.NexusPortal.syncActiveEngagement();
+      return window.NexusFoundationHardening.activeProject()?.id;
+    }),{timeout:20_000,message:'Fresh baseline engagement must be selected in the browser'}).toBe(setup.projectId);
+    await page.evaluate(async()=>{await window.NexusPortal.workspace();window.NexusDiagnosisController.invalidateLatest()});
 
     await page.evaluate(()=>document.querySelector('.side-nav button[data-section="intake"]')?.click());await expect(page.locator('#section-intake')).toHaveClass(/active/,{timeout:15_000});
     await page.locator('#toggleEvidenceUploadBtn').click();
     await page.locator('#adminEvidenceFile').setInputFiles({name:'qa-baseline-transcript.txt',mimeType:'text/plain',buffer:Buffer.from('Discovery call transcript. Client says monthly financial transactions are exported manually and reporting is delayed. The client wants clear visibility into money coming in and going out, wants a repeatable monthly reporting process, and can provide a CSV export when requested. Existing workflow requires a human owner to approve system permissions and any production launch. Nexus should recommend the smallest controlled improvement and preserve human approval.')});
     await page.locator('#adminEvidenceCategory').selectOption({label:'Client Source'});await page.locator('#adminEvidenceNote').fill('Disposable baseline QA transcript.');await page.locator('#adminEvidenceForm button[type="submit"]').click();
+    await expect.poll(()=>page.evaluate(async({companyId,projectId})=>{
+      const {count,error}=await window.NexusPortal.sb.from('nexus_documents').select('id',{count:'exact',head:true}).eq('company_id',companyId).eq('project_id',projectId).eq('file_name','qa-baseline-transcript.txt');
+      if(error)throw new Error(error.message);return count||0;
+    },{companyId,projectId:setup.projectId}),{timeout:90_000,message:'Transcript must be stored on the fresh baseline engagement'}).toBeGreaterThan(0);
     await expect(page.locator('#section-intake')).toContainText('qa-baseline-transcript.txt',{timeout:90_000});
 
     await page.locator('#queueDiagnosisBtn').click();
