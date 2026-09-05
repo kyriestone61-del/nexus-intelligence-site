@@ -59,6 +59,11 @@ const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><d
 
 const pricingSignal=`<p class="note" data-phase-five-pricing style="margin-top:18px"><b>Investment guidance is published below.</b> Each service shows a current starting point and typical planning window so you can assess fit before a call. Final fees and scope are defined in writing based on the actual engagement.</p>`;
 
+const productionRobots=`User-agent: *\nAllow: /\nDisallow: /portal\nDisallow: /operations\nDisallow: /prospect-workspace\nDisallow: /booking-manage\nDisallow: /api/\n`;
+const privacyTransition='Brand transition notice: Relystra is the current public-facing brand, formerly presented as Nexus Intelligence. Existing signed agreements remain governed by their written terms.';
+const termsTransition='Brand transition notice: Relystra is the current public-facing brand, formerly presented as Nexus Intelligence. These website terms do not rename, replace, or amend any existing signed agreement.';
+const accessibilityContact='A monitored accessibility contact method will be published when available. Relystra does not invent a contact address that is not actively monitored.';
+
 function canonicalPath(pathname){
   let path=pathname||'/';
   if(path.length>1&&path.endsWith('/'))path=path.slice(0,-1);
@@ -80,6 +85,12 @@ function jsonLd(schema){
 export async function onRequest(context){
   const url=new URL(context.request.url);
   const path=canonicalPath(url.pathname);
+  const isPreview=url.hostname.endsWith('.pages.dev');
+  const isProductionOrigin=url.hostname==='nexusintelligence.live'||url.hostname==='www.nexusintelligence.live';
+
+  if(url.pathname==='/robots.txt'&&isProductionOrigin){
+    return new Response(productionRobots,{status:200,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public, max-age=300'}});
+  }
 
   if(path==='/case-studies'){
     const target=new URL('/methodology',url.origin);
@@ -90,11 +101,11 @@ export async function onRequest(context){
   const response=await context.next();
   const isPrivate=PRIVATE_PREFIXES.some(prefix=>path===prefix||path.startsWith(prefix));
   const isProtectedMarketing=PROTECTED_MARKETING_PATHS.has(path);
-  const isPreview=url.hostname.endsWith('.pages.dev');
   const headers=new Headers(response.headers);
 
   if(isPrivate)headers.set('X-Robots-Tag','noindex, nofollow, noarchive');
   else if(isPreview)headers.set('X-Robots-Tag','noindex');
+  else if(isProductionOrigin)headers.delete('X-Robots-Tag');
 
   if(!String(headers.get('content-type')||'').includes('text/html')){
     return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
@@ -112,8 +123,12 @@ export async function onRequest(context){
     .on('link[rel="canonical"]',{element(el){el.remove();}})
     .on('meta[property="og:url"]',{element(el){el.remove();}})
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
+    .on('meta[name="robots"]',{element(el){if(isProductionOrigin&&!isPrivate)el.remove();}})
+    .on('meta[name="relystra-stage"]',{element(el){if(isProductionOrigin)el.remove();}})
     .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
+    .on('.legal .note',{element(el){if(!isProductionOrigin)return;if(path==='/privacy')el.setInnerContent(privacyTransition);if(path==='/terms')el.setInnerContent(termsTransition);}})
+    .on('.legal h2:last-of-type + p',{element(el){if(isProductionOrigin&&path==='/accessibility')el.setInnerContent(accessibilityContact);}})
     .on('.navlinks a[href="/case-studies"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})
     .on('#serviceRoot .hero',{element(el){if(path==='/services')el.append(pricingSignal,{html:true});}})
     .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
