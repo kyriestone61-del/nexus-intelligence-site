@@ -82,7 +82,7 @@ const TASK_FILE_BUILD='20260903-inline-action-files1';
 if(!document.querySelector('link[data-nexus-task-files]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`/portal-task-file-attachments.css?v=${TASK_FILE_BUILD}`;link.dataset.nexusTaskFiles='1';document.head.appendChild(link)}
 import(`/portal-task-file-attachments.js?v=${TASK_FILE_BUILD}`).then(()=>import(`/portal-task-file-attachments-live.js?v=${TASK_FILE_BUILD}`)).catch(error=>console.error('Nexus task file controls failed to load.',error));
 
-const ACTION_PROCESSING_BUILD='20260905-action-processing2';
+const ACTION_PROCESSING_BUILD='20260905-action-processing3';
 if(!document.querySelector('link[data-nexus-action-processing]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`/portal-action-processing-engine.css?v=${ACTION_PROCESSING_BUILD}`;link.dataset.nexusActionProcessing='1';document.head.appendChild(link)}
 function loadActionProcessingWhenReady(attempt=0){
   if(window.NexusActionProcessingEngine)return;

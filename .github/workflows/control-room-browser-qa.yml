@@ -91,7 +91,7 @@ jobs:
           matched=0
           deployed="$(mktemp)"
           trap 'rm -f "$deployed"' EXIT
-          assets=(portal-app.js portal-foundation-hardening.js portal-approval-inbox.js portal-admin-journey.js portal-admin-journey-router.js portal-resolution-plan.js portal-journey-task-guard.js portal-workflow-cohesion.js portal-client-shell-v2.js portal-action-processing-engine.js portal-production-simplification.js portal-ux-refinement.js portal-client-upload-service.js portal-approval-bridge.js)
+          assets=(portal-app.js portal-foundation-hardening.js portal-approval-inbox.js portal-admin-journey.js portal-admin-journey-router.js portal-resolution-plan.js portal-journey-task-guard.js portal-workflow-cohesion.js portal-client-shell-v2.js portal-action-processing-engine.js portal-production-simplification.js portal-ux-refinement.js portal-client-upload-service.js portal-approval-bridge.js portal-action-execution-v2.js)
           for attempt in $(seq 1 60); do
             matched=1
             for asset in "${assets[@]}"; do
