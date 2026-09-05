@@ -1,3 +1,4 @@
+// Operational Release 1 production-parity smoke trigger; no runtime behavior change.
 (function(){
   const path=location.pathname.replace(/\/$/,'')||'/';
   const protectedPaths=new Set(['/privacy','/terms','/accessibility','/security']);
