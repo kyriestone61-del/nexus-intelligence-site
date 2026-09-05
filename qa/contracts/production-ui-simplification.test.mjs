@@ -17,7 +17,7 @@ test('portal uses an explicit current RELYSTRA build and loads Phase Zero in bot
   assert.equal((portalApp.match(/portal-phase-zero-lifecycle\.js/g)||[]).length,2);
   const clientLifecycle=portalApp.indexOf("portal-phase-zero-lifecycle.js?v=${BUILD}`),'Phase Zero engagement lifecycle'");
   const clientSimplification=portalApp.indexOf("portal-production-simplification.js?v=${BUILD}`),'production simplification'",clientLifecycle);
-  assert.ok(clientLifecycle>=0&&clientSimplification>clientLifecycle,'client Phase Zero must load before the final no-op simplification marker');
+  assert.ok(clientLifecycle>=0&&clientSimplification>clientLifecycle,'client Phase Zero must load before final role simplification');
 });
 
 test('client daily workspace stays intentionally small and action-oriented',()=>{
@@ -28,7 +28,7 @@ test('client daily workspace stays intentionally small and action-oriented',()=>
 });
 
 test('admin portfolio and Decisions surfaces remain role-specific',()=>{
-  assert.match(companies,/data\.section='companies'/);
+  assert.match(companies,/button\.dataset\.section='companies'/);
   assert.match(companies,/Portfolio operating view/);
   assert.match(companies,/Open workspace/);
   assert.match(inbox,/function founderDecisionsMode\(\)/);
@@ -49,8 +49,15 @@ test('Phase Zero UI makes verified measured client acceptance the finish line',(
   assert.match(lifecycle,/Implementation, QA, measurement, handoff, and client acceptance are all recorded/);
 });
 
-test('final simplification marker is deliberately non-invasive',()=>{
-  assert.match(simplify,/no runtime behavior change/i);
+test('final role simplification is event-driven without a body-wide reconciliation observer',()=>{
+  assert.match(simplify,/function simplifyAdminNav\(\)/);
+  assert.match(simplify,/function simplifyJourney\(\)/);
+  assert.match(simplify,/function simplifyDecisions\(\)/);
+  assert.match(simplify,/function simplifySales\(\)/);
+  assert.match(simplify,/function simplifyClient\(\)/);
+  assert.match(simplify,/Records & Tools/);
+  assert.match(simplify,/window\.NexusProductionSimplification=\{apply,openDecisions\}/);
+  assert.match(simplify,/window\.addEventListener\('nexus:workspace-ready',scheduleSettled\)/);
   assert.doesNotMatch(simplify,/new MutationObserver/);
   assert.doesNotMatch(simplify,/observer\.observe\(document\.body/);
   assert.doesNotMatch(simplify,/setInterval\(/);
