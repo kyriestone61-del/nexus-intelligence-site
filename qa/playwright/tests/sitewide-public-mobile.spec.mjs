@@ -1,7 +1,11 @@
 import {test,expect} from '@playwright/test';
 
-const paths=['/','/services','/methodology','/about','/quick-scan','/assessment','/capabilities','/industries','/problems','/delivery-standard','/privacy','/terms','/accessibility'];
+const paths=[
+  '/','/about','/accessibility','/assessment','/capabilities','/construction','/delivery-standard','/faq','/industries','/methodology','/privacy','/problems','/quick-scan','/roi-calculator','/security','/services',
+  '/services/ai-enablement-training','/services/ai-opportunity-assessment','/services/business-transformation','/services/fractional-ai-director','/services/implementation-sprint','/services/managed-ai-operations','/terms'
+];
 const base=process.env.NEXUS_QA_BASE_URL||'https://nexusintelligence.live';
+const canonical='https://nexusintelligence.live';
 
 function meaningfulErrors(errors){return errors.filter(x=>!/favicon|analytics|third-party cookie|ResizeObserver loop/i.test(x));}
 
@@ -47,9 +51,9 @@ test('booking route remains an intentional external redirect',async({request})=>
   expect(new URL(location).origin).not.toBe(new URL(base).origin);
 });
 
-test('sitemap exposes exactly the governed public surface',async({request})=>{
+test('sitemap exposes the complete governed public surface on the canonical domain',async({request})=>{
   const response=await request.get(`${base}/sitemap.xml`);expect(response.ok()).toBeTruthy();
   const xml=await response.text();
-  for(const path of paths)expect(xml).toContain(`<loc>${base}${path}</loc>`);
+  for(const path of paths)expect(xml).toContain(`<loc>${canonical}${path}</loc>`);
   expect(xml).not.toMatch(/\/portal|\/operations|\/admin/);
 });
