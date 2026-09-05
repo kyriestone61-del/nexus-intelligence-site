@@ -12,6 +12,11 @@ async function waitForSettledPortal(page,timeout=45_000){
   await expect(page.locator('#portalApp')).toBeVisible({timeout});
   await expect(page.locator('body')).not.toHaveClass(/nexus-runtime-booting/,{timeout});
   await expect(page.locator('#nexusPortalBootOverlay')).toHaveCount(0,{timeout});
+  await expect.poll(()=>page.evaluate(()=>{
+    const state=window.NexusPortal?.state;
+    return window.__nexusPortalBooting===false&&!!state?.user&&
+      (state.viewMode==='admin'||state.viewMode==='client');
+  }),{timeout,message:'Authenticated role shell must finish loading'}).toBe(true);
 }
 async function signIn(page,email,password){
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
@@ -129,7 +134,10 @@ test.describe('full governed Nexus baseline workflow',()=>{
     await expect(page.locator('#nexusResolutionPlanModal')).toHaveClass(/open/,{timeout:35_000});await expect(page.locator('.resolution-proposal')).toHaveCountGreaterThan?.(0);
     const proposals=page.locator('.resolution-proposal');expect(await proposals.count()).toBeGreaterThan(0);await expect(proposals.first().locator('.resolution-step')).not.toHaveCount(0);
     await proposals.first().locator('[data-resolution-status="selected"]').click();await expect(page.locator('[data-resolution-confirm]')).toBeEnabled({timeout:15_000});await page.locator('[data-resolution-confirm]').click();
-    await expect(page.locator('[data-resolution-open-actions]')).toBeVisible({timeout:30_000});
+    const openActions=page.locator('[data-resolution-open-actions]');
+    await expect(openActions).toBeVisible({timeout:30_000});await openActions.click();
+    await expect(page.locator('#nexusResolutionPlanModal')).not.toHaveClass(/\b(?:open|show)\b/);
+    await expect(page.locator('#section-tasks')).toHaveClass(/active/);
 
     let tasks=await generatedTasks(page,runId);expect(tasks.length).toBeGreaterThan(0);expect(tasks.every(task=>Array.isArray(task.required_evidence)&&task.required_evidence.length>0)).toBeTruthy();expect(tasks.every(task=>Array.isArray(task.completion_criteria)&&task.completion_criteria.length>0)).toBeTruthy();
     let exercisedHelp=false,exercisedRevision=false;

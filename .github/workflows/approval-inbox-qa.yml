@@ -6,6 +6,8 @@ on:
       - 'portal-app.js'
       - 'portal-approval-bridge.js'
       - 'portal-approval-inbox.js'
+      - 'portal-foundation-hardening.js'
+      - 'qa/relystra-qa-regression.test.cjs'
       - 'portal-approval-inbox.css'
       - 'supabase/migrations/*approval*'
       - '.github/workflows/approval-inbox-qa.yml'
@@ -27,6 +29,8 @@ jobs:
           node --input-type=module --check < portal-approval-bridge.js
           node --input-type=module --check < portal-approval-inbox.js
           node --input-type=module --check < portal-app.js
+      - name: Navigation labels and page lifecycle regressions
+        run: node --test qa/relystra-qa-regression.test.cjs
       - name: Ordered approval-chain contract
         run: |
           set -euo pipefail

@@ -23,11 +23,12 @@ function activateInbox(button){
   window.scrollTo({top:0,left:0,behavior:'auto'});
 }
 function normalizeInbox(){
+  const label=state.admin===true&&state.viewMode!=='client'?'Decisions':'Inbox';
   const section=document.getElementById('section-notifications');
   const unifiedInboxReady=!!document.getElementById('nexusInboxRoot')||!!section?.querySelector('.nexus-inbox-controls');
   if(section&&!unifiedInboxReady){
     const heading=section.querySelector('h1');
-    if(heading&&heading.textContent!=='Inbox')heading.textContent='Inbox';
+    if(heading&&heading.textContent!==label)heading.textContent=label;
     const eyebrow=section.querySelector('.eyebrow');
     if(eyebrow&&eyebrow.textContent!=='Messages & alerts')eyebrow.textContent='Messages & alerts';
     const copy=section.querySelector('p.small');
@@ -38,7 +39,8 @@ function normalizeInbox(){
   if(!nav)return;
   let button=nav.querySelector('button[data-section="notifications"]');
   if(button){
-    if(button.textContent!=='Inbox')button.textContent='Inbox';
+    if(button.textContent!==label)button.textContent=label;
+    if(button.getAttribute('aria-label')!==label)button.setAttribute('aria-label',label);
     button.dataset.nexusInbox='1';
     return;
   }
@@ -47,7 +49,8 @@ function normalizeInbox(){
   button.type='button';
   button.dataset.section='notifications';
   button.dataset.nexusInbox='1';
-  button.textContent='Inbox';
+  button.textContent=label;
+  button.setAttribute('aria-label',label);
   button.addEventListener('click',()=>activateInbox(button));
   const clients=nav.querySelector('button[data-section="clients"]');
   const journey=nav.querySelector('.journey-primary');
