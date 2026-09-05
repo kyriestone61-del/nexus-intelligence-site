@@ -26,14 +26,14 @@ jobs:
           set -euo pipefail
           grep -Fq 'window.__nexusPortalBooting=true' portal-app.js
           grep -Fq 'nexusPortalBootOverlay' portal-app.js
-          grep -Fq 'Loading Nexus workspace' portal-app.js
+          grep -Fq 'Loading Relystra workspace' portal-app.js
           grep -Fq 'portal-client.js?v=${BUILD}' portal-app.js
           grep -Fq 'importWithoutRecurringIntervals' portal-app.js
           grep -Fq '[180]' portal-app.js
           grep -Fq 'window.__nexusOpsInit=false' portal-app.js
           grep -Fq 'labels.includes('\''Client Journey'\'')' portal-app.js
           grep -Fq 'labels.includes('\''Discovery & Diagnosis'\'')' portal-app.js
-          grep -Fq 'Final Nexus admin navigation did not initialize.' portal-app.js
+          grep -Fq 'Final Relystra admin navigation did not initialize.' portal-app.js
           grep -Fq 'clearBootLock();' portal-app.js
       - name: No premature reveal regression
         run: |

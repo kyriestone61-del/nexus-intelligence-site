@@ -45,7 +45,7 @@ jobs:
           grep -q "const platformAdmin=!!portal.state?.admin" portal-app.js
           grep -q "state.platformAdmin=platformAdmin" portal-perspective-switcher.js
           grep -q "state.admin=false" portal-perspective-switcher.js
-          grep -q "Switching perspective never changes your real Nexus administrator authorization" portal-perspective-switcher.js
+          grep -q "Switching perspective never changes your real Relystra administrator authorization" portal-perspective-switcher.js
       - name: Client preview privacy contract
         run: |
           grep -q "row.assignee==='client'" portal-perspective-switcher.js

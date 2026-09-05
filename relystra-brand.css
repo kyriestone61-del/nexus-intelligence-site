@@ -44,7 +44,8 @@ body {
 
 .nav-cta {
   border-color: rgba(72, 183, 167, .35);
-  color: #d9f4ef !important;
+  background: #f4f1e8;
+  color: #07111a !important;
 }
 
 .rebrand-transition {
