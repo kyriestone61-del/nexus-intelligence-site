@@ -37,6 +37,11 @@ on:
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - 'qa/playwright/tests/baseline-workflow.spec.mjs'
       - 'qa/playwright/tests/operational-release-baseline.spec.mjs'
+      - 'qa/playwright/tests/app-ux-qaqc.spec.mjs'
+      - 'qa/playwright/tests/public-smoke.spec.mjs'
+      - 'qa/playwright/tests/sitewide-public-mobile.spec.mjs'
+      - 'qa/playwright/tests/role-boundary.spec.mjs'
+      - 'qa/playwright/tests/mobile-smoke.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
   pull_request:
     paths:
@@ -62,6 +67,11 @@ on:
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - 'qa/playwright/tests/baseline-workflow.spec.mjs'
       - 'qa/playwright/tests/operational-release-baseline.spec.mjs'
+      - 'qa/playwright/tests/app-ux-qaqc.spec.mjs'
+      - 'qa/playwright/tests/public-smoke.spec.mjs'
+      - 'qa/playwright/tests/sitewide-public-mobile.spec.mjs'
+      - 'qa/playwright/tests/role-boundary.spec.mjs'
+      - 'qa/playwright/tests/mobile-smoke.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
 
 permissions:
@@ -80,6 +90,7 @@ jobs:
       NEXUS_QA_BOOTSTRAP_URL: https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-calendar-config-check
       NEXUS_QA_FULL_BASELINE: ${{ github.event_name == 'push' && '1' || (github.event.inputs.full_baseline == 'true' && '1' || '0') }}
       NEXUS_QA_BASELINE_ONLY: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[operational-baseline]') && '1' || '0' }}
+      NEXUS_QA_QAQC_FULL: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[qaqc-full]') && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -184,11 +195,21 @@ jobs:
           fi
       - name: Run production browser paths
         run: |
-          if [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then
+          if [ "${NEXUS_QA_QAQC_FULL:-0}" = '1' ]; then
+            echo 'RELYSTRA_FULL_APP_QAQC=1'
+            echo '--- Public website contracts ---'
+            npx playwright test tests/public-smoke.spec.mjs tests/sitewide-public-mobile.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
+            echo '--- Authenticated role, reconciliation, and cross-browser shell contracts ---'
+            npx playwright test tests/role-boundary.spec.mjs tests/control-room-reconcile.spec.mjs --config=control-room.config.mjs --retries=0
+            echo '--- Plain-language, button, navigation, and mobile UX contracts ---'
+            npx playwright test tests/app-ux-qaqc.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
+            echo '--- Diagnosis-to-completion operational lifecycle ---'
+            npx playwright test tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
+          elif [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then
             echo 'RELYSTRA_OPERATIONAL_BASELINE_ONLY=1'
             npx playwright test tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
           else
-            npx playwright test --config=control-room.config.mjs
+            npx playwright test tests/control-room-reconcile.spec.mjs tests/baseline-workflow.spec.mjs tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs
           fi
       - name: Enforce authenticated coverage for production
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
@@ -214,6 +235,14 @@ jobs:
         with:
           name: nexus-control-room-browser-report
           path: qa/playwright/control-room-report
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && env.NEXUS_QA_QAQC_FULL == '1' }}
+        with:
+          name: relystra-full-app-qaqc-report
+          path: |
+            qa/playwright/control-room-report
+            qa/playwright/test-results
           if-no-files-found: ignore
       - name: Delete disposable QA identities and company
         if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
