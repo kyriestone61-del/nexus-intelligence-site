@@ -79,7 +79,7 @@ async function uploadForAction(page,taskId,fileName='qa-financial-transactions.c
   await page.locator('#uploadForm button[type="submit"]').click();
   await expect.poll(async()=>page.evaluate(async({taskId,fileName})=>{const {count,error}=await window.NexusPortal.sb.from('nexus_documents').select('id',{count:'exact',head:true}).eq('task_id',taskId).eq('file_name',fileName);if(error)throw new Error(error.message);return count||0},{taskId,fileName}),{timeout:30_000}).toBeGreaterThan(0);
 }
-async function processClientSubmission(adminPage,clientPage,task,{exerciseHelp=false,exerciseRevision=false}={}){
+async function processClientSubmission(adminPage,clientPage,task,{exerciseHelp=false,exerciseRevision=false,fileName=`qa-action-${task.id.slice(0,8)}.csv`}={}){
   let page=clientPage;await clientLogin(page);await openClientActions(page);
   let card=page.locator(`[data-action-engine-task="${task.id}"]`);await expect(card).toBeVisible({timeout:20_000});
   const start=card.locator('[data-action-start]');if(await start.isVisible().catch(()=>false))await start.click();
@@ -91,7 +91,7 @@ async function processClientSubmission(adminPage,clientPage,task,{exerciseHelp=f
     card=page.locator(`[data-action-engine-task="${task.id}"]`);await card.locator('[data-action-help]').click();await card.locator('[data-help-box] textarea').fill('QA help request: verify the required handoff.');await card.locator('[data-send-help]').click();
     card=page.locator(`[data-action-engine-task="${task.id}"]`);await card.locator('[data-action-history]').click();await expect(card.locator('[data-history-panel]')).toBeVisible();
   }
-  if(task.task_type==='upload'||task.task_type==='workflow_evidence')await uploadForAction(page,task.id,`qa-action-${task.id.slice(0,8)}.csv`);
+  if(task.task_type==='upload'||task.task_type==='workflow_evidence'){await uploadForAction(page,task.id,fileName);await openClientActions(page);await expect(page.locator(`[data-action-engine-task="${task.id}"]`)).toContainText('Evidence attached')}
   await openClientActions(page);card=page.locator(`[data-action-engine-task="${task.id}"]`);await expect(card).toBeVisible();
   await openClientActionDetails(card);await fillRequiredActionFields(card);
   await card.locator('[data-action-submit]').click();await waitForTaskStatus(page,task.id,'ready_for_review');
@@ -166,8 +166,8 @@ test.describe('full governed Nexus baseline workflow',()=>{
     await expect(page.locator('[data-diagnosis-action="approve"]')).toBeVisible({timeout:20_000});
     const runId=await page.locator('[data-diagnosis-action="approve"]').getAttribute('data-id');expect(runId).toBeTruthy();
     await page.locator('[data-diagnosis-action="approve"]').click();
-    await expect(page.locator('#nexusResolutionPlanModal')).toHaveClass(/open/,{timeout:35_000});await expect(page.locator('.resolution-proposal')).toHaveCountGreaterThan?.(0);
-    const proposals=page.locator('.resolution-proposal');expect(await proposals.count()).toBeGreaterThan(0);await expect(proposals.first().locator('.resolution-step')).not.toHaveCount(0);
+    await expect(page.locator('#nexusResolutionPlanModal')).toHaveClass(/open/,{timeout:35_000});
+    const proposals=page.locator('.resolution-proposal');await expect(proposals.first()).toBeVisible({timeout:35_000});expect(await proposals.count()).toBeGreaterThan(0);await expect(proposals.first().locator('.resolution-step')).not.toHaveCount(0);
     await proposals.first().locator('[data-resolution-status="selected"]').click();await expect(page.locator('[data-resolution-confirm]')).toBeEnabled({timeout:15_000});await page.locator('[data-resolution-confirm]').click();
     const openActions=page.locator('[data-resolution-open-actions]');
     await expect(openActions).toBeVisible({timeout:30_000});await openActions.click();
@@ -184,16 +184,18 @@ test.describe('full governed Nexus baseline workflow',()=>{
         await processClientSubmission(page,clientPage,ready,{exerciseHelp:!exercisedHelp,exerciseRevision:!exercisedRevision});exercisedHelp=true;exercisedRevision=true;
       }else await processNexusTask(page,ready);
     }
-    tasks=await generatedTasks(page,runId);expect(tasks.length).toBeGreaterThan(0);expect(tasks.every(task=>terminal.has(String(task.status||'').toLowerCase()))).toBeTruthy();expect(exercisedHelp).toBeTruthy();expect(exercisedRevision).toBeTruthy();
+    tasks=await generatedTasks(page,runId);expect(tasks.length).toBeGreaterThan(0);expect(tasks.every(task=>terminal.has(String(task.status||'').toLowerCase()))).toBeTruthy();
 
     const uploadTaskId=await page.evaluate(async({companyId,projectId})=>{
       const sb=window.NexusPortal.sb;
       const assigned=await sb.rpc('nexus_assign_action_template',{p_company_id:companyId,p_project_id:projectId,p_template_code:'discovery_kpi_reports',p_due_date:null,p_priority:'high'});if(assigned.error)throw new Error(assigned.error.message);const id=assigned.data;
       const update=await sb.from('nexus_tasks').update({title:'Upload last 30 days of financial transactions (CSV)',description:'Provide the most recent 30 days of financial transactions as CSV or spreadsheet evidence for QA.',required_evidence:[{label:'CSV or spreadsheet containing the last 30 days of transactions',required:true,kind:'file'}],completion_criteria:['File is attached directly to this action','Nexus can review the transaction rows without a separate email'],updated_at:new Date().toISOString()}).eq('id',id);if(update.error)throw new Error(update.error.message);await window.NexusPortal.workspace?.();return id;
     },{companyId,projectId:setup.projectId});
-    await clientLogin(clientPage);await openClientActions(clientPage);let uploadCard=clientPage.locator(`[data-action-engine-task="${uploadTaskId}"]`);await expect(uploadCard).toBeVisible({timeout:20_000});const uploadStart=uploadCard.locator('[data-action-start]');if(await uploadStart.isVisible().catch(()=>false))await uploadStart.click();await uploadForAction(clientPage,uploadTaskId,'qa-financial-transactions.csv');
-    await openClientActions(clientPage);uploadCard=clientPage.locator(`[data-action-engine-task="${uploadTaskId}"]`);await expect(uploadCard).toContainText('Evidence attached');await uploadCard.locator('[data-action-submit]').click();await waitForTaskStatus(clientPage,uploadTaskId,'ready_for_review');
-    await adminLogin(page);await openAdminActions(page,'ready_review');let uploadAdminCard=page.locator(`.action-v2-card[data-task-id="${uploadTaskId}"],.operational-action-card[data-task-id="${uploadTaskId}"]`).first();await expect(uploadAdminCard).toBeVisible();await uploadAdminCard.locator('.admin-approve-task').click();await waitForTaskStatus(page,uploadTaskId,'completed');
+    // Generated recommendations may contain only internal work. The explicit upload
+    // action guarantees help, comments, revision, resubmission, and approval coverage.
+    const uploadTask=await taskRecord(page,uploadTaskId);expect(uploadTask.assignee).toBe('client');
+    await processClientSubmission(page,clientPage,uploadTask,{exerciseHelp:!exercisedHelp,exerciseRevision:!exercisedRevision,fileName:'qa-financial-transactions.csv'});
+
 
     const opsTaskId=await page.evaluate(async({companyId,projectId})=>{const sb=window.NexusPortal.sb;const assigned=await sb.rpc('nexus_assign_action_template',{p_company_id:companyId,p_project_id:projectId,p_template_code:'diagnosis_review_transcript',p_due_date:null,p_priority:'normal'});if(assigned.error)throw new Error(assigned.error.message);await window.NexusPortal.workspace?.();return assigned.data},{companyId,projectId:setup.projectId});
     await openAdminActions(page);let opsCard=page.locator(`.action-v2-card[data-task-id="${opsTaskId}"],.operational-action-card[data-task-id="${opsTaskId}"]`).first();await expect(opsCard).toBeVisible();await expect(opsCard.locator('[data-engine-edit]')).toBeVisible({timeout:15_000});await opsCard.locator('[data-engine-edit]').click();await expect(page.locator('#actionEngineAdminModal')).toHaveClass(/show/);await page.locator('#actionEnginePriority').selectOption('high');await page.locator('#actionEngineEvidence').fill('QA workflow evidence');await page.locator('#actionEngineCriteria').fill('QA workflow definition saved');await page.locator('#actionEngineAdminForm button[type="submit"]').click();await expect.poll(async()=>String((await taskRecord(page,opsTaskId)).priority)).toBe('high');
@@ -201,7 +203,7 @@ test.describe('full governed Nexus baseline workflow',()=>{
     await openAdminActions(page);opsCard=page.locator(`.action-v2-card[data-task-id="${opsTaskId}"],.operational-action-card[data-task-id="${opsTaskId}"]`).first();await opsCard.locator('[data-engine-history]').click();await expect(opsCard.locator('.action-engine-admin-history')).toBeVisible();await opsCard.locator('[data-engine-archive]').click();await expect.poll(async()=>Boolean((await taskRecord(page,opsTaskId)).archived_at),{timeout:20_000}).toBeTruthy();
 
     const audit=await page.evaluate(async({runId,uploadTaskId})=>{const sb=window.NexusPortal.sb;const ids=await sb.from('nexus_tasks').select('id').eq('source_diagnosis_run_id',runId);if(ids.error)throw new Error(ids.error.message);const taskIds=(ids.data||[]).map(x=>x.id).concat(uploadTaskId);const events=await sb.from('nexus_task_events').select('event_type,task_id').in('task_id',taskIds);if(events.error)throw new Error(events.error.message);const comments=await sb.from('nexus_task_comments').select('id,task_id').in('task_id',taskIds);if(comments.error)throw new Error(comments.error.message);const docs=await sb.from('nexus_documents').select('id,file_name,task_id').eq('task_id',uploadTaskId);if(docs.error)throw new Error(docs.error.message);return {events:events.data||[],comments:comments.data||[],docs:docs.data||[]}}, {runId,uploadTaskId});
-    expect(audit.events.some(event=>event.event_type==='submitted')).toBeTruthy();expect(audit.events.some(event=>event.event_type==='approved'||event.event_type==='completed')).toBeTruthy();expect(audit.comments.length).toBeGreaterThan(0);expect(audit.docs.some(doc=>doc.file_name==='qa-financial-transactions.csv')).toBeTruthy();
+    expect(audit.events.some(event=>event.event_type==='submitted')).toBeTruthy();expect(audit.events.some(event=>event.event_type==='approved'||event.event_type==='completed')).toBeTruthy();expect(audit.events.some(event=>event.event_type==='revision_requested')).toBeTruthy();expect(audit.events.some(event=>event.event_type==='help_requested')).toBeTruthy();expect(audit.comments.length).toBeGreaterThan(0);expect(audit.docs.some(doc=>doc.file_name==='qa-financial-transactions.csv')).toBeTruthy();
     expect(errors).toEqual([]);
     await signOut(clientPage);await signOut(page);
     }finally{
