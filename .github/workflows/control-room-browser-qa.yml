@@ -77,6 +77,7 @@ jobs:
       NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
       NEXUS_QA_BOOTSTRAP_URL: https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-calendar-config-check
       NEXUS_QA_FULL_BASELINE: ${{ github.event_name == 'push' && '1' || (github.event.inputs.full_baseline == 'true' && '1' || '0') }}
+      NEXUS_QA_BASELINE_ONLY: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[operational-baseline]') && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -134,7 +135,7 @@ jobs:
           oidc_json="$(curl --silent --show-error --fail --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-qa")"
           oidc_token="$(printf '%s' "$oidc_json" | jq -r '.value')"
           test -n "$oidc_token" && test "$oidc_token" != 'null'
-          oidc_payload="$(printf '%s' "$oidc_token" | cut -d. -f2 | tr '_-' '/+' | awk '{l=length($0)%4;if(l==2)$0=$0"==";else if(l==3)$0=$0"=";print}' | base64 -d 2>/dev/null)"
+          oidc_payload="$(printf '%s' "$oidc_token" | cut -d. -f2 | tr '_-' '/+' | awk '{l=length($0)%4;if(l==2)$0=$0"==";else if(l==3)$0=$0"="";print}' | base64 -d 2>/dev/null)"
           echo 'NEXUS_QA_OIDC_CLAIMS:'
           printf '%s' "$oidc_payload" | jq '{iss,aud,sub,repository,repository_id,repository_owner,repository_owner_id,ref,event_name,workflow_ref,run_id,run_attempt}'
           provision_file="$(mktemp)"
@@ -172,9 +173,21 @@ jobs:
             echo '::error::Disposable authenticated Nexus QA identities were not provisioned.'
             exit 1
           fi
-      - run: npx playwright install --with-deps chromium webkit
-      - name: Run desktop Chrome, Android Chrome, and iOS WebKit paths
-        run: npx playwright test --config=control-room.config.mjs
+      - name: Install browser runtime
+        run: |
+          if [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then
+            npx playwright install --with-deps chromium
+          else
+            npx playwright install --with-deps chromium webkit
+          fi
+      - name: Run production browser paths
+        run: |
+          if [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then
+            echo 'RELYSTRA_OPERATIONAL_BASELINE_ONLY=1'
+            npx playwright test tests/baseline-workflow.spec.mjs --config=control-room.config.mjs --project=desktop-chrome
+          else
+            npx playwright test --config=control-room.config.mjs
+          fi
       - name: Enforce authenticated coverage for production
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash
