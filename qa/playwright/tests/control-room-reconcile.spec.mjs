@@ -79,12 +79,12 @@ test('deployed inbox runtime contains the lockout regression guard',async({reque
 test.describe('authenticated client control room',()=>{
   test.skip(!clientEmail||!clientPassword,'Disposable Nexus QA client credentials are required.');
 
-  test('client sees the canonical Today, Files, Results surfaces and working utilities',async({page})=>{
+  test('client sees Today, Files, Results, Actions and working utilities',async({page})=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
     await signIn(page,clientEmail,clientPassword);
     const nav=page.locator('#nexusClientPrimaryNav [data-client-view]');
-    await expect(nav).toHaveCount(3);
-    expect(await nav.allTextContents()).toEqual(['Today','Files','Results']);
+    await expect(nav).toHaveCount(4);
+    expect(await nav.allTextContents()).toEqual(['Today','Files','Results','Actions']);
     await expect(page.locator('#nexus-client-today')).toBeVisible();
     await nav.nth(1).click();await expect(page.locator('#nexus-client-files')).toBeVisible();await expect(page.locator('#uploadForm')).toBeVisible();
     await nav.nth(2).click();await expect(page.locator('#nexus-client-improvement')).toBeVisible();
@@ -93,6 +93,11 @@ test.describe('authenticated client control room',()=>{
     const contextualReports=page.locator('[data-client-reports]').first();await expect(contextualReports).toBeVisible();await contextualReports.click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
     await page.locator('#nexusClientInboxButton').click();await expect(page.locator('#nexusClientInboxDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientInboxDrawer')).not.toHaveClass(/show/);
     await page.locator('#nexusClientHelpButton').click();await expect(page.locator('#nexusClientGuideDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientGuideDrawer')).not.toHaveClass(/show/);
+    await page.locator('#nexusClientActionsButton').click();
+    await expect(page.locator('#nexus-client-actions')).toBeVisible();
+    await page.evaluate(()=>window.NexusClientShell.refresh({force:true}));
+    await expect(page.locator('#nexus-client-actions')).toBeVisible();
+    await expect(page.locator('#nexusClientActionsButton')).toHaveAttribute('aria-current','page');
     await assertNoOverflow(page);expect(meaningfulConsoleErrors(errors)).toEqual([]);
     await page.locator('#signOutBtn').click();await expect(page.locator('#signInForm')).toBeVisible({timeout:20_000});
   });
@@ -171,8 +176,8 @@ test.describe('administrator and client-preview boundaries',()=>{
     await switcher.locator('[data-perspective="client"]').click();
     await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:40_000});
     await expect(page.getByText('Nexus could not finish loading.',{exact:true})).toHaveCount(0);
-    await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(3);
-    expect(await page.locator('#nexusClientPrimaryNav [data-client-view]').allTextContents()).toEqual(['Today','Files','Results']);
+    await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(4);
+    expect(await page.locator('#nexusClientPrimaryNav [data-client-view]').allTextContents()).toEqual(['Today','Files','Results','Actions']);
     expect(meaningfulConsoleErrors(errors)).toEqual([]);
   });
 
