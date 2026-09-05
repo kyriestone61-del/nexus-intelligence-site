@@ -4,7 +4,7 @@ const baseURL=process.env.NEXUS_QA_BASE_URL||'https://nexus-intelligence-site.pa
 
 export default defineConfig({
   testDir:'./tests',
-  testMatch:['control-room-reconcile.spec.mjs','baseline-workflow.spec.mjs'],
+  testMatch:['control-room-reconcile.spec.mjs','baseline-workflow.spec.mjs','operational-release-baseline.spec.mjs'],
   timeout:35_000,
   expect:{timeout:10_000},
   fullyParallel:false,
