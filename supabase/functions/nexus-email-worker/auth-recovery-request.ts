@@ -17,11 +17,9 @@ async function digest(secret:string,value:string){
   return [...new Uint8Array(hash)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
 }
 function reply(body:unknown,status=200){return new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json','cache-control':'no-store','x-content-type-options':'nosniff','access-control-allow-origin':PUBLIC_ORIGIN}})}
-function generic(){return reply({ok:true,message:'If that email matches a Relystra account, a secure recovery link will be sent shortly.'})}
-function clientIp(req:Request,body:any){
-  const forwarded=clean(body?.client_ip,80).trim();
-  if(forwarded)return forwarded;
-  return clean(req.headers.get('cf-connecting-ip')||req.headers.get('x-forwarded-for')||'unknown',80).split(',')[0].trim();
+function generic(){return reply({ok:true,message:'If that email matches a Relystra account, a secure recovery request has been queued. Delivery can be delayed if the transactional provider is temporarily at capacity.'})}
+function observedSource(req:Request){
+  return clean(req.headers.get('cf-connecting-ip')||req.headers.get('x-forwarded-for')||'edge-unknown',80).split(',')[0].trim();
 }
 
 export async function maybeHandleAuthRecoveryRequest(req:Request,baseUrl:string,serviceHeaders:Record<string,string>,serviceSecret:string){
@@ -37,10 +35,10 @@ export async function maybeHandleAuthRecoveryRequest(req:Request,baseUrl:string,
   if(!validEmail(email))return reply({ok:false,error:'valid_email_required'},400);
 
   try{
-    const ip=clientIp(req,body);
+    const source=observedSource(req);
     const [emailHash,ipHash]=await Promise.all([
       digest(serviceSecret,`email:${email}`),
-      digest(serviceSecret,`ip:${ip}`)
+      digest(serviceSecret,`source:${source}`)
     ]);
     const response=await fetch(`${baseUrl}/rest/v1/rpc/nexus_queue_auth_recovery`,{
       method:'POST',
