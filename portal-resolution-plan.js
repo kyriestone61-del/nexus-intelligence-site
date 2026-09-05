@@ -84,6 +84,10 @@ async function load(runId){
 }
 async function open(runId){
   if(!runId)throw new Error('Diagnosis run is required.');
+  // Hand off from review to planning without leaving an interactive dialog underneath.
+  const review=document.getElementById('diagnosisReviewModal');
+  review?.classList.remove('open','show');review?.setAttribute('aria-hidden','true');
+  document.body.classList.remove('diagnosis-review-open');
   activeRunId=runId;const modal=ensureModal(),body=modal.querySelector('#nexusResolutionPlanBody');modal.classList.add('open','show');modal.setAttribute('aria-hidden','false');body.innerHTML='<div class="empty">Loading recommended action plan…</div>';
   try{render(await load(runId))}catch(error){body.innerHTML=`<div class="resolution-plan-feedback error"><b>Recommended plan could not load.</b><br>${esc(error.message||'Try again.')}</div>`;throw error}
 }

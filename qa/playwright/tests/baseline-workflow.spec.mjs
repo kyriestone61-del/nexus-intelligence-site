@@ -14,8 +14,11 @@ async function waitForSettledPortal(page,timeout=45_000){
   await expect(page.locator('#nexusPortalBootOverlay')).toHaveCount(0,{timeout});
   await expect.poll(()=>page.evaluate(()=>{
     const state=window.NexusPortal?.state;
-    return window.__nexusPortalBooting===false&&!!state?.user&&
-      (state.viewMode==='admin'||state.viewMode==='client');
+    const shell=state?.admin&&state.viewMode!=='client'
+      ?document.querySelector('.nexus-production-primary-nav')
+      :document.getElementById('nexusClientPrimaryNav');
+    return window.__nexusPortalBooting===false&&!!state?.user&&!!shell&&
+      !document.body.classList.contains('nexus-runtime-degraded');
   }),{timeout,message:'Authenticated role shell must finish loading'}).toBe(true);
 }
 async function signIn(page,email,password){
@@ -137,6 +140,7 @@ test.describe('full governed Nexus baseline workflow',()=>{
     const openActions=page.locator('[data-resolution-open-actions]');
     await expect(openActions).toBeVisible({timeout:30_000});await openActions.click();
     await expect(page.locator('#nexusResolutionPlanModal')).not.toHaveClass(/\b(?:open|show)\b/);
+    await expect(page.locator('#diagnosisReviewModal')).not.toHaveClass(/\b(?:open|show)\b/);
     await expect(page.locator('#section-tasks')).toHaveClass(/active/);
 
     let tasks=await generatedTasks(page,runId);expect(tasks.length).toBeGreaterThan(0);expect(tasks.every(task=>Array.isArray(task.required_evidence)&&task.required_evidence.length>0)).toBeTruthy();expect(tasks.every(task=>Array.isArray(task.completion_criteria)&&task.completion_criteria.length>0)).toBeTruthy();

@@ -83,3 +83,47 @@ test('a real network error on the current page remains visible and logged',async
   assert.equal(h.errors.length,1);
   assert.match(h.inbox.innerHTML,/Inbox could not load/);
 });
+
+test('both readiness helpers accept a loaded ordinary client without perspective metadata',()=>{
+  for(const file of ['baseline-workflow.spec.mjs','control-room-reconcile.spec.mjs']){
+    const code=source(`qa/playwright/tests/${file}`).split('expect.poll(()=>page.evaluate(()=>{')[1].split('}),{timeout')[0];
+    const context={window:{__nexusPortalBooting:false,NexusPortal:{state:{user:{id:'client'},admin:false}}},document:{getElementById:()=>({}),querySelector:()=>null,body:{classList:{contains:()=>false}}}};
+    assert.equal(vm.runInNewContext(`(()=>{${code}})()`,context),true);
+    context.window.__nexusPortalBooting=true;
+    assert.equal(vm.runInNewContext(`(()=>{${code}})()`,context),false);
+    context.window.__nexusPortalBooting=false;context.document.getElementById=()=>null;
+    assert.equal(vm.runInNewContext(`(()=>{${code}})()`,context),false);
+  }
+});
+
+test('legacy router leaves the production primary navigation and intake placement intact',()=>{
+  let moves=0;
+  const intake={textContent:'Diagnosis',classList:{add(){}},setAttribute(){}},journey={insertAdjacentElement(){moves++}};
+  const nav={querySelector:s=>s==='.journey-primary'?journey:s==='button[data-section="intake"]'?intake:s==='.nexus-production-primary-nav'?{}:null};
+  const window={NexusPortal:{state:{admin:true}},addEventListener(){}};
+  vm.runInNewContext(source('portal-admin-journey-router.js'),{window,document:{querySelector:()=>nav,addEventListener(){}},setTimeout(){}});
+  window.NexusAdminJourneyRouter.promoteCoreNav();
+  assert.equal(moves,0);assert.equal(intake.textContent,'Diagnosis');
+});
+
+test('opening a resolution plan dismisses its underlying diagnosis review',async()=>{
+  const classes=new Set(['open','show']);const review={classList:{remove:(...xs)=>xs.forEach(x=>classes.delete(x))},setAttribute(k,v){this[k]=v}};
+  const bodyClasses=new Set(['diagnosis-review-open']);
+  const modal={querySelector:()=>({innerHTML:''}),classList:{add(){}},setAttribute(){}};
+  const code=source('portal-resolution-plan.js').split('async function open(runId){')[1].split('async function setSelection')[0];
+  const run=vm.runInNewContext(`async function open(runId){${code}\nopen`,{document:{getElementById:()=>review,body:{classList:{remove:k=>bodyClasses.delete(k)}}},ensureModal:()=>modal,load:async()=>({}),render(){},esc:x=>x});
+  await run('synthetic-run');
+  assert.equal(classes.size,0);assert.equal(review['aria-hidden'],'true');assert.equal(bodyClasses.size,0);
+});
+
+test('Home opens before refresh and a late refresh does not pull the user away from another route',async()=>{
+  let finish,renders=0,scrolls=0;
+  const section={classList:{active:false,toggle(_k,v){this.active=v},contains(){return this.active}}};
+  const pending=new Promise(resolve=>{finish=resolve});
+  const code=source('portal-admin-journey.js').split('async function showJourney(){')[1].split('function activateSection')[0];
+  const run=vm.runInNewContext(`async function showJourney(){${code}\nshowJourney`,{state:{admin:true},ensureSection:()=>section,loadJourneyData:()=>pending,document:{querySelectorAll:s=>s==='.section'?[section]:[]},renderJourney(){renders++},window:{scrollTo(){scrolls++}}});
+  const loading=run();
+  assert.equal(section.classList.active,true);assert.equal(renders,1);assert.equal(scrolls,1);
+  section.classList.active=false;finish();await loading;
+  assert.equal(section.classList.active,false);assert.equal(renders,1);
+});
