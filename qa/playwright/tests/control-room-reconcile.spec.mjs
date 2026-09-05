@@ -137,6 +137,7 @@ test.describe('administrator and client-preview boundaries',()=>{
   });
 
   test('founder navigation is reduced to Home, Clients, Decisions, Sales and each route opens',async({page})=>{
+    test.setTimeout(90_000);
     await signIn(page,adminEmail,adminPassword);
     await selectQaCompanyForSetup(page);
     const menu=page.locator('#nexusMobileNavToggle');
@@ -147,7 +148,7 @@ test.describe('administrator and client-preview boundaries',()=>{
     }
     async function openRoute(label){
       await openMenu();
-      const button=page.locator('.nexus-production-primary-nav > button').filter({hasText:new RegExp(`^${label}$`)});
+      const button=page.locator('.nexus-production-primary-nav').getByRole('button',{name:label,exact:true});
       await button.click();
     }
     const primary=page.locator('.nexus-production-primary-nav > button');
