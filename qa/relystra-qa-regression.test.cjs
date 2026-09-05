@@ -174,3 +174,39 @@ test('Actions uses the shell route and survives the same activation used by refr
   shell.activateView('actions');shell.refresh();
   assert.equal(nodes[0].classList.active,false);assert.equal(nodes[1].classList.active,true);assert.equal(renders,2);
 });
+
+
+test('client and administrator loaders use the same fresh action-engine cache version',()=>{
+  const version=name=>source(name).match(/const ACTION_PROCESSING_BUILD='([^']+)'/)[1];
+  assert.equal(version('portal-client-upload-service.js'),version('portal-ux-refinement.js'));
+  assert.notEqual(version('portal-client-upload-service.js'),'20260904-action-processing1');
+  const workflow=source('.github/workflows/control-room-browser-qa.yml');
+  const assets=workflow.match(/assets=\(([^\n]+)\)/)[1].split(/\s+/);
+  for(const asset of ['portal-client-upload-service.js','portal-ux-refinement.js','portal-action-processing-engine.js'])assert.ok(assets.includes(asset),`${asset} must match production before authenticated QA`);
+});
+
+
+test('approval labels do not perpetually retrigger their body mutation observer',()=>{
+  let callback,writes=0;
+  const selectors=['.vnext-release-report','.approve-packet','.approve-step','[data-nexus-release="task"],[data-nexus-release="document request"]'];
+  const nodes=new Map(selectors.map(selector=>{let text='Original';return [selector,{get textContent(){return text},set textContent(value){text=value;writes++}}]}));
+  const document={addEventListener(){},querySelectorAll:selector=>nodes.has(selector)?[nodes.get(selector)]:[],body:{}};
+  const window={NexusPortal:{sb:{},state:{}}};
+  vm.runInNewContext(source('portal-approval-bridge.js'),{window,document,MutationObserver:class{constructor(fn){callback=fn}observe(){}}});
+  callback();assert.equal(writes,4);
+  for(let i=0;i<20;i++)callback();
+  assert.equal(writes,4,'unchanged labels must not enqueue another mutation observer delivery');
+  assert.equal(nodes.get('.approve-packet').textContent,'Review approval');
+});
+
+
+test('diagnosis events refresh Home data without navigating away from opened work',async()=>{
+  const src=source('portal-admin-journey.js');
+  const fn='async function refreshJourneyInPlace(){'+src.split('async function refreshJourneyInPlace(){')[1].split('function activateSection')[0];
+  let active=true,renders=0,finish;
+  const loaded=new Promise(resolve=>finish=resolve);
+  const refresh=vm.runInNewContext(`${fn};refreshJourneyInPlace`,{$:()=>({classList:{contains:()=>active}}),loadJourneyData:()=>loaded,renderJourney:()=>renders++});
+  const pending=refresh();active=false;finish();await pending;assert.equal(renders,0);
+  active=true;await refresh();assert.equal(renders,1);
+  assert.ok(src.includes('const refreshDiagnosisJourney=()=>setTimeout(refreshJourneyInPlace,120);'));
+});

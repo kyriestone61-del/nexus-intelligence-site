@@ -49,10 +49,10 @@ document.addEventListener('click',event=>{
 },true);
 
 const observer=new MutationObserver(()=>{
-  document.querySelectorAll('.vnext-release-report').forEach(b=>{b.textContent='Review release approval →';b.title='Client release is controlled through the Nexus approval chain.'});
-  document.querySelectorAll('.approve-packet').forEach(b=>{b.textContent='Review approval';b.title='Open the governed outreach approval chain.'});
-  document.querySelectorAll('.approve-step').forEach(b=>{b.textContent='Review approval';b.title='Open the governed outreach approval chain.'});
-  document.querySelectorAll('[data-nexus-release="task"],[data-nexus-release="document request"]').forEach(b=>{b.textContent='Review approval →';b.title='Open the governed client-release approval chain.'});
+  document.querySelectorAll('.vnext-release-report').forEach(b=>{if(b.textContent!=='Review release approval →')b.textContent='Review release approval →';b.title='Client release is controlled through the Nexus approval chain.'});
+  document.querySelectorAll('.approve-packet').forEach(b=>{if(b.textContent!=='Review approval')b.textContent='Review approval';b.title='Open the governed outreach approval chain.'});
+  document.querySelectorAll('.approve-step').forEach(b=>{if(b.textContent!=='Review approval')b.textContent='Review approval';b.title='Open the governed outreach approval chain.'});
+  document.querySelectorAll('[data-nexus-release="task"],[data-nexus-release="document request"]').forEach(b=>{if(b.textContent!=='Review approval →')b.textContent='Review approval →';b.title='Open the governed client-release approval chain.'});
 });
 observer.observe(document.body,{childList:true,subtree:true});
 
