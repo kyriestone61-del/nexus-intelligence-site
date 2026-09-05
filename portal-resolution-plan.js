@@ -4,7 +4,7 @@ const {sb,state,toast,workspace,runtime}=portal;
 if(!state?.admin)throw new Error('Resolution Plan is admin-only.');
 
 const boundary=runtime?.boundary;
-const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
 const label=value=>String(value||'').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase());
 let activeRunId=null;
 let currentPlan=null;
@@ -60,13 +60,13 @@ function stepMarkup(step,index){
 function proposalMarkup(p){
   const status=String(p.status||'proposed');
   const selected=status==='selected'||status==='confirmed';
-  return `<article class="resolution-proposal ${esc(status)} ${selected?'selected':''}" data-resolution-proposal="${esc(p.id)}"><div class="resolution-proposal-head"><div><div class="kicker">Recommended resolution ${esc(p.opportunity_index||'')}</div><h3>${esc(p.title||'Recommended action')}</h3><p>${esc(p.problem||p.recommendation||'')}</p>${p.recommendation&&p.recommendation!==p.problem?`<p><b>Diagnosis recommendation:</b> ${esc(p.recommendation)}</p>`:''}</div><span class="resolution-proposal-status">${esc(label(status))}</span></div><div class="resolution-steps">${(p.steps||[]).map(stepMarkup).join('')}</div>${status==='confirmed'?'<div class="resolution-proposal-actions"><span class="small">Confirmed. Its action chain is now in the workspace.</span></div>':`<div class="resolution-proposal-actions">${status!=='selected'?'<button class="btn primary" data-resolution-status="selected" type="button">Select this resolution</button>':'<button class="btn secondary" data-resolution-status="proposed" type="button">Remove selection</button>'}<button class="btn secondary" data-resolution-status="deferred" type="button">Defer</button><button class="btn secondary" data-resolution-status="rejected" type="button">Do not proceed</button></div>`}</article>`;
+  return `<article class="resolution-proposal ${esc(status)} ${selected?'selected':''}" data-resolution-proposal="${esc(p.id)}"><div class="resolution-proposal-head"><div><div class="kicker">Recommended resolution ${esc(p.opportunity_index||'')}</div><h3>${esc(p.title||'Recommended action')}</h3><p>${esc(p.problem||p.recommendation||'')}</p>${p.recommendation&&p.recommendation!==p.problem?`<p><b>Diagnosis recommendation:</b> ${esc(p.recommendation)}</p>`:''}</div><span class="resolution-proposal-status">${esc(label(status))}</span></div><div class="resolution-steps">${(p.steps||[]).map(stepMarkup).join('')}</div>${status==='confirmed'?'<div class="resolution-proposal-actions"><span class="small">Confirmed for scope. The action chain stays frozen until signed scope, payment, and kickoff gates pass.</span></div>':`<div class="resolution-proposal-actions">${status!=='selected'?'<button class="btn primary" data-resolution-status="selected" type="button">Select this resolution</button>':'<button class="btn secondary" data-resolution-status="proposed" type="button">Remove selection</button>'}<button class="btn secondary" data-resolution-status="deferred" type="button">Defer</button><button class="btn secondary" data-resolution-status="rejected" type="button">Do not proceed</button></div>`}</article>`;
 }
 function render(plan){
   currentPlan=plan;
   const body=document.getElementById('nexusResolutionPlanBody');if(!body)return;
-  const confirmed=plan.plan_status==='confirmed';
-  body.innerHTML=`<div class="resolution-plan-intro"><div><h3>${confirmed?'Confirmed execution plan':'AI recommendations are proposals until you choose them.'}</h3><p>${confirmed?'The selected resolutions have been converted into governed action chains with owners, dependencies, evidence requirements, and completion criteria.':'Review the recommendation and every downstream step. Select only the resolutions you want Relystra to execute. Nothing is assigned to the client or Relystra until you confirm the selected plan.'}</p></div><div class="resolution-plan-count"><b>${esc(plan.selected_count||0)}</b><span>${confirmed?'selected':'selected to proceed'}</span></div></div><div class="resolution-proposal-list">${(plan.proposals||[]).length?(plan.proposals||[]).map(proposalMarkup).join(''):'<div class="empty">No resolution proposals were produced. Do not proceed until the diagnosis is corrected.</div>'}</div><div class="resolution-plan-footer"><span class="small">${confirmed?'Plan confirmed.':'You remain the final approval gate.'}</span><div class="actions">${confirmed?'<button class="btn primary" data-resolution-open-actions type="button">Open Action Items →</button>':`<button class="btn primary" data-resolution-confirm type="button" ${plan.can_confirm?'':'disabled'}>Confirm ${Number(plan.selected_count||0)} selected ${Number(plan.selected_count||0)===1?'resolution':'resolutions'} →</button>`}</div></div>`;
+  const confirmed=plan.plan_status==='confirmed'||plan.plan_status==='commercial_gate';
+  body.innerHTML=`<div class="resolution-plan-intro"><div><h3>${confirmed?'Confirmed for commercial close':'AI recommendations are proposals until you choose them.'}</h3><p>${confirmed?'The selected resolutions are prepared as governed action chains, but implementation is not released until signed scope, payment verification, and kickoff are complete.':'Review the recommendation and every downstream step. Select only the resolutions you want Relystra to scope. Confirming the plan prepares the governed work; it does not authorize implementation before commercial close.'}</p></div><div class="resolution-plan-count"><b>${esc(plan.selected_count||0)}</b><span>${confirmed?'selected for scope':'selected to proceed'}</span></div></div><div class="resolution-proposal-list">${(plan.proposals||[]).length?(plan.proposals||[]).map(proposalMarkup).join(''):'<div class="empty">No resolution proposals were produced. Do not proceed until the diagnosis is corrected.</div>'}</div><div class="resolution-plan-footer"><span class="small">${confirmed?'Commercial gate active — no implementation is released yet.':'You remain the final approval gate.'}</span><div class="actions">${confirmed?'<button class="btn primary" data-resolution-open-actions type="button">Open Client Journey →</button>':`<button class="btn primary" data-resolution-confirm type="button" ${plan.can_confirm?'':'disabled'}>Confirm ${Number(plan.selected_count||0)} selected ${Number(plan.selected_count||0)===1?'resolution':'resolutions'} for scope →</button>`}</div></div>`;
   bind(body);
 }
 function bind(body){
@@ -75,7 +75,7 @@ function bind(body){
     card.querySelectorAll('[data-resolution-status]').forEach(button=>button.onclick=()=>runBoundary('change resolution selection',()=>setSelection(id,button.dataset.resolutionStatus,button)));
   });
   body.querySelector('[data-resolution-confirm]')?.addEventListener('click',event=>runBoundary('confirm resolution plan',()=>confirmPlan(event.currentTarget)));
-  body.querySelector('[data-resolution-open-actions]')?.addEventListener('click',()=>{close();document.querySelector('.side-nav button[data-section="tasks"]')?.click()});
+  body.querySelector('[data-resolution-open-actions]')?.addEventListener('click',()=>{close();document.querySelector('.side-nav button[data-section="journey"]')?.click()||document.querySelector('.side-nav button[data-section="tasks"]')?.click()});
 }
 function runBoundary(name,fn){return boundary?.run?boundary.run(name,fn):fn()}
 
@@ -84,7 +84,6 @@ async function load(runId){
 }
 async function open(runId){
   if(!runId)throw new Error('Diagnosis run is required.');
-  // Hand off from review to planning without leaving an interactive dialog underneath.
   const review=document.getElementById('diagnosisReviewModal');
   review?.classList.remove('open','show');review?.setAttribute('aria-hidden','true');
   document.body.classList.remove('diagnosis-review-open');
@@ -99,12 +98,12 @@ async function setSelection(id,status,button){
 }
 async function confirmPlan(button){
   if(!activeRunId)return;
-  button.disabled=true;const original=button.textContent;button.textContent='Confirming plan…';
+  button.disabled=true;const original=button.textContent;button.textContent='Preparing commercial scope…';
   try{
-    const {data,error}=await sb.rpc('nexus_confirm_resolution_plan',{p_run_id:activeRunId});if(error)throw error;
-    toast?.(`Plan confirmed. ${Number(data?.tasks||0)} action item${Number(data?.tasks||0)===1?'':'s'} created and routed.`);
+    const {data,error}=await sb.rpc('nexus_phase_zero_confirm_resolution_plan',{p_run_id:activeRunId});if(error)throw error;
+    toast?.(`Plan confirmed for scope. ${Number(data?.tasks||0)} governed action item${Number(data?.tasks||0)===1?'':'s'} prepared but held until commercial close.`);
     await workspace?.();window.NexusDiagnosisController?.invalidateLatest?.();window.dispatchEvent(new CustomEvent('nexus:resolution-plan-confirmed',{detail:{runId:activeRunId,summary:data||null}}));window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed',{detail:{runId:activeRunId,action:'plan_confirmed',summary:data||null}}));
-    render(await load(activeRunId));pendingRun=null;scheduleJourneyRefresh(true);
+    render({...await load(activeRunId),plan_status:'commercial_gate'});pendingRun=null;scheduleJourneyRefresh(true);window.RelystrPhaseZeroLifecycle?.refresh?.({reloadWorkspace:true});
   }catch(error){setFeedback(error.message||'Selected plan could not be confirmed.','error');button.textContent=original;button.disabled=false;throw error}
 }
 
@@ -119,7 +118,7 @@ function decorateJourney(){
   root.querySelector('.resolution-journey-card')?.remove();
   if(!pendingRun)return;
   const focus=root.querySelector('.journey-focus');if(!focus)return;
-  const card=document.createElement('section');card.className='resolution-journey-card';card.innerHTML='<div><div class="kicker">Diagnosis approved · action selection required</div><h3>Choose which recommendations become work.</h3><p>The diagnosis is approved, but no downstream action chain has been released yet. Review and confirm the recommended resolution plan first.</p></div><div class="actions"><button class="btn primary" type="button">Review Recommended Actions →</button></div>';focus.after(card);card.querySelector('button').onclick=()=>runBoundary('open recommended actions',()=>open(pendingRun.id));
+  const card=document.createElement('section');card.className='resolution-journey-card';card.innerHTML='<div><div class="kicker">Diagnosis approved · action selection required</div><h3>Choose which recommendations should be scoped.</h3><p>The diagnosis is approved, but nothing will be released for implementation until you choose the solution, confirm commercial scope, verify payment, and finish kickoff.</p></div><div class="actions"><button class="btn primary" type="button">Review Recommended Actions →</button></div>';focus.after(card);card.querySelector('button').onclick=()=>runBoundary('open recommended actions',()=>open(pendingRun.id));
   const kicker=focus.querySelector('.kicker')?.textContent||'';
   if(/Step\s*3\s*of\s*6/i.test(kicker)){
     const primary=focus.querySelector('#journeyPrimaryAction,[data-primary-action],button.btn.primary');if(primary){primary.textContent='Review Recommended Actions →';primary.dataset.resolutionPlanRequired='1'}
@@ -132,7 +131,7 @@ function decorateApprovedReview(){
   const modal=document.getElementById('diagnosisReviewModal');if(!modal?.classList.contains('open')||!pendingRun)return;
   const body=modal.querySelector('#diagnosisReviewBody');if(!body||body.querySelector('.resolution-review-cta'))return;
   const meta=body.querySelector('.diagnosis-review-meta');if(!meta||!/approved/i.test(meta.textContent||''))return;
-  const cta=document.createElement('div');cta.className='resolution-review-cta';cta.innerHTML='<div class="kicker">Next required step</div><h3 style="margin:4px 0 6px">Review recommended actions</h3><p class="small">Approval locked the diagnosis. Now choose which recommendations become real client or Relystra work.</p><button class="btn primary" type="button">Review Recommended Actions →</button>';body.appendChild(cta);cta.querySelector('button').onclick=()=>runBoundary('open recommended actions',()=>open(pendingRun.id));
+  const cta=document.createElement('div');cta.className='resolution-review-cta';cta.innerHTML='<div class="kicker">Next required step</div><h3 style="margin:4px 0 6px">Review recommended actions</h3><p class="small">Approval locked the diagnosis. Now choose which recommendations should be converted into a commercial scope. Implementation remains gated until scope and payment are verified.</p><button class="btn primary" type="button">Review Recommended Actions →</button>';body.appendChild(cta);cta.querySelector('button').onclick=()=>runBoundary('open recommended actions',()=>open(pendingRun.id));
 }
 
 document.addEventListener('click',event=>{

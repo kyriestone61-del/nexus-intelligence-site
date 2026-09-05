@@ -1,0 +1,51 @@
+name: RELYSTRA Phase Zero Lifecycle QA
+
+on:
+  pull_request:
+    paths:
+      - 'portal-app.js'
+      - 'portal-resolution-plan.js'
+      - 'portal-phase-zero-lifecycle.js'
+      - 'portal-phase-zero-lifecycle.css'
+      - 'qa/relystra-phase-zero-lifecycle.test.mjs'
+      - 'supabase/migrations/20260905_relystra_phase_zero_client_lifecycle.sql'
+      - 'supabase/migrations/20260905_relystra_phase_zero_measurement_hardening.sql'
+      - '.github/workflows/relystra-phase-zero-lifecycle-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase-zero-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax and lifecycle contracts
+        run: |
+          set -euo pipefail
+          node --check portal-app.js
+          node --check portal-resolution-plan.js
+          node --check portal-phase-zero-lifecycle.js
+          node --test qa/relystra-phase-zero-lifecycle.test.mjs
+      - name: No browser credential leakage
+        run: |
+          set -euo pipefail
+          if grep -nEi 'SUPABASE_SERVICE_ROLE|SERVICE_ROLE_KEY|RESEND_API_KEY|AI_GATEWAY_API_KEY|STRIPE_SECRET' portal-phase-zero-lifecycle.js portal-resolution-plan.js portal-app.js; then
+            echo 'Privileged credential reference found in browser-delivered Phase Zero files.' >&2
+            exit 1
+          fi
+      - name: Commercial, measurement, and acceptance gates cannot regress
+        run: |
+          set -euo pipefail
+          grep -Fq "nexus_phase_zero_confirm_resolution_plan" portal-resolution-plan.js
+          grep -Fq "Signed scope and payment are required before onboarding" supabase/migrations/20260905_relystra_phase_zero_client_lifecycle.sql
+          grep -Fq "Written acceptance evidence reference is required" supabase/migrations/20260905_relystra_phase_zero_client_lifecycle.sql
+          grep -Fq "handoff_complete" supabase/migrations/20260905_relystra_phase_zero_client_lifecycle.sql
+          grep -Fq "client_accepted" supabase/migrations/20260905_relystra_phase_zero_client_lifecycle.sql
+          grep -Fq "Measurement cannot close until a before/after result is recorded after QA" supabase/migrations/20260905_relystra_phase_zero_measurement_hardening.sql
+          grep -Fq "revoke execute on function public.nexus_confirm_resolution_plan(uuid) from authenticated" supabase/migrations/20260905_relystra_phase_zero_measurement_hardening.sql
