@@ -59,6 +59,16 @@ test('page departure suppresses an in-flight navigation network failure',async()
   assert.equal(h.inbox.innerHTML,'');
 });
 
+test('navigation start suppresses an interrupted inbox request before pagehide',async()=>{
+  const h=harness();let finish;
+  h.setRpc(()=>new Promise(resolve=>{finish=resolve}));
+  const loading=h.window.NexusApprovalInbox.loadInbox(true);
+  h.events.get('beforeunload')?.({});
+  finish({error:{message:'TypeError: Load failed'}});await loading;
+  assert.equal(h.errors.length,0);assert.equal(h.inbox.innerHTML,'');
+  await h.window.NexusApprovalInbox.loadInbox(true);assert.equal(h.calls,1);
+});
+
 test('page departure discards a late successful inbox response',async()=>{
   const h=harness();let finish;
   h.setRpc(()=>new Promise(resolve=>{finish=resolve}));

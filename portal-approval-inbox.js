@@ -118,7 +118,9 @@ async function resubmit(){const note=$('approvalResubmitNote')?.value.trim()||''
 
 let refreshTimer=0;
 function queueInboxRefresh(delay=120){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>loadInbox(),delay)}
-window.addEventListener('pagehide',()=>{window.__nexusNavigationPending=true;clearTimeout(refreshTimer)});
+function markInboxNavigationPending(){window.__nexusNavigationPending=true;clearTimeout(refreshTimer)}
+window.addEventListener('beforeunload',markInboxNavigationPending);
+window.addEventListener('pagehide',markInboxNavigationPending);
 window.addEventListener('pageshow',event=>{if(event.persisted){window.__nexusNavigationPending=false;queueInboxRefresh(0)}});
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-perspective]'))window.__nexusNavigationPending=true;if(e.target.closest?.('.side-nav button[data-section="notifications"]'))setTimeout(()=>loadInbox(true),80)},true);
 document.addEventListener('change',e=>{if(e.target?.matches?.('#nexusPerspectiveCompany')||(state.platformAdmin===true&&e.target?.matches?.('#companySelect')))window.__nexusNavigationPending=true},true);
