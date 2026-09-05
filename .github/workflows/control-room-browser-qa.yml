@@ -36,6 +36,7 @@ on:
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - 'qa/playwright/tests/baseline-workflow.spec.mjs'
+      - 'qa/playwright/tests/operational-release-baseline.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
   pull_request:
     paths:
@@ -60,6 +61,7 @@ on:
       - 'qa/playwright/control-room.config.mjs'
       - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
       - 'qa/playwright/tests/baseline-workflow.spec.mjs'
+      - 'qa/playwright/tests/operational-release-baseline.spec.mjs'
       - '.github/workflows/control-room-browser-qa.yml'
 
 permissions:
@@ -184,7 +186,7 @@ jobs:
         run: |
           if [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then
             echo 'RELYSTRA_OPERATIONAL_BASELINE_ONLY=1'
-            npx playwright test tests/baseline-workflow.spec.mjs --config=control-room.config.mjs --project=desktop-chrome
+            npx playwright test tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
           else
             npx playwright test --config=control-room.config.mjs
           fi
