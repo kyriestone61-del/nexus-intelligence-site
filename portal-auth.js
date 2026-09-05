@@ -62,21 +62,21 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
     if(document.getElementById('portalRecoveryOverlay'))return;
     const overlay=document.createElement('div');overlay.id='portalRecoveryOverlay';overlay.className='portal-verified-overlay';overlay.tabIndex=-1;
     const suggested=$('signInEmail')?.value?.trim()||'';
-    overlay.innerHTML=`<div class="portal-verified-card" aria-labelledby="portalRecoveryTitle"><div class="eyebrow">Account recovery</div><h1 id="portalRecoveryTitle">Reset your password.</h1><p>Enter your Relystra email. If it matches an account, we will send a secure recovery link.</p><form id="portalRecoveryRequestForm"><div class="field"><label for="portalRecoveryEmail">Email</label><input id="portalRecoveryEmail" type="email" autocomplete="email" required value="${escapeHtml(suggested)}"></div><p id="portalRecoveryMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoverySend" class="btn primary" type="submit">Send recovery email →</button><button id="portalRecoveryCancel" class="btn secondary" type="button">Cancel</button></div></form></div>`;
+    overlay.innerHTML=`<div class="portal-verified-card" aria-labelledby="portalRecoveryTitle"><div class="eyebrow">Account recovery</div><h1 id="portalRecoveryTitle">Reset your password.</h1><p>Enter your Relystra email. If it matches an account, we will queue a secure recovery request.</p><form id="portalRecoveryRequestForm"><div class="field"><label for="portalRecoveryEmail">Email</label><input id="portalRecoveryEmail" type="email" autocomplete="email" required value="${escapeHtml(suggested)}"></div><p id="portalRecoveryMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoverySend" class="btn primary" type="submit">Request recovery →</button><button id="portalRecoveryCancel" class="btn secondary" type="button">Cancel</button></div></form></div>`;
     appendOverlay(overlay,'#portalRecoveryEmail');
     const email=document.getElementById('portalRecoveryEmail');
     events.bind(document.getElementById('portalRecoveryCancel'),'click','recovery:cancel',()=>removeOverlay(overlay));
     events.bind(document.getElementById('portalRecoveryRequestForm'),'submit','recovery:request',boundary.wrap('password recovery request',async event=>{
       event.preventDefault();const button=document.getElementById('portalRecoverySend'),message=document.getElementById('portalRecoveryMessage'),address=email?.value?.trim()||'';if(!address)return;
-      if(button){button.disabled=true;button.textContent='Sending…'}if(message)message.textContent='';
+      if(button){button.disabled=true;button.textContent='Requesting…'}if(message)message.textContent='';
       try{
         const response=await fetch('/api/auth-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({operation:'recovery',email:address})});
         const payload=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(payload?.error||`Recovery request failed (${response.status})`);
-        if(message)message.textContent='If that email matches a Relystra account, a recovery link has been sent. Check your inbox and spam folder.';
+        if(message)message.textContent=payload?.message||'If that email matches a Relystra account, a secure recovery request has been queued. Delivery can be delayed if the transactional provider is temporarily at capacity.';
         if(button)button.hidden=true;const cancel=document.getElementById('portalRecoveryCancel');if(cancel)cancel.textContent='Close';
       }
-      catch(error){console.error('Relystra password recovery request failed',error);if(message)message.textContent='The recovery email service is temporarily unavailable. Try again in a few minutes.';if(button){button.disabled=false;button.textContent='Send recovery email →'}}
+      catch(error){console.error('Relystra password recovery request failed',error);if(message)message.textContent='The recovery email service is temporarily unavailable. Try again in a few minutes.';if(button){button.disabled=false;button.textContent='Request recovery →'}}
     },{silent:true}));
   }
 

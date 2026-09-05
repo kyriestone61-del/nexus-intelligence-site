@@ -7,8 +7,11 @@ on:
       - 'portal-auth.js'
       - 'supabase/functions/nexus-email-worker/index.ts'
       - 'supabase/functions/nexus-email-worker/auth-recovery.ts'
+      - 'supabase/functions/nexus-email-worker/auth-recovery-request.ts'
       - 'supabase/migrations/*platform_auth_email_resilience.sql'
       - 'supabase/migrations/*relystra_queue_auth_recovery.sql'
+      - 'supabase/migrations/*relystra_auth_recovery_global_abuse_guard.sql'
+      - 'supabase/migrations/*relystra_prioritize_auth_email_claims.sql'
       - '.github/workflows/auth-email-resilience-qa.yml'
   push:
     branches: [main]
@@ -17,8 +20,11 @@ on:
       - 'portal-auth.js'
       - 'supabase/functions/nexus-email-worker/index.ts'
       - 'supabase/functions/nexus-email-worker/auth-recovery.ts'
+      - 'supabase/functions/nexus-email-worker/auth-recovery-request.ts'
       - 'supabase/migrations/*platform_auth_email_resilience.sql'
       - 'supabase/migrations/*relystra_queue_auth_recovery.sql'
+      - 'supabase/migrations/*relystra_auth_recovery_global_abuse_guard.sql'
+      - 'supabase/migrations/*relystra_prioritize_auth_email_claims.sql'
       - '.github/workflows/auth-email-resilience-qa.yml'
 
 permissions:
@@ -32,7 +38,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Browser and same-origin gateway assertions
+      - name: Browser and secretless relay assertions
         shell: bash
         run: |
           set -euo pipefail
@@ -41,31 +47,52 @@ jobs:
           grep -Fq "fetch('/api/auth-email'" portal-auth.js
           grep -Fq "operation:'recovery'" portal-auth.js
           ! grep -Fq 'resetPasswordForEmail' portal-auth.js
-          grep -Fq '/rest/v1/rpc/nexus_queue_auth_recovery' functions/api/auth-email.js
-          grep -Fq 'SUPABASE_SERVICE_ROLE_KEY' functions/api/auth-email.js
+          grep -Fq 'functions/v1/nexus-email-worker' functions/api/auth-email.js
+          grep -Fq "mode:'auth_recovery'" functions/api/auth-email.js
+          ! grep -Fq 'client_ip' functions/api/auth-email.js
+          ! grep -Fq 'SUPABASE_SERVICE_ROLE_KEY' functions/api/auth-email.js
           ! grep -Fq 'RESEND_API_KEY' functions/api/auth-email.js
           ! grep -Fq '/auth/v1/admin/generate_link' functions/api/auth-email.js
           if grep -Eiq 'service[_-]?role|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-auth.js; then
             echo 'Privileged auth-email credential reference found in browser code.' >&2
             exit 1
           fi
-      - name: Queue, worker and no-token-persistence assertions
+      - name: Public recovery route isolation assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'maybeHandleAuthRecoveryRequest' supabase/functions/nexus-email-worker/index.ts
+          grep -Fq "String(body?.mode||'')!=='auth_recovery'" supabase/functions/nexus-email-worker/auth-recovery-request.ts
+          grep -Fq 'nexus_queue_auth_recovery' supabase/functions/nexus-email-worker/auth-recovery-request.ts
+          grep -Fq 'origin_not_allowed' supabase/functions/nexus-email-worker/auth-recovery-request.ts
+          grep -Fq 'secure recovery request has been queued' supabase/functions/nexus-email-worker/auth-recovery-request.ts
+          ! grep -Fq 'body?.client_ip' supabase/functions/nexus-email-worker/auth-recovery-request.ts
+          grep -Fq 'observedSource(req)' supabase/functions/nexus-email-worker/auth-recovery-request.ts
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('supabase/functions/nexus-email-worker/index.ts').read_text()
+          recovery=text.index('maybeHandleAuthRecoveryRequest')
+          gate=text.rindex("const cfg=await config();const workerToken")
+          assert recovery < gate
+          PY
+          grep -Fq "x-nexus-worker-token" supabase/functions/nexus-email-worker/index.ts
+          grep -Fq "await digest(workerToken)!==cfg.secret_hash" supabase/functions/nexus-email-worker/index.ts
+      - name: Queue, priority and no-token-persistence assertions
         shell: bash
         run: |
           set -euo pipefail
           grep -Fq 'nexus_queue_auth_recovery' supabase/migrations/20260905_relystra_queue_auth_recovery.sql
-          grep -Fq "message_kind,subject,body_text" supabase/migrations/20260905_relystra_queue_auth_recovery.sql
           grep -Fq "'auth_recovery'" supabase/migrations/20260905_relystra_queue_auth_recovery.sql
           grep -Fq "token_persisted',false" supabase/migrations/20260905_relystra_queue_auth_recovery.sql
           grep -Fq 'pg_advisory_xact_lock' supabase/migrations/20260905_relystra_queue_auth_recovery.sql
           grep -Fq 'grant execute on function public.nexus_queue_auth_recovery' supabase/migrations/20260905_relystra_queue_auth_recovery.sql
+          grep -Fq 'v_global_recent >= 200' supabase/migrations/20260905_relystra_auth_recovery_global_abuse_guard.sql
+          grep -Fq "case when e.message_kind='auth_recovery' then 0 else 1 end" supabase/migrations/20260905_relystra_prioritize_auth_email_claims.sql
+          grep -Fq 'for update skip locked' supabase/migrations/20260905_relystra_prioritize_auth_email_claims.sql
           grep -Fq 'prepareAuthRecovery' supabase/functions/nexus-email-worker/index.ts
-          grep -Fq 'Idempotency-Key' supabase/functions/nexus-email-worker/index.ts
           grep -Fq '/auth/v1/admin/generate_link' supabase/functions/nexus-email-worker/auth-recovery.ts
           grep -Fq 'provider_accepted' supabase/functions/nexus-email-worker/auth-recovery.ts
           grep -Fq 'token_persisted:false' supabase/functions/nexus-email-worker/auth-recovery.ts
-          grep -Fq "x-nexus-worker-token" supabase/functions/nexus-email-worker/index.ts
-          grep -Fq "await digest(workerToken)!==cfg.secret_hash" supabase/functions/nexus-email-worker/index.ts
           grep -Fq 'Raw email addresses, passwords, reset links' supabase/migrations/20260905_platform_auth_email_resilience.sql
           grep -Fq 'enable row level security' supabase/migrations/20260905_platform_auth_email_resilience.sql
           grep -Fq 'revoke all on table public.platform_auth_email_events from anon, authenticated' supabase/migrations/20260905_platform_auth_email_resilience.sql
@@ -73,10 +100,24 @@ jobs:
             echo 'Recovery token/link persistence marker found in queue migration.' >&2
             exit 1
           fi
+      - name: Dedicated provider and capacity assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'RELYSTRA_AUTH_BREVO_API_KEY' supabase/functions/nexus-email-worker/auth-recovery.ts
+          grep -Fq 'RELYSTRA_AUTH_RESEND_API_KEY' supabase/functions/nexus-email-worker/auth-recovery.ts
+          grep -Fq 'shared_resend_fallback' supabase/functions/nexus-email-worker/auth-recovery.ts
+          grep -Fq 'https://api.brevo.com/v3/smtp/email' supabase/functions/nexus-email-worker/auth-recovery.ts
+          grep -Fq 'Idempotency-Key' supabase/functions/nexus-email-worker/auth-recovery.ts
+          grep -Fq 'quotaExceeded' supabase/functions/nexus-email-worker/auth-recovery.ts
+          grep -Fq "failure_class:permanent?'permanent':capacity?'capacity':'transient'" supabase/functions/nexus-email-worker/index.ts
+          grep -Fq 'capacityRetryAt()' supabase/functions/nexus-email-worker/index.ts
+          grep -Fq "health('auth_email_delivery','degraded'" supabase/functions/nexus-email-worker/index.ts
+          grep -Fq "health('auth_email_delivery','healthy'" supabase/functions/nexus-email-worker/index.ts
       - name: Enumeration protection assertions
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "If that email matches a Relystra account" functions/api/auth-email.js
+          grep -Fq 'secure recovery request has been queued' functions/api/auth-email.js
           grep -Fq "not_found', true" supabase/migrations/20260905_relystra_queue_auth_recovery.sql
           grep -Fq "suppressed', true" supabase/migrations/20260905_relystra_queue_auth_recovery.sql

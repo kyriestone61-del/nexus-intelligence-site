@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { prepareAuthRecovery, markAuthRecoveryProviderFailure, markAuthRecoveryAccepted, isAuthRecovery } from "./auth-recovery.ts";
+import { prepareAuthRecovery, sendAuthRecovery, markAuthRecoveryProviderFailure, markAuthRecoveryAccepted, isAuthRecovery } from "./auth-recovery.ts";
+import { maybeHandleAuthRecoveryRequest } from "./auth-recovery-request.ts";
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"content-type,x-nexus-worker-token","Access-Control-Allow-Methods":"POST,OPTIONS"};
 const base=()=>Deno.env.get('SUPABASE_URL')||'https://dmdgkjksouhhsuojthav.supabase.co';
@@ -20,31 +21,48 @@ async function patchEmail(id:string,p:any){return patch('nexus_email_outbox',id,
 async function patchSms(id:string,p:any){return patch('nexus_sms_outbox',id,p)}
 function validE164(v:string){return /^\+[1-9]\d{7,14}$/.test(String(v||'').replace(/[\s().-]/g,''))}
 function phone(v:string){return String(v||'').replace(/[\s().-]/g,'')}
+function capacityRetryAt(){return new Date(Date.now()+60*60*1000).toISOString()}
 
 async function processEmail(){
   const resend=Deno.env.get('RESEND_API_KEY')||'';
   const from=Deno.env.get('NEXUS_EMAIL_FROM')||'Relystra (formerly Nexus Intelligence) <contact@nexusintelligence.live>';
-  if(!resend){await health('email_delivery','failed','Transactional email provider is not configured.',{missing:['RESEND_API_KEY'],sender:from});return {configured:false,claimed:0,sent:0,retried:0,failed:0}}
+  const dedicatedAuthConfigured=Boolean(Deno.env.get('RELYSTRA_AUTH_BREVO_API_KEY')||Deno.env.get('RELYSTRA_AUTH_RESEND_API_KEY'));
+  if(!resend&&!dedicatedAuthConfigured){await health('email_delivery','failed','Transactional email provider is not configured.',{missing:['RESEND_API_KEY','RELYSTRA_AUTH_BREVO_API_KEY or RELYSTRA_AUTH_RESEND_API_KEY'],sender:from});return {configured:false,claimed:0,sent:0,retried:0,failed:0}}
   const claim=await fetch(`${base()}/rest/v1/rpc/nexus_claim_email_batch`,{method:'POST',headers:h(),body:JSON.stringify({p_limit:25})});
   if(!claim.ok)throw new Error(`EMAIL_CLAIM_${claim.status}`);
   const rows=await claim.json();let sent=0,retried=0,failed=0;
   for(const row of rows){try{
     const action=row.action_url?`${Deno.env.get('NEXUS_PUBLIC_ORIGIN')||'https://nexusintelligence.live'}${row.action_url}`:null;
     let body=clean(row.body_text,12000)+(action?`\n\nOpen Relystra: ${action}`:'');
-    const recoveryBody=await prepareAuthRecovery(row,base(),h());
-    if(recoveryBody)body=recoveryBody;
-    const providerHeaders:any={authorization:`Bearer ${resend}`,'content-type':'application/json'};
-    if(isAuthRecovery(row))providerHeaders['Idempotency-Key']=`relystra-auth-${row.id}`;
-    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:providerHeaders,body:JSON.stringify({from,to:[row.recipient_email],subject:clean(row.subject,250),text:body,headers:{'X-Entity-Ref-ID':row.id}})});
+    if(isAuthRecovery(row)){
+      const recoveryBody=await prepareAuthRecovery(row,base(),h());
+      if(recoveryBody)body=recoveryBody;
+      const delivery=await sendAuthRecovery(row,body,from,resend);
+      if(!delivery?.ok){
+        const capacity=Boolean(delivery?.quotaExceeded);
+        const permanent=!capacity&&[400,401,403,404,422].includes(Number(delivery?.status));
+        const terminal=permanent||(!capacity&&Number(row.attempts)>=4);
+        const retryAt=capacity?capacityRetryAt():new Date(Date.now()+Math.min(60,15*Math.max(1,Number(row.attempts)))*60000).toISOString();
+        await markAuthRecoveryProviderFailure(row,base(),h(),Number(delivery?.status||500),clean(delivery?.error||'Authentication email provider failure',160),delivery?.provider||'unknown',delivery?.keySource||'unknown',capacity);
+        await patchEmail(row.id,{status:terminal?'failed':'queued',available_at:terminal?now():retryAt,last_attempt_at:now(),failure_class:permanent?'permanent':capacity?'capacity':'transient',last_error:clean(delivery?.error||'Authentication email provider failure',1000),provider_status:String(delivery?.status||500)});
+        if(capacity){await health('auth_email_delivery','degraded','Authentication recovery email is queued because the active provider has exhausted its sending capacity.',{provider:delivery?.provider||'unknown',provider_key_source:delivery?.keySource||'unknown',retry_at:retryAt,dedicated_provider_configured:dedicatedAuthConfigured});}
+        terminal?failed++:retried++;continue;
+      }
+      await markAuthRecoveryAccepted(row,base(),h(),delivery.id||null,delivery.provider||'unknown',delivery.keySource||'unknown');
+      await patchEmail(row.id,{status:'sent',sent_at:now(),provider_message_id:delivery.id||null,last_attempt_at:now(),failure_class:null,last_error:null,provider_status:'accepted'});sent++;
+      await health('auth_email_delivery','healthy','Authentication recovery email was accepted by the transactional provider.',{provider:delivery.provider,provider_key_source:delivery.keySource,dedicated_provider_configured:dedicatedAuthConfigured});
+      continue;
+    }
+    if(!resend){await patchEmail(row.id,{status:'queued',available_at:new Date(Date.now()+60*60000).toISOString(),last_attempt_at:now(),failure_class:'configuration',last_error:'General transactional email provider is not configured.'});retried++;continue}
+    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:`Bearer ${resend}`,'content-type':'application/json'},body:JSON.stringify({from,to:[row.recipient_email],subject:clean(row.subject,250),text:body,headers:{'X-Entity-Ref-ID':row.id}})});
     const p=await r.json().catch(()=>({}));
-    if(!r.ok){const permanent=[400,401,403,404,422].includes(r.status);await markAuthRecoveryProviderFailure(row,base(),h(),r.status,clean(p?.message||`Provider ${r.status}`,160));await patchEmail(row.id,{status:permanent||Number(row.attempts)>=4?'failed':'queued',available_at:new Date(Date.now()+(permanent?0:Math.min(60,15*Math.max(1,Number(row.attempts))))*60000).toISOString(),last_attempt_at:now(),failure_class:permanent?'permanent':'transient',last_error:clean(p?.message||`Provider ${r.status}`,1000),provider_status:String(r.status)});permanent||Number(row.attempts)>=4?failed++:retried++;continue}
-    await markAuthRecoveryAccepted(row,base(),h(),p?.id||null);
+    if(!r.ok){const permanent=[400,401,403,404,422].includes(r.status);await patchEmail(row.id,{status:permanent||Number(row.attempts)>=4?'failed':'queued',available_at:new Date(Date.now()+(permanent?0:Math.min(60,15*Math.max(1,Number(row.attempts))))*60000).toISOString(),last_attempt_at:now(),failure_class:permanent?'permanent':'transient',last_error:clean(p?.message||`Provider ${r.status}`,1000),provider_status:String(r.status)});permanent||Number(row.attempts)>=4?failed++:retried++;continue}
     await patchEmail(row.id,{status:'sent',sent_at:now(),provider_message_id:p?.id||null,last_attempt_at:now(),failure_class:null,last_error:null,provider_status:'accepted'});sent++
-  }catch(e){await patchEmail(row.id,{status:Number(row.attempts)>=4?'failed':'queued',available_at:new Date(Date.now()+15*60000).toISOString(),last_attempt_at:now(),failure_class:'transient',last_error:clean((e as Error).message,1000)});retried++}}
+  }catch(e){await patchEmail(row.id,{status:Number(row.attempts)>=4&&!isAuthRecovery(row)?'failed':'queued',available_at:new Date(Date.now()+15*60000).toISOString(),last_attempt_at:now(),failure_class:'transient',last_error:clean((e as Error).message,1000)});retried++}}
   const oldest=await rest('nexus_email_outbox?status=eq.queued&select=created_at&order=created_at.asc&limit=1').catch(()=>[]);
   const age=oldest?.[0]?Math.round((Date.now()-Date.parse(oldest[0].created_at))/60000):0;
-  await health('email_delivery',failed?'degraded':age>30?'degraded':'healthy',`Email worker claimed ${rows.length}; sent ${sent}; retrying ${retried}; failed ${failed}.`,{claimed:rows.length,sent,retried,failed,oldest_queue_minutes:age,sender:from});
-  return {configured:true,claimed:rows.length,sent,retried,failed,oldest_queue_minutes:age}
+  await health('email_delivery',failed?'degraded':age>30?'degraded':'healthy',`Email worker claimed ${rows.length}; sent ${sent}; retrying ${retried}; failed ${failed}.`,{claimed:rows.length,sent,retried,failed,oldest_queue_minutes:age,sender:from,dedicated_auth_provider_configured:dedicatedAuthConfigured});
+  return {configured:Boolean(resend||dedicatedAuthConfigured),claimed:rows.length,sent,retried,failed,oldest_queue_minutes:age,dedicated_auth_provider_configured:dedicatedAuthConfigured}
 }
 
 async function smsRows(status='in.(queued,unavailable)'){return rest(`nexus_sms_outbox?status=${status}&available_at=lte.${encodeURIComponent(now())}&select=*&order=created_at.asc&limit=25`)}
@@ -129,10 +147,12 @@ async function processRevenueFlywheel(){
 Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   if(req.method!=='POST')return new Response('method not allowed',{status:405,headers:cors});
+  const recoveryResponse=await maybeHandleAuthRecoveryRequest(req,base(),h(),service());
+  if(recoveryResponse)return recoveryResponse;
   try{
     const cfg=await config();const workerToken=req.headers.get('x-nexus-worker-token')||'';
     if(!cfg?.enabled||!workerToken||await digest(workerToken)!==cfg.secret_hash)return new Response(JSON.stringify({ok:false,error:'Unauthorized'}),{status:401,headers:{...cors,'content-type':'application/json'}});
-    const email=await processEmail().catch(async e=>{await health('email_delivery','failed','Email worker execution failed.',{error:clean((e as Error).message,500)});return {configured:!!Deno.env.get('RESEND_API_KEY'),error:clean((e as Error).message,500)}});
+    const email=await processEmail().catch(async e=>{await health('email_delivery','failed','Email worker execution failed.',{error:clean((e as Error).message,500)});return {configured:!!(Deno.env.get('RESEND_API_KEY')||Deno.env.get('RELYSTRA_AUTH_BREVO_API_KEY')||Deno.env.get('RELYSTRA_AUTH_RESEND_API_KEY')),error:clean((e as Error).message,500)}});
     const sms=await processSms().catch(async e=>{await health('sms_delivery','failed','SMS worker execution failed.',{error:clean((e as Error).message,500)});return {configured:!!Deno.env.get('TWILIO_ACCOUNT_SID'),error:clean((e as Error).message,500)}});
     const revenue=await processRevenueFlywheel().catch(async e=>{await health('revenue_flywheel','failed','Revenue flywheel worker execution failed.',{error:clean((e as Error).message,500)});return {available:true,error:clean((e as Error).message,500)}});
     return new Response(JSON.stringify({ok:true,email,sms,revenue}),{headers:{...cors,'content-type':'application/json'}});
