@@ -91,6 +91,7 @@ async function openAdminRecords(page){
   await expect(records).toHaveAttribute('open','');return records;
 }
 
+function pageErrorDetail(error){return String(error?.stack||error?.message||error)}
 function meaningful(errors){return errors.filter(text=>!/favicon|analytics|third-party cookie|ResizeObserver loop|cloudflareinsights/i.test(text));}
 
 test.describe('RELYSTRA full app UX QAQC',()=>{
@@ -101,7 +102,7 @@ test.describe('RELYSTRA full app UX QAQC',()=>{
     await page.goto('/portal',{waitUntil:'domcontentloaded'});
     await expect(page.locator('#signInForm')).toBeVisible();
     await expect(page.locator('#signInBtn')).toBeVisible();
-    await expect(page.getByRole('button',{name:/create account/i})).toBeVisible();
+    await expect(page.locator('#tabCreate')).toBeVisible();
     await assertPlainLanguage(page,{client:true});await assertNoDeadControls(page);
     expect(meaningful(errors)).toEqual([]);
   });
@@ -109,7 +110,7 @@ test.describe('RELYSTRA full app UX QAQC',()=>{
   test('admin navigation and diagnosis workspace are coherent and simple',async({page})=>{
     const consoleErrors=[];const pageErrors=[];
     page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text())});
-    page.on('pageerror',error=>pageErrors.push(String(error?.message||error)));
+    page.on('pageerror',error=>pageErrors.push(pageErrorDetail(error)));
     await signIn(page,adminEmail,adminPassword);await selectQaCompany(page,{admin:true});
     await expect(page.locator('#adminJourneyRoot')).toBeVisible({timeout:20_000});
     for(const label of ['Home','Clients','Decisions','Sales'])await expect(page.getByRole('button',{name:label,exact:true})).toBeVisible();
@@ -134,7 +135,7 @@ test.describe('RELYSTRA full app UX QAQC',()=>{
   test('client workspace is dummy-proof across every primary view and utility',async({page})=>{
     const consoleErrors=[];const pageErrors=[];
     page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text())});
-    page.on('pageerror',error=>pageErrors.push(String(error?.message||error)));
+    page.on('pageerror',error=>pageErrors.push(pageErrorDetail(error)));
     await signIn(page,clientEmail,clientPassword);await selectQaCompany(page);
     await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:30_000});
 
