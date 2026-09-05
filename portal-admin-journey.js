@@ -65,7 +65,15 @@ async function loadJourneyData(){
  diagnosisRuns=data||[];
 }
 function ensureSection(){const main=document.querySelector('.main');if(!main)return null;let section=$('section-journey');if(!section){section=document.createElement('section');section.id='section-journey';section.className='section admin-journey-section';section.innerHTML='<div id="adminJourneyRoot"></div>';main.prepend(section)}return section}
-async function showJourney(){if(!state.admin)return;ensureSection();await loadJourneyData();document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='section-journey'));document.querySelectorAll('.side-nav button').forEach(b=>b.classList.toggle('active',b===journeyButton));renderJourney();window.scrollTo(0,0)}
+async function showJourney(){
+ if(!state.admin)return;
+ const section=ensureSection();
+ document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s===section));
+ document.querySelectorAll('.side-nav button').forEach(b=>b.classList.toggle('active',b===journeyButton));
+ renderJourney();window.scrollTo(0,0);
+ await loadJourneyData();
+ if(section?.classList.contains('active'))renderJourney();
+}
 function activateSection(section){document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===`section-${section}`));document.querySelectorAll('.side-nav button').forEach(b=>b.classList.toggle('active',b.dataset.section===section));window.scrollTo(0,0)}
 function openTool(section,view){const b=toolButtons[section]||document.querySelector(`.side-nav button[data-section="${section}"]`);if(b)b.click();else if($(`section-${section}`))activateSection(section);else return toast('That tool is not available in this workspace.');if(section==='tasks'&&view)setTimeout(()=>document.querySelector(`#actionExecutionFilters button[data-view="${view}"]`)?.click(),120)}
 function rebuildAdminNav(){

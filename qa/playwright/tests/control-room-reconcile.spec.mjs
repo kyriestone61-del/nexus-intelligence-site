@@ -13,8 +13,11 @@ async function waitForSettledPortal(page,timeout=40_000){
   await expect(page.locator('#nexusPortalBootOverlay')).toHaveCount(0,{timeout});
   await expect.poll(()=>page.evaluate(()=>{
     const state=window.NexusPortal?.state;
-    return window.__nexusPortalBooting===false&&!!state?.user&&
-      (state.viewMode==='admin'||state.viewMode==='client');
+    const shell=state?.admin&&state.viewMode!=='client'
+      ?document.querySelector('.nexus-production-primary-nav')
+      :document.getElementById('nexusClientPrimaryNav');
+    return window.__nexusPortalBooting===false&&!!state?.user&&!!shell&&
+      !document.body.classList.contains('nexus-runtime-degraded');
   }),{timeout,message:'Authenticated role shell must finish loading'}).toBe(true);
 }
 async function signIn(page,email,password){

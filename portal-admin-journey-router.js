@@ -6,6 +6,8 @@ function promoteCoreNav(){
   const journey=nav?.querySelector('.journey-primary');
   const intake=nav?.querySelector('button[data-section="intake"]');
   if(!nav||!journey||!intake)return false;
+  // The production shell owns the four primary destinations and records drawer.
+  if(nav.querySelector('.nexus-production-primary-nav'))return true;
   intake.textContent='Discovery & Diagnosis';
   intake.classList.add('journey-core-tool');
   intake.setAttribute('aria-label','Open Discovery & Diagnosis');

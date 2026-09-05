@@ -83,30 +83,35 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
-      - name: Wait for exact deployed portal loader
+      - name: Wait for exact deployed portal runtime
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
           set -euo pipefail
-          expected="$(sha256sum ../../portal-app.js | awk '{print $1}')"
           matched=0
+          deployed="$(mktemp)"
+          trap 'rm -f "$deployed"' EXIT
+          assets=(portal-app.js portal-foundation-hardening.js portal-approval-inbox.js portal-admin-journey.js portal-admin-journey-router.js portal-resolution-plan.js)
           for attempt in $(seq 1 60); do
-            deployed="$(mktemp)"
-            if curl --silent --show-error --fail --header 'cache-control: no-cache' "$NEXUS_QA_BASE_URL/portal-app.js?qa_sha=${GITHUB_SHA}&attempt=${attempt}" --output "$deployed"; then
-              actual="$(sha256sum "$deployed" | awk '{print $1}')"
-              if [ "$actual" = "$expected" ]; then
-                echo "PRODUCTION_PORTAL_ASSET_PARITY=CONFIRMED sha=$GITHUB_SHA attempt=$attempt"
-                matched=1
-                break
+            matched=1
+            for asset in "${assets[@]}"; do
+              expected="$(sha256sum "../../$asset" | awk '{print $1}')"
+              if curl --silent --show-error --fail --max-time 15 --header 'cache-control: no-cache' "$NEXUS_QA_BASE_URL/$asset?qa_sha=${GITHUB_SHA}&attempt=${attempt}" --output "$deployed"; then
+                actual="$(sha256sum "$deployed" | awk '{print $1}')"
+                if [ "$actual" = "$expected" ]; then continue; fi
               fi
-              echo "Waiting for exact portal-app.js deployment (attempt $attempt; expected $expected, received $actual)"
-            else
-              echo "Waiting for portal-app.js deployment (attempt $attempt; request failed)"
+              echo "Waiting for exact $asset deployment (attempt $attempt)"
+              matched=0
+              break
+            done
+            if [ "$matched" = '1' ]; then
+              echo "PRODUCTION_PORTAL_ASSET_PARITY=CONFIRMED sha=$GITHUB_SHA assets=${#assets[@]} attempt=$attempt"
+              break
             fi
             sleep 5
           done
           if [ "$matched" != '1' ]; then
-            echo '::error::Production portal-app.js never matched the exact checked-out main build. Refusing to run authenticated QA against stale code.'
+            echo '::error::Production runtime assets never matched the checked-out build. Refusing authenticated QA against stale code.'
             exit 1
           fi
       - name: Provision disposable authenticated QA identities
