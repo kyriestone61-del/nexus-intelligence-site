@@ -14,7 +14,7 @@ function enhance(){
    const actions=card.querySelector('.action-v2-actions');if(!actions)return;
    const blocked=dependencyBlocked(task);
    card.classList.toggle('journey-admin-blocked',blocked);
-   card.querySelectorAll('.admin-start-task,.admin-complete-task').forEach(b=>{b.disabled=blocked;b.title=blocked?'Complete the prerequisite first.':''});
+   card.querySelectorAll('.admin-start-task,.admin-complete-task').forEach(b=>{b.disabled=blocked||busy;b.title=blocked?'Complete the prerequisite first.':''});
    if(task.status==='not_applicable'){card.classList.add('completed','journey-not-applicable');card.style.display='none';return}
    card.style.removeProperty('display');
    if(terminal(task.status)||task.status==='ready_for_review')return;
@@ -24,21 +24,21 @@ function enhance(){
    }else if(task.assignee==='nexus'&&!actions.querySelector('[data-journey-guard-action="na"]')){
      actions.appendChild(button('Not applicable','secondary','na'));
    }
-   actions.querySelectorAll('[data-journey-guard-action]').forEach(b=>{b.disabled=blocked;b.title=blocked?'Complete the prerequisite first.':''});
+   actions.querySelectorAll('[data-journey-guard-action]').forEach(b=>{b.disabled=blocked||busy;b.title=blocked?'Complete the prerequisite first.':''});
  });
 }
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(enhance)}
 async function transition(task,status,note,clicked){
  if(busy)return;if(!task)return;
  if(dependencyBlocked(task))return toast('Complete the prerequisite before changing this action.');
- busy=true;const original=clicked?.textContent;if(clicked){clicked.disabled=true;clicked.textContent='Saving…'}
+ busy=true;enhance();const original=clicked?.textContent;if(clicked){clicked.disabled=true;clicked.textContent='Saving…'}
  try{
    const {error}=await sb.rpc('nexus_admin_set_task_status',{p_task_id:task.id,p_status:status,p_note:note||null});
    if(error)throw error;
    toast(status==='not_applicable'?'Marked not applicable.':status==='completed'&&task.assignee==='client'?'Completed from available evidence.':status==='completed'?'Action completed.':'Action started.');
    await workspace();schedule();
  }catch(error){console.error('Guided task transition failed',error);toast(error.message||'The action could not be updated.')}
- finally{busy=false;if(clicked&&clicked.isConnected){clicked.disabled=false;clicked.textContent=original}}
+ finally{busy=false;if(clicked&&clicked.isConnected)clicked.textContent=original;enhance()}
 }
 
 document.addEventListener('click',event=>{

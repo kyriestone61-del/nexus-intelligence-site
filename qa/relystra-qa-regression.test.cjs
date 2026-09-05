@@ -127,3 +127,21 @@ test('Home opens before refresh and a late refresh does not pull the user away f
   section.classList.active=false;finish();await loading;
   assert.equal(section.classList.active,false);assert.equal(renders,1);
 });
+
+test('task controls remain disabled through saving and replacement-card refresh',async()=>{
+  const task={id:'qa-task',assignee:'nexus',status:'in_progress'};
+  let finish;const refresh=new Promise(resolve=>{finish=resolve});
+  const control=()=>({disabled:false,textContent:'Complete',isConnected:true});let controls=[control()];
+  const actions={querySelector:()=>({}),querySelectorAll:()=>[]};
+  const card={dataset:{taskId:task.id},querySelector:()=>actions,querySelectorAll:()=>controls,classList:{toggle(){}},style:{removeProperty(){}}};
+  const window={NexusPortal:{state:{admin:true,tasks:[task]},sb:{rpc:async()=>({})},toast(){},workspace:()=>refresh}};
+  const code=source('portal-journey-task-guard.js').split("document.addEventListener('click'")[0];
+  vm.runInNewContext(`${code}\nwindow.guard={transition,enhance};`,{window,document:{querySelectorAll:()=>[card]},requestAnimationFrame:fn=>fn(),console});
+  const loading=window.guard.transition(task,'in_progress',null,controls[0]);
+  assert.equal(controls[0].disabled,true);
+  await Promise.resolve();
+  controls=[control()];window.guard.enhance();
+  assert.equal(controls[0].disabled,true,'a newly rendered control must not accept a second action during refresh');
+  finish();await loading;
+  assert.equal(controls[0].disabled,false);
+});
