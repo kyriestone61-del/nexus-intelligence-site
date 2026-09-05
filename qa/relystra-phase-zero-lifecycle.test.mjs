@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 
 const migration=await readFile(new URL('../supabase/migrations/20260905_relystra_phase_zero_client_lifecycle.sql',import.meta.url),'utf8');
+const hardening=await readFile(new URL('../supabase/migrations/20260905_relystra_phase_zero_measurement_hardening.sql',import.meta.url),'utf8');
 const portalApp=await readFile(new URL('../portal-app.js',import.meta.url),'utf8');
 const lifecycle=await readFile(new URL('../portal-phase-zero-lifecycle.js',import.meta.url),'utf8');
 const resolution=await readFile(new URL('../portal-resolution-plan.js',import.meta.url),'utf8');
@@ -24,6 +25,7 @@ test('commercial close freezes implementation until scope and payment pass',()=>
   assert.match(migration,/scope_signed/);
   assert.match(migration,/payment_confirmed/);
   assert.match(migration,/status='not_started',notify_client=false/);
+  assert.match(hardening,/revoke execute on function public\.nexus_confirm_resolution_plan\(uuid\) from authenticated/);
 });
 
 test('all Phase Zero gates are authoritative database records',()=>{
@@ -40,10 +42,16 @@ test('implementation cannot be declared complete with open governed work',()=>{
   assert.match(migration,/status not in \('completed','approved','done','not_applicable','cancelled','canceled'\)/);
 });
 
-test('measurement is required before acceptance',()=>{
-  assert.match(migration,/Measurement cannot close until at least one post-implementation result is recorded/);
-  assert.match(migration,/current_value is not null and m\.measured_at is not null/);
-  assert.match(migration,/actual_result/);
+test('measurement is a real before-after result recorded after QA',()=>{
+  assert.match(hardening,/nexus_phase_zero_measured_evidence_count/);
+  assert.match(hardening,/m\.baseline_value is not null/);
+  assert.match(hardening,/m\.current_value is not null/);
+  assert.match(hardening,/m\.measured_at >= qa\.qa_at/);
+  assert.match(hardening,/l\.before_value is not null/);
+  assert.match(hardening,/l\.after_value is not null/);
+  assert.match(hardening,/actual_result/);
+  assert.match(hardening,/l\.updated_at >= qa\.qa_at/);
+  assert.match(hardening,/Measurement cannot close until a before\/after result is recorded after QA/);
   assert.match(migration,/engagement_stage='acceptance'/);
 });
 
