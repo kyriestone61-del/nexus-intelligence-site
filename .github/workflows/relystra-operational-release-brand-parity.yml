@@ -1,0 +1,50 @@
+name: RELYSTRA Operational Release Brand Parity
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  brand-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify Pages and custom-domain RELYSTRA identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          pages='https://nexus-intelligence-site.pages.dev'
+          custom='https://nexusintelligence.live'
+
+          probe() {
+            local name="$1" url="$2" marker="$3"
+            local body code attempt
+            body="$(mktemp)"
+            for attempt in 1 2 3 4 5 6 7 8; do
+              code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' "$url" || true)"
+              if [ "$code" = '200' ] && grep -Fq "$marker" "$body"; then
+                echo "$name PASS http=$code marker='$marker' attempt=$attempt"
+                return 0
+              fi
+              echo "$name attempt=$attempt http=${code:-curl_error} waiting_for='$marker'"
+              sleep 10
+            done
+            echo "$name FAIL: expected HTTP 200 and marker '$marker' at $url" >&2
+            head -c 2400 "$body" >&2 || true
+            exit 1
+          }
+
+          probe 'pages-home-brand' "$pages/" 'Systems that earn their place.'
+          probe 'custom-home-brand' "$custom/" 'Systems that earn their place.'
+          probe 'pages-home-name' "$pages/" '<span>Relystra</span>'
+          probe 'custom-home-name' "$custom/" '<span>Relystra</span>'
+          probe 'pages-book-brand' "$pages/book" 'Relystra Fit Call'
+          probe 'custom-book-brand' "$custom/book" 'Relystra Fit Call'
+          probe 'pages-portal-brand' "$pages/portal" 'Relystra'
+          probe 'custom-portal-brand' "$custom/portal" 'Relystra'
+
+          echo 'RELYSTRA_OPERATIONAL_BRAND_PARITY=PASS'
