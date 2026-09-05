@@ -42,9 +42,11 @@ async function selectQaCompany(page){
 }
 async function adminLogin(page){await signIn(page,adminEmail,adminPassword);return selectQaCompany(page)}
 async function clientLogin(page){await signIn(page,clientEmail,clientPassword);await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:30_000})}
-async function openAdminActions(page){
+async function openAdminActions(page,view='my_work'){
   await page.evaluate(()=>document.querySelector('.side-nav button[data-section="tasks"]')?.click());
   await expect(page.locator('#section-tasks')).toHaveClass(/active/,{timeout:15_000});
+  const filter=page.locator(`#actionExecutionFilters button[data-view="${view}"]`);
+  await expect(filter).toBeVisible();await filter.click();await expect(filter).toHaveClass(/active/);
 }
 async function openClientActions(page){
   const button=page.locator('#nexusClientActionsButton');await expect(button).toBeVisible({timeout:20_000});await button.click();await expect(page.locator('#nexus-client-actions')).toHaveClass(/active/);
@@ -88,7 +90,7 @@ async function processClientSubmission(page,task,{exerciseHelp=false,exerciseRev
   await card.locator('[data-action-submit]').click();await waitForTaskStatus(page,task.id,'ready_for_review');
   await signOut(page);
 
-  await adminLogin(page);await openAdminActions(page);
+  await adminLogin(page);await openAdminActions(page,'ready_review');
   let adminCard=page.locator(`.action-v2-card[data-task-id="${task.id}"],.operational-action-card[data-task-id="${task.id}"]`).first();await expect(adminCard).toBeVisible({timeout:20_000});
   if(exerciseRevision){
     page.once('dialog',dialog=>dialog.accept('QA revision: add the missing verification detail.'));
@@ -97,7 +99,7 @@ async function processClientSubmission(page,task,{exerciseHelp=false,exerciseRev
     const restart=card.locator('[data-action-start]');if(await restart.isVisible().catch(()=>false))await restart.click();
     card=page.locator(`[data-action-engine-task="${task.id}"]`);const d=card.locator('.action-engine-detail-toggle');if(await d.isVisible().catch(()=>false))await d.click();await fillRequiredActionFields(card);
     await card.locator('[data-action-submit]').click();await waitForTaskStatus(page,task.id,'ready_for_review');await signOut(page);
-    await adminLogin(page);await openAdminActions(page);adminCard=page.locator(`.action-v2-card[data-task-id="${task.id}"],.operational-action-card[data-task-id="${task.id}"]`).first();await expect(adminCard).toBeVisible({timeout:20_000});
+    await adminLogin(page);await openAdminActions(page,'ready_review');adminCard=page.locator(`.action-v2-card[data-task-id="${task.id}"],.operational-action-card[data-task-id="${task.id}"]`).first();await expect(adminCard).toBeVisible({timeout:20_000});
   }
   await adminCard.locator('.admin-approve-task').click();await waitForTaskStatus(page,task.id,'completed');
 }
@@ -128,6 +130,10 @@ test.describe('full governed Nexus baseline workflow',()=>{
       return window.NexusFoundationHardening.activeProject()?.id;
     }),{timeout:20_000,message:'Fresh baseline engagement must be selected in the browser'}).toBe(setup.projectId);
     await page.evaluate(async()=>{await window.NexusPortal.workspace();window.NexusDiagnosisController.invalidateLatest()});
+    await expect.poll(()=>page.evaluate(async()=>{
+      await window.NexusAdminIntake.refresh({reload:true});
+      return window.NexusAdminIntake.latestDiagnosisRun()?.id||null;
+    }),{timeout:20_000,message:'Fresh engagement intake must not retain an earlier diagnosis'}).toBeNull();
 
     await page.evaluate(()=>document.querySelector('.side-nav button[data-section="intake"]')?.click());await expect(page.locator('#section-intake')).toHaveClass(/active/,{timeout:15_000});
     await page.locator('#toggleEvidenceUploadBtn').click();
@@ -139,6 +145,7 @@ test.describe('full governed Nexus baseline workflow',()=>{
     },{companyId,projectId:setup.projectId}),{timeout:90_000,message:'Transcript must be stored on the fresh baseline engagement'}).toBeGreaterThan(0);
     await expect(page.locator('#section-intake')).toContainText('qa-baseline-transcript.txt',{timeout:90_000});
 
+    await expect(page.locator('#adminEvidenceForm button[type="submit"]')).toBeEnabled({timeout:90_000});
     await page.locator('#queueDiagnosisBtn').click();
     try{
       await expect(page.locator('#diagnosisReviewModal')).toHaveClass(/open/,{timeout:210_000});
@@ -176,7 +183,7 @@ test.describe('full governed Nexus baseline workflow',()=>{
     },{companyId,projectId:setup.projectId});
     await signOut(page);await clientLogin(page);await openClientActions(page);let uploadCard=page.locator(`[data-action-engine-task="${uploadTaskId}"]`);await expect(uploadCard).toBeVisible({timeout:20_000});const uploadStart=uploadCard.locator('[data-action-start]');if(await uploadStart.isVisible().catch(()=>false))await uploadStart.click();await uploadForAction(page,uploadTaskId,'qa-financial-transactions.csv');
     await openClientActions(page);uploadCard=page.locator(`[data-action-engine-task="${uploadTaskId}"]`);await expect(uploadCard).toContainText('Evidence attached');await uploadCard.locator('[data-action-submit]').click();await waitForTaskStatus(page,uploadTaskId,'ready_for_review');await signOut(page);
-    await adminLogin(page);await openAdminActions(page);let uploadAdminCard=page.locator(`.action-v2-card[data-task-id="${uploadTaskId}"],.operational-action-card[data-task-id="${uploadTaskId}"]`).first();await expect(uploadAdminCard).toBeVisible();await uploadAdminCard.locator('.admin-approve-task').click();await waitForTaskStatus(page,uploadTaskId,'completed');
+    await adminLogin(page);await openAdminActions(page,'ready_review');let uploadAdminCard=page.locator(`.action-v2-card[data-task-id="${uploadTaskId}"],.operational-action-card[data-task-id="${uploadTaskId}"]`).first();await expect(uploadAdminCard).toBeVisible();await uploadAdminCard.locator('.admin-approve-task').click();await waitForTaskStatus(page,uploadTaskId,'completed');
 
     const opsTaskId=await page.evaluate(async({companyId,projectId})=>{const sb=window.NexusPortal.sb;const assigned=await sb.rpc('nexus_assign_action_template',{p_company_id:companyId,p_project_id:projectId,p_template_code:'diagnosis_review_transcript',p_due_date:null,p_priority:'normal'});if(assigned.error)throw new Error(assigned.error.message);await window.NexusPortal.workspace?.();return assigned.data},{companyId,projectId:setup.projectId});
     await openAdminActions(page);let opsCard=page.locator(`.action-v2-card[data-task-id="${opsTaskId}"],.operational-action-card[data-task-id="${opsTaskId}"]`).first();await expect(opsCard).toBeVisible();await expect(opsCard.locator('[data-engine-edit]')).toBeVisible({timeout:15_000});await opsCard.locator('[data-engine-edit]').click();await expect(page.locator('#actionEngineAdminModal')).toHaveClass(/show/);await page.locator('#actionEnginePriority').selectOption('high');await page.locator('#actionEngineEvidence').fill('QA workflow evidence');await page.locator('#actionEngineCriteria').fill('QA workflow definition saved');await page.locator('#actionEngineAdminForm button[type="submit"]').click();await expect.poll(async()=>String((await taskRecord(page,opsTaskId)).priority)).toBe('high');
