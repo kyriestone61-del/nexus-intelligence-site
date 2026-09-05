@@ -38,12 +38,30 @@ jobs:
             exit 1
           }
 
+          probe_calendar_handoff() {
+            local name="$1" url="$2"
+            local result code final attempt
+            for attempt in 1 2 3 4 5 6 7 8; do
+              result="$(curl --silent --show-error --location --output /dev/null --write-out '%{http_code}|%{url_effective}' "$url" || true)"
+              code="${result%%|*}"
+              final="${result#*|}"
+              if [ "$code" = '200' ] && { [[ "$final" == https://calendar.google.com/* ]] || [[ "$final" == https://calendar.app.google/* ]]; }; then
+                echo "$name PASS http=$code final='$final' attempt=$attempt"
+                return 0
+              fi
+              echo "$name attempt=$attempt http=${code:-curl_error} final='$final'"
+              sleep 10
+            done
+            echo "$name FAIL: expected Google Calendar handoff from $url" >&2
+            exit 1
+          }
+
           probe 'pages-home-brand' "$pages/" 'Systems that earn their place.'
           probe 'custom-home-brand' "$custom/" 'Systems that earn their place.'
           probe 'pages-home-name' "$pages/" '<span>Relystra</span>'
           probe 'custom-home-name' "$custom/" '<span>Relystra</span>'
-          probe 'pages-book-brand' "$pages/book" 'Relystra Fit Call'
-          probe 'custom-book-brand' "$custom/book" 'Relystra Fit Call'
+          probe_calendar_handoff 'pages-book-handoff' "$pages/book"
+          probe_calendar_handoff 'custom-book-handoff' "$custom/book"
           probe 'pages-portal-brand' "$pages/portal" 'Relystra'
           probe 'custom-portal-brand' "$custom/portal" 'Relystra'
 
