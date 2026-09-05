@@ -184,6 +184,16 @@ jobs:
             exit 1
           fi
           echo 'AUTHENTICATED_CONTROL_ROOM_QA=REQUIRED_AND_PASSED'
+      - name: Report disposable browser failure context
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PYQA'
+          from pathlib import Path
+          for path in sorted(Path('test-results').glob('*/error-context.md')):
+              print(f'QA_ERROR_CONTEXT={path.parent.name}')
+              print(path.read_text()[:18000])
+          PYQA
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

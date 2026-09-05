@@ -139,13 +139,25 @@ test.describe('administrator and client-preview boundaries',()=>{
   test('founder navigation is reduced to Home, Clients, Decisions, Sales and each route opens',async({page})=>{
     await signIn(page,adminEmail,adminPassword);
     await selectQaCompanyForSetup(page);
+    const menu=page.locator('#nexusMobileNavToggle');
+    async function openMenu(){
+      if(await menu.isVisible()&&await menu.getAttribute('aria-expanded')==='false'){
+        await menu.click();await expect(menu).toHaveAttribute('aria-expanded','true');
+      }
+    }
+    async function openRoute(label){
+      await openMenu();
+      const button=page.locator('.nexus-production-primary-nav > button').filter({hasText:new RegExp(`^${label}$`)});
+      await button.click();
+    }
     const primary=page.locator('.nexus-production-primary-nav > button');
     await expect(primary).toHaveCount(4);
     expect(await primary.allTextContents()).toEqual(['Home','Clients','Decisions','Sales']);
-    await primary.filter({hasText:'Clients'}).click();await expect(page.locator('#section-companies')).toHaveClass(/active/);
-    await primary.filter({hasText:'Decisions'}).click();await expect(page.locator('#section-notifications')).toHaveClass(/active/);
-    await primary.filter({hasText:'Sales'}).click();await expect(page.locator('#section-revenue')).toHaveClass(/active/);
-    await primary.filter({hasText:'Home'}).click();await expect(page.locator('#adminJourneyRoot')).toBeVisible();
+    await openRoute('Clients');await expect(page.locator('#section-companies')).toHaveClass(/active/);
+    await openRoute('Decisions');await expect(page.locator('#section-notifications')).toHaveClass(/active/);
+    await openRoute('Sales');await expect(page.locator('#section-revenue')).toHaveClass(/active/);
+    await openRoute('Home');await expect(page.locator('#adminJourneyRoot')).toBeVisible();
+    await openMenu();
     const records=page.locator('details.nexus-production-records');await expect(records).toBeVisible();await records.locator('summary').click();await expect(records).toHaveAttribute('open','');
     await assertNoOverflow(page);
   });

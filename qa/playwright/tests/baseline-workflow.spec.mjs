@@ -131,7 +131,13 @@ test.describe('full governed Nexus baseline workflow',()=>{
     await expect(page.locator('#section-intake')).toContainText('qa-baseline-transcript.txt',{timeout:90_000});
 
     await page.locator('#queueDiagnosisBtn').click();
-    await expect(page.locator('#diagnosisReviewModal')).toHaveClass(/open/,{timeout:210_000});await expect(page.locator('[data-diagnosis-action="approve"]')).toBeVisible({timeout:20_000});
+    try{
+      await expect(page.locator('#diagnosisReviewModal')).toHaveClass(/open/,{timeout:210_000});
+    }catch(error){
+      console.log('BASELINE_DIAGNOSIS_BROWSER_ERRORS',JSON.stringify(errors));
+      throw error;
+    }
+    await expect(page.locator('[data-diagnosis-action="approve"]')).toBeVisible({timeout:20_000});
     const runId=await page.locator('[data-diagnosis-action="approve"]').getAttribute('data-id');expect(runId).toBeTruthy();
     await page.locator('[data-diagnosis-action="approve"]').click();
     await expect(page.locator('#nexusResolutionPlanModal')).toHaveClass(/open/,{timeout:35_000});await expect(page.locator('.resolution-proposal')).toHaveCountGreaterThan?.(0);
