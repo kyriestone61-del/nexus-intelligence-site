@@ -42,6 +42,14 @@ body {
   color: #07111a;
 }
 
+/* Public portal authentication controls must remain comfortably tappable on phone screens. */
+.portal-body #tabSignIn,
+.portal-body #tabCreate,
+.portal-body #signInBtn,
+.portal-body #createBtn {
+  min-height: 44px;
+}
+
 .nav-cta {
   border-color: rgba(72, 183, 167, .35);
   background: #f4f1e8;
