@@ -38,11 +38,23 @@ const TEXT_REPLACEMENTS=new Map([
  ['Required evidence','What to provide'],
  ['Evidence attached','Files attached'],
  ['Audit trail','History'],
+ ['Discovery history & audit trail','History'],
  ['Waiting on prerequisite','Waiting on earlier step'],
  ['Prerequisite complete','Earlier step complete']
 ]);
 
 const PLAIN_PHRASES=[
+ ['Relystra handles the framework, provenance, gap detection, and agent orchestration behind the scenes. Your job is to review what is known, close material gaps, add context, run the diagnosis, and approve the result.','Add the transcript and useful files, check what is still missing, add your notes, run the diagnosis, and approve the result.'],
+ ['Transcripts are optional. Upload any relevant current-state evidence that helps explain the company, workflow, systems, volume, performance, or constraints.','Add the transcript and any useful files that show how the business works today.'],
+ ['The Master Discovery Framework stays in the backend. Relystra compares it against current evidence and client answers, then surfaces only material gaps.','Relystra checks the transcript, files, and client answers and shows only what is still missing.'],
+ ['Relystra will compare the evidence already collected against the reusable Discovery Framework and surface only material information that is still missing.','Relystra checks what you already added and shows only what is still missing.'],
+ ['Your observations directly influence the next diagnosis, but remain explicitly labeled as ADMIN CONTEXT until independently supported.','Add anything important the transcript or files may not show. Treat your notes as context until the client or evidence confirms them.'],
+ ['Relystra analyzes all authorized evidence, current admin context, and completed client discovery answers. Evidence is selected automatically.','Relystra reviews the transcript, files, client answers, and your notes automatically.'],
+ ['Relystra analyzes all transcript and files, current admin context, and completed client discovery answers. Evidence is selected automatically.','Relystra reviews the transcript, files, client answers, and your notes automatically.'],
+ ['Run Information Gaps first for the strongest diagnosis coverage.','Check what’s missing first for the strongest diagnosis.'],
+ ['Approval makes this diagnosis the root record for downstream opportunities, action items, requests, measurements, and the recommended first intervention.','Once approved, this diagnosis drives the next steps and recommended plan.'],
+ ['Relystra creates draft evidence requests from unresolved preparation gaps and, when a diagnosis result supplies structured evidence gaps, from those findings too. Nothing is sent to the client until you approve it here.','Relystra can draft follow-up requests for missing information. Nothing is sent to the client until you approve it.'],
+ ['No diagnosis-generated requests yet. Queue a diagnosis to create preliminary request drafts from unresolved preparation gaps.','No follow-up requests yet. Run the diagnosis to see whether anything else is needed.'],
  ['Use Client Journey for the normal workflow. Open a supporting tool only when the current step sends you there.','Use Home for the normal workflow. Open Records & Tools only when you need more detail.'],
  ['Review the resolutions Relystra recommends from the approved diagnosis. Approve, reject, or defer each one. Only the final confirmed plan becomes work.','Review the solutions Relystra recommends. Choose what should move forward. Only what you confirm becomes work.'],
  ['Relystra translated the approved diagnosis into proposed resolutions. Decide which ones belong in the plan, then approve Confirm Plan.','Relystra turned the diagnosis into recommended solutions. Choose what should move forward, then confirm the plan.'],
@@ -52,8 +64,14 @@ const PLAIN_PHRASES=[
  ['Relystra keeps files, workflows, approvals, systems, and audit history behind this journey. Open Records & Tools only when you need to inspect them.','Files, decisions, systems, and history stay under Records & Tools. Use them only when you need more detail.'],
  ['Human send approval is on','You approve every send'],
  ['Relystra prepares outreach. Nothing external is sent from this console without approval.','Relystra prepares outreach. Nothing is sent until you approve it.'],
+ ['Information Gaps & Requests','Missing Information'],
+ ['Diagnosis Execution','Run Diagnosis'],
+ ['Admin Context','Your Notes'],
+ ['Discovery history & audit trail','History'],
  ['material information gaps','missing information'],
  ['material discovery gaps','missing information'],
+ ['material gaps','missing information'],
+ ['material gap','missing item'],
  ['evidence-backed diagnosis','diagnosis'],
  ['bounded diagnosis','diagnosis'],
  ['recommended intervention','recommended first step'],
@@ -65,9 +83,12 @@ const PLAIN_PHRASES=[
  ['documented resolution','resolved issue'],
  ['authorized evidence','transcript and files'],
  ['root record for downstream work','diagnosis that drives the next steps'],
+ ['root record','main diagnosis'],
+ ['structured evidence gaps','missing information'],
  ['structured findings','findings'],
  ['gap analysis','check'],
  ['downstream action items','client actions'],
+ ['downstream opportunities','next steps'],
  ['governed action chains','planned work'],
  ['governed action plan','next-step plan'],
  ['commercial gate','scope and payment check'],
@@ -114,6 +135,19 @@ function replaceVisiblePhrases(root=document.body){
     if(value!==original)textNode.nodeValue=value;
   }
 }
+function improveDiagnosisCopy(){
+  const intake=document.getElementById('section-intake');
+  if(!intake||!state.admin||document.body.classList.contains('portal-client-mode'))return;
+  const set=(selector,value)=>{const node=intake.querySelector(selector);if(node&&node.textContent.trim()!==value)node.textContent=value};
+  set('.step2-hero p','Add the transcript and useful files, check what is still missing, add your notes, run the diagnosis, and approve the result.');
+  set('[data-module="evidence"] .step2-module-head p.small','Add the transcript and any useful files that show how the business works today.');
+  set('[data-module="evidence"] details.step2-history summary','History');
+  set('[data-module="gaps"] .step2-module-head p.small','Relystra checks the transcript, files, and client answers and shows only what is still missing.');
+  set('[data-module="context"] .step2-module-head p.small','Add anything important the transcript or files may not show. Treat your notes as context until the client or evidence confirms them.');
+  set('[data-module="diagnosis"] .step2-module-head p.small','Relystra reviews the transcript, files, client answers, and your notes automatically.');
+  set('[data-module="review"] .step2-module-head p.small','Once approved, this diagnosis drives the next steps and recommended plan.');
+  const notes=intake.querySelector('#adminContextText');if(notes)notes.placeholder='Add any important detail the transcript or files may not show.';
+}
 function currentViewLabel(){
   if(document.body.classList.contains('portal-client-mode'))return 'Client view';
   if(document.body.classList.contains('portal-admin-mode'))return 'Admin';
@@ -149,7 +183,7 @@ function simplifyAdminTools(){
   if(note&&note.textContent.trim()!==noteText)note.textContent=noteText;
 }
 function improveLabels(){
-  replaceControlText();replaceVisiblePhrases();
+  replaceControlText();replaceVisiblePhrases();improveDiagnosisCopy();
   const role=document.getElementById('roleLabel');
   if(role&&state.admin&&!document.body.classList.contains('portal-client-mode')&&role.textContent.trim()!=='Relystra admin')role.textContent='Relystra admin';
   document.querySelectorAll('.empty').forEach(el=>{
@@ -171,7 +205,7 @@ const observer=new MutationObserver(()=>{
   if(scheduled)return;scheduled=true;
   requestAnimationFrame(()=>{scheduled=false;refresh();bindCompanyChanges()});
 });
-observer.observe(document.body,{subtree:true,childList:true});
+observer.observe(document.body,{subtree:true,childList:true,characterData:true});
 window.NexusUXRefinement={refresh};
 
 const ACTION_PROCESSING_BUILD='20260905-action-processing-rebrand1';
