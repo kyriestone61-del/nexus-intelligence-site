@@ -173,7 +173,7 @@ test.describe('administrator and client-preview boundaries',()=>{
     await signIn(page,adminEmail,adminPassword);
     await selectQaCompanyForSetup(page);
     const switcher=page.locator('#nexusPerspectiveSwitcher');
-    try{await expect(switcher).toBeVisible()}catch(error){
+    try{await expect(switcher.locator('summary')).toBeVisible()}catch(error){
       console.log('PERSPECTIVE_VISIBILITY',JSON.stringify(await page.evaluate(()=>{
         const describe=node=>{if(!node)return null;const s=getComputedStyle(node),r=node.getBoundingClientRect();return {tag:node.tagName,id:node.id,classes:node.className,hidden:node.hidden,display:s.display,visibility:s.visibility,width:r.width,height:r.height}};
         const node=document.getElementById('nexusPerspectiveSwitcher'),state=window.NexusPortal?.state;
@@ -181,6 +181,8 @@ test.describe('administrator and client-preview boundaries',()=>{
       })));throw error;
     }
     await switcher.locator('summary').click();
+    await expect(switcher).toHaveAttribute('open','');
+    await expect(switcher.locator('[data-perspective="client"]')).toBeVisible();
     await switcher.locator('[data-perspective="client"]').click();
     await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:40_000});
     await expect(page.getByText('Nexus could not finish loading.',{exact:true})).toHaveCount(0);
