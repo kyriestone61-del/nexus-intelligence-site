@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { prepareAuthRecovery, markAuthRecoveryProviderFailure, markAuthRecoveryAccepted, isAuthRecovery } from "./auth-recovery.ts";
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"content-type,x-nexus-worker-token","Access-Control-Allow-Methods":"POST,OPTIONS"};
 const base=()=>Deno.env.get('SUPABASE_URL')||'https://dmdgkjksouhhsuojthav.supabase.co';
@@ -29,10 +30,15 @@ async function processEmail(){
   const rows=await claim.json();let sent=0,retried=0,failed=0;
   for(const row of rows){try{
     const action=row.action_url?`${Deno.env.get('NEXUS_PUBLIC_ORIGIN')||'https://nexusintelligence.live'}${row.action_url}`:null;
-    const body=clean(row.body_text,12000)+(action?`\n\nOpen Relystra: ${action}`:'');
-    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:`Bearer ${resend}`,'content-type':'application/json'},body:JSON.stringify({from,to:[row.recipient_email],subject:clean(row.subject,250),text:body,headers:{'X-Entity-Ref-ID':row.id}})});
+    let body=clean(row.body_text,12000)+(action?`\n\nOpen Relystra: ${action}`:'');
+    const recoveryBody=await prepareAuthRecovery(row,base(),h());
+    if(recoveryBody)body=recoveryBody;
+    const providerHeaders:any={authorization:`Bearer ${resend}`,'content-type':'application/json'};
+    if(isAuthRecovery(row))providerHeaders['Idempotency-Key']=`relystra-auth-${row.id}`;
+    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:providerHeaders,body:JSON.stringify({from,to:[row.recipient_email],subject:clean(row.subject,250),text:body,headers:{'X-Entity-Ref-ID':row.id}})});
     const p=await r.json().catch(()=>({}));
-    if(!r.ok){const permanent=[400,401,403,404,422].includes(r.status);await patchEmail(row.id,{status:permanent||Number(row.attempts)>=4?'failed':'queued',available_at:new Date(Date.now()+(permanent?0:Math.min(60,15*Math.max(1,Number(row.attempts))))*60000).toISOString(),last_attempt_at:now(),failure_class:permanent?'permanent':'transient',last_error:clean(p?.message||`Provider ${r.status}`,1000),provider_status:String(r.status)});permanent||Number(row.attempts)>=4?failed++:retried++;continue}
+    if(!r.ok){const permanent=[400,401,403,404,422].includes(r.status);await markAuthRecoveryProviderFailure(row,base(),h(),r.status,clean(p?.message||`Provider ${r.status}`,160));await patchEmail(row.id,{status:permanent||Number(row.attempts)>=4?'failed':'queued',available_at:new Date(Date.now()+(permanent?0:Math.min(60,15*Math.max(1,Number(row.attempts))))*60000).toISOString(),last_attempt_at:now(),failure_class:permanent?'permanent':'transient',last_error:clean(p?.message||`Provider ${r.status}`,1000),provider_status:String(r.status)});permanent||Number(row.attempts)>=4?failed++:retried++;continue}
+    await markAuthRecoveryAccepted(row,base(),h(),p?.id||null);
     await patchEmail(row.id,{status:'sent',sent_at:now(),provider_message_id:p?.id||null,last_attempt_at:now(),failure_class:null,last_error:null,provider_status:'accepted'});sent++
   }catch(e){await patchEmail(row.id,{status:Number(row.attempts)>=4?'failed':'queued',available_at:new Date(Date.now()+15*60000).toISOString(),last_attempt_at:now(),failure_class:'transient',last_error:clean((e as Error).message,1000)});retried++}}
   const oldest=await rest('nexus_email_outbox?status=eq.queued&select=created_at&order=created_at.asc&limit=1').catch(()=>[]);
