@@ -76,6 +76,8 @@ async function uploadForAction(page,taskId,fileName='qa-financial-transactions.c
   await expect(page.locator('#uploadForm')).toBeVisible({timeout:15_000});
   await expect(page.locator('#uploadContext')).toContainText('Upload for:',{timeout:10_000});
   await page.locator('#docFile').setInputFiles({name:fileName,mimeType:'text/csv',buffer:Buffer.from('date,description,amount\n2026-08-01,QA Sale,1500\n2026-08-02,QA Expense,-225\n')});
+  const retainedUpload=await page.evaluate(async()=>{const form=document.getElementById('uploadForm');await window.NexusClientShell.refresh({force:true});return {sameForm:document.getElementById('uploadForm')===form,fileName:document.getElementById('docFile')?.files?.[0]?.name||null}});
+  expect(retainedUpload).toEqual({sameForm:true,fileName});
   await page.locator('#uploadForm button[type="submit"]').click();
   await expect.poll(async()=>page.evaluate(async({taskId,fileName})=>{const {count,error}=await window.NexusPortal.sb.from('nexus_documents').select('id',{count:'exact',head:true}).eq('task_id',taskId).eq('file_name',fileName);if(error)throw new Error(error.message);return count||0},{taskId,fileName}),{timeout:30_000}).toBeGreaterThan(0);
 }
@@ -131,7 +133,8 @@ test.describe('full governed Nexus baseline workflow',()=>{
     const companyId=await adminLogin(page);
     const setup=await page.evaluate(async({companyId})=>{
       const portal=window.NexusPortal,sb=portal.sb,userId=portal.state.user.id;
-      const created=await sb.from('nexus_projects').insert({company_id:companyId,name:`QA Baseline Engagement ${Date.now()}`,service_type:'Implementation Sprint',status:'planning',summary:'Disposable full baseline workflow QA',created_by:userId,project_type:'diagnosis_pilot',engagement_stage:'diagnosis',owner_scope:'nexus'}).select('id').single();if(created.error)throw new Error(created.error.message);
+      const created=await sb.from('nexus_projects').insert({company_id:companyId,name:`QA Baseline Engagement ${Date.now()}`,service_type:'Implementation Sprint',status:'planning',summary:'Disposable full baseline workflow QA',created_by:userId,project_type:'diagnosis_pilot',engagement_stage:'diagnosis',owner_scope:'nexus'}).select('*').single();if(created.error)throw new Error(created.error.message);
+      portal.state.projects=[created.data,...(portal.state.projects||[]).filter(project=>project.id!==created.data.id)];
       const active=await sb.from('nexus_active_engagements').upsert({company_id:companyId,project_id:created.data.id,updated_by:userId,updated_at:new Date().toISOString()},{onConflict:'company_id'});if(active.error)throw new Error(active.error.message);
       await portal.workspace?.();return {projectId:created.data.id};
     },{companyId});

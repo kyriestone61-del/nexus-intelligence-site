@@ -235,3 +235,19 @@ test('rendered action cards trigger administrator controls after filter replacem
   run();run();assert.deepEqual(calls,['bind','decorate','bind','decorate']);
   window.dispatchEvent({type:'nexus:action-cards-rendered',detail:{companyId:'another-company'}});assert.equal(calls.length,4);
 });
+
+
+test('Files refresh retains the mounted upload form, selected file, and handlers',()=>{
+  let host={};
+  const file={name:'selected-evidence.csv'},submit=()=>{};
+  const panel={parentElement:{},connected:true,file,submit,classList:{add(){}},querySelector:()=>null,querySelectorAll:()=>[]};
+  const root={querySelector:()=>panel.connected&&panel.parentElement===host?panel:null,querySelectorAll:()=>[],set innerHTML(value){if(panel.parentElement===host)panel.connected=false;host={appendChild(node){node.parentElement=host;node.connected=true}}}};
+  const document={querySelector:()=>panel.connected?panel:null};
+  const src=source('portal-client-shell-v2.js');
+  const code='function renderFiles(){'+src.split('function renderFiles(){')[1].split('function openUploadForRequest')[0];
+  const render=vm.runInNewContext(`${code}\nrenderFiles`,{$:id=>id==='nexus-client-files'?root:id==='nexusClientUploadHost'?host:null,document,documentRequests:[],state:{docs:[]},arr:x=>x,bindCommon(){},events:{bind(){}}});
+  for(let i=0;i<3;i++){
+    render();assert.equal(panel.connected,true,'refresh must remount the original live form');
+    assert.equal(panel.parentElement,host);assert.equal(panel.file,file);assert.equal(panel.submit,submit);
+  }
+});
