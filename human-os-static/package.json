@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "node build.mjs && node preview-patch.mjs && node value-retention-patch.mjs"
+    "build": "node build.mjs && node preview-patch.mjs && node value-retention-patch.mjs && node auth-isolation-patch.mjs"
   },
   "engines": {
     "node": ">=20"
