@@ -16,9 +16,8 @@ function cors(origin){
   return headers;
 }
 function response(body,status=200,origin=null){return new Response(JSON.stringify(body),{status,headers:cors(origin)})}
-function generic(origin){return response({ok:true,message:'If that email matches a Relystra account, a secure recovery link will be sent shortly.'},200,origin)}
+function generic(origin){return response({ok:true,message:'If that email matches a Relystra account, a secure recovery request has been queued. Delivery can be delayed if the transactional provider is temporarily at capacity.'},200,origin)}
 function validEmail(email){return email.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)}
-function sourceIp(request){return (request.headers.get('cf-connecting-ip')||request.headers.get('x-forwarded-for')||'unknown').split(',')[0].trim().slice(0,80)}
 
 export async function onRequestOptions({request}){
   const origin=request.headers.get('origin');
@@ -40,7 +39,7 @@ export async function onRequestPost({request}){
     const worker=await fetch(RECOVERY_WORKER,{
       method:'POST',
       headers:{'content-type':'application/json','origin':PUBLIC_ORIGIN},
-      body:JSON.stringify({mode:'auth_recovery',email,client_ip:sourceIp(request)})
+      body:JSON.stringify({mode:'auth_recovery',email})
     });
     const payload=await worker.json().catch(()=>({}));
     if(!worker.ok||payload?.ok===false)throw new Error(`recovery_worker_${worker.status}`);
