@@ -32,7 +32,15 @@ jobs:
           grep -Fq "portal-diagnosis-output-hub.js?v=" portal-diagnosis-approval-ux.js
           grep -Fq "portal-resolution-plan.js?v=" portal-diagnosis-approval-ux.js
           grep -Fq "nexus_get_resolution_plan" portal-resolution-plan.js
-          grep -Fq "nexus_confirm_resolution_plan" portal-resolution-plan.js
+          # Browser code must use the Phase Zero commercial-close wrapper. The legacy
+          # planner remains server-side inside that wrapper for backward compatibility.
+          grep -Fq "nexus_phase_zero_confirm_resolution_plan" portal-resolution-plan.js
+          if grep -Fq "sb.rpc('nexus_confirm_resolution_plan'" portal-resolution-plan.js; then
+            echo 'Direct browser invocation of nexus_confirm_resolution_plan bypasses the Phase Zero commercial gate.' >&2
+            exit 1
+          fi
+          grep -Fq "public.nexus_confirm_resolution_plan(p_run_id)" supabase/migrations/20260905_relystra_phase_zero_client_lifecycle.sql
+          grep -Fq "implementation_released',false" supabase/migrations/20260905_relystra_phase_zero_client_lifecycle.sql
       - name: Mobile contract
         run: |
           set -euo pipefail
