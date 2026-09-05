@@ -69,8 +69,14 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
     events.bind(document.getElementById('portalRecoveryRequestForm'),'submit','recovery:request',boundary.wrap('password recovery request',async event=>{
       event.preventDefault();const button=document.getElementById('portalRecoverySend'),message=document.getElementById('portalRecoveryMessage'),address=email?.value?.trim()||'';if(!address)return;
       if(button){button.disabled=true;button.textContent='Sending…'}if(message)message.textContent='';
-      try{const {error}=await sb.auth.resetPasswordForEmail(address,{redirectTo:`${location.origin}/portal?mode=recovery`});if(error)throw error;if(message)message.textContent='If that email matches a Relystra account, a recovery link has been sent. Check your inbox and spam folder.';if(button)button.hidden=true;const cancel=document.getElementById('portalRecoveryCancel');if(cancel)cancel.textContent='Close'}
-      catch(error){console.error('Relystra password recovery request failed',error);if(message)message.textContent='The recovery request could not be completed right now. Try again in a few minutes.';if(button){button.disabled=false;button.textContent='Send recovery email →'}}
+      try{
+        const response=await fetch('/api/auth-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({operation:'recovery',email:address})});
+        const payload=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(payload?.error||`Recovery request failed (${response.status})`);
+        if(message)message.textContent='If that email matches a Relystra account, a recovery link has been sent. Check your inbox and spam folder.';
+        if(button)button.hidden=true;const cancel=document.getElementById('portalRecoveryCancel');if(cancel)cancel.textContent='Close';
+      }
+      catch(error){console.error('Relystra password recovery request failed',error);if(message)message.textContent='The recovery email service is temporarily unavailable. Try again in a few minutes.';if(button){button.disabled=false;button.textContent='Send recovery email →'}}
     },{silent:true}));
   }
 

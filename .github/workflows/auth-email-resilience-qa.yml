@@ -1,0 +1,59 @@
+name: Relystra Auth Email Resilience QA
+
+on:
+  pull_request:
+    paths:
+      - 'functions/api/auth-email.js'
+      - 'portal-auth.js'
+      - 'supabase/migrations/*platform_auth_email_resilience.sql'
+      - '.github/workflows/auth-email-resilience-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'functions/api/auth-email.js'
+      - 'portal-auth.js'
+      - 'supabase/migrations/*platform_auth_email_resilience.sql'
+      - '.github/workflows/auth-email-resilience-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  auth-email-resilience:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and architecture assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module --check < functions/api/auth-email.js
+          node --input-type=module --check < portal-auth.js
+          grep -Fq "fetch('/api/auth-email'" portal-auth.js
+          grep -Fq "operation:'recovery'" portal-auth.js
+          ! grep -Fq 'resetPasswordForEmail' portal-auth.js
+          grep -Fq '/auth/v1/admin/generate_link' functions/api/auth-email.js
+          grep -Fq 'RELYSTRA_AUTH_RESEND_API_KEY' functions/api/auth-email.js
+          grep -Fq 'RESEND_API_KEY' functions/api/auth-email.js
+          grep -Fq 'platform_auth_email_events' functions/api/auth-email.js
+          grep -Fq 'RECOVERY_EMAIL_HOURLY_LIMIT' functions/api/auth-email.js
+          grep -Fq 'RECOVERY_IP_HOURLY_LIMIT' functions/api/auth-email.js
+          grep -Fq "status:'provider_accepted'" functions/api/auth-email.js
+          grep -Fq 'Raw email addresses, passwords, reset links' supabase/migrations/20260905_platform_auth_email_resilience.sql
+          grep -Fq 'enable row level security' supabase/migrations/20260905_platform_auth_email_resilience.sql
+          grep -Fq 'revoke all on table public.platform_auth_email_events from anon, authenticated' supabase/migrations/20260905_platform_auth_email_resilience.sql
+          if grep -Eiq 'service[_-]?role|RESEND_API_KEY|EMAIL_DISPATCH_SECRET' portal-auth.js; then
+            echo 'Privileged auth-email credential reference found in browser code.' >&2
+            exit 1
+          fi
+      - name: Account-enumeration and secret-persistence assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "If that email matches a Relystra account" functions/api/auth-email.js
+          ! grep -Eq "recipient_email|raw_email|action_link[[:space:]]*:|password[[:space:]]*:" supabase/migrations/20260905_platform_auth_email_resilience.sql
+          grep -Fq "event_type:'eq.recovery'" functions/api/auth-email.js
+          grep -Fq "delivery_path:'cloudflare_resend'" functions/api/auth-email.js
