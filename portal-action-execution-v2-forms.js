@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast,workspace}=portal;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const addressed=s=>['ready','uploaded','build_with_nexus','not_available','not_applicable'].includes(s);
@@ -21,7 +21,7 @@ async function submit(task,card){
  if(missing.length)return toast(`Complete the required field${missing.length===1?'':'s'}: ${missing.join(', ')}.`);
  const {error}=await sb.rpc('nexus_submit_task_for_review',{p_task_id:task.id,p_response_data:data});
  if(error)return toast(error.message||'This item could not be submitted.');
- toast('Submitted to Nexus for review.');await workspace();scheduleSoon();
+ toast('Submitted to Relystra for review.');await workspace();scheduleSoon();
 }
 
 function adminSummary(task,card){const schema=Array.isArray(task.form_schema)?task.form_schema:[],data=task.response_data||{};if(!schema.length||!Object.keys(data).length)return;const current=card.querySelector('.structured-response-summary');if(current)return;const rows=schema.filter(f=>String(data[f.key]??'').trim()).map(f=>`<div><b>${esc(f.label)}</b><span>${esc(data[f.key])}</span></div>`).join('');if(!rows)return;const el=document.createElement('div');el.className='client-submission-note structured-response-summary';el.innerHTML=`<b>Structured client response</b>${rows}`;const actions=card.querySelector('.action-v2-actions');actions?.before(el)}
@@ -34,7 +34,7 @@ function enhance(){
    if(task.assignee!=='client')return;
    const schema=Array.isArray(task.form_schema)?task.form_schema:[];
    if(schema.length&&!card.querySelector('.structured-task-response')){
-     const old=card.querySelector('.simple-response');const data=task.response_data||{};const wrapper=document.createElement('div');wrapper.className='simple-response structured-task-response';wrapper.innerHTML=`<div class="structured-task-fields">${schema.map(f=>inputFor(f,data[f.key])).join('')}</div><label><span>Note for Nexus (optional)</span><textarea data-client-note="${task.id}" placeholder="Add any context that will help Nexus review this item.">${esc(data.client_note||'')}</textarea></label>`;old?.replaceWith(wrapper);
+     const old=card.querySelector('.simple-response');const data=task.response_data||{};const wrapper=document.createElement('div');wrapper.className='simple-response structured-task-response';wrapper.innerHTML=`<div class="structured-task-fields">${schema.map(f=>inputFor(f,data[f.key])).join('')}</div><label><span>Note for Relystra (optional)</span><textarea data-client-note="${task.id}" placeholder="Add any context that will help Relystra review this item.">${esc(data.client_note||'')}</textarea></label>`;old?.replaceWith(wrapper);
    }
    const submitBtn=card.querySelector('.client-submit-task');if(submitBtn){if(['upload','workflow_evidence'].includes(task.task_type))submitBtn.textContent='Submit uploaded item for review →';submitBtn.onclick=()=>submit(task,card)}
  });
@@ -50,4 +50,4 @@ setTimeout(scheduleSoon,120);setTimeout(scheduleSoon,700);setTimeout(scheduleSoo
 
 const TASK_FILE_BUILD='20260903-inline-action-files1';
 if(!document.querySelector('link[data-nexus-task-files]')){const link=document.createElement('link');link.rel='stylesheet';link.href=`/portal-task-file-attachments.css?v=${TASK_FILE_BUILD}`;link.dataset.nexusTaskFiles='1';document.head.appendChild(link)}
-import(`/portal-task-file-attachments.js?v=${TASK_FILE_BUILD}`).then(()=>import(`/portal-task-file-attachments-live.js?v=${TASK_FILE_BUILD}`)).catch(error=>console.error('Nexus task file controls failed to load.',error));
+import(`/portal-task-file-attachments.js?v=${TASK_FILE_BUILD}`).then(()=>import(`/portal-task-file-attachments-live.js?v=${TASK_FILE_BUILD}`)).catch(error=>console.error('Relystra task file controls failed to load.',error));

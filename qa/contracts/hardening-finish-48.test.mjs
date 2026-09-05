@@ -26,4 +26,4 @@ assert.match(migration,/CREATE TRIGGER nexus_project_terminal_reconcile_active_e
 assert.match(migration,/AFTER UPDATE OF status ON public\.nexus_projects/);
 assert.match(migration,/WHEN \(NEW\.status IN \('complete','cancelled'\)\)/);
 
-console.log('Nexus Issue #48 hardening finish contracts passed.');
+console.log('Relystra Issue #48 hardening finish contracts passed.');

@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast}=portal;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let currentRunId=null,renderBusy=false;
@@ -23,7 +23,7 @@ function reportGate(run,report){
   const live=report?.status==='released'&&!report?.revoked_at;
   const version=Number(report?.report_version||0);
   const releasedAt=report?.released_at?new Date(report.released_at).toLocaleString():'';
-  return `<div class="diagnosis-report-release-gate ${live?'released':''}"><div><div class="kicker">Client diagnosis handoff</div><h3>${live?`Client report v${esc(version)} is released`:'Release the diagnosis before asking the client to approve it'}</h3><p class="small">${live?`Released ${esc(releasedAt)}. Releasing an updated version will reopen the diagnosis approval so the client reviews the newest report.`:'The client cannot approve a diagnosis they cannot see. Release the client-safe report first; Nexus will then make the matching “Approve diagnosis and first priority” task available automatically.'}</p></div><button class="btn ${live?'secondary':'primary'}" data-nexus-release-report="${esc(run.id)}" type="button">${live?'Release updated report →':'Release diagnosis report →'}</button></div>`;
+  return `<div class="diagnosis-report-release-gate ${live?'released':''}"><div><div class="kicker">Client diagnosis handoff</div><h3>${live?`Client report v${esc(version)} is released`:'Release the diagnosis before asking the client to approve it'}</h3><p class="small">${live?`Released ${esc(releasedAt)}. Releasing an updated version will reopen the diagnosis approval so the client reviews the newest report.`:'The client cannot approve a diagnosis they cannot see. Release the client-safe report first; Relystra will then make the matching “Approve diagnosis and first priority” task available automatically.'}</p></div><button class="btn ${live?'secondary':'primary'}" data-nexus-release-report="${esc(run.id)}" type="button">${live?'Release updated report →':'Release diagnosis report →'}</button></div>`;
 }
 async function renderReleaseQueue(){
   if(renderBusy||!currentRunId||!state.admin)return;renderBusy=true;

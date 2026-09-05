@@ -33,4 +33,4 @@ assert.match(backend,/nexus_company_members\?company_id=/,'non-admin client acce
 assert.match(backend,/content-disposition/,'endpoint must return an attachment filename');
 assert.match(backend,/'cache-control':'no-store'/,'diagnosis PDFs must not be cached');
 
-console.log('NEXUS DIAGNOSIS PDF UI QAQC PASS');
+console.log('RELYSTRA DIAGNOSIS PDF UI QAQC PASS');

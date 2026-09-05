@@ -9,7 +9,7 @@ test('workspace cannot reveal before required state is ready',()=>{
 
 test('boot phase cannot be skipped',()=>{
   const boot=createBootstrapCoordinator();
-  assert.throws(()=>boot.advance('company_resolved'),/Illegal Nexus boot transition/);
+  assert.throws(()=>boot.advance('company_resolved'),/Illegal Relystra boot transition/);
 });
 
 test('boot refuses to advance when prerequisites are missing',()=>{

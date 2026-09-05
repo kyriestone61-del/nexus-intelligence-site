@@ -27,7 +27,7 @@ assert.match(ux,/Training \/ enablement/);
 assert.match(ux,/Strategy \/ other/);
 assert.doesNotMatch(ux,/workflow_change">Workflow change/,'the new composer should not present workflow change as a separate category');
 assert.match(ux,/data_requirement_id:req\.id/,'direct evidence-card upload must preserve requirement lineage');
-assert.match(ux,/source_role:state\.admin\?'nexus':'client'/,'both Nexus and client uploads must preserve source identity');
+assert.match(ux,/source_role:state\.admin\?'nexus':'client'/,'both Relystra and client uploads must preserve source identity');
 assert.match(ux,/Reports & Q&A/);
 assert.match(ux,/nexus_submit_diagnosis_question/);
 assert.match(ux,/nexus_answer_diagnosis_question/);
@@ -117,4 +117,4 @@ assert.match(sms,/status:"unavailable"/);
 assert.match(sms,/SMS provider not configured/);
 assert.match(sms,/INVALID_PHONE_FORMAT/);
 
-console.log('Nexus vNext diagnosis experience contract checks passed.');
+console.log('Relystra vNext diagnosis experience contract checks passed.');

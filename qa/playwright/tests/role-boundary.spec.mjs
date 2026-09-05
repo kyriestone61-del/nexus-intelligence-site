@@ -44,7 +44,7 @@ test.describe('authenticated role boundaries',()=>{
     await expect(page.getByRole('button',{name:'Client Journey',exact:true})).toHaveCount(0);
     await expect(page.getByRole('button',{name:'Discovery & Diagnosis',exact:true})).toHaveCount(0);
     await expect(page.getByText('Important decisions',{exact:true})).toHaveCount(0);
-    await expect(page.getByText(/Nexus administrator/i)).toHaveCount(0);
+    await expect(page.getByText(/Relystra administrator/i)).toHaveCount(0);
   });
 
   test('company selector never exposes a company outside the QA client membership',async({page})=>{

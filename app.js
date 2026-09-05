@@ -98,7 +98,7 @@
       const j=this.get();
       if(!j.quickScan?.completedAt&&!j.assessment?.completedAt)return {href:'/quick-scan',label:'Get My Free AI Snapshot'};
       if(!j.booking?.status)return {href:'/book',label:'Request My Fit Call'};
-      return {href:'/prospect-workspace',label:'Continue My Nexus Journey'};
+      return {href:'/prospect-workspace',label:'Continue My Relystra Journey'};
     }
   };
 
@@ -161,7 +161,7 @@
     document.body.classList.remove('nx-has-mobile-start');
     const bar=document.createElement('div');bar.id='nexusJourneyBar';bar.className='journey-bar';
     const rec=j.recommendation?.service?` · ${escapeHtml(j.recommendation.service)}`:'';
-    bar.innerHTML=`<div class="journey-inner"><div class="journey-copy"><span class="journey-check">✓</span><div><b>${labels[j.stage]||'Nexus journey in progress'}</b><small>Your previous answers will follow you${rec}.</small></div></div><a class="btn primary journey-action" href="${next.href}">${next.label} →</a></div>`;
+    bar.innerHTML=`<div class="journey-inner"><div class="journey-copy"><span class="journey-check">✓</span><div><b>${labels[j.stage]||'Relystra journey in progress'}</b><small>Your previous answers will follow you${rec}.</small></div></div><a class="btn primary journey-action" href="${next.href}">${next.label} →</a></div>`;
     document.body.appendChild(bar);
   }
 
@@ -185,12 +185,12 @@
   const measureList=document.getElementById('measureList');
   if(problemButtons.length&&problemTitle&&problemText&&problemList&&measureList){
     const problemData={
-      manual:{title:'Reduce repetitive work',text:'Nexus can identify repetitive handoffs, copying, routing, document preparation, and status-update work that may be suitable for automation.',examine:['Manual data entry and copying','Recurring document work','Routing, reminders, and status updates'],measure:['Handling time','Manual touchpoints','Rework and exception rate']},
-      revenue:{title:'Generate more revenue',text:'Nexus can examine where leads are lost, follow-up is inconsistent, or sales teams spend too much time on work that does not require human judgment.',examine:['Lead capture and routing','Follow-up consistency','Sales preparation and CRM workflows'],measure:['Lead response time','Follow-up completion','Qualified opportunity conversion']},
-      service:{title:'Improve customer response',text:'Nexus can structure intake, triage, scheduling, response preparation, and exception routing so customers receive faster and more consistent service.',examine:['Inquiry classification','Scheduling and intake','Response preparation and escalations'],measure:['Response time','Resolution time','Exception volume']},
-      knowledge:{title:'Organize company knowledge',text:'Nexus can make SOPs, policies, project information, and internal documents easier for authorized employees to find and use.',examine:['SOP and policy retrieval','Document search','Internal knowledge assistance'],measure:['Search time','Repeat questions','Successful retrieval rate']},
-      data:{title:'Understand business data',text:'Nexus can help turn recurring reporting work and scattered operational data into clearer summaries, dashboards, and exception views.',examine:['Recurring KPI reporting','Cross-system summaries','Management visibility and exceptions'],measure:['Reporting time','Data completeness','Decision latency']},
-      systems:{title:'Connect disconnected systems',text:'Nexus can map where employees manually move information between email, spreadsheets, CRMs, documents, and operating systems—and determine what can be connected safely.',examine:['Cross-system handoffs','Duplicate data entry','Status synchronization'],measure:['Handoff time','Duplicate entry volume','Sync and exception rate']}
+      manual:{title:'Reduce repetitive work',text:'Relystra can identify repetitive handoffs, copying, routing, document preparation, and status-update work that may be suitable for automation.',examine:['Manual data entry and copying','Recurring document work','Routing, reminders, and status updates'],measure:['Handling time','Manual touchpoints','Rework and exception rate']},
+      revenue:{title:'Generate more revenue',text:'Relystra can examine where leads are lost, follow-up is inconsistent, or sales teams spend too much time on work that does not require human judgment.',examine:['Lead capture and routing','Follow-up consistency','Sales preparation and CRM workflows'],measure:['Lead response time','Follow-up completion','Qualified opportunity conversion']},
+      service:{title:'Improve customer response',text:'Relystra can structure intake, triage, scheduling, response preparation, and exception routing so customers receive faster and more consistent service.',examine:['Inquiry classification','Scheduling and intake','Response preparation and escalations'],measure:['Response time','Resolution time','Exception volume']},
+      knowledge:{title:'Organize company knowledge',text:'Relystra can make SOPs, policies, project information, and internal documents easier for authorized employees to find and use.',examine:['SOP and policy retrieval','Document search','Internal knowledge assistance'],measure:['Search time','Repeat questions','Successful retrieval rate']},
+      data:{title:'Understand business data',text:'Relystra can help turn recurring reporting work and scattered operational data into clearer summaries, dashboards, and exception views.',examine:['Recurring KPI reporting','Cross-system summaries','Management visibility and exceptions'],measure:['Reporting time','Data completeness','Decision latency']},
+      systems:{title:'Connect disconnected systems',text:'Relystra can map where employees manually move information between email, spreadsheets, CRMs, documents, and operating systems—and determine what can be connected safely.',examine:['Cross-system handoffs','Duplicate data entry','Status synchronization'],measure:['Handoff time','Duplicate entry volume','Sync and exception rate']}
     };
     function setProblem(key){
       const data=problemData[key];if(!data)return;
@@ -212,7 +212,7 @@
 
     if(rec?.service&&!document.getElementById('personalRecommendation')){
       const section=document.createElement('section');section.id='personalRecommendation';section.className='personal-recommendation';
-      section.innerHTML=`<div class="wrap"><div class="recommendation-band"><div><div class="kicker">Recommended from your Nexus diagnostic</div><h2>${escapeHtml(rec.service)}</h2><p>${escapeHtml(rec.reason||'This is the smallest responsible next engagement based on the information you provided.')}</p><div class="rec-chips"><span>Readiness ${escapeHtml(rec.score||'—')}</span><span>${escapeHtml(rec.impact||'Impact to validate')}</span><span>${escapeHtml(rec.complexity||'Complexity to validate')}</span></div></div><div class="actions"><a class="btn primary" href="/book">Discuss My Recommendation →</a><a class="btn secondary" href="/assessment">Review My Diagnostic</a></div></div></div>`;
+      section.innerHTML=`<div class="wrap"><div class="recommendation-band"><div><div class="kicker">Recommended from your Relystra diagnostic</div><h2>${escapeHtml(rec.service)}</h2><p>${escapeHtml(rec.reason||'This is the smallest responsible next engagement based on the information you provided.')}</p><div class="rec-chips"><span>Readiness ${escapeHtml(rec.score||'—')}</span><span>${escapeHtml(rec.impact||'Impact to validate')}</span><span>${escapeHtml(rec.complexity||'Complexity to validate')}</span></div></div><div class="actions"><a class="btn primary" href="/book">Discuss My Recommendation →</a><a class="btn secondary" href="/assessment">Review My Diagnostic</a></div></div></div>`;
       hero.insertAdjacentElement('afterend',section);
       return;
     }
@@ -227,13 +227,13 @@
       leadership:{label:'We need ongoing AI strategy and oversight',service:'Fractional AI Director',slug:'fractional-ai-director',reason:'Use ongoing leadership support for priorities, governance coordination, vendor decisions, and implementation oversight.'}
     };
     const section=document.createElement('section');section.id='nxServiceGuide';
-    section.innerHTML=`<div class="wrap"><div class="nx-decision-shell"><div class="nx-decision-head"><div class="kicker">Choose by business stage</div><h2>What does your business need next?</h2><p>You do not need to understand the Nexus service catalog. Choose the situation that sounds most like your current state.</p></div><div class="nx-choice-row">${Object.entries(stageMap).map(([key,x],i)=>`<button class="nx-choice${i===0?' active':''}" type="button" data-stage="${key}"><span>${String(i+1).padStart(2,'0')}</span><b>${x.label}</b></button>`).join('')}</div><div id="nxServiceOutput" class="nx-decision-output"></div></div></div>`;
+    section.innerHTML=`<div class="wrap"><div class="nx-decision-shell"><div class="nx-decision-head"><div class="kicker">Choose by business stage</div><h2>What does your business need next?</h2><p>You do not need to understand the Relystra service catalog. Choose the situation that sounds most like your current state.</p></div><div class="nx-choice-row">${Object.entries(stageMap).map(([key,x],i)=>`<button class="nx-choice${i===0?' active':''}" type="button" data-stage="${key}"><span>${String(i+1).padStart(2,'0')}</span><b>${x.label}</b></button>`).join('')}</div><div id="nxServiceOutput" class="nx-decision-output"></div></div></div>`;
     hero.insertAdjacentElement('afterend',section);
     const output=document.getElementById('nxServiceOutput');
     const render=key=>{
       const x=stageMap[key]||stageMap.unclear;
       section.querySelectorAll('.nx-choice').forEach(b=>b.classList.toggle('active',b.dataset.stage===key));
-      output.innerHTML=`<div><div class="kicker">Likely Nexus starting point</div><h3>${x.service}</h3><p>${x.reason}</p></div><div class="actions"><a class="btn primary" href="/services/${x.slug}">Review This Service →</a><a class="btn secondary" href="/quick-scan">Validate My Fit</a></div>`;
+      output.innerHTML=`<div><div class="kicker">Likely Relystra starting point</div><h3>${x.service}</h3><p>${x.reason}</p></div><div class="actions"><a class="btn primary" href="/services/${x.slug}">Review This Service →</a><a class="btn secondary" href="/quick-scan">Validate My Fit</a></div>`;
       window.nexusTrack('service_guide_selected',{stage:key,service:x.service});
     };
     section.querySelectorAll('.nx-choice').forEach(b=>b.addEventListener('click',()=>render(b.dataset.stage)));
@@ -246,12 +246,12 @@
     const hero=document.querySelector('main .wrap.hero');if(!hero)return;
     const proof={
       time:{label:'Time & throughput',baseline:'Current handling/cycle time and volume',change:'Exactly which handoffs, steps, or automations changed',measure:'Post-launch handling time, cycle time, volume, hours recovered',caution:'Seasonality, staffing changes, demand changes, and parallel process changes must be noted.'},
-      quality:{label:'Quality & reliability',baseline:'Current error, rework, exception, or completion rate',change:'Validation rules, human review, routing, or workflow controls introduced',measure:'Error rate, rework, exception volume, completion rate',caution:'A lower error rate is not automatically caused by Nexus if training, staffing, or upstream data also changed.'},
-      commercial:{label:'Commercial impact',baseline:'Current response, follow-up, conversion, and opportunity flow',change:'Lead capture, routing, response support, CRM, or follow-up process changes',measure:'Response time, follow-up completion, conversion, revenue influenced',caution:'Revenue is multi-causal. Nexus should distinguish influenced revenue from revenue proven to be caused by one system.'},
+      quality:{label:'Quality & reliability',baseline:'Current error, rework, exception, or completion rate',change:'Validation rules, human review, routing, or workflow controls introduced',measure:'Error rate, rework, exception volume, completion rate',caution:'A lower error rate is not automatically caused by Relystra if training, staffing, or upstream data also changed.'},
+      commercial:{label:'Commercial impact',baseline:'Current response, follow-up, conversion, and opportunity flow',change:'Lead capture, routing, response support, CRM, or follow-up process changes',measure:'Response time, follow-up completion, conversion, revenue influenced',caution:'Revenue is multi-causal. Relystra should distinguish influenced revenue from revenue proven to be caused by one system.'},
       visibility:{label:'Operating visibility',baseline:'Current reporting time, completeness, access, and decision latency',change:'Reporting workflow, source connections, summaries, dashboards, or exception views introduced',measure:'Reporting time, completeness, decision latency, adoption',caution:'Faster reporting only matters if the data remains reliable and decision-makers actually use it.'}
     };
     const section=document.createElement('section');section.id='nxProofExplorer';
-    section.innerHTML=`<div class="wrap"><div class="nx-decision-shell nx-proof-explorer"><div class="nx-decision-head"><div class="kicker">Explore the proof model</div><h2>What would Nexus actually measure?</h2><p>Select an outcome family to see the evidence structure Nexus would establish before making a performance claim.</p></div><div class="nx-proof-tabs">${Object.entries(proof).map(([key,x],i)=>`<button class="nx-proof-tab${i===0?' active':''}" type="button" data-proof="${key}">${x.label}</button>`).join('')}</div><div id="nxProofPanel" class="nx-proof-panel"></div><p class="nx-proof-disclaimer">Illustrative measurement structure only. No example above represents a client result or guaranteed outcome.</p></div></div>`;
+    section.innerHTML=`<div class="wrap"><div class="nx-decision-shell nx-proof-explorer"><div class="nx-decision-head"><div class="kicker">Explore the proof model</div><h2>What would Relystra actually measure?</h2><p>Select an outcome family to see the evidence structure Relystra would establish before making a performance claim.</p></div><div class="nx-proof-tabs">${Object.entries(proof).map(([key,x],i)=>`<button class="nx-proof-tab${i===0?' active':''}" type="button" data-proof="${key}">${x.label}</button>`).join('')}</div><div id="nxProofPanel" class="nx-proof-panel"></div><p class="nx-proof-disclaimer">Illustrative measurement structure only. No example above represents a client result or guaranteed outcome.</p></div></div>`;
     hero.insertAdjacentElement('afterend',section);
     const panel=document.getElementById('nxProofPanel');
     const render=key=>{
@@ -268,7 +268,7 @@
     if(path!=='/security'||document.getElementById('nxTrustCenter'))return;
     const hero=document.querySelector('main .wrap.hero');if(!hero)return;
     const section=document.createElement('section');section.id='nxTrustCenter';
-    section.innerHTML=`<div class="wrap"><div class="nx-decision-shell"><div class="nx-decision-head"><div class="kicker">Nexus trust center</div><h2>Six questions clients should be able to answer quickly.</h2><p>The detailed governance language remains below. This summary makes the operating boundaries understandable before a prospect reads the technical detail.</p></div><div class="nx-trust-summary"><div class="nx-trust-card"><div class="nx-icon">🔐</div><h3>Who can access client data?</h3><p>Authenticated company members and authorized Nexus administrators within the access boundaries of the engagement.</p></div><div class="nx-trust-card"><div class="nx-icon">🧭</div><h3>Who makes consequential decisions?</h3><p>Humans remain the decision owners unless a narrow automated action is expressly authorized and controlled.</p></div><div class="nx-trust-card"><div class="nx-icon">🔑</div><h3>How are credentials handled?</h3><p>Production secrets should use approved authorization or credential-management methods—not public forms, chat, or ordinary documents.</p></div><div class="nx-trust-card"><div class="nx-icon">📁</div><h3>Who owns the business assets?</h3><p>Client accounts and client-provided data remain under client control; deliverable rights are defined in the signed agreement.</p></div><div class="nx-trust-card"><div class="nx-icon">↩</div><h3>What happens if something fails?</h3><p>Applicable implementations can define testing, exception handling, manual fallback, disable/rollback procedures, and responsible owners.</p></div><div class="nx-trust-card"><div class="nx-icon">🚪</div><h3>What happens when the engagement ends?</h3><p>Handoff, Nexus access removal, credential rotation, vendor access cleanup, and data return/deletion are handled according to scope and contract.</p></div></div><div class="nx-trust-answer"><b>What Nexus does not claim:</b> this page is not a cybersecurity certification, penetration test, legal compliance opinion, or guarantee that a system cannot fail or be compromised.</div></div></div>`;
+    section.innerHTML=`<div class="wrap"><div class="nx-decision-shell"><div class="nx-decision-head"><div class="kicker">Relystra trust center</div><h2>Six questions clients should be able to answer quickly.</h2><p>The detailed governance language remains below. This summary makes the operating boundaries understandable before a prospect reads the technical detail.</p></div><div class="nx-trust-summary"><div class="nx-trust-card"><div class="nx-icon">🔐</div><h3>Who can access client data?</h3><p>Authenticated company members and authorized Relystra administrators within the access boundaries of the engagement.</p></div><div class="nx-trust-card"><div class="nx-icon">🧭</div><h3>Who makes consequential decisions?</h3><p>Humans remain the decision owners unless a narrow automated action is expressly authorized and controlled.</p></div><div class="nx-trust-card"><div class="nx-icon">🔑</div><h3>How are credentials handled?</h3><p>Production secrets should use approved authorization or credential-management methods—not public forms, chat, or ordinary documents.</p></div><div class="nx-trust-card"><div class="nx-icon">📁</div><h3>Who owns the business assets?</h3><p>Client accounts and client-provided data remain under client control; deliverable rights are defined in the signed agreement.</p></div><div class="nx-trust-card"><div class="nx-icon">↩</div><h3>What happens if something fails?</h3><p>Applicable implementations can define testing, exception handling, manual fallback, disable/rollback procedures, and responsible owners.</p></div><div class="nx-trust-card"><div class="nx-icon">🚪</div><h3>What happens when the engagement ends?</h3><p>Handoff, Relystra access removal, credential rotation, vendor access cleanup, and data return/deletion are handled according to scope and contract.</p></div></div><div class="nx-trust-answer"><b>What Relystra does not claim:</b> this page is not a cybersecurity certification, penetration test, legal compliance opinion, or guarantee that a system cannot fail or be compromised.</div></div></div>`;
     hero.insertAdjacentElement('afterend',section);
   }
 
@@ -279,7 +279,7 @@
     const root=document.getElementById('serviceRoot')||document.querySelector('main');
     if(rec?.service&&root&&!document.getElementById('personalRecommendation')){
       const section=document.createElement('section');section.id='personalRecommendation';section.className='personal-recommendation';
-      section.innerHTML=`<div class="wrap"><div class="recommendation-band"><div><div class="kicker">Recommended from your Nexus diagnostic</div><h2>${escapeHtml(rec.service)}</h2><p>${escapeHtml(rec.reason||'This is the smallest responsible next engagement based on the information you provided.')}</p><div class="rec-chips"><span>Readiness ${escapeHtml(rec.score||'—')}</span><span>${escapeHtml(rec.impact||'Impact to validate')}</span><span>${escapeHtml(rec.complexity||'Complexity to validate')}</span></div></div><div class="actions"><a class="btn primary" href="/book">Discuss My Recommendation →</a><a class="btn secondary" href="/assessment">Review My Diagnostic</a></div></div></div>`;
+      section.innerHTML=`<div class="wrap"><div class="recommendation-band"><div><div class="kicker">Recommended from your Relystra diagnostic</div><h2>${escapeHtml(rec.service)}</h2><p>${escapeHtml(rec.reason||'This is the smallest responsible next engagement based on the information you provided.')}</p><div class="rec-chips"><span>Readiness ${escapeHtml(rec.score||'—')}</span><span>${escapeHtml(rec.impact||'Impact to validate')}</span><span>${escapeHtml(rec.complexity||'Complexity to validate')}</span></div></div><div class="actions"><a class="btn primary" href="/book">Discuss My Recommendation →</a><a class="btn secondary" href="/assessment">Review My Diagnostic</a></div></div></div>`;
       const hero=root.querySelector('.wrap.hero');hero?.insertAdjacentElement('afterend',section);
     }
   }
@@ -325,7 +325,7 @@
     if(journey.assessment?.completedAt&&createTab)createTab.textContent='Continue my evaluation';
     if(form&&!document.getElementById('portalEmailConfirmNote')){
       const note=document.createElement('div');note.id='portalEmailConfirmNote';note.className='note';note.style.marginBottom='16px';
-      note.innerHTML=journey.assessment?.completedAt?'<b>Your Nexus context is ready:</b> Create your login and the opportunity you already identified will be carried into the workspace after setup.':'<b>Email verification required:</b> After creating the account, Nexus will send a confirmation email.';
+      note.innerHTML=journey.assessment?.completedAt?'<b>Your Relystra context is ready:</b> Create your login and the opportunity you already identified will be carried into the workspace after setup.':'<b>Email verification required:</b> After creating the account, Relystra will send a confirmation email.';
       form.parentElement.insertBefore(note,form);
     }
     form?.addEventListener('submit',()=>{
@@ -368,12 +368,12 @@
     const j=window.NexusJourney.get(),next=window.NexusJourney.next();
     const copy={
       '/services':['Not sure which service is actually justified?','Use the opportunity flow to identify the smallest responsible starting point.'],
-      '/case-studies':['Want a result Nexus can measure responsibly?','Start by identifying the workflow and establishing the baseline before anyone promises an outcome.'],
-      '/security':['Have a workflow that needs controlled implementation?','Nexus can assess the business value and the human, data, access, and fallback boundaries together.'],
-      '/methodology':['Turn the method into a business decision.','Apply the Nexus process to one real workflow and carry the context into the next step.'],
-      '/about':['See whether Nexus fits your business problem.','Start with the workflow—not an AI product or a sales package.']
+      '/case-studies':['Want a result Relystra can measure responsibly?','Start by identifying the workflow and establishing the baseline before anyone promises an outcome.'],
+      '/security':['Have a workflow that needs controlled implementation?','Relystra can assess the business value and the human, data, access, and fallback boundaries together.'],
+      '/methodology':['Turn the method into a business decision.','Apply the Relystra process to one real workflow and carry the context into the next step.'],
+      '/about':['See whether Relystra fits your business problem.','Start with the workflow—not an AI product or a sales package.']
     };
-    const [headline,body]=copy[path]||['Turn the information into a next step.','Use the Nexus opportunity flow to move from browsing into a structured business decision.'];
+    const [headline,body]=copy[path]||['Turn the information into a next step.','Use the Relystra opportunity flow to move from browsing into a structured business decision.'];
     const rec=j.recommendation?.service?` Your diagnostic currently points to ${escapeHtml(j.recommendation.service)}.`:'';
     const section=document.createElement('section');section.id='nxNextStep';
     section.innerHTML=`<div class="wrap"><div class="nx-next-step"><div><div class="kicker">Next best action</div><h3>${headline}</h3><p>${body}${rec}</p></div><div class="actions"><a class="btn primary" href="${next.href}">${next.label} →</a>${j.stage==='new'?'<a class="btn secondary" href="/book">Request a Fit Call</a>':''}</div></div></div>`;
@@ -384,7 +384,7 @@
   if(path==='/book'){
     document.addEventListener('click',event=>{
       const link=event.target.closest('a[href="/portal"]');
-      if(link&&/Continue to My Nexus Workspace/i.test(link.textContent||'')){
+      if(link&&/Continue to My Relystra Workspace/i.test(link.textContent||'')){
         event.preventDefault();location.href='/prospect-workspace';
       }
     });
@@ -428,20 +428,20 @@
 
   function simplifyFitCallExperience(){
     if(path!=='/book'||document.getElementById('nxFitCallGuide'))return;
-    document.title='Request a Nexus Fit Call | Nexus Intelligence';
+    document.title='Request a Relystra Fit Call | Relystra';
     const hero=document.querySelector('main .wrap.hero');if(!hero)return;
-    const eyebrow=hero.querySelector('.eyebrow');if(eyebrow)eyebrow.textContent='20-minute Nexus Fit Call';
+    const eyebrow=hero.querySelector('.eyebrow');if(eyebrow)eyebrow.textContent='20-minute Relystra Fit Call';
     const h1=hero.querySelector('h1');if(h1)h1.innerHTML='Request a conversation.<br><span class="grad">Keep the process simple.</span>';
-    const p=hero.querySelector('p');if(p)p.textContent='Tell Nexus what you want to improve, choose a preferred time, and submit the request. Your time is not considered confirmed until the calendar invitation is sent.';
+    const p=hero.querySelector('p');if(p)p.textContent='Tell Relystra what you want to improve, choose a preferred time, and submit the request. Your time is not considered confirmed until the calendar invitation is sent.';
     const guide=document.createElement('div');guide.id='nxFitCallGuide';guide.className='nx-fit-call-guide';
-    guide.innerHTML='<div><span>1</span><b>Confirm your details</b><small>We carry forward your Snapshot when available.</small></div><div><span>2</span><b>Choose a preferred time</b><small>This is a request, not a false confirmation.</small></div><div><span>3</span><b>Receive the invitation</b><small>The meeting becomes confirmed when Nexus sends the calendar invite.</small></div>';
+    guide.innerHTML='<div><span>1</span><b>Confirm your details</b><small>We carry forward your Snapshot when available.</small></div><div><span>2</span><b>Choose a preferred time</b><small>This is a request, not a false confirmation.</small></div><div><span>3</span><b>Receive the invitation</b><small>The meeting becomes confirmed when Relystra sends the calendar invite.</small></div>';
     hero.appendChild(guide);
   }
 
   function simplifySecurityPortalLanguage(){
     if(path!=='/security')return;
     document.querySelectorAll('p').forEach(p=>{
-      if(/The portal is being built as an authenticated business workspace/i.test(p.textContent||''))p.textContent='The Nexus Client Portal is an authenticated business workspace, not a public document dropbox.';
+      if(/The portal is being built as an authenticated business workspace/i.test(p.textContent||''))p.textContent='The Relystra Client Portal is an authenticated business workspace, not a public document dropbox.';
     });
   }
 

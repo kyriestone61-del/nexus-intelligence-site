@@ -1,6 +1,6 @@
 export class WorkspaceLoadError extends Error{
   constructor(failures=[]){
-    super(`Nexus workspace could not fully load: ${failures.map(x=>x.label).join(', ')}`);
+    super(`Relystra workspace could not fully load: ${failures.map(x=>x.label).join(', ')}`);
     this.name='WorkspaceLoadError';
     this.failures=failures;
   }
@@ -66,7 +66,7 @@ export function normalizeWorkspaceSnapshot(data={}){
 }
 
 export function describeWorkspaceLoadError(error){
-  if(!(error instanceof WorkspaceLoadError))return 'Nexus could not load this workspace. Refresh and try again.';
+  if(!(error instanceof WorkspaceLoadError))return 'Relystra could not load this workspace. Refresh and try again.';
   const labels=error.failures.map(x=>x.label);
-  return `Nexus could not load ${labels.join(', ')}. The workspace was not treated as empty. Refresh and try again.`;
+  return `Relystra could not load ${labels.join(', ')}. The workspace was not treated as empty. Refresh and try again.`;
 }

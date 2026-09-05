@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast}=portal;
 let executionBusy=false;
 const confirmedRelease=new WeakSet();
@@ -12,7 +12,7 @@ function showProgress(button){
   const status=body?.querySelector('.diagnosis-review-meta .diagnosis-status');if(status){status.className='diagnosis-status analyzing';status.textContent='Analyzing'}
   let panel=body?.querySelector('.diagnosis-live-progress');
   if(!panel&&body){panel=document.createElement('div');panel.className='diagnosis-live-progress note';body.querySelector('.diagnosis-review-meta')?.after(panel)}
-  if(panel)panel.innerHTML='<b>Secured diagnosis is running.</b><br><span class="small">Nexus is analyzing only the authorized evidence. This can take about 1–2 minutes. Keep this screen open; no client communication or external action occurs.</span>';
+  if(panel)panel.innerHTML='<b>Secured diagnosis is running.</b><br><span class="small">Relystra is analyzing only the authorized evidence. This can take about 1–2 minutes. Keep this screen open; no client communication or external action occurs.</span>';
 }
 function clearProgress(button){
   const body=document.getElementById('diagnosisReviewBody');body?.querySelector('.diagnosis-live-progress')?.remove();

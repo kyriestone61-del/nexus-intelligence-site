@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast}=portal;
 if(!state?.admin)throw new Error('Revenue Engine is admin-only.');
 
@@ -63,7 +63,7 @@ function stats(){return {
 function render(){
   const root=document.getElementById('nexusRevenueRoot');if(!root)return;const st=stats();
   root.innerHTML=`
-    <div class="revenue-hero"><div><div class="eyebrow">Nexus admin · governed growth</div><h1>Revenue Engine</h1><p>Move qualified opportunities from evidence → score → personalized packet → human-approved outreach → booking → delivery. Agents prepare and verify; you control external contact.</p></div><div class="revenue-guard"><b>Human send gate is ON</b><span>No cold email or SMS is sent automatically from this console.</span></div></div>
+    <div class="revenue-hero"><div><div class="eyebrow">Relystra admin · governed growth</div><h1>Revenue Engine</h1><p>Move qualified opportunities from evidence → score → personalized packet → human-approved outreach → booking → delivery. Agents prepare and verify; you control external contact.</p></div><div class="revenue-guard"><b>Human send gate is ON</b><span>No cold email or SMS is sent automatically from this console.</span></div></div>
     <div class="revenue-stats">
       ${[['Leads',st.total],['≤50 qualified',st.qualifying],['Packets to review',st.packets],['Contacted',st.contacted],['Booked+',st.booked],['Open exceptions',st.exceptions]].map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}
     </div>

@@ -72,4 +72,4 @@ assert.match(upload,/portal\.services\.clientUpload=service/,'upload service mus
 assert.match(upload,/Object\.defineProperty\(portal,'prepareUpload',\{value:prepare/,'upload facade must delegate to the upload owner');
 assert.match(css,/min-height:44px/);assert.match(css,/env\(safe-area-inset-bottom\)/);assert.match(css,/overflow-x:hidden/);assert.match(css,/@media\(max-width:760px\)/);assert.match(css,/@media\(max-width:390px\)/);
 
-console.log('NEXUS CONTROL ROOM RECONCILIATION QAQC PASS');
+console.log('RELYSTRA CONTROL ROOM RECONCILIATION QAQC PASS');

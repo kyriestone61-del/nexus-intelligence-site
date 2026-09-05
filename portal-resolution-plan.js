@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable for Resolution Plan.');
+if(!portal)throw new Error('Relystra portal context is unavailable for Resolution Plan.');
 const {sb,state,toast,workspace,runtime}=portal;
 if(!state?.admin)throw new Error('Resolution Plan is admin-only.');
 
@@ -44,7 +44,7 @@ function ensureModal(){
   if(modal)return modal;
   modal=document.createElement('div');
   modal.id='nexusResolutionPlanModal';modal.className='modal';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-hidden','true');
-  modal.innerHTML='<div class="modal-card resolution-plan-card"><div class="toolbar"><div><div class="eyebrow">Nexus · governed action plan</div><h2 style="margin:5px 0">Choose what becomes real work</h2></div><button class="btn secondary" data-resolution-close type="button">Close</button></div><div id="nexusResolutionPlanBody"></div></div>';
+  modal.innerHTML='<div class="modal-card resolution-plan-card"><div class="toolbar"><div><div class="eyebrow">Relystra · governed action plan</div><h2 style="margin:5px 0">Choose what becomes real work</h2></div><button class="btn secondary" data-resolution-close type="button">Close</button></div><div id="nexusResolutionPlanBody"></div></div>';
   document.body.appendChild(modal);
   modal.querySelector('[data-resolution-close]').onclick=close;
   modal.onclick=event=>{if(event.target===modal)close()};
@@ -54,7 +54,7 @@ function close(){const modal=document.getElementById('nexusResolutionPlanModal')
 function setFeedback(message,type=''){const body=document.getElementById('nexusResolutionPlanBody');if(!body)return;let node=body.querySelector('.resolution-plan-feedback');if(!node){node=document.createElement('div');node.className='resolution-plan-feedback';body.appendChild(node)}node.className=`resolution-plan-feedback${type?' '+type:''}`;node.textContent=message}
 
 function stepMarkup(step,index){
-  const owner=String(step.assignee||'nexus').toLowerCase()==='client'?'Client':'Nexus';
+  const owner=String(step.assignee||'nexus').toLowerCase()==='client'?'Client':'Relystra';
   return `<div class="resolution-step"><span class="resolution-step-index">${index+1}</span><div><b>${esc(step.title||step.template_code||'Action')}</b><small>${esc(step.description||`${label(step.task_type||'action')} · ${label(step.phase||'general')}`)}</small></div><span class="resolution-step-owner">${owner}</span></div>`;
 }
 function proposalMarkup(p){
@@ -66,7 +66,7 @@ function render(plan){
   currentPlan=plan;
   const body=document.getElementById('nexusResolutionPlanBody');if(!body)return;
   const confirmed=plan.plan_status==='confirmed';
-  body.innerHTML=`<div class="resolution-plan-intro"><div><h3>${confirmed?'Confirmed execution plan':'AI recommendations are proposals until you choose them.'}</h3><p>${confirmed?'The selected resolutions have been converted into governed action chains with owners, dependencies, evidence requirements, and completion criteria.':'Review the recommendation and every downstream step. Select only the resolutions you want Nexus to execute. Nothing is assigned to the client or Nexus until you confirm the selected plan.'}</p></div><div class="resolution-plan-count"><b>${esc(plan.selected_count||0)}</b><span>${confirmed?'selected':'selected to proceed'}</span></div></div><div class="resolution-proposal-list">${(plan.proposals||[]).length?(plan.proposals||[]).map(proposalMarkup).join(''):'<div class="empty">No resolution proposals were produced. Do not proceed until the diagnosis is corrected.</div>'}</div><div class="resolution-plan-footer"><span class="small">${confirmed?'Plan confirmed.':'You remain the final approval gate.'}</span><div class="actions">${confirmed?'<button class="btn primary" data-resolution-open-actions type="button">Open Action Items →</button>':`<button class="btn primary" data-resolution-confirm type="button" ${plan.can_confirm?'':'disabled'}>Confirm ${Number(plan.selected_count||0)} selected ${Number(plan.selected_count||0)===1?'resolution':'resolutions'} →</button>`}</div></div>`;
+  body.innerHTML=`<div class="resolution-plan-intro"><div><h3>${confirmed?'Confirmed execution plan':'AI recommendations are proposals until you choose them.'}</h3><p>${confirmed?'The selected resolutions have been converted into governed action chains with owners, dependencies, evidence requirements, and completion criteria.':'Review the recommendation and every downstream step. Select only the resolutions you want Relystra to execute. Nothing is assigned to the client or Relystra until you confirm the selected plan.'}</p></div><div class="resolution-plan-count"><b>${esc(plan.selected_count||0)}</b><span>${confirmed?'selected':'selected to proceed'}</span></div></div><div class="resolution-proposal-list">${(plan.proposals||[]).length?(plan.proposals||[]).map(proposalMarkup).join(''):'<div class="empty">No resolution proposals were produced. Do not proceed until the diagnosis is corrected.</div>'}</div><div class="resolution-plan-footer"><span class="small">${confirmed?'Plan confirmed.':'You remain the final approval gate.'}</span><div class="actions">${confirmed?'<button class="btn primary" data-resolution-open-actions type="button">Open Action Items →</button>':`<button class="btn primary" data-resolution-confirm type="button" ${plan.can_confirm?'':'disabled'}>Confirm ${Number(plan.selected_count||0)} selected ${Number(plan.selected_count||0)===1?'resolution':'resolutions'} →</button>`}</div></div>`;
   bind(body);
 }
 function bind(body){
@@ -132,7 +132,7 @@ function decorateApprovedReview(){
   const modal=document.getElementById('diagnosisReviewModal');if(!modal?.classList.contains('open')||!pendingRun)return;
   const body=modal.querySelector('#diagnosisReviewBody');if(!body||body.querySelector('.resolution-review-cta'))return;
   const meta=body.querySelector('.diagnosis-review-meta');if(!meta||!/approved/i.test(meta.textContent||''))return;
-  const cta=document.createElement('div');cta.className='resolution-review-cta';cta.innerHTML='<div class="kicker">Next required step</div><h3 style="margin:4px 0 6px">Review recommended actions</h3><p class="small">Approval locked the diagnosis. Now choose which recommendations become real client or Nexus work.</p><button class="btn primary" type="button">Review Recommended Actions →</button>';body.appendChild(cta);cta.querySelector('button').onclick=()=>runBoundary('open recommended actions',()=>open(pendingRun.id));
+  const cta=document.createElement('div');cta.className='resolution-review-cta';cta.innerHTML='<div class="kicker">Next required step</div><h3 style="margin:4px 0 6px">Review recommended actions</h3><p class="small">Approval locked the diagnosis. Now choose which recommendations become real client or Relystra work.</p><button class="btn primary" type="button">Review Recommended Actions →</button>';body.appendChild(cta);cta.querySelector('button').onclick=()=>runBoundary('open recommended actions',()=>open(pendingRun.id));
 }
 
 document.addEventListener('click',event=>{

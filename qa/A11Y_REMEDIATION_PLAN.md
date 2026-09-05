@@ -1,4 +1,4 @@
-# Nexus Portal Accessibility Remediation Plan
+# Relystra Portal Accessibility Remediation Plan
 
 The current reset baseline was audited with `qa/scripts/accessibility-static-audit.py`.
 
@@ -13,7 +13,7 @@ Affected control IDs reported by CI:
 ## Required reset acceptance
 
 1. Every form control above must have an explicit accessible name using `label[for]`, `aria-label`, or `aria-labelledby`.
-2. Every Nexus modal must expose dialog semantics and a usable accessible name.
+2. Every Relystra modal must expose dialog semantics and a usable accessible name.
 3. Opening a modal must move focus into it; closing must restore focus to the trigger.
 4. Escape closes non-destructive dialogs unless a required blocking decision explicitly prevents dismissal.
 5. A keyboard-accessible Skip to main content link must target the actual workspace main region.

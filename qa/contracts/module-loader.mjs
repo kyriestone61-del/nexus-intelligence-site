@@ -1,6 +1,6 @@
 export class RequiredModuleLoadError extends Error{
   constructor(moduleId,cause){
-    super(`Required Nexus module failed to load: ${moduleId}`);
+    super(`Required Relystra module failed to load: ${moduleId}`);
     this.name='RequiredModuleLoadError';
     this.code='REQUIRED_MODULE_LOAD_FAILED';
     this.moduleId=moduleId;
@@ -56,7 +56,7 @@ export function requiredModuleIds(plan=[]){return plan.filter(x=>x.required).map
 export function assertWorkspaceReady({plan,result}){
   const missing=requiredModuleIds(plan).filter(id=>!result?.loaded?.get(id));
   if(missing.length){
-    const error=new Error(`Nexus workspace is missing required modules: ${missing.join(', ')}`);
+    const error=new Error(`Relystra workspace is missing required modules: ${missing.join(', ')}`);
     error.code='WORKSPACE_REQUIRED_MODULES_MISSING';
     error.missing=missing;
     throw error;

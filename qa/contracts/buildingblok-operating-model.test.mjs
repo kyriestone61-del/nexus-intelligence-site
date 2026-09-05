@@ -43,7 +43,7 @@ test('mobile navigation is explicitly collapsible',()=>{
   assert.match(css,/@media\(max-width:760px\)/);
 });
 
-test('client evidence actions can be submitted to Nexus after upload',()=>{
+test('client evidence actions can be submitted to Relystra after upload',()=>{
   assert.match(model,/Submit evidence for review/);
   assert.match(model,/nexus_submit_task_for_review/);
   assert.match(model,/evidence_submission/);

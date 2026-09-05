@@ -11,19 +11,19 @@ const founderSchema={
   jobTitle:'Founder',
   url:`${SITE_ORIGIN}/about`,
   image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`,
-  worksFor:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Nexus Intelligence',url:`${SITE_ORIGIN}/`},
-  description:'Delaware-based founder of Nexus Intelligence with 4+ years of commercial construction project-engineering and operations experience.'
+  worksFor:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`},
+  description:'Delaware-based founder of Relystra with 4+ years of commercial construction project-engineering and operations experience.'
 };
 
 const organizationSchema={
   '@context':'https://schema.org',
   '@type':'Organization',
   '@id':`${SITE_ORIGIN}/#organization`,
-  name:'Nexus Intelligence',
+  name:'Relystra',
   url:`${SITE_ORIGIN}/`,
   logo:`${SITE_ORIGIN}/logo.svg`,
   image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`,
-  description:'Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.',
+  description:'Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.',
   areaServed:{'@type':'Country',name:'United States'},
   founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie Stone',url:`${SITE_ORIGIN}/about`,image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`}
 };
@@ -32,14 +32,14 @@ const servicesSchema={
   '@context':'https://schema.org',
   '@type':'Service',
   '@id':`${SITE_ORIGIN}/services#service`,
-  name:'Nexus Intelligence AI & Automation Services',
+  name:'Relystra AI & Automation Services',
   serviceType:'AI and automation implementation consulting',
-  provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Nexus Intelligence',url:`${SITE_ORIGIN}/`},
+  provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`},
   areaServed:{'@type':'Country',name:'United States'},
-  description:'Nexus Intelligence provides AI opportunity assessment, implementation, enablement, managed AI operations, business transformation, and fractional AI leadership services for small and mid-sized businesses.',
+  description:'Relystra provides AI opportunity assessment, implementation, enablement, managed AI operations, business transformation, and fractional AI leadership services for small and mid-sized businesses.',
   hasOfferCatalog:{
     '@type':'OfferCatalog',
-    name:'Nexus Intelligence Services',
+    name:'Relystra Services',
     itemListElement:[
       ['AI Opportunity Assessment','ai-opportunity-assessment'],
       ['Implementation Sprint','implementation-sprint'],
@@ -50,12 +50,12 @@ const servicesSchema={
     ].map(([name,slug])=>({
       '@type':'Offer',
       url:`${SITE_ORIGIN}/services/${slug}`,
-      itemOffered:{'@type':'Service',name,provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Nexus Intelligence',url:`${SITE_ORIGIN}/`}}
+      itemOffered:{'@type':'Service',name,provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`}}
     }))
   }
 };
 
-const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-stone-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie Stone, founder of Nexus Intelligence" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie Stone is the Delaware-based founder of Nexus Intelligence and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach to AI: understand the work, establish the baseline, identify the friction, preserve human ownership, and automate only what is justified.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie Stone</a></div></div></div></div></section>`;
+const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-stone-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie Stone, founder of Relystra" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie Stone is the Delaware-based founder of Relystra and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach to AI: understand the work, establish the baseline, identify the friction, preserve human ownership, and automate only what is justified.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie Stone</a></div></div></div></div></section>`;
 
 const pricingSignal=`<p class="note" data-phase-five-pricing style="margin-top:18px"><b>Investment guidance is published below.</b> Each service shows a current starting point and typical planning window so you can assess fit before a call. Final fees and scope are defined in writing based on the actual engagement.</p>`;
 
@@ -112,11 +112,11 @@ export async function onRequest(context){
     .on('link[rel="canonical"]',{element(el){el.remove();}})
     .on('meta[property="og:url"]',{element(el){el.remove();}})
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
-    .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
+    .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
     .on('.navlinks a[href="/case-studies"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})
     .on('#serviceRoot .hero',{element(el){if(path==='/services')el.append(pricingSignal,{html:true});}})
-    .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Nexus Intelligence identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
+    .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('.preview-metric small',{element(el){if(path==='/')el.remove();}})
     .on('.problem-btn[data-problem="revenue"]',{element(el){if(path==='/')el.remove();}})
     .on('.problem-btn[data-problem="data"]',{element(el){if(path==='/')el.remove();}})
@@ -124,8 +124,8 @@ export async function onRequest(context){
     .on('.problem-btn[data-problem="service"] span',{element(el){if(path==='/')el.setInnerContent('02');}})
     .on('.problem-btn[data-problem="knowledge"] span',{element(el){if(path==='/')el.setInnerContent('03');}})
     .on('.problem-btn[data-problem="systems"] span',{element(el){if(path==='/')el.setInnerContent('04');}})
-    .on('#problemDetail .kicker',{element(el){if(path==='/')el.setInnerContent('Nexus evaluation');}})
-    .on('#problemText',{element(el){if(path==='/')el.setInnerContent('Nexus maps repetitive handoffs, copying, routing, document preparation, and status-update work, then evaluates which steps are appropriate for automation.');}})
+    .on('#problemDetail .kicker',{element(el){if(path==='/')el.setInnerContent('Relystra evaluation');}})
+    .on('#problemText',{element(el){if(path==='/')el.setInnerContent('Relystra maps repetitive handoffs, copying, routing, document preparation, and status-update work, then evaluates which steps are appropriate for automation.');}})
     .on('.flow-card.after .flow-head .tag',{element(el){if(path==='/')el.setInnerContent('Illustrative target state');}})
     .on('.flow-card.after .flow-foot',{element(el){if(path==='/')el.setInnerContent('Target state: fewer manual handoffs • explicit controls • measurable process');}})
     .on('main',{element(el){if(path==='/')el.append(founderHomepageSection,{html:true});}})

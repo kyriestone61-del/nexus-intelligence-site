@@ -1,4 +1,4 @@
-/* Nexus mobile/phone hardening — 2026-09-01 */
+/* Relystra mobile/phone hardening — 2026-09-01 */
 .portal-body *, .portal-body *::before, .portal-body *::after{box-sizing:border-box}
 .portal-body img,.portal-body svg,.portal-body video,.portal-body canvas{max-width:100%;height:auto}
 .portal-body input,.portal-body select,.portal-body textarea,.portal-body button{max-width:100%}

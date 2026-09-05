@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast}=portal;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let memoryBusy=false,memoryScheduled=false,engagementBusy=false;
@@ -128,10 +128,10 @@ async function syncActiveEngagement(){
     const project=activeProject();
     if(project){
       const projectBox=document.getElementById('projectBox');
-      if(projectBox)projectBox.innerHTML=`<span class="pill">${esc(project.status)}</span><h3>${esc(project.name)}</h3><p class="small">${esc(project.summary||project.service_type||'Nexus engagement workspace')}</p>`;
+      if(projectBox)projectBox.innerHTML=`<span class="pill">${esc(project.status)}</span><h3>${esc(project.name)}</h3><p class="small">${esc(project.summary||project.service_type||'Relystra engagement workspace')}</p>`;
     }
     if(!project&&openProjects().length>1){
-      console.error('Nexus active engagement is ambiguous for the selected company.');
+      console.error('Relystra active engagement is ambiguous for the selected company.');
       toast?.('This client has multiple open projects. Select the active engagement before continuing.');
     }
     return project;
@@ -152,7 +152,7 @@ async function renderClientMemory(){
       return;
     }
     const row=Array.isArray(data)?data[0]:data;
-    box.innerHTML=row?`<div data-nexus-client-memory="1" class="ops-grid"><div><div class="small">Goals</div><p>${esc(row.goals||'Not documented yet.')}</p><div class="small">Core systems</div><p>${esc(row.systems||'Not documented yet.')}</p></div><div><div class="small">Company terminology</div><p>${esc(row.terminology||'Not documented yet.')}</p><div class="small">Visibility</div><p>Only client-safe shared context is shown here. Internal Nexus operating notes and decision notes remain private.</p></div></div>`:'<div data-nexus-client-memory="1" class="ops-empty">Shared company context has not been documented yet.</div>';
+    box.innerHTML=row?`<div data-nexus-client-memory="1" class="ops-grid"><div><div class="small">Goals</div><p>${esc(row.goals||'Not documented yet.')}</p><div class="small">Core systems</div><p>${esc(row.systems||'Not documented yet.')}</p></div><div><div class="small">Company terminology</div><p>${esc(row.terminology||'Not documented yet.')}</p><div class="small">Visibility</div><p>Only client-safe shared context is shown here. Internal Relystra operating notes and decision notes remain private.</p></div></div>`:'<div data-nexus-client-memory="1" class="ops-empty">Shared company context has not been documented yet.</div>';
   }finally{memoryBusy=false}
 }
 function scheduleMemory(){if(memoryScheduled)return;memoryScheduled=true;setTimeout(renderClientMemory,0)}
@@ -185,7 +185,7 @@ onboard?.addEventListener('submit',async event=>{
     toast?.(data?.created===false?'Existing workspace restored.':'Workspace created. Your preparation checklist is ready.');
     setTimeout(()=>location.reload(),250);
   }catch(error){
-    console.error('Atomic Nexus onboarding failed',error);
+    console.error('Atomic Relystra onboarding failed',error);
     const message=String(error?.message||'Workspace setup failed.');
     if(/function|schema cache|does not exist/i.test(message))toast?.('Workspace activation is updating. Refresh in a moment and try again.');
     else toast?.(message);

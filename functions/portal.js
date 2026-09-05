@@ -6,7 +6,7 @@ export async function onRequest(context) {
   const origin = new URL(context.request.url).origin;
   const html = await response.text();
   let patched = html.replace(
-    "LIVE='https://nexus-intelligence-v3-preview.vercel.app/portal'",
+    "LIVE='https://nexusintelligence.live/portal'",
     `LIVE='${origin}/portal'`
   );
 
@@ -20,7 +20,7 @@ export async function onRequest(context) {
   if (!patched.includes('id="mainWebsiteBtn"')) {
     patched = patched.replace(
       '<select id="companySelect"',
-      '<a id="mainWebsiteBtn" class="btn secondary" href="/" title="Return to the Nexus Intelligence website">← Main Website</a><select id="companySelect"'
+      '<a id="mainWebsiteBtn" class="btn secondary" href="/" title="Return to the Relystra website">← Main Website</a><select id="companySelect"'
     );
   }
 

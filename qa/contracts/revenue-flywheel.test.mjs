@@ -94,8 +94,8 @@ assert.match(worker,/Final Outreach Composer/);
 assert.match(worker,/Final Packet Independent Verifier/);
 assert.match(worker,/finalVerification/);
 assert.match(worker,/qa_status:finalVerification\?\.pass===true\?'passed':'failed'/);
-assert.match(worker,/publishable=eq\.true&evidence_complete=eq\.true&client_authorized=eq\.true/,'Nexus proof must be publishable, evidence complete and client authorized');
-assert.match(worker,/Never invent a form submission, response time, review, workflow detail, decision maker, email, employee count, revenue, revenue loss, Nexus client result, metric, quote or source/);
+assert.match(worker,/publishable=eq\.true&evidence_complete=eq\.true&client_authorized=eq\.true/,'Relystra proof must be publishable, evidence complete and client authorized');
+assert.match(worker,/Never invent a form submission, response time, review, workflow detail, decision maker, email, employee count, revenue, revenue loss, Relystra client result, metric, quote or source/);
 assert.match(worker,/NO_VERIFIED_PERSONALIZATION_HOOK/);
 assert.match(worker,/status:'pending_approval'/);
 assert.match(worker,/step_no:2,status:'waiting'/);
@@ -115,4 +115,4 @@ assert.ok(!/resend\.com|nexus_email_outbox|twilio/i.test(revenueUi),'admin conso
 assert.match(revenueCss,/@media\(max-width:720px\)/,'Revenue Engine must include mobile layout rules');
 assert.match(revenueCss,/overflow-x:auto/,'wide lead table must remain usable on small screens');
 
-console.log('Nexus revenue flywheel contract QA passed.');
+console.log('Relystra revenue flywheel contract QA passed.');

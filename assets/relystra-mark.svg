@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Relystra mark</title>
+  <desc id="desc">A precise geometric letter R representing a controlled system moving forward.</desc>
+  <rect width="64" height="64" rx="15" fill="#07111A"/>
+  <path d="M17 50V14h18.25C44.7 14 50 19.05 50 27.25 50 34.9 45.15 39.7 36.3 40H17" fill="none" stroke="#F4F1E8" stroke-width="5" stroke-linecap="square" stroke-linejoin="round"/>
+  <path d="M34.5 40 50 52" fill="none" stroke="#48B7A7" stroke-width="5" stroke-linecap="square"/>
+  <rect x="17" y="14" width="5" height="5" fill="#C7A45A"/>
+</svg>

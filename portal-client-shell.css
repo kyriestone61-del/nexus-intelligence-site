@@ -1,4 +1,4 @@
-/* Nexus Client Shell — consolidated client runtime */
+/* Relystra Client Shell — consolidated client runtime */
 .nexus-client-shell-mode .nexus-client-legacy-section,.nexus-client-shell-mode .nexus-client-legacy-nav,.nexus-client-shell-mode .nexus-client-legacy-mini{display:none!important}
 .nexus-client-shell-mode .workspace{grid-template-columns:250px minmax(0,1fr)!important}
 .nexus-client-shell-mode .sidebar{padding-top:16px!important}

@@ -1,6 +1,6 @@
-# Nexus Reset Acceptance Matrix
+# Relystra Reset Acceptance Matrix
 
-This matrix is the independent acceptance standard for the active Nexus reset. It is intentionally stricter than visual QA. A reset is not complete merely because the portal renders cleanly.
+This matrix is the independent acceptance standard for the active Relystra reset. It is intentionally stricter than visual QA. A reset is not complete merely because the portal renders cleanly.
 
 ## Severity model
 
@@ -25,7 +25,7 @@ This matrix is the independent acceptance standard for the active Nexus reset. I
 |---|---|---|
 | AUTH-01 | P0 | Admin and client roles resolve server-side from authoritative membership/permission records. |
 | AUTH-02 | P0 | Client cannot elevate role or access admin-only diagnosis/internal tools through UI manipulation. |
-| AUTH-03 | P1 | Forgot Password flow exists and returns the user safely to Nexus. |
+| AUTH-03 | P1 | Forgot Password flow exists and returns the user safely to Relystra. |
 | AUTH-04 | P1 | Email verification flow handles success, expired link, reused link, and authenticated return without looping. |
 | AUTH-05 | P1 | Session expiration produces a clear sign-in recovery path without destroying unsaved form state where practical. |
 | AUTH-06 | P1 | Sign-out clears the active workspace and sensitive in-memory state. |
@@ -36,7 +36,7 @@ This matrix is the independent acceptance standard for the active Nexus reset. I
 |---|---|---|
 | TENANT-01 | P0 | Client can read only companies for which the authenticated user has an active membership. |
 | TENANT-02 | P0 | Every project/task/milestone/metric/request/approval/document/diagnosis is company-bound and cannot reference a project owned by another company. |
-| TENANT-03 | P0 | Client UI does not query or render platform-wide/global Nexus records. |
+| TENANT-03 | P0 | Client UI does not query or render platform-wide/global Relystra records. |
 | TENANT-04 | P0 | Company Memory has an explicit client-safe projection; internal operating context and internal decision notes are not exposed by default. |
 | TENANT-05 | P0 | Decision/evidence records honor client_visible before rendering to clients. |
 | TENANT-06 | P1 | Automated/browser QA verifies a QA client identity cannot enumerate another company's name or records. |
@@ -46,7 +46,7 @@ This matrix is the independent acceptance standard for the active Nexus reset. I
 | ID | Priority | Acceptance requirement |
 |---|---|---|
 | ENG-01 | P0 | Active engagement/project is explicit. Runtime must not infer it from `projects[0]` or array order. |
-| ENG-02 | P0 | If more than one active project exists and no active engagement is selected, Nexus blocks stage operations and asks for a deterministic selection/resolution. |
+| ENG-02 | P0 | If more than one active project exists and no active engagement is selected, Relystra blocks stage operations and asks for a deterministic selection/resolution. |
 | ENG-03 | P1 | Discovery project, diagnosis pilot, implementation project, and managed-operations project can coexist without misrouting tasks/evidence/metrics. |
 | ENG-04 | P1 | Project type/service role is populated for all active engagement projects. |
 
@@ -77,7 +77,7 @@ This matrix is the independent acceptance standard for the active Nexus reset. I
 | JOURNEY-01 | P0 | Current stage is determined from required evidence + decisions + deliverables + approvals, not task count alone. |
 | JOURNEY-02 | P0 | Prior incomplete gate locks consequential actions in later stages. |
 | JOURNEY-03 | P0 | Every client workspace surfaces one primary Next Best Action and explains why it is next. |
-| JOURNEY-04 | P0 | Waiting on Client / Waiting on Nexus / Waiting on Decision / Blocked are distinguishable. |
+| JOURNEY-04 | P0 | Waiting on Client / Waiting on Relystra / Waiting on Decision / Blocked are distinguishable. |
 | JOURNEY-05 | P1 | Stage/gate changes have an audit trail with source evidence and actor. |
 | JOURNEY-06 | P1 | Company/engagement switch recomputes journey from authoritative state and never displays stale prior-client status. |
 

@@ -1,5 +1,5 @@
 @import url('/portal-mobile-admin-cleanup.css?v=20260901-mobile-admin-clean1');
-/* Nexus operating-model cohesion — Companies + Inbox + mobile */
+/* Relystra operating-model cohesion — Companies + Inbox + mobile */
 .nexus-companies-shell{display:grid;gap:14px}
 .nexus-companies-toolbar{display:grid;grid-template-columns:minmax(220px,1.5fr) minmax(170px,.7fr) auto;gap:9px;align-items:end;padding:14px;border:1px solid var(--nx-line);border-radius:16px;background:rgba(255,255,255,.025)}
 .nexus-companies-toolbar .field{margin:0}

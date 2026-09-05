@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast}=portal;
 if(!state.admin)throw new Error('Founder diagnosis editor must only load in the admin workspace.');
 
@@ -115,7 +115,7 @@ function bindEditor(host){
 async function refreshEditor(){
   const host=document.querySelector('[data-nx-report-editor]');
   if(!host||!activeRunId)return;
-  try{await renderEditor(host)}catch(e){console.error('Nexus diagnosis report editor failed',e);host.innerHTML=`<div class="note error">${esc(e.message||'Client report editor could not be loaded.')}</div>`}
+  try{await renderEditor(host)}catch(e){console.error('Relystra diagnosis report editor failed',e);host.innerHTML=`<div class="note error">${esc(e.message||'Client report editor could not be loaded.')}</div>`}
 }
 
 function inferRunId(body){

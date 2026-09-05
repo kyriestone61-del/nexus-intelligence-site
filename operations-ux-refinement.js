@@ -5,7 +5,7 @@ const replacements=new Map([
  ['Resolve the highest-consequence items first.','Handle the highest-impact items first.'],
  ['No material decision or exception is currently queued.','Nothing urgent needs your attention right now.'],
  ['Evidence & proof gates','Evidence & proof'],
- ['What Nexus can and cannot responsibly claim today.','What Nexus can support with evidence today.'],
+ ['What Relystra can and cannot responsibly claim today.','What Relystra can support with evidence today.'],
  ['Client operating pressure','Client work requiring attention'],
  ['Eight operating domains','Business areas'],
  ['Decision Queue','Decisions'],

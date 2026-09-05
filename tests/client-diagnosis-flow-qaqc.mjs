@@ -47,7 +47,7 @@ assert.match(migration,/Release the client-safe diagnosis report before releasin
 assert.match(migration,/nexus_open_diagnosis_approval_on_report_release/,'report release must open the matching client approval');
 assert.match(migration,/nexus_sync_diagnosis_approval_from_client_decision/,'client decision must synchronize the task state');
 assert.match(migration,/status='completed'/,'approved diagnosis must complete the matching client task');
-assert.match(migration,/status='ready_for_review'/,'change request must hand the task back to Nexus');
+assert.match(migration,/status='ready_for_review'/,'change request must hand the task back to Relystra');
 assert.match(migration,/set status='draft',notify_client=false/,'already-exposed impossible approval tasks must be repaired');
 assert.match(migration,/nexus_diagnosis_report_releases/,'guardrails must use the released report as the authoritative gate');
 assert.match(migration,/nexus_diagnosis_report_client_decisions/,'guardrails must use the version-specific client decision table');
@@ -59,4 +59,4 @@ for(const browserFile of [flow,deepLink,loader,releaseQueue]){
   assert.equal(/service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY/.test(browserFile),false,'diagnosis browser code must not contain privileged credentials');
 }
 
-console.log('NEXUS CLIENT DIAGNOSIS FLOW QAQC PASS');
+console.log('RELYSTRA CLIENT DIAGNOSIS FLOW QAQC PASS');

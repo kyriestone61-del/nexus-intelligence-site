@@ -14,7 +14,7 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
     const note=document.createElement('details');
     note.id='portalVerificationPreflight';
     note.className='portal-verify-preflight nexus-progressive-help';
-    note.innerHTML='<summary>Email verification</summary><p><b>After creating your account, verify your email once.</b> Open the confirmation message from Nexus, click the verification link, then return here to sign in.</p>';
+    note.innerHTML='<summary>Email verification</summary><p><b>After creating your account, verify your email once.</b> Open the confirmation message from Relystra, click the verification link, then return here to sign in.</p>';
     createForm.appendChild(note);
   }
 
@@ -35,7 +35,7 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
   const looksLikeAuthReturn=search.has('code')||search.has('token_hash')||search.has('type')||hash.has('access_token')||hash.has('refresh_token')||hash.has('type');
 
   let session=null;
-  try{const result=await sb.auth.getSession();session=result.data?.session||null;if(result.error)console.warn('Nexus auth session check failed',result.error)}catch(error){console.warn('Nexus auth session check failed',error)}
+  try{const result=await sb.auth.getSession();session=result.data?.session||null;if(result.error)console.warn('Relystra auth session check failed',result.error)}catch(error){console.warn('Relystra auth session check failed',error)}
 
   if(recoveryReturn){
     storage.remove(pendingFlag);
@@ -62,15 +62,15 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
     if(document.getElementById('portalRecoveryOverlay'))return;
     const overlay=document.createElement('div');overlay.id='portalRecoveryOverlay';overlay.className='portal-verified-overlay';overlay.tabIndex=-1;
     const suggested=$('signInEmail')?.value?.trim()||'';
-    overlay.innerHTML=`<div class="portal-verified-card" aria-labelledby="portalRecoveryTitle"><div class="eyebrow">Account recovery</div><h1 id="portalRecoveryTitle">Reset your password.</h1><p>Enter your Nexus email. If it matches an account, we will send a secure recovery link.</p><form id="portalRecoveryRequestForm"><div class="field"><label for="portalRecoveryEmail">Email</label><input id="portalRecoveryEmail" type="email" autocomplete="email" required value="${escapeHtml(suggested)}"></div><p id="portalRecoveryMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoverySend" class="btn primary" type="submit">Send recovery email →</button><button id="portalRecoveryCancel" class="btn secondary" type="button">Cancel</button></div></form></div>`;
+    overlay.innerHTML=`<div class="portal-verified-card" aria-labelledby="portalRecoveryTitle"><div class="eyebrow">Account recovery</div><h1 id="portalRecoveryTitle">Reset your password.</h1><p>Enter your Relystra email. If it matches an account, we will send a secure recovery link.</p><form id="portalRecoveryRequestForm"><div class="field"><label for="portalRecoveryEmail">Email</label><input id="portalRecoveryEmail" type="email" autocomplete="email" required value="${escapeHtml(suggested)}"></div><p id="portalRecoveryMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoverySend" class="btn primary" type="submit">Send recovery email →</button><button id="portalRecoveryCancel" class="btn secondary" type="button">Cancel</button></div></form></div>`;
     appendOverlay(overlay,'#portalRecoveryEmail');
     const email=document.getElementById('portalRecoveryEmail');
     events.bind(document.getElementById('portalRecoveryCancel'),'click','recovery:cancel',()=>removeOverlay(overlay));
     events.bind(document.getElementById('portalRecoveryRequestForm'),'submit','recovery:request',boundary.wrap('password recovery request',async event=>{
       event.preventDefault();const button=document.getElementById('portalRecoverySend'),message=document.getElementById('portalRecoveryMessage'),address=email?.value?.trim()||'';if(!address)return;
       if(button){button.disabled=true;button.textContent='Sending…'}if(message)message.textContent='';
-      try{const {error}=await sb.auth.resetPasswordForEmail(address,{redirectTo:`${location.origin}/portal?mode=recovery`});if(error)throw error;if(message)message.textContent='If that email matches a Nexus account, a recovery link has been sent. Check your inbox and spam folder.';if(button)button.hidden=true;const cancel=document.getElementById('portalRecoveryCancel');if(cancel)cancel.textContent='Close'}
-      catch(error){console.error('Nexus password recovery request failed',error);if(message)message.textContent='The recovery request could not be completed right now. Try again in a few minutes.';if(button){button.disabled=false;button.textContent='Send recovery email →'}}
+      try{const {error}=await sb.auth.resetPasswordForEmail(address,{redirectTo:`${location.origin}/portal?mode=recovery`});if(error)throw error;if(message)message.textContent='If that email matches a Relystra account, a recovery link has been sent. Check your inbox and spam folder.';if(button)button.hidden=true;const cancel=document.getElementById('portalRecoveryCancel');if(cancel)cancel.textContent='Close'}
+      catch(error){console.error('Relystra password recovery request failed',error);if(message)message.textContent='The recovery request could not be completed right now. Try again in a few minutes.';if(button){button.disabled=false;button.textContent='Send recovery email →'}}
     },{silent:true}));
   }
 
@@ -87,7 +87,7 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
       if(value!==confirmation){if(message)message.textContent='The passwords do not match.';return}
       if(button){button.disabled=true;button.textContent='Updating…'}
       try{const {error}=await sb.auth.updateUser({password:value});if(error)throw error;if(message)message.textContent='Password updated. Returning to sign in…';await sb.auth.signOut();history.replaceState({},'',location.pathname);setTimeout(()=>{removeOverlay(overlay);show?.('auth');pane?.('signInPane');const authMessage=document.getElementById('authMessage');if(authMessage){authMessage.textContent='Password updated. Sign in with your new password.';authMessage.style.color='var(--nx-muted)'}},350)}
-      catch(error){console.error('Nexus password update failed',error);if(message)message.textContent='The password could not be updated. Request a fresh recovery link and try again.';if(button){button.disabled=false;button.textContent='Update password →'}}
+      catch(error){console.error('Relystra password update failed',error);if(message)message.textContent='The password could not be updated. Request a fresh recovery link and try again.';if(button){button.disabled=false;button.textContent='Update password →'}}
     },{silent:true}));
   }
 
@@ -95,8 +95,8 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
     if(document.getElementById('portalVerifiedOverlay'))return;
     const overlay=document.createElement('div');overlay.id='portalVerifiedOverlay';overlay.className='portal-verified-overlay';overlay.tabIndex=-1;
     overlay.innerHTML=ok
-      ? `<div class="portal-verified-card"><div class="portal-verified-icon">✓</div><div class="eyebrow">Email verification complete</div><h1>Your email is verified.</h1><p>Your Nexus account is active.</p><div class="actions"><button id="verifiedContinue" class="btn primary" type="button">Continue to Nexus →</button><button id="verifiedSignIn" class="btn secondary" type="button">Return to Sign In</button></div></div>`
-      : `<div class="portal-verified-card error"><div class="portal-verified-icon">!</div><div class="eyebrow">Verification problem</div><h1>We could not confirm that link.</h1><p>${escapeHtml(message||'The verification link may have expired or already been used. Return to Nexus and try signing in.')}</p><div class="actions"><button id="verifiedSignIn" class="btn primary" type="button">Return to Sign In</button><a class="btn secondary" href="/">Main Website</a></div></div>`;
+      ? `<div class="portal-verified-card"><div class="portal-verified-icon">✓</div><div class="eyebrow">Email verification complete</div><h1>Your email is verified.</h1><p>Your Relystra account is active.</p><div class="actions"><button id="verifiedContinue" class="btn primary" type="button">Continue to Relystra →</button><button id="verifiedSignIn" class="btn secondary" type="button">Return to Sign In</button></div></div>`
+      : `<div class="portal-verified-card error"><div class="portal-verified-icon">!</div><div class="eyebrow">Verification problem</div><h1>We could not confirm that link.</h1><p>${escapeHtml(message||'The verification link may have expired or already been used. Return to Relystra and try signing in.')}</p><div class="actions"><button id="verifiedSignIn" class="btn primary" type="button">Return to Sign In</button><a class="btn secondary" href="/">Main Website</a></div></div>`;
     appendOverlay(overlay,ok?'#verifiedContinue':'#verifiedSignIn');
     events.bind(document.getElementById('verifiedContinue'),'click','verification:continue',()=>{removeOverlay(overlay);history.replaceState({},'',location.pathname);if(session?.user)location.reload()});
     events.bind(document.getElementById('verifiedSignIn'),'click','verification:signin',boundary.wrap('verification sign out',async()=>{removeOverlay(overlay);history.replaceState({},'',location.pathname);try{await sb.auth.signOut()}catch(error){console.warn('Verification sign-out cleanup failed',error)}show?.('auth');pane?.('signInPane')},{silent:true}));

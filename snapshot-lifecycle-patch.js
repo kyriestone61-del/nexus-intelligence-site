@@ -4,7 +4,7 @@
     if(document.getElementById('marketingOptIn'))return;
     const sms=document.getElementById('smsOptIn');if(!sms)return;
     const row=sms.closest('.consent-row');if(!row)return;
-    const label=document.createElement('label');label.className='consent-row';label.innerHTML='<input id="marketingOptIn" type="checkbox"><span>Yes, email me useful Nexus follow-up related to this Snapshot. This is optional, and I can unsubscribe at any time.</span>';
+    const label=document.createElement('label');label.className='consent-row';label.innerHTML='<input id="marketingOptIn" type="checkbox"><span>Yes, email me useful Relystra follow-up related to this Snapshot. This is optional, and I can unsubscribe at any time.</span>';
     row.insertAdjacentElement('afterend',label);
   }
   const nativeFetch=window.fetch.bind(window);

@@ -1,0 +1,90 @@
+:root {
+  --bg: #07111a;
+  --bg2: #0b1923;
+  --panel: #10212d;
+  --panel2: #142936;
+  --text: #f4f1e8;
+  --muted: #aab8be;
+  --accent: #48b7a7;
+  --accent2: #87a9b8;
+  --good: #64c39b;
+  --warn: #e2b86b;
+}
+
+body {
+  background:
+    radial-gradient(circle at 88% 2%, rgba(72, 183, 167, .12), transparent 28%),
+    linear-gradient(180deg, var(--bg), #050c12 72%);
+}
+
+.brand-mark {
+  display: block;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex: 0 0 36px;
+}
+
+.portal-brand .brand-mark,
+.topbar .brand-mark {
+  width: 34px;
+  height: 34px;
+}
+
+.grad {
+  background: linear-gradient(105deg, #f4f1e8 8%, #a7ded4 58%, #aabec7);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.btn.primary {
+  background: #f4f1e8;
+  color: #07111a;
+}
+
+.nav-cta {
+  border-color: rgba(72, 183, 167, .35);
+  color: #d9f4ef !important;
+}
+
+.rebrand-transition {
+  position: relative;
+  z-index: 58;
+  border-bottom: 1px solid rgba(72, 183, 167, .22);
+  background: #10212d;
+  color: #d8e2e5;
+  padding: 8px 20px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: .01em;
+}
+
+.rebrand-transition strong {
+  color: #f4f1e8;
+}
+
+.rebrand-transition span {
+  color: #8dd3c7;
+}
+
+.brand-proof-accent {
+  color: #c7a45a;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline-color: #48b7a7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

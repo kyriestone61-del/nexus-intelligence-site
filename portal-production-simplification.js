@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 
 const {state}=portal;
 const $=id=>document.getElementById(id);
@@ -14,22 +14,22 @@ function currentPlanStep(){return [...document.querySelectorAll('#adminJourneyRo
 function openDecisions(){
   const button=document.querySelector('.side-nav button[data-section="notifications"]')||adminPrimaryCache.decisions;
   if(button){button.click();return true}
-  portal.toast?.('Nexus could not open Decisions. Reload the workspace and try again.');
+  portal.toast?.('Relystra could not open Decisions. Reload the workspace and try again.');
   return false;
 }
 
 function simplifyAuth(){
   const auth=$('authView');if(!auth||auth.style.display==='none')return;
-  const eyebrow=auth.querySelector('.eyebrow');text(eyebrow,'Nexus Workspace');
+  const eyebrow=auth.querySelector('.eyebrow');text(eyebrow,'Relystra Workspace');
   const hero=auth.querySelector('h1');if(hero&&hero.dataset.productionSimple!=='1'){
     hero.dataset.productionSimple='1';hero.innerHTML='Sign in.<br>See what needs you.';
   }
   const intro=auth.querySelector('.panel .muted');text(intro,'One secure workspace for actions, files, decisions, and measured results.');
   const help=auth.querySelector('.data-room-help');
   if(help&&help.dataset.productionSimple!=='1'){
-    help.dataset.productionSimple='1';help.innerHTML='<div><b>01 · Today</b><span>The one thing that needs attention now.</span></div><div><b>02 · Files</b><span>Only the evidence Nexus actually requests.</span></div><div><b>03 · Results</b><span>What changed and what happens next.</span></div>';
+    help.dataset.productionSimple='1';help.innerHTML='<div><b>01 · Today</b><span>The one thing that needs attention now.</span></div><div><b>02 · Files</b><span>Only the evidence Relystra actually requests.</span></div><div><b>03 · Results</b><span>What changed and what happens next.</span></div>';
   }
-  const pill=document.querySelector('.topbar .pill');if(pill)text(pill,state.admin?'NEXUS':'WORKSPACE');
+  const pill=document.querySelector('.topbar .pill');if(pill)text(pill,state.admin?'RELYSTRA':'WORKSPACE');
 }
 
 function primaryAdminNodes(nav){
@@ -85,11 +85,11 @@ function simplifyJourney(){
   if(!state.admin||state.viewMode==='client')return;
   const root=$('adminJourneyRoot');if(!root)return;
   const hero=root.querySelector('.admin-journey-hero');
-  if(hero){text(hero.querySelector('.eyebrow'),'Nexus · active client');text(hero.querySelector('h1'),'What happens next.');text(hero.querySelector('p'),'Nexus keeps the process moving and brings you only the next decision or action that requires you.');}
+  if(hero){text(hero.querySelector('.eyebrow'),'Relystra · active client');text(hero.querySelector('h1'),'What happens next.');text(hero.querySelector('p'),'Relystra keeps the process moving and brings you only the next decision or action that requires you.');}
   const step=currentPlanStep();
   if(step){
     text(step.querySelector('h3'),'Choose Solutions & Confirm Plan');
-    text(step.querySelector('p'),'Review the resolutions Nexus recommends from the approved diagnosis. Approve, reject, or defer each one. Only the final confirmed plan becomes work.');
+    text(step.querySelector('p'),'Review the resolutions Relystra recommends from the approved diagnosis. Approve, reject, or defer each one. Only the final confirmed plan becomes work.');
   }
   const preConfirm=!!step?.classList.contains('current')&&activePlanTasks().length===0;
   const cardStart=step?.querySelector('[data-start-package="solution_design"]');
@@ -99,12 +99,12 @@ function simplifyJourney(){
     const focus=root.querySelector('.journey-focus');
     text(focus?.querySelector('.kicker'),'Your next move · Step 3');
     text(focus?.querySelector('h2'),'Choose the solutions to execute');
-    text(focus?.querySelector('p'),'Nexus translated the approved diagnosis into proposed resolutions. Decide which ones belong in the plan, then approve Confirm Plan.');
+    text(focus?.querySelector('p'),'Relystra translated the approved diagnosis into proposed resolutions. Decide which ones belong in the plan, then approve Confirm Plan.');
     const status=focus?.querySelector('.journey-status');text(status,'Needs your decisions');
     text(primary,'Review suggested solutions →');primary.dataset.productionResolutionGate='1';
   }else if(primary){delete primary.dataset.productionResolutionGate}
   const help=root.querySelector('.journey-help');
-  if(help){text(help.querySelector('summary'),'Where are the other tools?');text(help.querySelector('p'),'Nexus keeps files, workflows, approvals, systems, and audit history behind this journey. Open Records & Tools only when you need to inspect them.');}
+  if(help){text(help.querySelector('summary'),'Where are the other tools?');text(help.querySelector('p'),'Relystra keeps files, workflows, approvals, systems, and audit history behind this journey. Open Records & Tools only when you need to inspect them.');}
 }
 
 function simplifyDecisions(){
@@ -128,7 +128,7 @@ function simplifySales(){
   const section=$('section-revenue');if(!section)return;
   const nav=document.querySelector('.side-nav button[data-section="revenue"]')||adminPrimaryCache.sales;text(nav,'Sales');
   const hero=section.querySelector('.revenue-hero');
-  if(hero){text(hero.querySelector('.eyebrow'),'Nexus · sales pipeline');text(hero.querySelector('h1'),'Sales');text(hero.querySelector('p'),'Qualified opportunities, outreach approvals, replies, bookings, and exceptions. Research and scoring stay behind this view.');const guard=hero.querySelector('.revenue-guard');if(guard){text(guard.querySelector('b'),'Human send approval is on');text(guard.querySelector('span'),'Nexus prepares outreach. Nothing external is sent from this console without approval.')}}
+  if(hero){text(hero.querySelector('.eyebrow'),'Relystra · sales pipeline');text(hero.querySelector('h1'),'Sales');text(hero.querySelector('p'),'Qualified opportunities, outreach approvals, replies, bookings, and exceptions. Research and scoring stay behind this view.');const guard=hero.querySelector('.revenue-guard');if(guard){text(guard.querySelector('b'),'Human send approval is on');text(guard.querySelector('span'),'Relystra prepares outreach. Nothing external is sent from this console without approval.')}}
   const statLabels=['Prospects','Qualified','Needs approval','Contacted','Booked','Exceptions'];section.querySelectorAll('.revenue-stats > div span').forEach((span,index)=>{if(statLabels[index])text(span,statLabels[index])});
   const top=section.querySelector('.revenue-top-grid');
   if(top&&!top.closest('.nexus-sales-advanced')){
@@ -171,7 +171,7 @@ function simplifyClient(){
 
 function simplifyTopbar(){
   const alerts=$('alertsBtn');if(alerts&&state.admin&&state.viewMode!=='client')text(alerts,'Alerts');
-  const pill=document.querySelector('.topbar .pill');if(pill&&state.admin&&state.viewMode!=='client')text(pill,'NEXUS');
+  const pill=document.querySelector('.topbar .pill');if(pill&&state.admin&&state.viewMode!=='client')text(pill,'RELYSTRA');
 }
 
 function apply(){

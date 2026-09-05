@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable for diagnosis approval flow.');
+if(!portal)throw new Error('Relystra portal context is unavailable for diagnosis approval flow.');
 const {sb,state,toast}=portal;
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -54,7 +54,7 @@ async function load({force=false}={}){
     decisions=decisionResult.data||[];
     loadedCompanyId=companyId;
     decorate();
-  }catch(error){console.error('Nexus diagnosis approval flow could not load.',error)}
+  }catch(error){console.error('Relystra diagnosis approval flow could not load.',error)}
   finally{loading=false}
 }
 
@@ -66,11 +66,11 @@ function statusMarkup(current){
 
 function decisionMarkup(release){
   const current=decisionFor(release),approved=current?.decision==='approved',changes=current?.decision==='changes_requested',preview=isPreview();
-  const intro=approved?'You approved this diagnosis. The next eligible client step is now available when its prerequisites are satisfied.':changes?'Nexus has your requested changes. This approval stays paused until a revised report version is released.':'Review the diagnosis above, including the recommended first priority. Approve it if it is accurate enough to move forward, or request a correction.';
+  const intro=approved?'You approved this diagnosis. The next eligible client step is now available when its prerequisites are satisfied.':changes?'Relystra has your requested changes. This approval stays paused until a revised report version is released.':'Review the diagnosis above, including the recommended first priority. Approve it if it is accurate enough to move forward, or request a correction.';
   const previewNote=preview?'<div class="nexus-diagnosis-preview-note"><b>Admin Client View:</b> this is a read-only preview. The signed-in client can approve or request changes from this exact report.</div>':'';
   const approveButton=!approved?(preview?'<button type="button" class="btn primary" disabled aria-disabled="true">Client can approve diagnosis</button>':'<button type="button" class="btn primary" data-diagnosis-approve>Approve diagnosis</button>'):'';
-  const changeBlock=preview?'':`<details><summary>${approved?'Need to correct something after approval?':'Request changes instead'}</summary><textarea data-diagnosis-change-note placeholder="Tell Nexus exactly what is inaccurate, missing, or unclear.">${changes?esc(current.note||''):''}</textarea><div class="actions"><button type="button" class="btn secondary" data-diagnosis-request-changes>Send change request</button></div></details>`;
-  return `<section class="nexus-diagnosis-decision" data-diagnosis-decision-release="${esc(release.id)}"><div class="nexus-diagnosis-decision-head"><div><div class="kicker">Your decision · Report v${esc(release.report_version)}</div><h3>${approved?'Diagnosis approved':changes?'Nexus is revising the report':'Approve the diagnosis and first priority'}</h3><p>${esc(intro)} Approval does not authorize implementation, production access, or additional paid work.</p></div>${statusMarkup(current)}</div>${changes&&current.note?`<div class="nexus-diagnosis-decision-note"><b>Your change request:</b><br>${esc(current.note)}</div>`:''}${previewNote}${approveButton?`<div class="actions">${approveButton}</div>`:''}${changeBlock}</section>`;
+  const changeBlock=preview?'':`<details><summary>${approved?'Need to correct something after approval?':'Request changes instead'}</summary><textarea data-diagnosis-change-note placeholder="Tell Relystra exactly what is inaccurate, missing, or unclear.">${changes?esc(current.note||''):''}</textarea><div class="actions"><button type="button" class="btn secondary" data-diagnosis-request-changes>Send change request</button></div></details>`;
+  return `<section class="nexus-diagnosis-decision" data-diagnosis-decision-release="${esc(release.id)}"><div class="nexus-diagnosis-decision-head"><div><div class="kicker">Your decision · Report v${esc(release.report_version)}</div><h3>${approved?'Diagnosis approved':changes?'Relystra is revising the report':'Approve the diagnosis and first priority'}</h3><p>${esc(intro)} Approval does not authorize implementation, production access, or additional paid work.</p></div>${statusMarkup(current)}</div>${changes&&current.note?`<div class="nexus-diagnosis-decision-note"><b>Your change request:</b><br>${esc(current.note)}</div>`:''}${previewNote}${approveButton?`<div class="actions">${approveButton}</div>`:''}${changeBlock}</section>`;
 }
 
 function bindDecisionPanel(card,release){
@@ -107,7 +107,7 @@ function decorateTaskButtons(){
     if(diagnosis){
       button.dataset.diagnosisApprovalTask='true';
       if(release){button.dataset.diagnosisReleaseId=release.id;button.disabled=false;button.removeAttribute('aria-disabled');button.textContent=isPreview()?'Preview diagnosis approval →':'Review & approve diagnosis →';button.title='Open the released diagnosis and complete the approval there.'}
-      else if(button.classList.contains('nexus-client-primary-cta')){button.disabled=true;button.setAttribute('aria-disabled','true');button.textContent='Diagnosis report not released yet';button.title='Nexus must release the client-safe diagnosis before this approval can be completed.'}
+      else if(button.classList.contains('nexus-client-primary-cta')){button.disabled=true;button.setAttribute('aria-disabled','true');button.textContent='Diagnosis report not released yet';button.title='Relystra must release the client-safe diagnosis before this approval can be completed.'}
       return;
     }
     if(isPreview()&&button.classList.contains('nexus-client-primary-cta'))button.textContent='Preview this client step →';
@@ -125,7 +125,7 @@ async function openDiagnosisTask(task){
   if(loadedCompanyId!==state.companyId)await load({force:true});
   const release=releaseForTask(task);
   if(!release){
-    toast?.(isPreview()?'This diagnosis has not been released to the client yet. Release the client-safe report from Admin before asking the client to approve it.':'Nexus is still preparing your diagnosis report. This approval will open automatically after the report is released.');
+    toast?.(isPreview()?'This diagnosis has not been released to the client yet. Release the client-safe report from Admin before asking the client to approve it.':'Relystra is still preparing your diagnosis report. This approval will open automatically after the report is released.');
     return;
   }
   window.NexusClientShell?.activateView?.('reports');
@@ -148,7 +148,7 @@ async function submitDecision(release,decision,note,button){
     window.NexusClientShell?.activateView?.('today');
     const next=window.NexusClientShell?.getCurrentActionContext?.()?.primaryAction;
     if(decision==='approved')toast?.(next?`Diagnosis approved. Your next step is “${next.title}.”`:'Diagnosis approved. Nothing else needs you right now.');
-    else toast?.('Change request sent. Nexus is reviewing it. This approval will reopen when a revised report is released.');
+    else toast?.('Change request sent. Relystra is reviewing it. This approval will reopen when a revised report is released.');
   }catch(error){console.error('Diagnosis decision failed.',error);toast?.(error.message||'Your diagnosis decision could not be saved.')}
   finally{if(button?.isConnected){button.disabled=false;button.textContent=original}}
 }

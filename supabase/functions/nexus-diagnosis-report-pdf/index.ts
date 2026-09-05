@@ -50,7 +50,7 @@ function reportSections(r:any,client=false){
   sections.push(["Follow-Up Questions",bulletText(r?.follow_up_questions,"question","reason")]);
   sections.push(["Smallest Safe Pilot",`${clean(pilot.title)}\n${clean(pilot.summary)}\n\nIn scope:\n${arr(pilot.scope_in).map((x:any)=>`• ${clean(x)}`).join("\n")}\n\nOut of scope:\n${arr(pilot.scope_out).map((x:any)=>`• ${clean(x)}`).join("\n")}\n\nAcceptance criteria:\n${arr(pilot.acceptance_criteria).map((x:any)=>`• ${clean(x)}`).join("\n")}\n\nHuman controls:\n${arr(pilot.human_controls).map((x:any)=>`• ${clean(x)}`).join("\n")}`]);
   if(!client){
-    sections.push(["Nexus Actions",bulletText(r?.nexus_actions)]);
+    sections.push(["Relystra Actions",bulletText(r?.nexus_actions)]);
     sections.push(["Client Action Items",bulletText(r?.client_action_items)]);
     sections.push(["Document Requests",arr(r?.document_requests).map((x:any)=>`• ${clean(x.title)} — ${clean(x.purpose)}`).join("\n")]);
     sections.push(["Decision Items",bulletText(r?.decision_items)]);
@@ -74,20 +74,20 @@ Deno.serve(async(req:Request)=>{
   try{
     const {user,isAdmin}=await userFrom(req);
     const body=await req.json().catch(()=>({}));
-    let report:any=null,companyName="Client",client=false,filename="Nexus-Diagnosis-Report.pdf";
+    let report:any=null,companyName="Client",client=false,filename="Relystra-Diagnosis-Report.pdf";
 
     if(body?.run_id){
       if(!isAdmin)throw new Error("ADMIN_REQUIRED");
       const {data:run,error}=await db.from("nexus_diagnosis_runs").select("id,company_id,status,analysis_result").eq("id",body.run_id).single();
       if(error||!run?.analysis_result)throw new Error("REPORT_NOT_FOUND");
       const {data:company}=await db.from("nexus_companies").select("name").eq("id",run.company_id).single();
-      report=run.analysis_result;companyName=company?.name||"Client";client=false;filename=`${companyName.replace(/[^a-z0-9_-]+/gi,"-")}-Nexus-Diagnosis.pdf`;
+      report=run.analysis_result;companyName=company?.name||"Client";client=false;filename=`${companyName.replace(/[^a-z0-9_-]+/gi,"-")}-Relystra-Diagnosis.pdf`;
     }else if(body?.release_id){
       const {data:release,error}=await db.from("nexus_diagnosis_report_releases").select("id,company_id,status,client_report").eq("id",body.release_id).single();
       if(error||!release||release.status!=="released")throw new Error("REPORT_NOT_FOUND");
       if(!isAdmin&&!await isMember(user.id,release.company_id))throw new Error("COMPANY_ACCESS_REQUIRED");
       const {data:company}=await db.from("nexus_companies").select("name").eq("id",release.company_id).single();
-      report=release.client_report;companyName=company?.name||"Client";client=true;filename=`${companyName.replace(/[^a-z0-9_-]+/gi,"-")}-Nexus-Client-Report.pdf`;
+      report=release.client_report;companyName=company?.name||"Client";client=true;filename=`${companyName.replace(/[^a-z0-9_-]+/gi,"-")}-Relystra-Client-Report.pdf`;
     }else throw new Error("REPORT_ID_REQUIRED");
 
     const pdf=await PDFDocument.create();
@@ -100,10 +100,10 @@ Deno.serve(async(req:Request)=>{
         ensure(size+7);page.drawText(line,{x:margin+indent,y,size,font:isBold?bold:regular,color:rgb(.08,.08,.11)});y-=size+5;
       }
     };
-    page.drawText("NEXUS INTELLIGENCE",{x:margin,y,size:11,font:bold,color:rgb(.20,.12,.45)});y-=28;
+    page.drawText("RELYSTRA",{x:margin,y,size:11,font:bold,color:rgb(.20,.12,.45)});y-=28;
     draw(client?"Client Diagnosis Report":"Client Diagnosis — Internal Full Report",20,true);y-=2;
     draw(companyName,12,true);y-=6;
-    draw(client?"Prepared for client review. Use the secure Nexus workspace to submit questions.":"Internal Nexus report. Human review remains required before any client release or implementation decision.",9,false);y-=14;
+    draw(client?"Prepared for client review. Use the secure Relystra workspace to submit questions.":"Internal Relystra report. Human review remains required before any client release or implementation decision.",9,false);y-=14;
 
     for(const [heading,bodyText] of reportSections(report,client)){
       ensure(55);draw(heading,13,true);y-=3;draw(bodyText,9,false);y-=13;

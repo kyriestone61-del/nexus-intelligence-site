@@ -1,12 +1,12 @@
-# Nexus Intelligence — AI-Native Operating System
+# Relystra — AI-Native Operating System
 
 **Implementation standard:** August 30, 2026  
-**Source blueprint:** *Nexus Intelligence — AI Leverage Blueprint, Founder Operating System v1.0*  
+**Source blueprint:** *Relystra — AI Leverage Blueprint, Founder Operating System v1.0*  
 **Status:** Foundation implemented; operating evidence gates intentionally remain open until demonstrated.
 
 ## 1. Purpose
 
-Nexus is not being designed as a generic AI agency, prompt-engineering shop, or autonomous-agent demo. The operating target is a disciplined implementation and managed-operations company in which reasoning, software access, workflows, agents, memory, client software, tools, company management, and evidence loops reinforce one another.
+Relystra is not being designed as a generic AI agency, prompt-engineering shop, or autonomous-agent demo. The operating target is a disciplined implementation and managed-operations company in which reasoning, software access, workflows, agents, memory, client software, tools, company management, and evidence loops reinforce one another.
 
 The controlling doctrine is:
 
@@ -23,7 +23,7 @@ The controlling doctrine is:
 
 ## 2. Architecture implemented
 
-The Nexus operating stack now has five shared planes rather than ten disconnected feature projects.
+The Relystra operating stack now has five shared planes rather than ten disconnected feature projects.
 
 ### A. Intelligence plane
 
@@ -55,7 +55,7 @@ The Nexus operating stack now has five shared planes rather than ten disconnecte
 - Workflow Runs
 - Business-completion flag separate from technical run success
 - Workflow Exceptions
-- Existing Nexus Hub Requests / Approvals / Tasks / Projects / Metrics / Automations
+- Existing Relystra Hub Requests / Approvals / Tasks / Projects / Metrics / Automations
 
 ### D. Memory and proof plane
 
@@ -79,7 +79,7 @@ The Nexus operating stack now has five shared planes rather than ten disconnecte
 
 ## 3. Operating-state vocabulary
 
-Nexus separates **built**, **tested**, **proven**, and **allowed**.
+Relystra separates **built**, **tested**, **proven**, and **allowed**.
 
 - `foundation_complete`: required schema/template/control exists. It does **not** prove operating value.
 - `ready_for_test`: role/template/system is ready for evidence-generating evaluation.
@@ -178,7 +178,7 @@ The System Card standard captures:
 - acceptance criteria
 - version/status
 
-The existing public AI Opportunity Snapshot is documented as the first real end-to-end Nexus System Card.
+The existing public AI Opportunity Snapshot is documented as the first real end-to-end Relystra System Card.
 
 ## Gate still open
 
@@ -192,7 +192,7 @@ Template coverage and cycle-time gains must be observed over repeated real use. 
 
 `nexus_system_registry` creates an explicit system map. Current internal entries include:
 
-- Nexus Hub / Supabase
+- Relystra Hub / Supabase
 - Gmail
 - Google Calendar
 - Google Drive / Files
@@ -240,7 +240,7 @@ The layer needs repeated connector-health checks, reconstructable material write
 - `nexus_workflow_exceptions`
 - `nexus_automation_candidates`
 - Existing AI Opportunity Snapshot recorded as a live workflow definition
-- 25 recurring Nexus work candidates inventoried
+- 25 recurring Relystra work candidates inventoried
 
 The 25-candidate inventory includes:
 
@@ -292,7 +292,7 @@ A workflow run separately records `status` and `business_completed`. This preven
 
 ## Gate still open
 
-Before deeper automation, Nexus needs baseline measurements on the 25 candidates, manual SOP evidence, repeatable runs, visible exception classes, failure alerts, and business KPI movement.
+Before deeper automation, Relystra needs baseline measurements on the 25 candidates, manual SOP evidence, repeatable runs, visible exception classes, failure alerts, and business KPI movement.
 
 ---
 
@@ -384,15 +384,15 @@ Memory classes:
 
 ## Gate still open
 
-Nexus still needs a formal ten-question retrieval test against current sources and recurring meeting/engagement-close memory capture evidence.
+Relystra still needs a formal ten-question retrieval test against current sources and recurring meeting/engagement-close memory capture evidence.
 
 ---
 
-# Layer 07 — Software Around AI: Nexus Operations Hub
+# Layer 07 — Software Around AI: Relystra Operations Hub
 
 ## Already operational / implemented
 
-The current Nexus Hub already contains substantial MVP jobs:
+The current Relystra Hub already contains substantial MVP jobs:
 
 - Today / action center
 - Client and admin views
@@ -491,7 +491,7 @@ It also explicitly surfaces evidence gaps, including:
 - no validated Improvement Ledger result
 - empty Evidence Registry
 
-This means the OS is designed to tell the founder what Nexus **cannot yet claim**, not merely show positive-looking dashboards.
+This means the OS is designed to tell the founder what Relystra **cannot yet claim**, not merely show positive-looking dashboards.
 
 ### Eight operating domains
 
@@ -552,7 +552,7 @@ The following are deliberately not represented as operational merely because the
 4. **No top-five automation candidates chosen from invented baselines.** Twenty-five candidates exist; baseline measurements are required next.
 5. **No first contractor pilot declared without a real business owner/baseline/KPI.** The decision is in the Founder Decision Queue.
 6. **No additional automation/orchestration software purchase.** The current stack is used until a demonstrated workflow needs more.
-7. **No standalone SaaS claim for Nexus Hub.** Productization follows repeated client use and support economics.
+7. **No standalone SaaS claim for Relystra Hub.** Productization follows repeated client use and support economics.
 8. **No generic contextual AI assistant promoted as the product.** It comes after grounded workflows and permission-aware memory are demonstrated.
 9. **No automatic pricing/scope commitment.** Founder authority remains explicit.
 10. **No assumption that connector/API success equals business completion.** Workflow runs track business completion separately.
@@ -581,9 +581,9 @@ The following are deliberately not represented as operational merely because the
 Not every Supabase linter warning should be cleared blindly:
 
 - The public Opportunity Snapshot submission RPC is intentionally callable without login because it is the controlled lead-submission boundary. It performs bounded validation and writes into an RLS-protected lead table.
-- Several authenticated `SECURITY DEFINER` helper functions implement existing Nexus authorization/storage permission logic. Refactoring them should be a separate authorization test project so the portal is not broken merely to silence a generic lint.
+- Several authenticated `SECURITY DEFINER` helper functions implement existing Relystra authorization/storage permission logic. Refactoring them should be a separate authorization test project so the portal is not broken merely to silence a generic lint.
 - Supabase Auth leaked-password protection is currently reported disabled and should be evaluated/enabled as part of the authentication-hardening backlog.
-- A Statecraft `statecraft_download_tokens` RLS/no-policy notice is outside the Nexus control-plane migration.
+- A Statecraft `statecraft_download_tokens` RLS/no-policy notice is outside the Relystra control-plane migration.
 
 # 6. Next evidence-producing work
 
@@ -593,7 +593,7 @@ The immediate next sequence is not “build more features.” It is:
 2. Measure baseline minutes/run, runs/month, and rework/error rate for the 25 automation candidates.
 3. Select the top five only after those baseline fields are populated.
 4. Write/run the manual SOPs for those five and classify real exceptions.
-5. Run Nexus self-diagnosis through the Fact/Hypothesis/Unknown + opportunity scorecard standard.
+5. Run Relystra self-diagnosis through the Fact/Hypothesis/Unknown + opportunity scorecard standard.
 6. Use a real contractor/construction-adjacent prospect/client to validate one workflow reference model.
 7. Define baseline, KPI, owner, access boundary, pilot limit, acceptance criteria, and rollback for the first commercial pilot.
 8. Run it initially in manual/AI-assisted managed mode.

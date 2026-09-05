@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable.');
+if(!portal)throw new Error('Relystra portal context is unavailable.');
 
 const {sb,state,toast}=portal;
 let activeAdminRunId=null;
@@ -8,7 +8,7 @@ let clientMountQueued=false;
 let clientQueryPromise=null;
 let clientReleaseCache={companyId:null,rows:[]};
 
-function safeFilename(value,fallback='Nexus-Diagnosis-Report.pdf'){
+function safeFilename(value,fallback='Relystra-Diagnosis-Report.pdf'){
   const name=String(value||'').trim().replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'-');
   return name||fallback;
 }
@@ -32,7 +32,7 @@ async function errorMessage(response){
   return text||`PDF request failed (${response.status}).`;
 }
 
-async function downloadDiagnosisPdf(payload,{button=null,fallback='Nexus-Diagnosis-Report.pdf'}={}){
+async function downloadDiagnosisPdf(payload,{button=null,fallback='Relystra-Diagnosis-Report.pdf'}={}){
   const sessionResult=await sb.auth.getSession();
   const token=sessionResult?.data?.session?.access_token;
   if(!token)throw new Error('Sign in again before downloading this report.');
@@ -93,7 +93,7 @@ function mountAdminDownload(){
   button.addEventListener('click',async()=>{
     const id=button.dataset.diagnosisPdfRun;
     if(!id)return;
-    try{await downloadDiagnosisPdf({run_id:id},{button,fallback:'Nexus-Diagnosis-Report.pdf'})}
+    try{await downloadDiagnosisPdf({run_id:id},{button,fallback:'Relystra-Diagnosis-Report.pdf'})}
     catch(error){console.error('Diagnosis PDF download failed',error);toast?.(error.message||'Diagnosis PDF could not be downloaded.')}
   });
 }
@@ -136,7 +136,7 @@ async function mountClientDownloads(){
   let rows;
   try{rows=await releasedRows()}catch(error){console.error('Released diagnosis reports could not be loaded for PDF controls.',error);return}
   if(rows.length!==cards.length){
-    console.warn('Nexus skipped diagnosis PDF controls because released report ordering could not be reconciled safely.',{cards:cards.length,releases:rows.length});
+    console.warn('Relystra skipped diagnosis PDF controls because released report ordering could not be reconciled safely.',{cards:cards.length,releases:rows.length});
     return;
   }
   cards.forEach((card,index)=>{
@@ -148,7 +148,7 @@ async function mountClientDownloads(){
     button.textContent='Download PDF';
     button.dataset.diagnosisPdfRelease=releaseId;
     button.addEventListener('click',async()=>{
-      try{await downloadDiagnosisPdf({release_id:releaseId},{button,fallback:'Nexus-Client-Report.pdf'})}
+      try{await downloadDiagnosisPdf({release_id:releaseId},{button,fallback:'Relystra-Client-Report.pdf'})}
       catch(error){console.error('Client diagnosis PDF download failed',error);toast?.(error.message||'Client report PDF could not be downloaded.')}
     });
     const head=card.querySelector('.nexus-client-report-head')||card;

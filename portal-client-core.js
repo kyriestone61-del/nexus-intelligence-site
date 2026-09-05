@@ -1,5 +1,5 @@
 /**
- * Nexus Client Core
+ * Relystra Client Core
  * Canonical client-side state engine for dependency evaluation, notification rollups,
  * report serialization, and workspace-current-action context.
  */
@@ -112,12 +112,12 @@ export function evaluateClientActionState(tasks) {
     else if (!prerequisitesSatisfied) state = 'UPCOMING';
     else if (rawCanonical === 'READY_TO_REVIEW') state = 'NEXUS_WORKING';
     else state = 'WAITING_ON_YOU';
-    return { task, state, dependencies, prerequisitesSatisfied, blockedByTaskId: firstIncomplete?.parentTaskId || null, blockedByTitle: cycleDetected ? 'Dependency cycle requires Nexus review' : firstIncomplete?.parentTitle || null, cycleDetected };
+    return { task, state, dependencies, prerequisitesSatisfied, blockedByTaskId: firstIncomplete?.parentTaskId || null, blockedByTitle: cycleDetected ? 'Dependency cycle requires Relystra review' : firstIncomplete?.parentTitle || null, cycleDetected };
   });
 }
 
 export function clientStatusLabel(state) {
-  return ({ WAITING_ON_YOU: 'Waiting on you', UPCOMING: 'Upcoming', NEXUS_WORKING: 'Nexus working', READY_TO_REVIEW: 'Ready to review', COMPLETE: 'Complete', BLOCKED: 'Blocked' })[state] || 'Nexus working';
+  return ({ WAITING_ON_YOU: 'Waiting on you', UPCOMING: 'Upcoming', NEXUS_WORKING: 'Relystra working', READY_TO_REVIEW: 'Ready to review', COMPLETE: 'Complete', BLOCKED: 'Blocked' })[state] || 'Relystra working';
 }
 
 function inferNotificationCategory(record) {
@@ -133,9 +133,9 @@ function inferNotificationCategory(record) {
 }
 
 function groupTitle(category, sample) {
-  const titles = { financial: 'Financial pilot information requested', systems: 'Systems information requested', people: 'People & approval information requested', legal: 'Legal information requested', evidence: 'Supporting evidence requested', general: 'Nexus workspace updates' };
-  if (String(category).startsWith('initiative:')) return sample?.initiative_title || 'Nexus initiative';
-  return titles[category] || 'Nexus workspace updates';
+  const titles = { financial: 'Financial pilot information requested', systems: 'Systems information requested', people: 'People & approval information requested', legal: 'Legal information requested', evidence: 'Supporting evidence requested', general: 'Relystra workspace updates' };
+  if (String(category).startsWith('initiative:')) return sample?.initiative_title || 'Relystra initiative';
+  return titles[category] || 'Relystra workspace updates';
 }
 
 function stableDisplayKey(row) {
@@ -155,7 +155,7 @@ export function aggregateNotifications(notifications) {
     const kind = String(row.kind || row.notification_type || row.related_type || '').toLowerCase();
     const isDocumentLike = kind.includes('document') || /document requested|evidence requested/i.test(row.title || '');
     if (!isDocumentLike) {
-      singles.push({ id: `single:${row.id || row.related_id || stableDisplayKey(row)}`, category: kind || 'update', title: row.title || 'Nexus update', itemCount: 1, completedCount: isCompleteNotification(row) ? 1 : 0, unreadCount: isUnread(row) ? 1 : 0, relatedIds: [row.related_id || row.id].filter(Boolean), items: [row], cta: row.kind === 'approval' ? 'Review decision →' : row.kind === 'task' ? 'Open action →' : 'View update →', newestAt: row.created_at || '' });
+      singles.push({ id: `single:${row.id || row.related_id || stableDisplayKey(row)}`, category: kind || 'update', title: row.title || 'Relystra update', itemCount: 1, completedCount: isCompleteNotification(row) ? 1 : 0, unreadCount: isUnread(row) ? 1 : 0, relatedIds: [row.related_id || row.id].filter(Boolean), items: [row], cta: row.kind === 'approval' ? 'Review decision →' : row.kind === 'task' ? 'Open action →' : 'View update →', newestAt: row.created_at || '' });
       continue;
     }
     const category = inferNotificationCategory(row);
@@ -171,21 +171,21 @@ export function aggregateNotifications(notifications) {
   return [...grouped, ...singles].sort((a, b) => String(b.newestAt || '').localeCompare(String(a.newestAt || '')));
 }
 
-function actionWhy(task) { return task.description || 'Nexus needs this information or decision to move the engagement forward without making assumptions.'; }
+function actionWhy(task) { return task.description || 'Relystra needs this information or decision to move the engagement forward without making assumptions.'; }
 function actionProvide(task) {
   if (task.instructions) return task.instructions;
   const type = String(task.task_type || '').toLowerCase();
-  if (type.includes('upload') || type.includes('evidence')) return 'Provide the requested representative evidence in Files. Redact anything Nexus does not need.';
+  if (type.includes('upload') || type.includes('evidence')) return 'Provide the requested representative evidence in Files. Redact anything Relystra does not need.';
   if (type === 'approval') return 'Review the decision, confirm the allowed boundary, and submit your response.';
-  if (type === 'access') return 'Confirm the approved access boundary. Never place passwords, MFA codes, API keys, or secrets in a Nexus response.';
-  if (type === 'decision') return 'State the business decision clearly so Nexus does not infer it from incomplete context.';
-  return 'Complete the requested action and submit any context Nexus needs to review it.';
+  if (type === 'access') return 'Confirm the approved access boundary. Never place passwords, MFA codes, API keys, or secrets in a Relystra response.';
+  if (type === 'decision') return 'State the business decision clearly so Relystra does not infer it from incomplete context.';
+  return 'Complete the requested action and submit any context Relystra needs to review it.';
 }
 function actionAfter(task, evaluated, allEvaluated) {
   const child = allEvaluated.find(x => x.task.dependency_task_id === task.id && x.state !== 'COMPLETE');
-  if (child) return `Nexus will review this step. Once accepted, “${child.task.title}” can move forward.`;
-  if (evaluated.state === 'WAITING_ON_YOU') return 'Nexus will review your submission and advance the engagement to the next controlled step.';
-  return 'Nexus will update the workspace when the next step becomes available.';
+  if (child) return `Relystra will review this step. Once accepted, “${child.task.title}” can move forward.`;
+  if (evaluated.state === 'WAITING_ON_YOU') return 'Relystra will review your submission and advance the engagement to the next controlled step.';
+  return 'Relystra will update the workspace when the next step becomes available.';
 }
 
 function buildWorkspaceContextFromEvaluated(evaluated) {
@@ -206,13 +206,13 @@ export function buildWorkspaceContextFromTasks(tasks) {
 
 /**
  * Single asynchronous consumer for Home, Inbox, Guide, email jobs, and mobile notification producers.
- * The database RPC is authoritative for dependency state so hidden Nexus prerequisites do not need
+ * The database RPC is authoritative for dependency state so hidden Relystra prerequisites do not need
  * to be exposed to the client browser merely to evaluate whether a client task is ready.
  */
 export async function getWorkspaceCurrentActionContext(clientId, options = {}) {
   const sb = options.sb || window.NexusPortal?.sb;
   if (!clientId) throw new Error('Client/company id is required.');
-  if (!sb && !Array.isArray(options.tasks)) throw new Error('Nexus data client is unavailable.');
+  if (!sb && !Array.isArray(options.tasks)) throw new Error('Relystra data client is unavailable.');
   let tasks = Array.isArray(options.tasks) ? options.tasks : null;
   let canonicalRows = null;
   if (sb) {

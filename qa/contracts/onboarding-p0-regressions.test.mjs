@@ -26,7 +26,7 @@ test('Homepage workspace is explicitly labeled as fictional sample data',()=>{
   assert.match(source,/SAMPLE CLIENT WORKSPACE/);
   assert.match(source,/FICTIONAL EXAMPLE/);
   assert.match(source,/Example Company — Sample Dashboard/);
-  assert.match(source,/not a real Nexus client or account/i);
+  assert.match(source,/not a real Relystra client or account/i);
 });
 
 test('Auth tabs hide inactive forms and portal rows cannot be crushed by full-width selects',()=>{

@@ -1,4 +1,4 @@
-/* Nexus Portal Base Runtime Hardening
+/* Relystra Portal Base Runtime Hardening
  * Geometry and interaction invariants shared by auth, onboarding, admin, and client modes.
  * This file must load before runtime selection and must not contain feature-specific layout.
  */

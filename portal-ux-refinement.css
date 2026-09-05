@@ -1,4 +1,4 @@
-/* Nexus UX refinement: simplify visual hierarchy without changing business rules. */
+/* Relystra UX refinement: simplify visual hierarchy without changing business rules. */
 :root{--nx-control-h:46px;--nx-radius-sm:10px;--nx-radius-md:14px;--nx-radius-lg:18px}
 body.nexus-ux-refined{--nx-content-max:1220px}
 body.nexus-ux-refined .topbar{position:sticky;top:0;z-index:1050;min-height:68px;gap:10px;padding:10px clamp(12px,2vw,24px);backdrop-filter:blur(16px);background:rgba(9,8,15,.92);border-bottom:1px solid rgba(229,224,255,.09)}

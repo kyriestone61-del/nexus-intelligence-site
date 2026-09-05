@@ -1,7 +1,7 @@
-# Nexus Intelligence — Cloudflare Pages Migration
+# Relystra — Cloudflare Pages Migration
 
 ## Objective
-Move the public Nexus website and client portal off Vercel Hobby onto Cloudflare Pages while preserving GitHub as the source of truth and Supabase as the authentication/database/storage backend.
+Move the public Relystra website and client portal off Vercel Hobby onto Cloudflare Pages while preserving GitHub as the source of truth and Supabase as the authentication/database/storage backend.
 
 ## Cloudflare Pages project settings
 - Source repository: `kyriestone61-del/nexus-intelligence-site`
@@ -38,7 +38,7 @@ Move the public Nexus website and client portal off Vercel Hobby onto Cloudflare
 The portal now derives its signup confirmation redirect from the active origin (`${location.origin}/portal`) rather than a hard-coded Vercel hostname. That makes the browser-side auth flow host-agnostic. The Supabase Auth Site URL and redirect allowlist still must contain the final production origin before cutover, and a fresh-account confirmation test remains mandatory before retiring the rollback host.
 
 ## Runtime configuration that must be verified before launch
-Cloudflare deployment alone does not configure the server-side integrations. Before the production cutover is accepted, verify the required runtime configuration for transactional email, booking/calendar access, and the Client Diagnosis Agent. A deployment is not considered launch-ready if the Nexus health dashboard reports those integrations as failed or degraded.
+Cloudflare deployment alone does not configure the server-side integrations. Before the production cutover is accepted, verify the required runtime configuration for transactional email, booking/calendar access, and the Client Diagnosis Agent. A deployment is not considered launch-ready if the Relystra health dashboard reports those integrations as failed or degraded.
 
 ## Cost posture
 This site is predominantly static, so Cloudflare Pages static asset delivery should remain on the free path. Supabase continues to provide authentication, database, private file storage, scheduled workers, and the secured Client Diagnosis Agent. Pages Functions/Workers should only be introduced when a feature actually requires server-side execution.

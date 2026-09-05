@@ -14,26 +14,26 @@ assert.match(app,/portal-client-action-execution\.js\?v=\$\{BUILD\}/,'client exe
 assert.match(execution,/sb\.rpc\('nexus_submit_task_for_review'/,'client submission must use the secured handoff RPC');
 assert.match(execution,/event\.stopImmediatePropagation\(\)/,'controller must stop the obsolete direct-update submit handler');
 assert.match(execution,/document\.addEventListener\('submit',[\s\S]*?,true\)/,'task submission interception must run in capture phase');
-assert.match(execution,/status:'in_progress'/,'client must be able to save work without handing ownership to Nexus');
+assert.match(execution,/status:'in_progress'/,'client must be able to save work without handing ownership to Relystra');
 assert.match(execution,/Save progress/,'structured client work must support draft progress');
-assert.match(execution,/Submitted to Nexus\. This step is now in Nexus review\./,'handoff must make ownership transfer explicit');
+assert.match(execution,/Submitted to Relystra\. This step is now in Relystra review\./,'handoff must make ownership transfer explicit');
 
 assert.match(execution,/nexus_project_data_requirements/,'preparation responses must persist to the canonical preparation table');
 assert.match(execution,/data-prep-upload/,'preparation workspace must expose direct upload');
 assert.match(execution,/portal\.prepareUpload/,'preparation upload must delegate to the canonical upload service');
 assert.match(execution,/Answer here/,'preparation workspace must support in-app answers');
-assert.match(execution,/Build with Nexus/,'missing artifacts must be routable to Nexus');
+assert.match(execution,/Build with Relystra/,'missing artifacts must be routable to Relystra');
 assert.match(execution,/Not applicable/,'client must be able to explicitly resolve non-applicable items');
-assert.match(execution,/data-submit-file-task/,'file/preparation work must have an explicit Client → Nexus handoff');
+assert.match(execution,/data-submit-file-task/,'file/preparation work must have an explicit Client → Relystra handoff');
 assert.match(execution,/After you submit/,'Today view must explain what follows client submission');
-assert.match(execution,/Nexus reviews your submission/,'Today view must not imply the client needs Nexus permission before doing client-owned work');
+assert.match(execution,/Relystra reviews your submission/,'Today view must not imply the client needs Relystra permission before doing client-owned work');
 assert.equal(execution.includes('new MutationObserver'),false,'direct-work reconciliation must not add DOM rewrite loops');
 
 assert.match(execution,/state\.previewReadOnly===true/,'administrator Client View must be detected explicitly');
 assert.match(execution,/function requireWritable\(\)/,'all direct mutations must have an explicit writable guard');
 assert.match(execution,/Client View is read-only from the administrator account/,'preview safety must explain the authorization boundary');
-assert.match(execution,/Client can submit to Nexus/,'admin preview must show the real client capability without enabling the mutation');
-assert.match(execution,/signed-in client can use the controls below, save progress, upload and download files, and submit completed work to Nexus/,'preview must explain what the actual client can do');
+assert.match(execution,/Client can submit to Relystra/,'admin preview must show the real client capability without enabling the mutation');
+assert.match(execution,/signed-in client can use the controls below, save progress, upload and download files, and submit completed work to Relystra/,'preview must explain what the actual client can do');
 
 assert.match(upload,/BUCKET='nexus-client-documents'/);
 assert.match(upload,/\.upload\(path,file/,'client upload service must write to private company storage');
@@ -46,4 +46,4 @@ assert.match(upload,/source_role:'client'/);
 assert.match(base,/createSignedUrl\(doc\.storage_path,120,\{download:doc\.file_name\}\)/,'client download must use a short-lived signed URL');
 assert.match(base,/storage\.from\(BUCKET\)\.download\(doc\.storage_path\)/,'download must retain the authenticated fallback path');
 
-console.log('NEXUS DIRECT CLIENT WORKFLOW + HANDOFF QAQC PASS');
+console.log('RELYSTRA DIRECT CLIENT WORKFLOW + HANDOFF QAQC PASS');

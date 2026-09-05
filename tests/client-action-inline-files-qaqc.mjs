@@ -10,7 +10,7 @@ const forms=fs.readFileSync('portal-action-execution-v2-forms.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260903_nexus_task_document_attachments.sql','utf8');
 const guard=fs.readFileSync('supabase/migrations/20260903_nexus_task_document_company_guard.sql','utf8');
 
-assert.match(app,/const BUILD='20260904-final-qagate1-relystra8'/,'action-file release must use the current fresh portal build id');
+assert.match(app,/const BUILD='20260905-relystra-rebrand-integration1'/,'action-file release must use the current fresh portal build id');
 
 assert.match(upload,/task_id:task\?\.id\|\|null/,'direct uploads must store task lineage on the document row');
 assert.match(upload,/uploadFilesForTask/,'upload service must expose multi-file action uploads');
@@ -50,4 +50,4 @@ assert.match(guard,/t\.company_id = new\.company_id/,'cross-company task attachm
 
 for(const source of [upload,files,live])assert.equal(/service[_-]?role|SUPABASE_SERVICE|RESEND_API_KEY|TWILIO_AUTH_TOKEN|SECRET_KEY/.test(source),false,'client-delivered attachment code must not contain privileged credentials');
 
-console.log('NEXUS CLIENT ACTION INLINE FILES QAQC PASS');
+console.log('RELYSTRA CLIENT ACTION INLINE FILES QAQC PASS');

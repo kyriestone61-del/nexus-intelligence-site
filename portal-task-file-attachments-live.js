@@ -1,5 +1,5 @@
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Nexus portal context is unavailable for live task file state.');
+if(!portal)throw new Error('Relystra portal context is unavailable for live task file state.');
 const {state}=portal;
 let scheduled=false;
 
@@ -23,4 +23,4 @@ schedule();
 const DIAGNOSIS_FLOW_BUILD='20260903-diagnosis-flow2';
 import(`/portal-client-diagnosis-flow.js?v=${DIAGNOSIS_FLOW_BUILD}`)
   .then(()=>import(`/portal-client-diagnosis-deeplink.js?v=${DIAGNOSIS_FLOW_BUILD}`))
-  .catch(error=>console.error('Nexus diagnosis approval flow failed to load.',error));
+  .catch(error=>console.error('Relystra diagnosis approval flow failed to load.',error));

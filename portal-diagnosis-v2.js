@@ -7,7 +7,7 @@
   const title=s=>String(s||'').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase());
   const providerMissing=run=>String(run?.execution_error||'').includes('AI_GATEWAY_NOT_CONFIGURED');
   const executionMessage=run=>providerMissing(run)
-    ? 'Automatic diagnosis is not connected yet because the Nexus AI Gateway provider credential has not been configured. Your transcript and supporting files are still saved. Configure the server-side AI Gateway connection before running this diagnosis again.'
+    ? 'Automatic diagnosis is not connected yet because the Relystra diagnosis-gateway provider credential has not been configured. Your transcript and supporting files are still saved. Configure the server-side gateway connection before running this diagnosis again.'
     : String(run?.execution_error||'');
 
   let reviewRequestToken=0;
@@ -58,7 +58,7 @@
       modal.setAttribute('aria-modal','true');
       modal.setAttribute('aria-hidden','true');
       modal.setAttribute('aria-labelledby','diagnosisReviewTitle');
-      modal.innerHTML='<div class="modal-card diagnosis-review-card"><div class="toolbar"><div><div class="eyebrow">Internal Nexus review</div><h2 id="diagnosisReviewTitle" style="margin:5px 0">Client Diagnosis</h2></div><button class="btn secondary" id="closeDiagnosisReview" type="button" aria-label="Close diagnosis review">Close</button></div><div id="diagnosisReviewBody"></div></div>';
+      modal.innerHTML='<div class="modal-card diagnosis-review-card"><div class="toolbar"><div><div class="eyebrow">Internal Relystra review</div><h2 id="diagnosisReviewTitle" style="margin:5px 0">Client Diagnosis</h2></div><button class="btn secondary" id="closeDiagnosisReview" type="button" aria-label="Close diagnosis review">Close</button></div><div id="diagnosisReviewBody"></div></div>';
       document.body.appendChild(modal);
     }
     bindModalControls(modal);
@@ -184,7 +184,7 @@
       reviewCache.delete(id);
       if(String(message).includes('AI_GATEWAY_NOT_CONFIGURED')){
         await openReview(id,{force:true});
-        throw new Error('Automatic diagnosis is not connected yet. Your transcript and files are saved; configure the Nexus AI Gateway before retrying.');
+        throw new Error('Automatic diagnosis is not connected yet. Your transcript and files are saved; configure the Relystra AI Gateway before retrying.');
       }
       throw new Error(message);
     }
