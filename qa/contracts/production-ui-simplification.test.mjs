@@ -11,7 +11,7 @@ const redirects=readFileSync(new URL('../../_redirects',import.meta.url),'utf8')
 test('portal loads the final production simplification layer after role shells',()=>{
   assert.match(portalApp,/portal-production-simplification\.css/);
   assert.match(portalApp,/portal-production-simplification\.js/);
-  assert.match(portalApp,/20260904-final-qagate1-relystra5/);
+  assert.match(portalApp,/20260904-final-qagate1-relystra6/);
 });
 
 test('founder daily navigation is constrained to Home, Clients, Decisions, Sales',()=>{

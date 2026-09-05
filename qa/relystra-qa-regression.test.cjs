@@ -210,3 +210,18 @@ test('diagnosis events refresh Home data without navigating away from opened wor
   active=true;await refresh();assert.equal(renders,1);
   assert.ok(src.includes('const refreshDiagnosisJourney=()=>setTimeout(refreshJourneyInPlace,120);'));
 });
+
+
+test('rendered action cards trigger administrator controls after filter replacement',()=>{
+  const calls=[],listeners={};
+  const window={addEventListener:(name,fn)=>listeners[name]=fn,dispatchEvent:event=>listeners[event.type]?.(event)};
+  const state={admin:true,companyId:'qa-company'};
+  const engine=source('portal-action-processing-engine.js');
+  const subscription="window.addEventListener('nexus:action-cards-rendered'"+engine.split("window.addEventListener('nexus:action-cards-rendered'")[1].split('if(state.user)')[0];
+  vm.runInNewContext(subscription,{window,state,scheduleAdminDecoration:()=>calls.push('decorate')});
+  const execution=source('portal-action-execution-v2.js');
+  const render='function renderTasks(){'+execution.split('function renderTasks(){')[1].split('async function saveClientNote')[0];
+  const run=vm.runInNewContext(`${render};renderTasks`,{window,state,$:()=>({innerHTML:''}),filteredTasks:()=>[],activeView:'my_work',bindCards:()=>calls.push('bind'),CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail}}});
+  run();run();assert.deepEqual(calls,['bind','decorate','bind','decorate']);
+  window.dispatchEvent({type:'nexus:action-cards-rendered',detail:{companyId:'another-company'}});assert.equal(calls.length,4);
+});

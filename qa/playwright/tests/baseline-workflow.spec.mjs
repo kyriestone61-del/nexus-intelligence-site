@@ -126,7 +126,6 @@ test.describe('full governed Nexus baseline workflow',()=>{
     page.on('console',captureError);
     const clientContext=await browser.newContext({baseURL:testInfo.project.use.baseURL});
     clientContext.setDefaultTimeout(10_000);
-    await clientContext.tracing.start({screenshots:true,snapshots:true});
     const clientPage=await clientContext.newPage();clientPage.on('console',captureError);
     try{
     const companyId=await adminLogin(page);
@@ -206,7 +205,7 @@ test.describe('full governed Nexus baseline workflow',()=>{
     expect(errors).toEqual([]);
     await signOut(clientPage);await signOut(page);
     }finally{
-      try{await clientContext.tracing.stop({path:testInfo.outputPath('client-session-trace.zip')})}finally{await clientContext.close()}
+      await clientContext.close()
     }
   });
 });

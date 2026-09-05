@@ -255,6 +255,10 @@ window.addEventListener('nexus:workspace-ready',async event=>{
   if(state.admin){enhanceBaseTaskModal();scheduleAdminDecoration();setTimeout(patchFreshlyCreatedTask,220)}else{ensureClientActionSurface();renderClientActions()}
 });
 
+window.addEventListener('nexus:action-cards-rendered',event=>{
+  if(state.admin&&event.detail?.companyId===state.companyId)scheduleAdminDecoration();
+});
+
 if(state.user){loadHistory().catch(error=>console.error('Nexus action history could not load.',error)).finally(()=>{if(state.admin){enhanceBaseTaskModal();scheduleAdminDecoration()}else{ensureClientActionSurface();renderClientActions()}})}
 
 const service=Object.freeze({openClientActions,renderClientActions,startTask,submitTask,requestHelp,addComment,adminAction,openAdminEdit,loadHistory});
