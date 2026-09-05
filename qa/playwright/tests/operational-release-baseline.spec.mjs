@@ -57,6 +57,7 @@ async function waitForTaskStatus(page,id,status,timeout=30_000){
 }
 
 async function openAdminActions(page,view='my_work'){
+  await page.evaluate(async()=>{await window.NexusPortal.workspace?.()});
   await page.evaluate(()=>document.querySelector('.side-nav button[data-section="tasks"]')?.click());
   await expect(page.locator('#section-tasks')).toHaveClass(/active/,{timeout:15_000});
   const filter=page.locator(`#actionExecutionFilters button[data-view="${view}"]`);
