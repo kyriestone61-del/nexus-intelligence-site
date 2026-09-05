@@ -1,22 +1,32 @@
 {
   "brand": "Relystra",
-  "release": "staging-v4-workflow-integrated",
-  "state": "preview-only",
+  "release": "operational-release-1-hardening",
+  "state": "production-current-phase",
   "productionReady": false,
-  "intendedFutureDomain": "RelystraSolutions.com",
-  "domainControlVerified": false,
-  "professionalTrademarkReview": "deferred-by-owner",
-  "crawlPolicy": "noindex-nofollow-disallow-all",
-  "productionBlockers": [
-    "Complete visual browser QA on an authorized preview",
-    "Complete external integration regression testing",
-    "Capture production backups and rollback evidence"
+  "operationalReadiness": {
+    "prospecting": true,
+    "fitCalls": true,
+    "paidDiagnosis": true,
+    "clientPortalExternalInvite": false
+  },
+  "remainingGates": [
+    "Verify the live production origin is serving the current Relystra source after deployment",
+    "Run one fresh UI end-to-end prospect-to-diagnosis test after production parity is confirmed",
+    "Insert and verify the legal contracting identity before the first client agreement is signed",
+    "Enable leaked-password protection if the current Supabase plan supports it"
   ],
-  "baseCommit": "07be6fe61d2589b74b170ced91b7684a7bc8aa6e",
-  "runtimeVerification": "local-checks-only",
+  "deferredNonBlockers": [
+    "SMS provider",
+    "advanced analytics and attribution",
+    "future dashboard and agent upgrades",
+    "future domain migration",
+    "later roadmap phases"
+  ],
+  "baseCommit": "108243b62c2b783425c8ef38a75c1c806ecdf9db",
+  "runtimeVerification": "production backend healthy on 2026-09-05",
   "domainMigration": "deferred-by-owner",
   "currentProductionOrigin": "https://nexusintelligence.live",
   "retainExistingEmailAddresses": true,
   "futureDomainRequiredForRebrand": false,
-  "legalIdentityPresentation": "deferred-by-owner"
+  "legalIdentityPresentation": "required-before-first-client-signature"
 }
