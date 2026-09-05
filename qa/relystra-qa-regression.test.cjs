@@ -174,3 +174,13 @@ test('Actions uses the shell route and survives the same activation used by refr
   shell.activateView('actions');shell.refresh();
   assert.equal(nodes[0].classList.active,false);assert.equal(nodes[1].classList.active,true);assert.equal(renders,2);
 });
+
+
+test('client and administrator loaders use the same fresh action-engine cache version',()=>{
+  const version=name=>source(name).match(/const ACTION_PROCESSING_BUILD='([^']+)'/)[1];
+  assert.equal(version('portal-client-upload-service.js'),version('portal-ux-refinement.js'));
+  assert.notEqual(version('portal-client-upload-service.js'),'20260904-action-processing1');
+  const workflow=source('.github/workflows/control-room-browser-qa.yml');
+  const assets=workflow.match(/assets=\(([^\n]+)\)/)[1].split(/\s+/);
+  for(const asset of ['portal-client-upload-service.js','portal-ux-refinement.js','portal-action-processing-engine.js'])assert.ok(assets.includes(asset),`${asset} must match production before authenticated QA`);
+});
