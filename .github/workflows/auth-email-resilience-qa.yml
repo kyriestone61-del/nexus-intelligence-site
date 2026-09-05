@@ -49,7 +49,7 @@ jobs:
           ! grep -Fq 'resetPasswordForEmail' portal-auth.js
           grep -Fq 'functions/v1/nexus-email-worker' functions/api/auth-email.js
           grep -Fq "mode:'auth_recovery'" functions/api/auth-email.js
-          grep -Fq 'client_ip:sourceIp' functions/api/auth-email.js
+          ! grep -Fq 'client_ip' functions/api/auth-email.js
           ! grep -Fq 'SUPABASE_SERVICE_ROLE_KEY' functions/api/auth-email.js
           ! grep -Fq 'RESEND_API_KEY' functions/api/auth-email.js
           ! grep -Fq '/auth/v1/admin/generate_link' functions/api/auth-email.js
@@ -65,7 +65,9 @@ jobs:
           grep -Fq "String(body?.mode||'')!=='auth_recovery'" supabase/functions/nexus-email-worker/auth-recovery-request.ts
           grep -Fq 'nexus_queue_auth_recovery' supabase/functions/nexus-email-worker/auth-recovery-request.ts
           grep -Fq 'origin_not_allowed' supabase/functions/nexus-email-worker/auth-recovery-request.ts
-          grep -Fq 'If that email matches a Relystra account' supabase/functions/nexus-email-worker/auth-recovery-request.ts
+          grep -Fq 'secure recovery request has been queued' supabase/functions/nexus-email-worker/auth-recovery-request.ts
+          ! grep -Fq 'body?.client_ip' supabase/functions/nexus-email-worker/auth-recovery-request.ts
+          grep -Fq 'observedSource(req)' supabase/functions/nexus-email-worker/auth-recovery-request.ts
           python - <<'PY'
           from pathlib import Path
           text=Path('supabase/functions/nexus-email-worker/index.ts').read_text()
@@ -116,6 +118,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "If that email matches a Relystra account" functions/api/auth-email.js
+          grep -Fq 'secure recovery request has been queued' functions/api/auth-email.js
           grep -Fq "not_found', true" supabase/migrations/20260905_relystra_queue_auth_recovery.sql
           grep -Fq "suppressed', true" supabase/migrations/20260905_relystra_queue_auth_recovery.sql
