@@ -35,6 +35,6 @@ test('portal primary auth controls meet minimum touch-height expectations',async
   const targets=['#tabSignIn','#tabCreate','#signInBtn'];
   for(const selector of targets){
     const box=await page.locator(selector).boundingBox();
-    expect(box?.height||0).toBeGreaterThanOrEqual(40);
+    expect(box?.height||0).toBeGreaterThanOrEqual(44);
   }
 });
