@@ -1,6 +1,7 @@
 -- RELYSTRA Phase Zero: one-time cleanup of legacy Nexus display copy.
 -- Internal table/function/enum identifiers intentionally remain Nexus-prefixed.
 -- Preserve lowercase `nexus` values because those are internal workflow semantics.
+-- Notification/audit history is intentionally immutable and is not rewritten.
 
 update public.nexus_action_templates
 set
@@ -36,13 +37,6 @@ where archived_at is null and (
   or coalesce(completion_criteria::text,'') like '%Nexus%' or coalesce(completion_criteria::text,'') like '%NEXUS%'
   or coalesce(form_schema::text,'') like '%Nexus%' or coalesce(form_schema::text,'') like '%NEXUS%'
 );
-
-update public.nexus_notifications
-set
-  title = replace(replace(title,'Nexus','Relystra'),'NEXUS','RELYSTRA'),
-  message = replace(replace(message,'Nexus','Relystra'),'NEXUS','RELYSTRA')
-where coalesce(title,'') like '%Nexus%' or coalesce(title,'') like '%NEXUS%'
-   or coalesce(message,'') like '%Nexus%' or coalesce(message,'') like '%NEXUS%';
 
 update public.nexus_data_requirement_catalog
 set
