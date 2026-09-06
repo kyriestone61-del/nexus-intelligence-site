@@ -91,6 +91,15 @@ async function ensureDetails(card){
   await expect(details).toBeVisible();
 }
 
+function inheritedClientContextOptions(testInfo){
+  const use=testInfo.project.use||{};
+  const options={baseURL:use.baseURL};
+  for(const key of ['viewport','userAgent','deviceScaleFactor','isMobile','hasTouch','locale','colorScheme']){
+    if(use[key]!==undefined)options[key]=use[key];
+  }
+  return options;
+}
+
 test.describe('RELYSTRA Operational Release 1',()=>{
   test.describe.configure({retries:0});
   test.skip(!adminEmail||!adminPassword||!clientEmail||!clientPassword||!qaCompany,'Disposable authenticated QA identities are required.');
@@ -202,7 +211,7 @@ test.describe('RELYSTRA Operational Release 1',()=>{
       return id;
     },{companyId,projectId:setup.projectId});
 
-    const clientContext=await browser.newContext({baseURL:testInfo.project.use.baseURL});
+    const clientContext=await browser.newContext(inheritedClientContextOptions(testInfo));
     const clientPage=await clientContext.newPage();
     try{
       await clientLogin(clientPage);
