@@ -8,6 +8,7 @@ export default defineConfig({
     'control-room-reconcile.spec.mjs',
     'baseline-workflow.spec.mjs',
     'operational-release-baseline.spec.mjs',
+    'simple-intake-workflow.spec.mjs',
     'app-ux-qaqc.spec.mjs',
     'public-smoke.spec.mjs',
     'sitewide-public-mobile.spec.mjs',
