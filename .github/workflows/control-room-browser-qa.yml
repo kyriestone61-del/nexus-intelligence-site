@@ -8,74 +8,30 @@ on:
         required: false
         default: 'https://nexus-intelligence-site.pages.dev'
       full_baseline:
-        description: 'Run the full diagnosis-to-completion production workflow'
+        description: 'Run the full production workflow'
         required: false
         type: boolean
         default: false
   push:
     branches: [main]
     paths:
-      - 'portal.html'
-      - 'portal-app.js'
-      - 'portal-client.js'
-      - 'portal-auth.js'
-      - 'portal-runtime-core.js'
-      - 'portal-runtime-hardening.css'
-      - 'portal-accessibility.js'
-      - 'portal-client-core.js'
-      - 'portal-client-upload-service.js'
-      - 'portal-client-shell-v2.js'
-      - 'portal-client-shell-v2.css'
-      - 'portal-perspective-switcher.js'
-      - 'portal-approval-inbox.js'
-      - 'portal-production-simplification.js'
-      - 'portal-ux-refinement.js'
-      - 'portal-diagnosis-approval-ux.js'
-      - 'portal-resolution-plan.js'
-      - 'portal-resolution-inline-approval-bridge.js'
-      - 'portal-action-processing-engine.js'
-      - 'qa/playwright/control-room.config.mjs'
-      - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
-      - 'qa/playwright/tests/baseline-workflow.spec.mjs'
-      - 'qa/playwright/tests/operational-release-baseline.spec.mjs'
-      - 'qa/playwright/tests/app-ux-qaqc.spec.mjs'
-      - 'qa/playwright/tests/public-smoke.spec.mjs'
-      - 'qa/playwright/tests/public-interactive-tools.spec.mjs'
-      - 'qa/playwright/tests/sitewide-public-mobile.spec.mjs'
-      - 'qa/playwright/tests/role-boundary.spec.mjs'
-      - 'qa/playwright/tests/mobile-smoke.spec.mjs'
+      - '*.html'
+      - '*.js'
+      - '*.css'
+      - '_redirects'
+      - 'sitemap.xml'
+      - 'functions/**'
+      - 'qa/playwright/**'
       - '.github/workflows/control-room-browser-qa.yml'
   pull_request:
     paths:
-      - 'portal.html'
-      - 'portal-app.js'
-      - 'portal-client.js'
-      - 'portal-auth.js'
-      - 'portal-runtime-core.js'
-      - 'portal-runtime-hardening.css'
-      - 'portal-accessibility.js'
-      - 'portal-client-core.js'
-      - 'portal-client-upload-service.js'
-      - 'portal-client-shell-v2.js'
-      - 'portal-client-shell-v2.css'
-      - 'portal-perspective-switcher.js'
-      - 'portal-approval-inbox.js'
-      - 'portal-production-simplification.js'
-      - 'portal-ux-refinement.js'
-      - 'portal-diagnosis-approval-ux.js'
-      - 'portal-resolution-plan.js'
-      - 'portal-resolution-inline-approval-bridge.js'
-      - 'portal-action-processing-engine.js'
-      - 'qa/playwright/control-room.config.mjs'
-      - 'qa/playwright/tests/control-room-reconcile.spec.mjs'
-      - 'qa/playwright/tests/baseline-workflow.spec.mjs'
-      - 'qa/playwright/tests/operational-release-baseline.spec.mjs'
-      - 'qa/playwright/tests/app-ux-qaqc.spec.mjs'
-      - 'qa/playwright/tests/public-smoke.spec.mjs'
-      - 'qa/playwright/tests/public-interactive-tools.spec.mjs'
-      - 'qa/playwright/tests/sitewide-public-mobile.spec.mjs'
-      - 'qa/playwright/tests/role-boundary.spec.mjs'
-      - 'qa/playwright/tests/mobile-smoke.spec.mjs'
+      - '*.html'
+      - '*.js'
+      - '*.css'
+      - '_redirects'
+      - 'sitemap.xml'
+      - 'functions/**'
+      - 'qa/playwright/**'
       - '.github/workflows/control-room-browser-qa.yml'
 
 permissions:
@@ -85,22 +41,22 @@ permissions:
 jobs:
   cross-browser-control-room:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: qa/playwright
     env:
       NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
       NEXUS_QA_BOOTSTRAP_URL: https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-calendar-config-check
-      NEXUS_QA_FULL_BASELINE: ${{ github.event_name == 'push' && '1' || (github.event.inputs.full_baseline == 'true' && '1' || '0') }}
       NEXUS_QA_BASELINE_ONLY: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[operational-baseline]') && '1' || '0' }}
-      NEXUS_QA_QAQC_FULL: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[qaqc-full]') && '1' || '0' }}
+      NEXUS_QA_QAQC_FULL: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[qaqc-full]') && '1' || (github.event.inputs.full_baseline == 'true' && '1' || '0') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
+
       - name: Wait for exact deployed portal runtime
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash
@@ -129,9 +85,10 @@ jobs:
             sleep 5
           done
           if [ "$matched" != '1' ]; then
-            echo '::error::Production runtime assets never matched the checked-out build. Refusing authenticated QA against stale code.'
+            echo '::error::Production runtime assets never matched the checked-out build.'
             exit 1
           fi
+
       - name: Provision disposable authenticated QA identities
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash
@@ -145,10 +102,7 @@ jobs:
             echo "Waiting for protected QA bootstrap endpoint (attempt $attempt, HTTP ${code:-curl_error})"
             sleep 3
           done
-          if [ "$ready" != '1' ]; then
-            echo '::error::The protected Supabase QA bootstrap endpoint is unavailable.'
-            exit 1
-          fi
+          if [ "$ready" != '1' ]; then echo '::error::Protected QA bootstrap endpoint unavailable.'; exit 1; fi
           oidc_json="$(curl --silent --show-error --fail --header "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nexus-qa")"
           oidc_token="$(printf '%s' "$oidc_json" | jq -r '.value')"
           test -n "$oidc_token" && test "$oidc_token" != 'null'
@@ -158,11 +112,7 @@ jobs:
           provision_file="$(mktemp)"
           provision_code="$(curl --silent --show-error --request POST --output "$provision_file" --write-out '%{http_code}' --header "Authorization: Bearer ${oidc_token}" --header 'content-type: application/json' --data '{"action":"provision"}' "$endpoint" || true)"
           provision="$(cat "$provision_file")"
-          if [ "$provision_code" != '200' ]; then
-            echo "::error::Disposable QA provisioning failed with HTTP $provision_code."
-            printf '%s' "$provision" | jq '{ok,error,stage}' || true
-            exit 1
-          fi
+          if [ "$provision_code" != '200' ]; then echo "::error::Disposable QA provisioning failed with HTTP $provision_code."; printf '%s' "$provision" | jq '{ok,error,stage}' || true; exit 1; fi
           printf '%s' "$provision" | jq -e '.ok == true' >/dev/null
           admin_email="$(printf '%s' "$provision" | jq -r '.admin_email')"
           admin_password="$(printf '%s' "$provision" | jq -r '.admin_password')"
@@ -179,6 +129,7 @@ jobs:
             echo 'NEXUS_AUTH_QA_READY=1'
           } >> "$GITHUB_ENV"
           echo "AUTHENTICATED_CONTROL_ROOM_QA=EPHEMERAL_READY company=$company_name"
+
       - name: Report authenticated QA coverage
         shell: bash
         run: |
@@ -187,16 +138,14 @@ jobs:
           elif [ "${GITHUB_EVENT_NAME}" = 'pull_request' ]; then
             echo 'AUTHENTICATED_CONTROL_ROOM_QA=PR_PUBLIC_ONLY'
           else
-            echo '::error::Disposable authenticated Nexus QA identities were not provisioned.'
+            echo '::error::Disposable authenticated QA identities were not provisioned.'
             exit 1
           fi
+
       - name: Install browser runtime
         run: |
-          if [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then
-            npx playwright install --with-deps chromium
-          else
-            npx playwright install --with-deps chromium webkit
-          fi
+          if [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then npx playwright install --with-deps chromium; else npx playwright install --with-deps chromium webkit; fi
+
       - name: Run production browser paths
         run: |
           if [ "${NEXUS_QA_QAQC_FULL:-0}" = '1' ]; then
@@ -205,25 +154,25 @@ jobs:
             npx playwright test tests/public-smoke.spec.mjs tests/sitewide-public-mobile.spec.mjs tests/public-interactive-tools.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
             echo '--- Authenticated role, reconciliation, and cross-browser shell contracts ---'
             npx playwright test tests/role-boundary.spec.mjs tests/control-room-reconcile.spec.mjs --config=control-room.config.mjs --retries=0
-            echo '--- Plain-language, button, navigation, mobile UX, and persisted brand contracts ---'
+            echo '--- Plain-language, navigation, mobile UX, and brand contracts ---'
             npx playwright test tests/app-ux-qaqc.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
-            echo '--- Diagnosis-to-completion operational lifecycle: desktop Chrome + Android Chrome + iOS Safari ---'
+            echo '--- Fresh two-step intake: desktop Chrome + Android Chrome + iOS Safari ---'
+            npx playwright test tests/simple-intake-workflow.spec.mjs --config=control-room.config.mjs --retries=0
+            echo '--- One diagnosis-led delivery workflow: desktop Chrome + Android Chrome + iOS Safari ---'
             npx playwright test tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --retries=0
           elif [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then
-            echo 'RELYSTRA_OPERATIONAL_BASELINE_ONLY=1'
-            npx playwright test tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
+            npx playwright test tests/simple-intake-workflow.spec.mjs tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
           else
-            npx playwright test tests/control-room-reconcile.spec.mjs tests/baseline-workflow.spec.mjs tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs
+            npx playwright test tests/control-room-reconcile.spec.mjs tests/baseline-workflow.spec.mjs tests/simple-intake-workflow.spec.mjs tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs
           fi
+
       - name: Enforce authenticated coverage for production
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
-          if [ "${NEXUS_AUTH_QA_READY:-0}" != '1' ]; then
-            echo '::error::Production Control Room QA did not run with disposable authenticated admin/client identities.'
-            exit 1
-          fi
+          if [ "${NEXUS_AUTH_QA_READY:-0}" != '1' ]; then echo '::error::Authenticated production QA did not run.'; exit 1; fi
           echo 'AUTHENTICATED_CONTROL_ROOM_QA=REQUIRED_AND_PASSED'
+
       - name: Report disposable browser failure context
         if: failure()
         shell: bash
@@ -234,12 +183,14 @@ jobs:
               print(f'QA_ERROR_CONTEXT={path.parent.name}')
               print(path.read_text()[:18000])
           PYQA
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: nexus-control-room-browser-report
           path: qa/playwright/control-room-report
           if-no-files-found: ignore
+
       - uses: actions/upload-artifact@v4
         if: ${{ always() && env.NEXUS_QA_QAQC_FULL == '1' }}
         with:
@@ -248,6 +199,7 @@ jobs:
             qa/playwright/control-room-report
             qa/playwright/test-results
           if-no-files-found: ignore
+
       - name: Delete disposable QA identities and company
         if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         shell: bash
@@ -259,10 +211,6 @@ jobs:
           cleanup_file="$(mktemp)"
           cleanup_code="$(curl --silent --show-error --request POST --output "$cleanup_file" --write-out '%{http_code}' --header "Authorization: Bearer ${oidc_token}" --header 'content-type: application/json' --data '{"action":"cleanup"}' "$endpoint" || true)"
           cleanup="$(cat "$cleanup_file")"
-          if [ "$cleanup_code" != '200' ]; then
-            echo "::error::Disposable QA cleanup failed with HTTP $cleanup_code."
-            printf '%s' "$cleanup" | jq '{ok,error,stage}' || true
-            exit 1
-          fi
+          if [ "$cleanup_code" != '200' ]; then echo "::error::Disposable QA cleanup failed with HTTP $cleanup_code."; printf '%s' "$cleanup" | jq '{ok,error,stage}' || true; exit 1; fi
           printf '%s' "$cleanup" | jq -e '.ok == true' >/dev/null
           echo 'DISPOSABLE_NEXUS_QA_IDENTITIES=CLEANED'
