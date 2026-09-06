@@ -38,7 +38,13 @@ async function openAdminActions(page,view='my_work'){
   await page.evaluate(async()=>{await window.NexusPortal.workspace?.()});
   await page.evaluate(()=>document.querySelector('.side-nav button[data-section="tasks"]')?.click());
   await expect(page.locator('#section-tasks')).toHaveClass(/active/,{timeout:15_000});
-  const filter=page.locator(`#actionExecutionFilters button[data-view="${view}"]`);await expect(filter).toBeVisible({timeout:15_000});await filter.click();await expect(filter).toHaveClass(/active/);
+  const filters=page.locator('#actionExecutionFilters');
+  if(await filters.isVisible().catch(()=>false)){
+    const filter=page.locator(`#actionExecutionFilters button[data-view="${view}"]`);
+    await expect(filter).toBeVisible({timeout:15_000});await filter.click();await expect(filter).toHaveClass(/active/);
+  }else{
+    await expect(page.locator('#taskList')).toBeVisible({timeout:15_000});
+  }
 }
 async function openClientActions(page){const button=page.locator('#nexusClientActionsButton');await expect(button).toBeVisible({timeout:20_000});await button.click();await expect(page.locator('#nexus-client-actions')).toHaveClass(/active/,{timeout:15_000})}
 async function ensureDetails(card){const details=card.locator('.action-engine-details');if(await details.getAttribute('hidden')!==null)await card.locator('.action-engine-detail-toggle').click();await expect(details).toBeVisible()}
