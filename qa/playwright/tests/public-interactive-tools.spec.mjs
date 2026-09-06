@@ -18,7 +18,7 @@ test.describe('RELYSTRA public interactive tools',()=>{
     const assertErrors=watchErrors(page);
     await page.setViewportSize({width:390,height:844});
     await page.goto('/',{waitUntil:'domcontentloaded'});
-    const menu=page.getByRole('button',{name:/menu/i});
+    const menu=page.getByRole('button',{name:/open navigation/i});
     await expect(menu).toBeVisible();
     await menu.click();
     await expect(menu).toHaveAttribute('aria-expanded','true');
@@ -59,27 +59,18 @@ test.describe('RELYSTRA public interactive tools',()=>{
     assertErrors();
   });
 
-  test('deeper Opportunity Diagnostic completes all nine questions and renders a recommendation',async({page})=>{
+  test('legacy assessment entry resolves to the canonical Opportunity Snapshot',async({page})=>{
     const assertErrors=watchErrors(page);
-    await resetJourney(page,'/assessment');
-    const next=page.locator('#diagNext');
-
-    await page.locator('#diagOffer').fill('Commercial service business');await next.click();
-    await page.locator('#diagEmployees').selectOption({index:1});await next.click();
-    await page.locator('#diagProblem').fill('Monthly reporting requires repetitive exports, spreadsheet cleanup, and manual review.');await next.click();
-    await page.locator('#diagFrequency').selectOption('3');await next.click();
-    await page.locator('#diagBurden').selectOption('3');await next.click();
-    await page.locator('#diagSystems').fill('Email, spreadsheets, and accounting software');await next.click();
-    await page.locator('#diagSensitivity').selectOption('3');await next.click();
-    await page.locator('#diagAuthority').selectOption('3');await next.click();
-    await page.locator('#diagSuccess').fill('Reduce reporting preparation by at least 10 hours per month while keeping human approval.');await next.click();
-
-    await expect(page.locator('#resultPanel')).toHaveClass(/active/);
-    await expect(page.locator('#reportRoot .report-hero')).toBeVisible();
-    await expect(page.locator('#reportRoot')).toContainText('Your Relystra AI Opportunity Report');
-    await expect(page.locator('#reportRoot')).toContainText('Recommended Relystra path');
-    await expect(page.locator('#reportRoot a[href="/book"]')).toBeVisible();
-    await expect(page.locator('#reportRoot a[href^="/services/"]')).toBeVisible();
+    await page.goto('/assessment',{waitUntil:'domcontentloaded'});
+    await expect(page).toHaveURL(/\/quick-scan\/?$/);
+    await expect(page.locator('#snapshotNext')).toBeVisible();
+    await expect(page.locator('#stepLabel')).toContainText('1 of 8');
+    const first=page.locator('.snapshot-step[data-step="0"] .choice[data-value="professional"]');
+    await expect(first).toBeVisible();
+    await first.click();
+    await expect(page.locator('#snapshotNext')).toBeEnabled();
+    await page.locator('#snapshotNext').click();
+    await expect(page.locator('#stepLabel')).toContainText('2 of 8');
     assertErrors();
   });
 
