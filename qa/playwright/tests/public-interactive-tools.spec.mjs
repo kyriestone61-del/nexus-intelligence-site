@@ -64,13 +64,13 @@ test.describe('RELYSTRA public interactive tools',()=>{
     await page.goto('/assessment',{waitUntil:'domcontentloaded'});
     await expect(page).toHaveURL(/\/quick-scan\/?$/);
     await expect(page.locator('#snapshotNext')).toBeVisible();
-    await expect(page.locator('#stepLabel')).toContainText('1 of 8');
+    await expect(page.locator('#snapshotLabel')).toContainText('1 of 8');
     const first=page.locator('.snapshot-step[data-step="0"] .choice[data-value="professional"]');
     await expect(first).toBeVisible();
     await first.click();
     await expect(page.locator('#snapshotNext')).toBeEnabled();
     await page.locator('#snapshotNext').click();
-    await expect(page.locator('#stepLabel')).toContainText('2 of 8');
+    await expect(page.locator('#snapshotLabel')).toContainText('2 of 8');
     assertErrors();
   });
 
