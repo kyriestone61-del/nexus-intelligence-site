@@ -33,6 +33,12 @@ function assertTaskBoundary(taskId){
   if(String(task.assignee||'').toLowerCase()!=='client')throw new Error('Files can only be attached here for a client-owned action.');
   return task;
 }
+function cacheUploadedDocument(document){
+  if(!document)return;
+  const current=Array.isArray(state.docs)?state.docs:[];
+  state.docs=[document,...current.filter(row=>String(row.id)!==String(document.id))];
+  window.dispatchEvent(new CustomEvent('nexus:client-document-uploaded',{detail:{document,taskId:document.task_id||null,companyId:document.company_id||state.companyId}}));
+}
 
 async function uploadFile({file,requestId=null,requirementId=null,taskId=null,title='',category='Client Source',note=null,refresh=true}={}){
   if(!file)throw new Error('Choose a file first.');
@@ -46,6 +52,7 @@ async function uploadFile({file,requestId=null,requirementId=null,taskId=null,ti
   try{
     const row={company_id:companyId,project_id:projectId,task_id:task?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category,status:'shared',note:(note||title)?String(note||`File for ${title}`):null,uploaded_by:state.user.id,sensitivity,request_id:requestId||null,data_requirement_id:requirementId||null,document_area:'client_submission',source_role:'client'};
     const insert=await sb.from('nexus_documents').insert(row).select().single();if(insert.error)throw insert.error;
+    cacheUploadedDocument(insert.data);
     await portal.log?.('document_uploaded','document',insert.data.id,task?`Client uploaded ${file.name} for action: ${task.title}`:`Client uploaded ${file.name}`);
     if(refresh)await portal.workspace?.();
     return insert.data;
