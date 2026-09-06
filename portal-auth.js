@@ -31,7 +31,9 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
   const search=new URLSearchParams(location.search);
   const hash=new URLSearchParams((location.hash||'').replace(/^#/,''));
   const authError=search.get('error_description')||search.get('error')||hash.get('error_description')||hash.get('error');
-  const recoveryReturn=search.get('mode')==='recovery'||search.get('type')==='recovery'||hash.get('type')==='recovery';
+  const recoveryType=search.get('type')||hash.get('type');
+  const recoveryTokenHash=search.get('token_hash')||hash.get('token_hash');
+  const recoveryReturn=search.get('mode')==='recovery'||recoveryType==='recovery';
   const looksLikeAuthReturn=search.has('code')||search.has('token_hash')||search.has('type')||hash.has('access_token')||hash.has('refresh_token')||hash.has('type');
 
   let session=null;
@@ -39,7 +41,19 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
 
   if(recoveryReturn){
     storage.remove(pendingFlag);
-    if(authError||!session?.user){showVerificationOverlay(false,'That password-recovery link is invalid or has expired. Request a new recovery email and try again.');return}
+    if(authError){showVerificationOverlay(false,'That password-recovery link is invalid or has expired. Request a new recovery email and try again.');return}
+    if(!session?.user&&recoveryTokenHash&&recoveryType==='recovery'){
+      try{
+        const result=await sb.auth.verifyOtp({token_hash:recoveryTokenHash,type:'recovery'});
+        if(result.error)throw result.error;
+        session=result.data?.session||null;
+        history.replaceState({},'',`${location.pathname}?mode=recovery`);
+      }catch(error){
+        console.warn('Relystra password-recovery token verification failed',error);
+        showVerificationOverlay(false,'That password-recovery link is invalid, expired, or has already been used. Request a new recovery email and try again.');return;
+      }
+    }
+    if(!session?.user){showVerificationOverlay(false,'That password-recovery link is invalid or has expired. Request a new recovery email and try again.');return}
     showRecoveryResetOverlay();return;
   }
 
