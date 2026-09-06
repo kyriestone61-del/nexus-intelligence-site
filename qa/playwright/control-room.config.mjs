@@ -29,3 +29,5 @@ export default defineConfig({
     {name:'ios-safari',use:{...devices['iPhone 15 Pro']}}
   ]
 });
+
+// Final Phase Zero QAQC includes the simplified intake and the single diagnosis-led delivery workflow.
