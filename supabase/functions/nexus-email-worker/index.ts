@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { prepareAuthRecovery, markAuthRecoveryProviderFailure, markAuthRecoveryAccepted, isAuthRecovery } from "./auth-recovery.ts";
+import { maybeHandleAuthRecoveryRequest } from "./auth-recovery-request.ts";
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"content-type,x-nexus-worker-token","Access-Control-Allow-Methods":"POST,OPTIONS"};
 const base=()=>Deno.env.get('SUPABASE_URL')||'https://dmdgkjksouhhsuojthav.supabase.co';
@@ -129,6 +130,8 @@ async function processRevenueFlywheel(){
 Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   if(req.method!=='POST')return new Response('method not allowed',{status:405,headers:cors});
+  const recoveryResponse=await maybeHandleAuthRecoveryRequest(req,base(),h(),service());
+  if(recoveryResponse)return recoveryResponse;
   try{
     const cfg=await config();const workerToken=req.headers.get('x-nexus-worker-token')||'';
     if(!cfg?.enabled||!workerToken||await digest(workerToken)!==cfg.secret_hash)return new Response(JSON.stringify({ok:false,error:'Unauthorized'}),{status:401,headers:{...cors,'content-type':'application/json'}});
