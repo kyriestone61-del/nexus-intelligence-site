@@ -96,10 +96,11 @@ set
   email_2_subject = replace(replace(email_2_subject,'Nexus','Relystra'),'NEXUS','RELYSTRA'),
   email_2_body = replace(replace(email_2_body,'Nexus','Relystra'),'NEXUS','RELYSTRA'),
   teardown_script = replace(replace(teardown_script,'Nexus','Relystra'),'NEXUS','RELYSTRA'),
-  generation_notes = replace(replace(generation_notes,'Nexus','Relystra'),'NEXUS','RELYSTRA')
+  generation_notes = case when generation_notes is null then null else replace(replace(generation_notes::text,'Nexus','Relystra'),'NEXUS','RELYSTRA')::jsonb end,
+  updated_at = now()
 where coalesce(email_1_subject,'') like '%Nexus%' or coalesce(email_1_subject,'') like '%NEXUS%'
    or coalesce(email_1_body,'') like '%Nexus%' or coalesce(email_1_body,'') like '%NEXUS%'
    or coalesce(email_2_subject,'') like '%Nexus%' or coalesce(email_2_subject,'') like '%NEXUS%'
    or coalesce(email_2_body,'') like '%Nexus%' or coalesce(email_2_body,'') like '%NEXUS%'
    or coalesce(teardown_script,'') like '%Nexus%' or coalesce(teardown_script,'') like '%NEXUS%'
-   or coalesce(generation_notes,'') like '%Nexus%' or coalesce(generation_notes,'') like '%NEXUS%';
+   or coalesce(generation_notes::text,'') like '%Nexus%' or coalesce(generation_notes::text,'') like '%NEXUS%';
