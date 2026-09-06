@@ -71,6 +71,30 @@ async function assertPlainLanguage(page,{client=false}={}){
   if(client)expect(staleBrand,'Client-facing copy must use RELYSTRA branding').toEqual([]);
 }
 
+async function assertPersistedBrandParity(page){
+  const hits=await page.evaluate(async()=>{
+    const sb=window.NexusPortal.sb;
+    const checks=[
+      ['active action templates',sb.from('nexus_action_templates').select('code,title,description,instructions,required_evidence,completion_criteria,form_schema').eq('active',true)],
+      ['active tasks',sb.from('nexus_tasks').select('id,title,description,instructions,required_evidence,completion_criteria,form_schema').is('archived_at',null)],
+      ['data requirement catalog',sb.from('nexus_data_requirement_catalog').select('id,why_needed,how_to_find,if_missing')],
+      ['released client reports',sb.from('nexus_diagnosis_report_releases').select('id,client_report')],
+      ['outreach sequence copy',sb.from('nexus_outreach_sequence_steps').select('id,subject,body')]
+    ];
+    const stale=[];
+    for(const [label,promise] of checks){
+      const {data,error}=await promise;
+      if(error)throw new Error(`${label}: ${error.message}`);
+      for(const row of data||[]){
+        const text=JSON.stringify(row);
+        if(/(?:^|[^A-Za-z])(?:Nexus|NEXUS)(?:[^A-Za-z]|$)/.test(text))stale.push({label,id:row.id||row.code||null,excerpt:text.slice(0,260)});
+      }
+    }
+    return stale;
+  });
+  expect(hits,'Persisted user-facing records must not expose retired Nexus branding').toEqual([]);
+}
+
 async function assertNoDeadControls(page){
   const unnamed=await page.locator('button:visible,a:visible').evaluateAll(nodes=>nodes.map(node=>({text:(node.textContent||'').trim(),aria:node.getAttribute('aria-label'),title:node.getAttribute('title'),href:node.getAttribute('href')})).filter(item=>!(item.text||item.aria||item.title)));
   expect(unnamed,'No visible control may be unnamed').toEqual([]);
@@ -112,6 +136,7 @@ test.describe('RELYSTRA full app UX QAQC',()=>{
     page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text())});
     page.on('pageerror',error=>pageErrors.push(pageErrorDetail(error)));
     await signIn(page,adminEmail,adminPassword);await selectQaCompany(page,{admin:true});
+    await assertPersistedBrandParity(page);
     await expect(page.locator('#adminJourneyRoot')).toBeVisible({timeout:20_000});
     for(const label of ['Home','Clients','Decisions','Sales'])await expect(page.getByRole('button',{name:label,exact:true})).toBeVisible();
     await assertPlainLanguage(page);await assertNoDeadControls(page);
