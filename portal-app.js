@@ -78,6 +78,7 @@ if(useClientShell){
   window.NexusClientPlainLanguage?.apply?.();
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
+  await requiredImport(asset(`portal-experience-v3.js?v=20260906-1`),'20-point experience gap layer');
   clearBootLock();
 }else if(useAdminShell){
   const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css','portal-phase-zero-lifecycle.css'];
@@ -126,6 +127,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-phase-zero-lifecycle.js?v=${BUILD}`),'Phase Zero engagement lifecycle');
   perspectiveModule?.mountPerspectiveSwitcher?.(portal);
   await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
+  await requiredImport(asset(`portal-experience-v3.js?v=20260906-1`),'20-point experience gap layer');
   clearBootLock();
 }else{
   await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
