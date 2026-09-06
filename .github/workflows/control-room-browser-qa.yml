@@ -205,8 +205,8 @@ jobs:
             npx playwright test tests/role-boundary.spec.mjs tests/control-room-reconcile.spec.mjs --config=control-room.config.mjs --retries=0
             echo '--- Plain-language, button, navigation, and mobile UX contracts ---'
             npx playwright test tests/app-ux-qaqc.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
-            echo '--- Diagnosis-to-completion operational lifecycle ---'
-            npx playwright test tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
+            echo '--- Diagnosis-to-completion operational lifecycle: desktop Chrome + Android Chrome + iOS Safari ---'
+            npx playwright test tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --retries=0
           elif [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then
             echo 'RELYSTRA_OPERATIONAL_BASELINE_ONLY=1'
             npx playwright test tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
