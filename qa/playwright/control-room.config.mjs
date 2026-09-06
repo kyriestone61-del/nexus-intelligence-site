@@ -11,6 +11,7 @@ export default defineConfig({
     'app-ux-qaqc.spec.mjs',
     'public-smoke.spec.mjs',
     'sitewide-public-mobile.spec.mjs',
+    'public-interactive-tools.spec.mjs',
     'role-boundary.spec.mjs',
     'mobile-smoke.spec.mjs'
   ],
