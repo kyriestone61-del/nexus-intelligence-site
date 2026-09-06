@@ -15,6 +15,20 @@ async function patchEvent(baseUrl:string,headers:Record<string,string>,id:string
   if(!response.ok)console.error('relystra_auth_event_update_failed',response.status);
 }
 
+function firstPartyRecoveryLink(actionLink:string){
+  try{
+    const generated=new URL(actionLink);
+    const tokenHash=generated.searchParams.get('token');
+    const type=generated.searchParams.get('type')||'recovery';
+    if(!tokenHash||type!=='recovery')return null;
+    const target=new URL('/portal',PUBLIC_ORIGIN);
+    target.searchParams.set('mode','recovery');
+    target.searchParams.set('type','recovery');
+    target.searchParams.set('token_hash',tokenHash);
+    return target.toString();
+  }catch{return null}
+}
+
 export async function prepareAuthRecovery(row:any,baseUrl:string,headers:Record<string,string>){
   if(!isAuthRecovery(row))return null;
   const response=await fetch(`${baseUrl}/auth/v1/admin/generate_link`,{
@@ -28,10 +42,11 @@ export async function prepareAuthRecovery(row:any,baseUrl:string,headers:Record<
   });
   const payload=await response.json().catch(()=>({}));
   const actionLink=payload?.action_link||payload?.properties?.action_link||null;
-  if(!response.ok||!actionLink){
+  const recoveryLink=actionLink?firstPartyRecoveryLink(actionLink):null;
+  if(!response.ok||!actionLink||!recoveryLink){
     await patchEvent(baseUrl,headers,row.related_id,{
       status:'internal_failed',
-      error_code:response.ok?'missing_action_link':`generate_link_${response.status}`,
+      error_code:response.ok?(actionLink?'invalid_recovery_action_link':'missing_action_link'):`generate_link_${response.status}`,
       metadata:{delivery_path:'nexus_email_outbox',token_persisted:false,generation_failed_at:new Date().toISOString()}
     });
     throw new Error(`AUTH_RECOVERY_LINK_${response.status}`);
@@ -39,9 +54,9 @@ export async function prepareAuthRecovery(row:any,baseUrl:string,headers:Record<
   await patchEvent(baseUrl,headers,row.related_id,{
     status:'generated',
     error_code:null,
-    metadata:{delivery_path:'nexus_email_outbox',token_persisted:false,generated_at:new Date().toISOString()}
+    metadata:{delivery_path:'nexus_email_outbox',token_persisted:false,first_party_recovery_link:true,generated_at:new Date().toISOString()}
   });
-  return `${clean(row.body_text,4000)}\n\nCreate a new password: ${actionLink}\n\nIf you did not request this, you can ignore this message. Do not forward this email.`;
+  return `${clean(row.body_text,4000)}\n\nCreate a new password: ${recoveryLink}\n\nIf you did not request this, you can ignore this message. Do not forward this email.`;
 }
 
 export async function markAuthRecoveryProviderFailure(row:any,baseUrl:string,headers:Record<string,string>,status:number,errorMessage:string){
