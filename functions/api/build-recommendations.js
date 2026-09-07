@@ -12,12 +12,14 @@ export async function onRequest({request}){
   let body;try{body=await request.json()}catch{return reply({ok:false,error:'INVALID_REQUEST'},400)}
   if(!uuid(body?.company_id)||!uuid(body?.run_id))return reply({ok:false,error:'APPROVED_DIAGNOSIS_REQUIRED'},400);
   const requestId=crypto.randomUUID();
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),120000);
   try{
     // Do not retry an ambiguous POST: generation may already have committed.
-    const upstream=await fetch(endpoint,{method:'POST',redirect:'error',
+    const upstream=await fetch(endpoint,{method:'POST',redirect:'manual',
       headers:{authorization,apikey:publishable,'content-type':'application/json'},
       body:JSON.stringify({operation:'recommend_builds',company_id:body.company_id,run_id:body.run_id}),
-      signal:AbortSignal.timeout(120000)});
+      signal:controller.signal});
     let data;try{data=await upstream.json()}catch{
       console.error('build_recommendations_invalid_response',{requestId,status:upstream.status});
       return reply({ok:false,error:'BUILD_SERVICE_INVALID_RESPONSE',request_id:requestId},502);
@@ -29,7 +31,8 @@ export async function onRequest({request}){
     return reply({ok:true,build_ids:Array.isArray(data.build_ids)?data.build_ids:[],status:data.status,human_review_required:true,request_id:requestId});
   }catch(error){
     const timeout=error?.name==='TimeoutError'||error?.name==='AbortError';
-    console.error('build_recommendations_transport_error',{requestId,kind:timeout?'timeout':'connection'});
+    const diagnostic=String(error?.message||error).replaceAll(authorization,'[redacted]').slice(0,240);
+    console.error('build_recommendations_transport_error',{requestId,kind:timeout?'timeout':'connection',diagnostic});
     return reply({ok:false,error:timeout?'BUILD_SERVICE_TIMEOUT':'BUILD_SERVICE_UNAVAILABLE',request_id:requestId},timeout?504:502);
-  }
+  }finally{clearTimeout(timer)}
 }
