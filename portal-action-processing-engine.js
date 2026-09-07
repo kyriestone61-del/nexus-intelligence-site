@@ -144,7 +144,7 @@ function clientTaskCard(task){
 function ensureClientActionSurface(){
   if(state.admin||!state.user)return null;
   const nav=document.getElementById('nexusClientPrimaryNav'),main=document.querySelector('.main');if(!nav||!main)return null;
-  let button=document.getElementById('nexusClientActionsButton');
+  let button=nav.querySelector('[data-client-view="actions"]')||document.getElementById('nexusClientActionsButton');
   if(!button){button=document.createElement('button');button.id='nexusClientActionsButton';button.type='button';button.dataset.clientView='actions';button.className='nexus-client-action-engine-nav';button.innerHTML='<span aria-hidden="true"></span><b>Actions</b>';nav.appendChild(button);button.addEventListener('click',()=>openClientActions())}
   nav.querySelectorAll('[data-client-view]').forEach(item=>{if(item===button||item.dataset.actionEngineBound)return;item.dataset.actionEngineBound='1';item.addEventListener('click',()=>button.classList.remove('active'))});
   let section=document.getElementById('nexus-client-actions');

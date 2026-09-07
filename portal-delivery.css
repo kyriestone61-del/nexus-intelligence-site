@@ -31,3 +31,8 @@
 @media(max-width:760px){.relystra-mobile-toggle{display:flex;align-items:center;justify-content:space-between;min-height:44px;width:100%;margin:8px 0}.sidebar.relystra-menu-collapsed #relystraSidebarNav,.sidebar.relystra-menu-collapsed #nexusClientPrimaryNav{display:none!important}}
 
 @media(max-width:760px){#nexusClientMiniContext{display:grid;padding:4px 2px 8px;margin-bottom:4px}#nexusClientMiniContext .kicker{display:none}#nexusClientMiniContext label{display:grid;gap:4px}}
+/* Retained task styles must not resurrect legacy creation controls. */
+#section-tasks #newTaskBtn[hidden]{display:none!important}
+#relystraCreateAction label,.relystra-prebuild-action label{display:grid;gap:7px;margin:12px 0}
+#relystraCreateAction input,#relystraCreateAction select,#relystraCreateAction textarea,.relystra-prebuild-action input,.relystra-prebuild-action select,.relystra-prebuild-action textarea{box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:44px;font:inherit}
+#relystraCreateAction::backdrop{background:rgba(0,0,0,.6)}

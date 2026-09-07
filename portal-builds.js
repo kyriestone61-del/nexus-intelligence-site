@@ -15,12 +15,13 @@ function menuCard(build,selected,menu){
   </article>`;
 }
 
-function reviewCard(row,settings,opportunities){
+function reviewCard(row,settings,opportunities,acceptedActions){
   const spec=row.build_spec||{},scores=list(spec.complexity_scores).length===5?spec.complexity_scores:[1,1,1,1,1];
   const dimensions=['Input formats and count','Users and permissions','Automation depth','Integrations and tools','Operational risk'];
   return `<details class="relystra-build-card" ${row.build_review_state==='proposed'?'open':''}><summary><b>${esc(row.title)}</b> · ${esc(row.build_review_state)}</summary>
     <form data-build-review="${esc(row.id)}"><p>${esc(spec.problem)}</p>
       <details><summary>Diagnosis and accepted inputs</summary>${list(spec.source_finding_refs).map(ref=>`<p>${esc(ref.snapshot?.description||ref.snapshot?.problem||ref.snapshot?.title||ref.path)}</p><small>${esc(ref.ref)}</small>`).join('')}<p>Accepted input references: ${list(spec.completed_action_ids).map(esc).join(', ')||'Diagnosis evidence only'}</p></details>
+      <fieldset><legend>Accepted inputs used by this Build</legend>${acceptedActions.map(a=>`<label><input type="checkbox" name="completed_action" value="${esc(a.id)}" ${list(spec.completed_action_ids).includes(a.id)?'checked':''}> ${esc(a.title)}</label>`).join('')||'<p class="small">No accepted pre-build input yet.</p>'}</fieldset>
       ${field('name','Build name',row.title)}${area('outcome','Expected outcome',spec.outcome)}
       ${area('scope_in','Included scope — one item per line',spec.scope_in)}${area('scope_out','Excluded scope — one item per line',spec.scope_out)}
       ${area('required_inputs','Required inputs — one per line',spec.required_inputs)}${area('acceptance_criteria','Acceptance criteria — one per line',spec.acceptance_criteria)}${area('assumptions','Assumptions — one per line',spec.assumptions)}
@@ -43,12 +44,20 @@ function planCard(plan){
   </article>`;
 }
 
+async function runtimeError(error,data){
+  let detail=data;
+  if(!detail&&error?.context?.clone)try{detail=await error.context.clone().json()}catch{}
+  const code=detail?.error||error?.message||'The request could not be completed.';
+  const friendly={MODEL_TIMEOUT:'The AI request timed out. Your existing recommendations and accepted inputs are saved. Retry generation or continue curating an existing recommendation.',COMPLETE_AND_REVIEW_PREBUILD_ACTIONS_FIRST:'Review suggested Actions and accept the required inputs before generating Builds.'};
+  return new Error(detail?.message||friendly[code]||code);
+}
+
 export function mountBuilds(root,portal){
   const {sb,state,toast}=portal;
-  let sequence=0,selected=new Set(),companyId=null,menu=[],plans=[],opportunities=[],settings=null,diagnosis=null,loading=false;
+  let sequence=0,selected=new Set(),companyId=null,menu=[],plans=[],opportunities=[],settings=null,diagnosis=null,acceptedActions=[],loading=false;
   async function refresh(){
     const company=state.companyId,version=++sequence;
-    if(company!==companyId){selected=new Set();companyId=company;menu=[];plans=[];opportunities=[];diagnosis=null}
+    if(company!==companyId){selected=new Set();companyId=company;menu=[];plans=[];opportunities=[];diagnosis=null;acceptedActions=[]}
     if(!company){root.innerHTML='<p>Open a client workspace to review Builds.</p>';return}
     loading=true;root.setAttribute('aria-busy','true');
     try{
@@ -59,11 +68,12 @@ export function mountBuilds(root,portal){
           sb.from('nexus_opportunities').select('*').eq('company_id',company).not('build_spec','is',null).order('created_at',{ascending:true}),
           sb.from('nexus_delivery_settings').select('*').single(),
           sb.from('nexus_diagnosis_runs').select('id,status').eq('company_id',company).eq('status','approved').order('created_at',{ascending:false}).limit(1).maybeSingle(),
+          sb.from('nexus_tasks').select('id,title').eq('company_id',company).eq('work_kind','prebuild_action').eq('action_review_state','approved').is('archived_at',null).in('status',['completed','approved','done']),
         ]:[]),
       ]);
       if(version!==sequence||state.companyId!==company)return;
       const failed=results.find(result=>result.error);if(failed)throw failed.error;
-      menu=results[0].data||[];plans=results[1].data||[];opportunities=results[2]?.data||[];settings=results[3]?.data;diagnosis=results[4]?.data;
+      menu=results[0].data||[];plans=results[1].data||[];opportunities=results[2]?.data||[];settings=results[3]?.data;diagnosis=results[4]?.data;acceptedActions=results[5]?.data||[];
       selected=new Set([...selected].filter(id=>menu.some(build=>build.id===id)));render();
     }catch(error){if(version===sequence&&state.companyId===company){root.innerHTML=`<p role="alert">${esc(error.message||'Builds could not be loaded.')}</p><button class="btn secondary" data-build-refresh>Retry</button>`}}
     finally{if(version===sequence){loading=false;root.removeAttribute('aria-busy')}}
@@ -72,7 +82,8 @@ export function mountBuilds(root,portal){
     const reserved=new Set(plans.filter(p=>p.status==='awaiting_payment').flatMap(p=>list(p.items).map(i=>i.id)));
     const available=menu.filter(b=>!reserved.has(b.id));
     root.innerHTML=`<header class="nexus-client-page-head"><div><div class="eyebrow">Builds</div><h1>Choose what we build next.</h1><p>Review the scope, fixed price and expected outcome. Your selected Builds become one paid package.</p></div><button class="btn secondary" data-build-refresh type="button">Refresh</button></header>
-      ${state.admin?`<section><h2>Review recommendations</h2><p>Confirm the scope, complexity, fixed price and duration before a Build reaches the client.</p><button class="btn primary" data-generate-builds type="button" ${diagnosis?'':'disabled'}>Generate from accepted evidence</button>${!diagnosis?'<p class="small">Approve the diagnosis and finish the required pre-build Actions first.</p>':''}<div class="relystra-build-grid">${opportunities.filter(o=>!plans.some(p=>p.status==='paid'&&p.items.some(i=>i.id===o.id))).map(o=>reviewCard(o,settings,opportunities)).join('')}</div></section>`:''}
+      ${state.admin?`<section><h2>Review recommendations</h2><p>Confirm the scope, complexity, fixed price and duration before a Build reaches the client.</p><button class="btn primary" data-generate-builds type="button" ${diagnosis?'':'disabled'}>Generate from accepted evidence</button>${!diagnosis?'<p class="small">Approve the diagnosis and finish the required pre-build Actions first.</p>':''}<div class="relystra-build-grid">${opportunities.filter(o=>!plans.some(p=>p.status==='paid'&&p.items.some(i=>i.id===o.id))).map(o=>reviewCard(o,settings,opportunities,acceptedActions)).join('')}</div></section>`:''}
+      <p data-build-message role="alert" hidden></p>
       ${plans.length?`<section><h2>Saved Build Plans</h2><div class="relystra-build-grid">${plans.map(planCard).join('')}</div></section>`:''}
       <section><h2>${state.admin?'Client Build Menu':'Recommended Builds'}</h2><div class="relystra-build-grid">${available.map(b=>menuCard(b,selected,menu)).join('')||'<p>Your approved recommendations will appear here. Relystra will let you know when they are ready.</p>'}</div>
       ${available.length?'<div class="relystra-build-selection-total" role="status" aria-live="polite"></div><button class="btn primary" type="button" data-create-build-plan>Review selected Build Plan</button>':''}</section>`;
@@ -102,7 +113,7 @@ export function mountBuilds(root,portal){
       required_inputs:lines(read('required_inputs')),acceptance_criteria:lines(read('acceptance_criteria')),assumptions:lines(read('assumptions')),
       priority:read('priority'),priority_reason:read('priority_reason'),complexity_scores:[0,1,2,3,4].map(i=>Number(read(`score_${i}`))),
       complexity:read('complexity'),price_cents:Math.round(Number(read('price'))*100),currency:settings.currency,
-      duration_min:Number(read('duration_min')),duration_max:Number(read('duration_max')),dependencies:data.getAll('dependency')};
+      duration_min:Number(read('duration_min')),duration_max:Number(read('duration_max')),dependencies:data.getAll('dependency'),completed_action_ids:data.getAll('completed_action')};
     const controls=[...form.querySelectorAll('button,input,textarea,select')];controls.forEach(n=>n.disabled=true);
     try{
       const {error}=await sb.rpc('relystra_save_build',{p_company_id:company,p_id:form.dataset.buildReview,p_spec:patch,p_decision:button?.value||'propose'});
@@ -114,24 +125,24 @@ export function mountBuilds(root,portal){
     const button=event.target.closest('button');if(!button||button.closest('form'))return;
     if(button.hasAttribute('data-build-refresh'))return refresh();
     const company=state.companyId;if(company!==companyId||loading)return;
-    button.disabled=true;
+    button.disabled=true;const originalLabel=button.textContent;const message=root.querySelector('[data-build-message]');if(message){message.textContent='';message.hidden=true}
     try{
       if(button.hasAttribute('data-generate-builds')){
         button.textContent='Preparing evidence-backed recommendations…';
         const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{operation:'recommend_builds',company_id:company,run_id:diagnosis?.id}});
-        if(error||data?.ok===false)throw new Error(data?.error||error?.message);
+        if(error||data?.ok===false)throw await runtimeError(error,data);
         if(state.companyId===company)toast(`${data.build_ids?.length||0} recommendations ready for review.`);
       }else if(button.hasAttribute('data-create-build-plan')){
         const {error}=await sb.rpc('relystra_create_build_plan',{p_company_id:company,p_build_ids:[...selected],p_name:'Build Package'});if(error)throw error;selected.clear();
       }else if(button.dataset.planCheckout||button.dataset.planCancel){
         const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute?handler=checkout',{body:{plan_id:button.dataset.planCheckout||button.dataset.planCancel,operation:button.dataset.planCancel?'cancel':'checkout'}});
-        if(error||data?.error)throw new Error(data?.message||error?.message||'Checkout could not be updated.');
+        if(error||data?.error)throw await runtimeError(error,data);
         if(state.companyId!==company)return;
         if(data.url){const destination=new URL(data.url);if(destination.protocol!=='https:'||destination.hostname!=='checkout.stripe.com')throw new Error('Unexpected checkout destination.');location.assign(destination.href);return}
         toast(data.status==='processing'?'Payment is being verified. Refresh this plan shortly.':data.status==='paid'?'Payment confirmed.':'Plan updated.');
       }else return;
       if(state.companyId===company){await refresh();window.dispatchEvent(new CustomEvent('nexus:delivery-changed',{detail:{companyId:company}}))}
-    }catch(error){toast(error.message||'Builds could not be updated.')}finally{if(button.isConnected)button.disabled=false}
+    }catch(error){const text=error.message||'Builds could not be updated.';toast(text);if(company===state.companyId&&message?.isConnected){message.textContent=text;message.hidden=false}}finally{if(button.isConnected){button.disabled=false;button.textContent=originalLabel}}
   });
   return {refresh,destroy(){sequence++;root.replaceChildren()}};
 }
