@@ -90,7 +90,7 @@ export function mountPackageDelivery(root,portal){
   function renderSupport(){
     root.innerHTML=`<header><h1>Support</h1><p>${project.package_stage==='completed'?'The seven-day light support period has ended. Your materials and request history remain available.':`Light support ends ${esc(new Date(project.support_ends_at).toLocaleDateString())}.`}</p><p>Ask about your delivered Builds. Questions without a verified answer are sent to Relystra for review.</p></header>
       <form data-delivery-form="support">${area('question','Your question','',true)}<button class="btn primary">Ask Relystra</button></form>
-      ${arr(requests).map(r=>`<article class="relystra-build-card"><h2>${esc(r.description)}</h2><p>${esc(label(r.status))}</p><p class="relystra-support-answer">${esc(r.support_answer)}</p>${arr(r.support_context?.citations).map(c=>`<small>${esc(c.title||c.source_id)}</small>`).join('')}${state.admin?`<form data-delivery-form="support-answer" data-request="${esc(r.id)}">${area('answer','Relystra response',r.support_answer,true)}<button class="btn secondary">Save support answer</button></form>`:''}</article>`).join('')}`;
+      ${arr(requests).map(r=>`<article class="relystra-build-card"><h2>${esc(r.description)}</h2><p>${esc(label(r.status))}</p><p class="relystra-support-answer">${esc(r.support_answer)}</p>${state.admin?`<form data-delivery-form="support-answer" data-request="${esc(r.id)}">${area('answer','Relystra response',r.support_answer,true)}<button class="btn secondary">Save support answer</button></form>`:''}</article>`).join('')}`;
   }
   async function mutate(fn){
     if(busy||company!==state.companyId)return;busy=true;const co=company,id=projectId;
