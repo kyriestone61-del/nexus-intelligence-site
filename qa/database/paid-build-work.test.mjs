@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
 import {database,asUser} from './fixture.mjs';
 const admin='00000000-0000-4000-8000-000000000001',client='00000000-0000-4000-8000-000000000002',company='00000000-0000-4000-8000-000000000003';
 
@@ -26,6 +27,11 @@ test('only an approved paid brief creates internal Build Tasks and client progre
     await db.query('select relystra_bind_checkout($1,$2,$3,$4,$5,$6)',[planId,'cs_fixture','https://checkout.stripe.com/c/pay/fixture','acct_fixture',false,plan.checkout_expires_at]);
     const project=(await db.query('select relystra_record_verified_payment($1,$2,$3,$4,$5,$6,$7,$8,$9) id',[planId,'evt_fixture','cs_fixture','pi_fixture',175000,'usd',false,plan.snapshot_digest,'acct_fixture'])).rows[0].id;
     await db.exec('reset role');
+    const historical=(await db.query("insert into nexus_projects(company_id,name,created_by,project_type) values ($1,'Retained historical diagnosis',$2,'historical') returning id",[company,admin])).rows[0].id;
+    await db.query('update nexus_diagnosis_runs set project_id=$1 where id=$2',[historical,run]);
+    for(const migration of ['20260907051007_relystra_diagnosis_purchase_gate.sql','20260907115814_relystra_paid_diagnosis_context.sql'])
+      await db.exec(await fs.readFile(new URL('../../supabase/migrations/'+migration,import.meta.url),'utf8'));
+    const initialNotifications=(await db.query('select count(*)::int n from nexus_notifications')).rows[0].n;
     let build=(await db.query('select * from nexus_system_cards where project_id=$1',[project])).rows[0];
     assert.equal((await db.query('select count(*)::int n from nexus_tasks')).rows[0].n,0,'payment creates briefs, not unreviewed execution tasks');
     await asUser(db,client,async()=>{
@@ -35,6 +41,8 @@ test('only an approved paid brief creates internal Build Tasks and client progre
       assert.equal(progress.percent,0);assert.equal(progress.builds.length,1);
       const snapshot=(await db.query('select relystra_workspace_snapshot($1) snapshot',[company])).rows[0].snapshot;
       assert.equal(snapshot.project_id,project);assert.equal(snapshot.package.stage,'briefs');
+      assert.equal(snapshot.diagnosis.id,run,'paid package retains its purchased historical diagnosis');
+      assert.equal(snapshot.diagnosis.access,true,'grandfathered diagnosis access survives paid activation');
       assert.equal(JSON.stringify(snapshot).includes('FORGED SCOPE'),false);
       await assert.rejects(db.query('select relystra_workspace_snapshot($1,$2)',[company,company]),/does not belong/);
       await assert.rejects(db.query('select relystra_workspace_snapshot($1)',[admin]),/access required/);
@@ -70,7 +78,7 @@ test('only an approved paid brief creates internal Build Tasks and client progre
     });
     const events=(await db.query("select * from nexus_task_events where event_type='completed'")).rows;
     assert.equal(events.length,9);
-    assert.equal((await db.query('select count(*)::int n from nexus_notifications')).rows[0].n,2,'internal task updates do not add notifications after payment to client/admin');
+    assert.equal((await db.query('select count(*)::int n from nexus_notifications')).rows[0].n,initialNotifications,'internal task updates do not add notifications after payment and historical setup');
     assert.ok(events.every(e=>e.actor_id===admin&&e.detail.object_version&&e.detail.snapshot.work_kind==='build_task'));
     const checks=Object.fromEntries(['functionality','outputs','permissions','integrations','links','error_states','input_validation','data_behavior','mobile_usability','client_usability','documentation','faq','support_grounding']
       .map(key=>[key,{status:'pass',evidence:'Fixture evidence for '+key}]));
@@ -160,9 +168,12 @@ test('only an approved paid brief creates internal Build Tasks and client progre
     await asUser(db,client,async()=>{
       assert.equal((await db.query('select status from nexus_projects where id=$1',[project])).rows[0].status,'complete');
       assert.equal((await db.query('select relystra_support_sources($1) sources',[project])).rows[0].sources.length,sources.length);
+      const current=(await db.query('select relystra_workspace_snapshot($1) snapshot',[company])).rows[0].snapshot;
+      assert.equal(current.project_id,null);
+      assert.equal(current.diagnosis.id,run,'retained diagnosis remains available without an active paid package');
     });
     const notices=(await db.query('select * from nexus_notifications')).rows;
-    assert.equal(notices.filter(n=>n.title==='Test payment confirmed').length,2);
+    assert.equal(notices.filter(n=>n.title==='Test payment confirmed'&&n.related_id===project).length,2);
     assert.equal(notices.filter(n=>n.title==='Your draft is ready for review').length,2);
     assert.equal(notices.filter(n=>n.title==='Your Final Package is ready').length,1);
     assert.equal(notices.filter(n=>n.title==='Support question needs review').length,1);
