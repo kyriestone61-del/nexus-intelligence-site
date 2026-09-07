@@ -31,7 +31,7 @@ test('authenticated preparation retains private files and enforces diagnosis and
     await client.locator('#uploadForm button[type="submit"]').click();
     await expect.poll(()=>client.evaluate(async({company,filename})=>{const r=await window.NexusPortal.sb.from('nexus_documents').select('id,project_id,company_id').eq('company_id',company).eq('file_name',filename);if(r.error)throw new Error(r.error.message);return r.data},{company,filename}),{timeout:60_000}).toEqual([expect.objectContaining({project_id:null,company_id:company})]);
     await client.reload();await expect(client.locator('#nexusClientReportsButton')).toBeVisible({timeout:30_000});await client.locator('#nexusClientReportsButton').click();
-    await expect(client.getByText(filename,{exact:true})).toBeVisible();
+    await expect(client.locator('#nexus-client-files').getByText(filename,{exact:true})).toBeVisible();
     const facts=await client.evaluate(async company=>{
       const sb=window.NexusPortal.sb;
       const [projects,tasks,otherDocs]=await Promise.all([sb.from('nexus_projects').select('id').eq('company_id',company),sb.from('nexus_tasks').select('id').eq('work_kind','build_task'),sb.from('nexus_documents').select('id').neq('company_id',company)]);

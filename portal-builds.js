@@ -25,6 +25,7 @@ function reviewCard(row,settings,opportunities,acceptedActions){
       ${field('name','Build name',row.title)}${area('outcome','Expected outcome',spec.outcome)}
       ${area('scope_in','Included scope — one item per line',spec.scope_in)}${area('scope_out','Excluded scope — one item per line',spec.scope_out)}
       ${area('required_inputs','Required inputs — one per line',spec.required_inputs)}${area('acceptance_criteria','Acceptance criteria — one per line',spec.acceptance_criteria)}${area('assumptions','Assumptions — one per line',spec.assumptions)}
+      ${area('risks','Risks and mitigations — one per line',spec.risks)}
       <label>Priority<select name="priority">${['high','medium','low'].map(v=>`<option ${spec.priority===v?'selected':''}>${v}</option>`).join('')}</select></label>
       ${area('priority_reason','Why this priority',spec.priority_reason)}
       <fieldset><legend>Complexity</legend>${dimensions.map((label,i)=>`<label>${label}<select name="score_${i}">${[1,2,3].map(v=>`<option value="${v}" ${Number(scores[i])===v?'selected':''}>${v} — ${['Low','Moderate','High'][v-1]}</option>`).join('')}</select></label>`).join('')}
@@ -110,7 +111,7 @@ export function mountBuilds(root,portal){
     const company=state.companyId;if(company!==companyId||loading)return;
     const data=new FormData(form),read=name=>String(data.get(name)||'').trim(),button=event.submitter;
     const patch={name:read('name'),outcome:read('outcome'),scope_in:lines(read('scope_in')),scope_out:lines(read('scope_out')),
-      required_inputs:lines(read('required_inputs')),acceptance_criteria:lines(read('acceptance_criteria')),assumptions:lines(read('assumptions')),
+      required_inputs:lines(read('required_inputs')),acceptance_criteria:lines(read('acceptance_criteria')),assumptions:lines(read('assumptions')),risks:lines(read('risks')),
       priority:read('priority'),priority_reason:read('priority_reason'),complexity_scores:[0,1,2,3,4].map(i=>Number(read(`score_${i}`))),
       complexity:read('complexity'),price_cents:Math.round(Number(read('price'))*100),currency:settings.currency,
       duration_min:Number(read('duration_min')),duration_max:Number(read('duration_max')),dependencies:data.getAll('dependency'),completed_action_ids:data.getAll('completed_action')};
