@@ -22,7 +22,8 @@ async function approveFromIntake(button){
     await workspace?.();
     await window.NexusAdminIntake?.refresh?.({reload:true});
     window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed',{detail:{runId:run.id,action:'approved',summary:data||null}}));
-    await window.NexusResolutionPlan?.open?.(run.id);
+    if(window.__relystraDeliveryLifecycle){await window.NexusAdminJourney?.refresh?.();await window.NexusAdminJourney?.navigate?.('actions')}
+    else await window.NexusResolutionPlan?.open?.(run.id);
   }catch(error){
     console.error('Inline diagnosis approval failed',error);
     toast?.(error?.message||'Diagnosis approval could not be saved.');

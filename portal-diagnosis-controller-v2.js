@@ -92,6 +92,7 @@ async function openRun(run){
 function diagnosisJourneyButton(button){if(!button?.closest?.('#adminJourneyRoot'))return false;const step=button.closest('.journey-step');if(step?.querySelector('h3')?.textContent?.trim()==='Discovery & Diagnosis')return true;const focus=button.closest('.journey-focus');return /Step\s*2\s*of\s*6/i.test(focus?.querySelector('.kicker')?.textContent||'')}
 function labelFor(run){if(!run)return 'Open Discovery & Diagnosis →';if(run.status==='approved'&&hasResult(run))return 'View Approved Diagnosis →';if(['queued','analyzing'].includes(run.status))return 'View Diagnosis Status →';if(['failed','blocked','revision_requested','ready_for_analysis'].includes(run.status))return 'Resolve Diagnosis Issue →';if(['ready_for_review','in_review'].includes(run.status)||hasResult(run))return 'Review Diagnosis →';return 'Open Discovery & Diagnosis →'}
 function applyJourneyLabels(run){
+  if(window.__relystraDeliveryLifecycle)return;
   const root=byId('adminJourneyRoot');if(!root)return;const label=labelFor(run);
   const step=[...root.querySelectorAll('.journey-step')].find(x=>x.querySelector('h3')?.textContent?.trim()==='Discovery & Diagnosis');step?.querySelectorAll('button').forEach(button=>{if(!button.hasAttribute('data-current-records'))button.textContent=label});
   const focus=root.querySelector('.journey-focus');if(/Step\s*2\s*of\s*6/i.test(focus?.querySelector('.kicker')?.textContent||'')){const primary=focus.querySelector('button[data-primary-action]');if(primary)primary.textContent=label}

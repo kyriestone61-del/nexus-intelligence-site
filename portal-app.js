@@ -1,5 +1,6 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260905-relystra-phase-zero1';
+const BUILD='20260907-relystra-delivery1';
+window.__relystraDeliveryLifecycle=true;
 
 window.__nexusPortalBooting=true;
 window.__nexusOpsInit=true;
@@ -48,7 +49,7 @@ async function importWithoutRecurringIntervals(url,blockedDelays=[]){const nativ
 async function requiredImportWithoutRecurringIntervals(url,blockedDelays=[],label=url){try{return await importWithoutRecurringIntervals(url,blockedDelays)}catch(error){console.error(`Required Relystra portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
 async function waitFor(test,{timeout=5000,step=70}={}){const start=Date.now();while(Date.now()-start<timeout){try{if(test())return true}catch{}await new Promise(resolve=>setTimeout(resolve,step))}return false}
 
-await loadStyles(['portal-runtime-hardening.css','portal-production-simplification.css']);
+await loadStyles(['portal-runtime-hardening.css','portal-delivery.css']);
 try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180])}catch(error){showCoreLoadFailure(error);throw error}
 await optionalImport(asset(`portal-client-plain-language.js?v=${BUILD}`));
 const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Relystra portal context is unavailable.'));throw new Error('Relystra portal context is unavailable.')}
@@ -68,19 +69,17 @@ const useClientShell=isSignedIn&&(!platformAdmin||portal.state?.viewMode==='clie
 const useAdminShell=isSignedIn&&platformAdmin&&!useClientShell;
 
 if(useClientShell){
-  await loadStyles(['portal-client-shell-v2.css','portal-client-action-execution.css','portal-phase-zero-lifecycle.css']);
+  await loadStyles(['portal-client-shell-v2.css','portal-client-action-execution.css']);
   await requiredImport(asset(`portal-client-core.js?v=${BUILD}`),'client state engine');
   await requiredImport(asset(`portal-client-upload-service.js?v=${BUILD}`),'client upload service');
   await requiredImport(asset(`portal-client-shell-v2.js?v=${BUILD}`),'reconciled client shell');
   await requiredImport(asset(`portal-client-action-execution.js?v=${BUILD}`),'client action execution and handoff');
   await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
-  await requiredImport(asset(`portal-phase-zero-lifecycle.js?v=${BUILD}`),'Phase Zero engagement lifecycle');
   window.NexusClientPlainLanguage?.apply?.();
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
-  await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
   clearBootLock();
 }else if(useAdminShell){
-  const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css','portal-phase-zero-lifecycle.css'];
+  const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css'];
   await loadStyles(adminStyles);
   await requiredImport(asset(`portal-foundation-hardening.js?v=${BUILD}`),'workspace foundation hardening');
   await requiredImport(asset(`portal-active-engagement-cohesion.js?v=${BUILD}`),'active engagement cohesion');
@@ -104,28 +103,17 @@ if(useClientShell){
   await requiredImportWithoutRecurringIntervals(asset(`portal-action-workflow.js?v=${BUILD}`),[1200],'action workflow');
   await requiredImport(asset(`portal-action-execution-v2.js?v=${BUILD}`),'action execution');
   await optionalImport(asset(`portal-action-execution-v2-forms.js?v=${BUILD}`));
-  await optionalImport(asset(`portal-guided-ops.js?v=${BUILD}`));
-  await requiredImport(asset(`portal-admin-journey.js?v=${BUILD}`),'admin Client Journey');
-  await requiredImport(asset(`portal-admin-journey-router.js?v=${BUILD}`),'Client Journey router');
   await requiredImport(asset(`portal-diagnosis-controller-v2.js?v=${BUILD}`),'diagnosis controller');
   await requiredImport(asset(`portal-diagnosis-release-queue.js?v=${BUILD}`),'diagnosis client release queue');
   await requiredImport(asset(`portal-diagnosis-review-ux.js?v=${BUILD}`),'diagnosis review UX');
   await requiredImport(asset(`portal-diagnosis-report-editor.js?v=${BUILD}`),'audited founder diagnosis report editor');
   await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
-  await requiredImport(asset(`portal-journey-task-guard.js?v=${BUILD}`),'journey task guard');
   await requiredImport(asset(`portal-revenue-engine.js?v=${BUILD}`),'Revenue Engine');
-  const finalAdminReady=await waitFor(()=>{const nav=document.querySelector('.side-nav');const labels=[...nav?.querySelectorAll('button')||[]].map(x=>x.textContent.trim());return document.querySelector('.journey-primary')&&document.querySelector('#adminJourneyRoot .journey-step')&&labels.includes('Client Journey')&&labels.includes('Discovery & Diagnosis')&&labels.includes('Revenue Engine')},{timeout:5200,step:70});
-  if(!finalAdminReady){showCoreLoadFailure(new Error('Final Relystra admin navigation did not initialize.'));throw new Error('Final Relystra admin navigation did not initialize.')}
-  await window.NexusDiagnosisController?.refreshJourneyLabels?.({force:true});window.NexusDiagnosisController?.normalizeIntake?.();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  await requiredImport(asset(`portal-vnext-runtime-router.js?v=${BUILD}`),'vNext delivery runtime router');
+  await requiredImport(asset(`portal-vnext-runtime-router.js?v=${BUILD}`),'existing PDF and notification routing');
   await requiredImport(asset(`portal-vnext-experience.js?v=${BUILD}`),'vNext diagnosis and client report experience');
   await requiredImport(asset(`portal-approval-inbox.js?v=${BUILD}`),'approval chains and Inbox');
-  await requiredImport(asset(`portal-workflow-cohesion.js?v=${BUILD}`),'workflow cohesion');
-  await requiredImport(asset(`portal-buildingblok-cohesion.js?v=${BUILD}`),'Companies, Inbox and mobile operating model');
-  await requiredImport(asset(`portal-ux-refinement.js?v=${BUILD}`),'front-end UX refinement');
-  await requiredImport(asset(`portal-phase-zero-lifecycle.js?v=${BUILD}`),'Phase Zero engagement lifecycle');
+  await requiredImport(asset(`portal-admin-journey.js?v=${BUILD}`),'Relystra delivery workspace');
   perspectiveModule?.mountPerspectiveSwitcher?.(portal);
-  await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');
   clearBootLock();
 }else{
   await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');

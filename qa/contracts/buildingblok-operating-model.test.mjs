@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
+const fsDelivery=()=>readFileSync('portal-admin-journey.js','utf8');
 const app=readFileSync('portal-app.js','utf8');
 const model=readFileSync('portal-buildingblok-cohesion.js','utf8');
 const css=readFileSync('portal-buildingblok-cohesion.css','utf8');
@@ -10,8 +11,8 @@ const migration=readFileSync('supabase/migrations/20260901_nexus_evidence_lineag
 test('portal boots the mobile hardening and unified operating model',()=>{
   assert.match(app,/portal-mobile-hardening\.css/);
   assert.match(app,/portal-buildingblok-cohesion\.css/);
-  assert.match(app,/portal-buildingblok-cohesion\.js/);
-  assert.match(app,/Companies, Inbox and mobile operating model/);
+  assert.match(app,/portal-admin-journey\.js/);
+  assert.match(fsDelivery(),/mountMobileMenu/);
 });
 
 test('Companies provides the three canonical lifecycle labels',()=>{

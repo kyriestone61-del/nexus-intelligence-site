@@ -9,7 +9,7 @@ export function selectActiveProject(projects = [], companyId, explicitId = null)
   paid.sort((a, b) => Date.parse(b.activated_at) - Date.parse(a.activated_at) || a.id.localeCompare(b.id));
   if (paid.length) return paid[0];
   // Existing engagements remain accessible; never infer which legacy project is current.
-  return rows.length === 1 && rows[0].project_type !== 'build_package' ? rows[0] : null;
+  return null;
 }
 
 export function workspaceUrl(href, companyId, projectId = null) {

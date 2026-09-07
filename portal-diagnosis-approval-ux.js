@@ -51,7 +51,12 @@ async function approve(button){
     setFeedback(button,'Diagnosis approved. Recommended actions are ready for your selection. No downstream action items have been released yet.','success');
     toast?.('Diagnosis approved. Review the recommended actions before anything is assigned.');
     window.NexusDiagnosisController?.invalidateLatest?.();
-    await window.NexusDiagnosisReviewRuntime?.openReview?.(id,{force:true});
+    if(window.__relystraDeliveryLifecycle){
+      await portal.workspace?.();
+      document.getElementById('diagnosisReviewModal')?.classList.remove('open','show');
+      document.body.classList.remove('diagnosis-review-open');
+      await window.NexusAdminJourney?.refresh?.();await window.NexusAdminJourney?.navigate?.('actions');
+    }else await window.NexusDiagnosisReviewRuntime?.openReview?.(id,{force:true});
     window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed',{detail:{runId:id,action:'approved',summary:data||null}}));
   }catch(error){
     console.error('Diagnosis approval failed',error);
@@ -89,6 +94,6 @@ document.addEventListener('click',event=>{
 document.addEventListener('click',hideReviewForDrilldown,true);
 
 window.NexusDiagnosisApprovalUX={approve};
-await import('/portal-resolution-plan.js?v=20260904-baseline-flow1').catch(error=>console.error('Resolution plan failed to load',error));
+if(!window.__relystraDeliveryLifecycle)await import('/portal-resolution-plan.js?v=20260904-baseline-flow1').catch(error=>console.error('Resolution plan failed to load',error));
 await import('/portal-resolution-inline-approval-bridge.js?v=20260904-baseline-flow1').catch(error=>console.error('Resolution inline approval bridge failed to load',error));
-import('/portal-diagnosis-output-hub.js?v=20260904-baseline-flow1').catch(error=>console.error('Diagnosis output hub failed to load',error));
+if(!window.__relystraDeliveryLifecycle)import('/portal-diagnosis-output-hub.js?v=20260904-baseline-flow1').catch(error=>console.error('Diagnosis output hub failed to load',error));

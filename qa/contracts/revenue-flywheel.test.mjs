@@ -104,7 +104,7 @@ assert.ok(!/nexus_outreach_sequence_steps[\s\S]{0,300}resend\.com/i.test(worker)
 // Admin Revenue Engine must make the backend usable without weakening authority boundaries.
 assert.match(portalApp,/portal-revenue-engine\.css/);
 assert.match(portalApp,/portal-revenue-engine\.js/);
-assert.match(portalApp,/labels\.includes\('Revenue Engine'\)/);
+assert.match(fs.readFileSync('portal-admin-journey.js','utf8'),/navButton\('Sales','sales'\)/);
 assert.match(revenueUi,/state\?\.admin/,'revenue console must be admin-only');
 for(const rpc of ['nexus_admin_upsert_revenue_lead','nexus_recalculate_revenue_lead_score','nexus_admin_approve_outreach_packet','nexus_admin_approve_outreach_step','nexus_admin_mark_outreach_sent']) assert.ok(revenueUi.includes(rpc),`revenue console missing ${rpc}`);
 for(const table of ['nexus_revenue_leads','nexus_lead_research_evidence','nexus_outreach_packets','nexus_outreach_sequence_steps','nexus_lead_exceptions','nexus_founder_decision_queue']) assert.ok(revenueUi.includes(table),`revenue console missing ${table}`);

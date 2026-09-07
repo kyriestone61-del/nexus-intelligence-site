@@ -36,7 +36,7 @@ Set the single `nexus_delivery_settings` row to the Relystra account, `payment_l
 
 The browser creates or opens a diagnosis plan with `relystra_create_diagnosis_plan(company_id)` or a selected Build Plan with `relystra_create_build_plan(company_id, build_ids, name)`. It invokes `relystra-checkout` with `{plan_id, operation: 'checkout'}` and follows only the returned Stripe URL. To release an unpaid selection it invokes the same handler with `operation: 'cancel'`.
 
-The payment return URL keeps both company and plan context. The browser reloads the plan and displays verification pending until the database records payment; URL parameters never activate anything. Client UI wiring remains part of the subsequent workspace phase.
+The payment return URL keeps both company and plan context. The browser reloads the plan and displays verification pending until the database records payment; URL parameters never activate anything. Client UI is wired on this branch; deployed browser/payment verification remains outstanding.
 
 ## Behavior and evidence
 

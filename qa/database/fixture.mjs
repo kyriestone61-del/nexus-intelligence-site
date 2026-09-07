@@ -41,7 +41,7 @@ export async function database(extraMigrations=[]){
     await db.exec(trigger.definition+';');
   // External notification/release engines are intentionally outside this local database fixture.
   // Their schema is exercised at deployment integration QA; no outbound services run here.
-  for(const name of ['nexus_create_internal_release_chain','nexus_apply_diagnosis_action_templates_trigger','nexus_notify_admins_on_task','nexus_notify_admins_on_client_task_update'])
+  for(const name of ['nexus_notify_client_on_task','nexus_notify_newly_unblocked_client_tasks','nexus_create_internal_release_chain','nexus_apply_diagnosis_action_templates_trigger','nexus_notify_admins_on_task','nexus_notify_admins_on_client_task_update'])
     await db.exec(`create function private.${name}() returns trigger language plpgsql as $$ begin return new; end $$;`);
   const migrations=['20260907000100_relystra_prebuild_actions.sql','20260907000200_relystra_delivery_catalog.sql',...extraMigrations];
   for(const migration of migrations)await db.exec(await read('../../supabase/migrations/'+migration));

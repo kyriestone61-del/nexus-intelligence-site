@@ -93,3 +93,35 @@ References used for implementation: [Supabase RLS](https://supabase.com/docs/gui
 - Progress averages purchased Build progress, including Builds with no approved checklist. Completed technical checklists reach 90%; final QA and delivery still must supply the remaining completion gates. This is a foundation for the next review/delivery phase, not a completed lifecycle.
 - `qa/database/paid-build-work.test.mjs` verifies paid/approval prerequisites, immutable paid scope, checklist idempotency, task dependencies, client read/write denial, retained actor/version evidence and progress. It also caught and fixed division-before-multiplication rounding in the progress calculation.
 - Review, delivery, support, meaningful package notifications and shell integration remain outstanding. Nothing in this checkpoint has been deployed.
+
+## September 7 integration checkpoint — local implementation, acceptance incomplete
+
+This section supersedes the earlier phase-by-phase outstanding-item lists. The branch now wires the delivery lifecycle into the existing administrator and client shells. It has not been deployed and must not be treated as a finished or paid production implementation.
+
+### Implemented in this checkpoint
+
+- Migrations `20260907000700` and `20260907000800` add versioned draft/final packages, per-Build reviews and scope-controlled revisions, technical/final QA gates, immutable delivery materials, seven-day support, grounded answers and human escalation using the existing Projects, system cards and client requests.
+- Migrations `20260907045453`, `20260907045552`, `20260907051007` and `20260907051344` add deduplicated delivery notices, a shared authorized workspace snapshot, new-diagnosis purchase gating with explicit historical access preservation, dependency-cycle guards, validated delivery settings and rejection of new unpaid legacy Projects.
+- `portal-admin-journey.js` owns Home, Clients, Projects, Sales, Records & Tools and Settings. It mounts the existing diagnosis/actions and new Build/delivery components contextually. `portal-client-shell-v2.js` presents the seven progressive client sections through the shared lifecycle and keeps package context on mobile.
+- `portal-delivery-lifecycle.js`, `portal-diagnosis-offer.js`, `portal-package-delivery.js` and `portal-delivery.css` supply shared state presentation, diagnosis purchase, approved briefs/checklists, progress, review, guides, FAQs and Support. `portal-builds.js` remains the curation and purchase-plan component. Settings now exposes diagnosis price, capacity, QA/review allowance, complexity thresholds and price/duration guidance.
+- `portal-app.js` stops mounting competing lifecycle overlays. Diagnosis approval routes to pre-build Actions through the existing approval modules. The existing PDF runtime router remains enabled because it serves document exports, not the retired journey.
+- The diagnosis Edge entrypoint adds scoped Support selection and payment access checks. Its shared support helper accepts only exact citations from published materials; unsupported/provider-failed questions create a reviewable request. The existing authenticated email worker closes expired support periods. Internal checklist changes do not email clients; delivery email remains off by default and test/QA events are suppressed.
+
+### Verification and discovered regressions
+
+- All 98 Node contract/database/lifecycle tests passed on the integrated branch. Twenty-three changed/new JavaScript modules passed syntax checks. Four affected Edge entrypoints passed Deno checks earlier in this checkpoint.
+- The disposable local PGlite/browser fixture exercised approved brief → nine internal tasks → 90% hold → delivery materials → internal QA → draft → client revision → administrator scope review → revised draft → client approval → final QA → handoff → 100% and Support. All payment and QA evidence in this fixture is explicitly synthetic. The delivered example URL is a fixture, not a built client system.
+- The real client shell and runtime were subsequently mounted against the fixture. Package switching retained Final Package, mobile context remained visible, and Help preserved a question into Support. The fixture substitutes empty legacy document/release data and adapts the legacy inbox/context RPCs; this does not certify those production dependencies, authentication, uploads, Stripe, or the external model.
+- Browser checks found and fixed lost checklist expansion, missing nested paid scope in briefs, revision forms remaining actionable before triage, new client sections being hidden on refresh, mobile package context being hidden, and Help dropping the question. Additional checks fixed stale navigation writes, inconsistent legacy-project defaults and package-less notification links.
+- Security/SQL recheck: production gained migration `20260907023747 add_safe_import_clear_rpc`, belonging to North Star. No development branches exist. Existing security advisors returned 137 baseline items; no new migration has been applied and no post-deployment security certification is claimed.
+- Remote main remains baseline `7cf1b6818585228698cd335fbd9c1e3b6796e2f3`. Frontend deployment/asset parity still requires a fresh provider check before production changes.
+
+### Still required for completion
+
+1. Verify Relystra test runtime secrets and signing secret, configure the test webhook, and exercise real hosted Checkout with verified webhook activation. Never use another application's credentials or mark a production plan paid manually.
+2. Verify the retained model proxy's implementation/configuration and exercise diagnosis, AI preparation, recommendations and grounded Support through deployed functions.
+3. Validate the complete production trigger set and retained portal boot modules, then deploy through a reviewed, recoverable release. Local fixture success alone is insufficient.
+4. Complete authenticated administrator/client desktop, tablet and mobile QA, including actual uploads and submissions in the user-authorized Blue Harbor QA company.
+5. Run all 59 Moon Wax acceptance steps in the actual application with valid inputs, payment evidence and delivered systems. Historical orphan data remains untouched; no cause or association is inferred. Moon Wax acceptance has not passed.
+
+No production data, schema, Edge deployment, Stripe payment or outbound client message was changed by this checkpoint. The initiative remains in progress.

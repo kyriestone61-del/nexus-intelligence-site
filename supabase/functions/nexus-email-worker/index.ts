@@ -127,6 +127,13 @@ async function processRevenueFlywheel(){
   return {available:true,claimed:jobs.length,completed,blocked,failed,results}
 }
 
+async function closeExpiredSupport(){
+  const response=await fetch(`${base()}/rest/v1/rpc/relystra_close_expired_support`,{method:'POST',headers:h(),body:'{}',signal:AbortSignal.timeout(10000)});
+  if(response.status===404)return {available:false,completed:0};
+  if(!response.ok)throw new Error(`SUPPORT_CLOSE_${response.status}`);
+  return {available:true,completed:await response.json()};
+}
+
 Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   if(req.method!=='POST')return new Response('method not allowed',{status:405,headers:cors});
@@ -135,9 +142,10 @@ Deno.serve(async(req:Request)=>{
   try{
     const cfg=await config();const workerToken=req.headers.get('x-nexus-worker-token')||'';
     if(!cfg?.enabled||!workerToken||await digest(workerToken)!==cfg.secret_hash)return new Response(JSON.stringify({ok:false,error:'Unauthorized'}),{status:401,headers:{...cors,'content-type':'application/json'}});
+    const support=await closeExpiredSupport().catch(async e=>{await health('delivery_support','degraded','Support period completion needs attention.',{error:clean((e as Error).message,200)});return {available:true,error:'SUPPORT_CLOSE_FAILED'}});
     const email=await processEmail().catch(async e=>{await health('email_delivery','failed','Email worker execution failed.',{error:clean((e as Error).message,500)});return {configured:!!Deno.env.get('RESEND_API_KEY'),error:clean((e as Error).message,500)}});
     const sms=await processSms().catch(async e=>{await health('sms_delivery','failed','SMS worker execution failed.',{error:clean((e as Error).message,500)});return {configured:!!Deno.env.get('TWILIO_ACCOUNT_SID'),error:clean((e as Error).message,500)}});
     const revenue=await processRevenueFlywheel().catch(async e=>{await health('revenue_flywheel','failed','Revenue flywheel worker execution failed.',{error:clean((e as Error).message,500)});return {available:true,error:clean((e as Error).message,500)}});
-    return new Response(JSON.stringify({ok:true,email,sms,revenue}),{headers:{...cors,'content-type':'application/json'}});
+    return new Response(JSON.stringify({ok:true,email,sms,revenue,support}),{headers:{...cors,'content-type':'application/json'}});
   }catch(e){console.error(e);await health('notification_delivery','failed','Relystra scheduled worker execution failed.',{error:clean((e as Error).message,500)});return new Response(JSON.stringify({ok:false,error:'Relystra scheduled worker failed'}),{status:500,headers:{...cors,'content-type':'application/json'}})}
 });
