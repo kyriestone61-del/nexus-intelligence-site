@@ -1,3 +1,4 @@
+import {companyPreparationQuery} from './portal-workspace-context.js';
 import {buildDiscoveryPacket} from './portal-discovery-capture.js';
 
 const portal=window.NexusPortal;
@@ -15,11 +16,11 @@ let gapAnalyses=[];
 let contextEntries=[];
 let discoveryTasks=[];
 let lastCompanyId=null;
-let loading=false;
+let loadSequence=0;
 
 const company=()=>state.companies?.find(c=>c.id===state.companyId)||null;
-const project=()=>window.NexusFoundationHardening?.activeProject?.()||state.projects?.[0]||null;
-const evidenceDocs=()=>[...(state.docs||[])].filter(d=>!project()?.id||!d.project_id||d.project_id===project().id).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+const project=()=>portal.activeProject?.()||null;
+const evidenceDocs=()=>[...(state.docs||[])].filter(d=>d.company_id===state.companyId&&(!d.project_id||d.project_id===project()?.id)).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
 const latestContext=()=>contextEntries.find(x=>x.is_current)||contextEntries[0]||null;
 const latestGap=()=>gapAnalyses[0]||null;
 const latestRun=()=>diagnosisRuns.find(r=>!['draft','archived'].includes(r.status))||null;
@@ -51,19 +52,19 @@ function ensureAdminIntake(){
 }
 
 async function loadStep2Data(){
-  if(!state.admin||!state.companyId||loading)return;loading=true;
+  if(!state.admin||!state.companyId)return;
+  const sequence=++loadSequence,companyId=state.companyId,projectId=project()?.id||null;
   try{
-    const p=project();
-    const contexts=sb.from('nexus_discovery_context_entries').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}).limit(30);
-    const gaps=sb.from('nexus_discovery_gap_analyses').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}).limit(10);
-    const runs=sb.from('nexus_diagnosis_runs').select('*').eq('company_id',state.companyId).order('created_at',{ascending:false}).limit(30);
-    const tasks=sb.from('nexus_tasks').select('id,title,status,form_schema,response_data,created_at,updated_at,project_id,source_gap_analysis_id').eq('company_id',state.companyId).eq('task_type','discovery_information_request').order('created_at',{ascending:false}).limit(30);
-    if(p?.id){contexts.eq('project_id',p.id);gaps.eq('project_id',p.id);runs.eq('project_id',p.id)}
-    const [cr,gr,rr,tr]=await Promise.all([contexts,gaps,runs,tasks]);
-    if(cr.error)throw cr.error;if(gr.error)throw gr.error;if(rr.error)throw rr.error;if(tr.error)throw tr.error;
-    contextEntries=cr.data||[];gapAnalyses=gr.data||[];diagnosisRuns=rr.data||[];discoveryTasks=(tr.data||[]).filter(t=>!p?.id||!t.project_id||t.project_id===p.id);
-  }catch(error){console.error('Step 2 data load failed',error);toast?.(error.message||'Discovery & Diagnosis data could not be loaded.')}
-  finally{loading=false}
+    const queries=[['nexus_discovery_context_entries',30],['nexus_discovery_gap_analyses',10],['nexus_diagnosis_runs',30],['nexus_tasks',30]].map(([table,limit])=>{
+      let query=sb.from(table).select('*').eq('company_id',companyId).order('created_at',{ascending:false}).limit(limit);
+      if(table==='nexus_tasks')query=query.eq('task_type','discovery_information_request');
+      return companyPreparationQuery(query,projectId);
+    });
+    const results=await Promise.all(queries);
+    if(sequence!==loadSequence||companyId!==state.companyId||projectId!==(project()?.id||null))return;
+    for(const result of results)if(result.error)throw result.error;
+    [contextEntries,gapAnalyses,diagnosisRuns,discoveryTasks]=results.map(result=>result.data||[]);
+  }catch(error){if(sequence!==loadSequence||companyId!==state.companyId)return;console.error('Step 2 data load failed',error);toast?.(error.message||'Discovery & Diagnosis data could not be loaded.')}
 }
 
 function evidenceMarkup(){
@@ -156,15 +157,17 @@ async function uploadEvidence(event){
   event.preventDefault();const file=$('adminEvidenceFile')?.files?.[0];if(!file)return;if(file.size>26214400)return toast?.('File exceeds the 25 MB limit.');
   const allowed=/\.(pdf|docx|pptx|xlsx|xls|csv|txt|md|json|xml|srt|vtt|png|jpg|jpeg|webp|gif)$/i;if(!allowed.test(file.name))return toast?.('Use a supported evidence file type.');
   const button=event.submitter;button.disabled=true;button.textContent='Uploading…';
-  const path=`${state.companyId}/${Date.now()}-${crypto.randomUUID()}-${safeName(file.name)}`;
+  const companyId=state.companyId,projectId=project()?.id||null,userId=state.user.id;
+  const category=$('adminEvidenceCategory')?.value||'Client Source',note=$('adminEvidenceNote')?.value?.trim()||null;
+  const path=`${companyId}/${Date.now()}-${crypto.randomUUID()}-${safeName(file.name)}`;
   try{
     const {error:u}=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||undefined});if(u)throw u;
-    const row={company_id:state.companyId,project_id:project()?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category:$('adminEvidenceCategory')?.value||'Client Source',status:'shared',note:$('adminEvidenceNote')?.value?.trim()||null,uploaded_by:state.user.id,sensitivity:'standard',request_id:null,data_requirement_id:null,document_area:'client_submission',source_role:'client'};
+    const row={company_id:companyId,project_id:projectId,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category,status:'shared',note,uploaded_by:userId,sensitivity:'standard',request_id:null,data_requirement_id:null,document_area:'client_submission',source_role:'client'};
     const {data,error}=await sb.from('nexus_documents').insert(row).select().single();if(error){await sb.storage.from(BUCKET).remove([path]);throw error}
-    try{await log?.('step2_evidence_uploaded','document',data.id,`Evidence added for ${company()?.name||'client'}: ${file.name}`)}catch{}
+    try{if(state.companyId===companyId)await log?.('step2_evidence_uploaded','document',data.id,`Evidence added for ${company()?.name||'client'}: ${file.name}`)}catch{}
     toast?.('Evidence uploaded. Relystra is classifying what it contributes…');
     try{const r=await sb.functions.invoke('nexus-diagnosis-execute',{body:{operation:'ingest_evidence',document_id:data.id}});if(r.error||r.data?.ok===false)throw new Error(r.data?.error||r.error?.message)}catch(err){console.warn('Evidence classification deferred',err);toast?.('Evidence is saved. Automated classification will be retried during analysis.')}
-    event.target.reset();await workspace?.();await refresh({reload:true});
+    if(state.companyId===companyId){event.target.reset();await workspace?.();await refresh({reload:true})}
   }catch(error){toast?.(error.message||'Evidence upload failed.')}
   finally{if(button?.isConnected){button.disabled=false;button.textContent='Upload Evidence'}}
 }
@@ -245,7 +248,7 @@ async function reconcile(force=false){
   else if(state.admin&&state.companyId&&!$('section-intake')?.innerHTML)renderAdminIntake();
 }
 window.NexusAdminIntake={captureDiscoveryContext,getCapturedRun:()=>null,getDraft,clearDraft,loadRuns,refresh,latestAdminContext:latestContext,latestGapAnalysis:latestGap,latestDiagnosisRun:latestRun,buildDiscoveryPacket};
-$('companySelect')?.addEventListener('change',()=>setTimeout(()=>reconcile(true),160));
+window.addEventListener('nexus:workspace-ready',()=>{contextEntries=[];gapAnalyses=[];diagnosisRuns=[];discoveryTasks=[];renderAdminIntake();reconcile(true)});
 sb.auth.onAuthStateChange(()=>setTimeout(()=>reconcile(true),160));
 window.addEventListener('nexus:diagnosis-changed',()=>setTimeout(()=>reconcile(true),120));
 await reconcile(true);

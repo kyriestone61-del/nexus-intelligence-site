@@ -78,13 +78,12 @@ export function buildDiscoveryPacket({draft={},company,project,evidence=[],mode=
 export function buildDiscoveryCapturePayload({draft,company,project,evidence=[],userId,capturedAt}={}){
   const value=normalizeDiscoveryDraft(draft);
   if(!company?.id)throw new Error('A client company is required.');
-  if(!project?.id)throw new Error('An active engagement project is required.');
   if(!userId)throw new Error('An authenticated Relystra administrator is required.');
   if(!hasDiscoveryContext(value))throw new Error('Enter discovery context before capturing it.');
   const at=capturedAt||new Date().toISOString();
   return {
     company_id:company.id,
-    project_id:project.id,
+    project_id:project?.id||null,
     agent_code:'client_diagnosis',
     status:DISCOVERY_CAPTURE_STATUS,
     meeting_date:value.meeting_date||null,

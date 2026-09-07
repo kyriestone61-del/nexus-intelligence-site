@@ -12,14 +12,14 @@ function normalizeLegacyOrder(){
 }
 function guardCompanyProjectAction(event){
   const target=event.target.closest?.('#captureDiscoveryContextBtn,#queueDiagnosisBtn,#createApprovalChainBtn');if(!target)return;
-  const active=normalizeLegacyOrder();if(active?.id)return;
+  normalizeLegacyOrder();if(state.admin&&state.companyId)return;
   event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-  toast?.('Resolve one active engagement before continuing. Relystra will not guess which project should receive this record.');
+  toast?.('Select a client company in an administrator account before continuing.');
 }
 function reconcile(){normalizeLegacyOrder()}
 
 document.addEventListener('click',guardCompanyProjectAction,true);
-document.getElementById('companySelect')?.addEventListener('change',()=>setTimeout(reconcile,80));
+window.addEventListener('nexus:workspace-ready',reconcile);
 window.addEventListener('nexus:diagnosis-changed',reconcile);
 window.addEventListener('nexus:discovery-context-captured',reconcile);
 reconcile();

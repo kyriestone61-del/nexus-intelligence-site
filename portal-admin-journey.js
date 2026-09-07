@@ -1,3 +1,5 @@
+import {companyPreparationQuery} from './portal-workspace-context.js';
+
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,$,toast,workspace,log}=portal;
@@ -8,7 +10,7 @@ const nexusWaiting=t=>t.assignee==='nexus'&&!done(t.status)&&t.status!=='ready_f
 const reviewWaiting=t=>t.status==='ready_for_review';
 
 const STAGES=[
- {n:1,key:'setup',title:'Set Up Client',desc:'Confirm the client workspace and engagement project. This is the only setup step.',section:'clients'},
+ {n:1,key:'setup',title:'Client Workspace',desc:'The company workspace is ready for diagnosis. A paid Build Package creates a project later.',section:'intake'},
  {n:2,key:'discovery',title:'Discovery & Diagnosis',desc:'Collect evidence, let Relystra identify material information gaps, request only what is still missing, add admin context, run the diagnosis, and approve the findings.',phase:'discovery'},
  {n:3,key:'plan',title:'Agree on the Plan',desc:'Turn the approved diagnosis into one practical implementation plan and get explicit approval before building.',phase:'solution_design',package:'solution_design'},
  {n:4,key:'implementation',title:'Build, Test & Launch',desc:'Build the approved solution, run functional testing and QA/QC, complete client acceptance testing, and approve launch.',phase:'implementation',package:'implementation_launch'},
@@ -19,14 +21,14 @@ const STAGES=[
 let initialized=false,journeyButton=null,toolButtons={},diagnosisRuns=[],journeyNotice=null,renderedMove=null;
 
 function company(){return state.companies?.find(c=>c.id===state.companyId)||null}
-function project(){return window.NexusFoundationHardening?.activeProject?.()||state.projects?.[0]||null}
+function project(){return window.NexusPortal.activeProject?.()||null}
 function tasksFor(stage){return stage.phase?(state.tasks||[]).filter(t=>t.phase===stage.phase):[]}
 function packageExists(stage){return !!stage.package&&(state.tasks||[]).some(t=>t.package_code===stage.package)}
 function latestDiagnosis(){return diagnosisRuns.find(run=>run.status!=='draft')||null}
 function diagnosisHasResult(run=latestDiagnosis()){const r=run?.analysis_result;return !!r&&(typeof r==='string'?!!r.trim():Object.keys(r||{}).length>0)}
 function diagnosisApproved(){const r=latestDiagnosis();return !!r&&r.status==='approved'&&diagnosisHasResult(r)}
 function stageStatus(stage){
- if(stage.key==='setup')return project()?'complete':'not_started';
+ if(stage.key==='setup')return company()?'complete':'not_started';
  if(stage.key==='discovery'){
    const r=latestDiagnosis();
    if(r){
@@ -59,8 +61,9 @@ function statusClass(status,current){if(status==='complete')return 'complete';if
 function stepCounts(stage){const tasks=tasksFor(stage);return {all:tasks.length,done:tasks.filter(t=>done(t.status)).length,client:tasks.filter(clientWaiting).length,nexus:tasks.filter(nexusWaiting).length,review:tasks.filter(reviewWaiting).length}}
 
 async function loadJourneyData(){
- const activeProject=project();if(!state.admin||!state.companyId||!activeProject?.id){diagnosisRuns=[];return}
- const {data,error}=await sb.from('nexus_diagnosis_runs').select('id,project_id,status,created_at,analysis_result,analysis_completed_at,execution_error').eq('company_id',state.companyId).eq('project_id',activeProject.id).neq('status','draft').order('created_at',{ascending:false}).limit(20);
+ const companyId=state.companyId,projectId=project()?.id||null;if(!state.admin||!companyId){diagnosisRuns=[];return}
+ const {data,error}=await companyPreparationQuery(sb.from('nexus_diagnosis_runs').select('id,project_id,status,created_at,analysis_result,analysis_completed_at,execution_error').eq('company_id',companyId),projectId).neq('status','draft').order('created_at',{ascending:false}).limit(20);
+ if(state.companyId!==companyId||(project()?.id||null)!==projectId)return;
  if(error){console.error('Journey diagnosis status load failed',error);diagnosisRuns=[];journeyNotice={message:'Relystra could not read Discovery & Diagnosis status. Refresh the workspace or open Discovery & Diagnosis.',type:'error'};return}
  diagnosisRuns=data||[];
 }
@@ -92,7 +95,7 @@ function rebuildAdminNav(){
 function recordsTarget(stage){return ({setup:'clients',discovery:'intake',plan:'approvals',implementation:'automations',training:'tasks',finish:'metrics'}[stage.key]||'tasks')}
 function stageAction(stage,status,locked){
  if(locked)return '<span class="journey-status">Locked</span>';
- if(stage.key==='setup')return project()?'<button class="btn secondary" data-open="clients" type="button">View client</button>':'<button class="btn primary" data-open="clients" type="button">Set up client →</button>';
+ if(stage.key==='setup')return company()?'<button class="btn secondary" data-open="clients" type="button">View client</button>':'<button class="btn primary" data-open="clients" type="button">Set up client →</button>';
  if(stage.key==='discovery'){
    const label=status==='complete'?'View approved diagnosis':status==='review'?'Review diagnosis':status==='client'?'Review Discovery & Diagnosis':status==='in_progress'?'View Discovery & Diagnosis':'Open Discovery & Diagnosis →';
    return `<button class="btn ${status==='complete'?'secondary':'primary'}" data-open="intake" type="button">${label}</button>`;
@@ -107,7 +110,7 @@ function stageAction(stage,status,locked){
  return '';
 }
 function nextMove(stage,status){
- if(stage.key==='setup'&&!project())return {title:'Set up this client first',copy:'Create or confirm the client engagement project. After that, Relystra can guide the work in order.',label:'Open Clients',open:'clients'};
+ if(stage.key==='setup')return company()?{title:'Client workspace is ready',copy:'Add the evidence and context needed for the diagnosis.',label:'Open Diagnosis',open:'intake'}:{title:'Select a client',copy:'Open the company workspace to begin.',label:'Open Clients',open:'companies'};
  if(stage.key==='discovery'){
    const r=latestDiagnosis();
    if(!r){
@@ -154,6 +157,6 @@ async function startPackage(code,button){
  try{const {data,error}=await sb.rpc('nexus_assign_action_package',{p_company_id:state.companyId,p_project_id:p.id,p_package_code:code,p_start_date:new Date().toISOString().slice(0,10)});if(error)throw error;try{if(log)await log('journey_stage_started','project',p.id,`Started guided client stage: ${stage.title}`)}catch{}await workspace();await loadJourneyData();if(!packageExists(stage))throw new Error('No action items were created. Relystra kept the stage unchanged so it can be retried safely.');journeyNotice={message:Number(data)>0?`${data} action item${Number(data)===1?'':'s'} created for ${stage.title}.`:`${stage.title} was already initialized. No duplicate work was created.`,type:'success'};renderJourney()}catch(error){console.error('Journey package start failed',error);journeyNotice={message:`${stage.title} could not start: ${error.message||'Unknown error'}.`,type:'error'};toast(journeyNotice.message);renderJourney()}finally{if(button&&button.isConnected){button.disabled=false;button.textContent=original||'Start this step →'}}
 }
 async function finishEngagement(){const p=project();if(!p)return;if(!confirm('Mark this client engagement complete? All records will remain available.'))return;const {error}=await sb.from('nexus_projects').update({status:'complete',updated_at:new Date().toISOString()}).eq('id',p.id);if(error){journeyNotice={message:error.message||'The engagement could not be completed.',type:'error'};return renderJourney()}try{if(log)await log('engagement_completed','project',p.id,`Engagement completed: ${p.name}`)}catch{}toast('Engagement marked complete.');await workspace();await showJourney()}
-async function init(){if(initialized||!state.admin)return;initialized=true;ensureSection();rebuildAdminNav();await showJourney();$('companySelect')?.addEventListener('change',()=>setTimeout(async()=>{journeyNotice=null;rebuildAdminNav();await showJourney()},650));const refreshDiagnosisJourney=()=>setTimeout(refreshJourneyInPlace,120);window.addEventListener('nexus:diagnosis-changed',refreshDiagnosisJourney);window.addEventListener('nexus:diagnosis-updated',refreshDiagnosisJourney)}
+async function init(){if(initialized||!state.admin)return;initialized=true;ensureSection();rebuildAdminNav();await showJourney();window.addEventListener('nexus:workspace-ready',async()=>{journeyNotice=null;diagnosisRuns=[];await refreshJourneyInPlace()});const refreshDiagnosisJourney=()=>setTimeout(refreshJourneyInPlace,120);window.addEventListener('nexus:diagnosis-changed',refreshDiagnosisJourney);window.addEventListener('nexus:diagnosis-updated',refreshDiagnosisJourney)}
 function tryInit(){if(state.admin&&state.user&&document.querySelector('.side-nav'))init()}
 tryInit();sb.auth.onAuthStateChange(()=>setTimeout(tryInit,500));
