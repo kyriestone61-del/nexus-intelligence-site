@@ -92,6 +92,12 @@ export async function onRequest(context){
   const isProtectedMarketing=PROTECTED_MARKETING_PATHS.has(path);
   const isPreview=url.hostname.endsWith('.pages.dev');
   const headers=new Headers(response.headers);
+  // This downloadable QA artifact is self-contained; site navigation scripts
+  // must not become dependencies of its offline copy.
+  if(path==='/delivery/qa-estimate-intake-register'||path.startsWith('/delivery/qa-estimate-intake-register/')){
+    headers.set('X-Robots-Tag','noindex, nofollow, noarchive');
+    return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+  }
 
   if(isPrivate)headers.set('X-Robots-Tag','noindex, nofollow, noarchive');
   else if(isPreview)headers.set('X-Robots-Tag','noindex');
