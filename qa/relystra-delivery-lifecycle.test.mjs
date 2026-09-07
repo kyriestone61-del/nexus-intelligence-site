@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {lifecycle,visibleDeliverySections,createLifecycleStore} from '../portal-delivery-lifecycle.js';
+import {lifecycle,clientLifecycle,visibleDeliverySections,createLifecycleStore} from '../portal-delivery-lifecycle.js';
+
+test('client waiting states do not instruct the client to approve internal briefs or QA',()=>{
+  for(const stage of ['briefs','internal_qa','final_qa']){
+    const next=clientLifecycle({company_id:'blue',package:{stage,percent:0}});
+    assert.equal(next.actor,'ADMIN');assert.equal(next.label,'View progress');
+    assert.doesNotMatch(next.detail,/^Approve|^Confirm|^Verify/);
+  }
+  assert.equal(clientLifecycle({company_id:'blue',package:{stage:'client_review'}}).label,'Review Draft Package');
+});
 
 test('Moon Wax without a Project goes to diagnosis and never loops back to company setup',()=>{
   const next=lifecycle({company_id:'moon',diagnosis:{access:false},projects:[]});

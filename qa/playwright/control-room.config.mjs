@@ -7,6 +7,7 @@ export default defineConfig({
   testMatch:[
     'control-room-reconcile.spec.mjs',
     'delivery-prepurchase.spec.mjs',
+    'qa-intake-register.spec.mjs',
     'baseline-workflow.spec.mjs',
     'operational-release-baseline.spec.mjs',
     'simple-intake-workflow.spec.mjs',
