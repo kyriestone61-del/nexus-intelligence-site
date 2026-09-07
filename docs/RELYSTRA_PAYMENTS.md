@@ -1,6 +1,6 @@
 # Relystra payments: deployment contract
 
-This branch is local and unapplied. Checkout remains disabled by default. No production charge, Stripe product, webhook destination, secret or database record was created while implementing it.
+This branch is pushed in draft PR #142; its migrations and functions remain unapplied. Checkout remains disabled by default. No production charge, Stripe product, webhook destination, secret or database record was created while implementing it.
 
 ## Account and runtime
 
