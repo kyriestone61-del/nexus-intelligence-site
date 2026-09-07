@@ -27,6 +27,10 @@ async function signIn(page,email,password){
   await page.locator('#signInBtn').click();
   await waitForSettledPortal(page);
 }
+async function openMobileMenu(page){
+  const menu=page.locator('.relystra-mobile-toggle');
+  if(await menu.isVisible()&&await menu.getAttribute('aria-expanded')==='false')await menu.click();
+}
 async function assertNoOverflow(page){
   const dims=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
   expect(dims.scrollWidth).toBeLessThanOrEqual(dims.clientWidth+1);
@@ -86,11 +90,11 @@ test.describe('authenticated client control room',()=>{
     await expect(nav).toHaveCount(7);
     expect(await nav.allTextContents()).toEqual(['Overview','Diagnosis','Actions','Builds','Progress','Final Package','Support']);
     await expect(page.locator('#nexus-client-today')).toBeVisible();
-    await expect(page.locator('[data-client-view="progress"]')).toBeHidden();
-    await expect(page.locator('[data-client-view="final-package"]')).toBeHidden();
-    await expect(page.locator('[data-client-view="support"]')).toBeHidden();
+    await expect(page.locator('[data-client-view="progress"]')).toHaveAttribute('hidden','');
+    await expect(page.locator('[data-client-view="final-package"]')).toHaveAttribute('hidden','');
+    await expect(page.locator('[data-client-view="support"]')).toHaveAttribute('hidden','');
     await page.locator('#nexusClientReportsButton').click();await expect(page.locator('#nexus-client-files')).toBeVisible();await expect(page.locator('#uploadForm')).toBeVisible();
-    await page.locator('[data-client-view="reports"]').click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
+    await openMobileMenu(page);await page.locator('[data-client-view="reports"]').click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
     await page.locator('#nexusClientInboxButton').click();await expect(page.locator('#nexusClientInboxDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientInboxDrawer')).not.toHaveClass(/show/);
     await page.locator('#nexusClientHelpButton').click();await expect(page.locator('#nexusClientGuideDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientGuideDrawer')).not.toHaveClass(/show/);
     await page.evaluate(()=>window.NexusClientShell.refresh({force:true}));
@@ -157,7 +161,7 @@ test.describe('administrator and client-preview boundaries',()=>{
     const primary=page.locator('.side-nav > [data-relystra-nav]');
     await expect(primary).toHaveCount(5);
     expect(await primary.allTextContents()).toEqual(['Home','Clients','Projects','Sales','Settings']);
-    await openRoute('Clients');await expect(page.locator('#section-companies')).toHaveClass(/active/);
+    await openRoute('Clients');await expect(page.locator('#section-clients')).toHaveClass(/active/);
     await openRoute('Projects');await expect(page.locator('#section-relystra-projects')).toHaveClass(/active/);
     await openRoute('Settings');await expect(page.locator('#section-relystra-settings')).toHaveClass(/active/);
     await openRoute('Sales');await expect(page.locator('#section-revenue')).toHaveClass(/active/);
@@ -183,7 +187,7 @@ test.describe('administrator and client-preview boundaries',()=>{
     await expect(switcher).toHaveAttribute('open','');
     await expect(switcher.locator('[data-perspective="client"]')).toBeVisible();
     await switcher.locator('[data-perspective="client"]').click();
-    await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible({timeout:40_000});
+    await expect(page.locator('#nexusClientPrimaryNav')).toBeAttached({timeout:40_000});await openMobileMenu(page);await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible();
     await expect(page.getByText('Relystra could not finish loading.',{exact:true})).toHaveCount(0);
     await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(7);
     expect(await page.locator('#nexusClientPrimaryNav [data-client-view]').allTextContents()).toEqual(['Overview','Diagnosis','Actions','Builds','Progress','Final Package','Support']);
