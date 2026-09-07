@@ -2,10 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import vm from 'node:vm';
+import {onRequest} from '../../functions/_middleware.js';
 const html=await fs.readFile(new URL('../../delivery/qa-estimate-intake-register/index.html',import.meta.url),'utf8');
 const core=html.split('<script>')[1].split('// DOM application begins here.')[0];
 const rules=vm.runInNewContext(core+';({validateRecords,parseBackup,backupText,csvText})');
 const sample={id:'QA-001',site:'Sample North Site',contact:'qa-contact@example.invalid',scope:'lobby floor cleaning estimate',urgency:'normal',owner:'QA Coordinator',status:'received',due:'2026-09-10',source:'synthetic phone note'};
+test('downloadable QA artifact remains byte-identical without site runtime injection',async()=>{
+  const response=await onRequest({request:new Request('https://nexusintelligence.live/delivery/qa-estimate-intake-register/'),next:async()=>new Response(html,{headers:{'content-type':'text/html'}})});
+  assert.equal(await response.text(),html);assert.match(response.headers.get('x-robots-tag'),/noindex/);
+});
 test('intake JSON round trips both accepted synthetic records without changing fields',()=>{
   const records=[sample,{...sample,id:'QA-002',site:'Sample South Site',contact:'qa-backup@example.invalid',scope:'window cleaning estimate',urgency:'urgent',owner:'QA Reviewer',status:'needs clarification',due:'2026-09-11',source:'synthetic email note'}];
   assert.deepEqual(JSON.parse(JSON.stringify(rules.parseBackup(rules.backupText(records)))),records);

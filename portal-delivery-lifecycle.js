@@ -42,6 +42,24 @@ export function visibleDeliverySections(snapshot){
   return deliverySections.filter(([key])=>['overview','diagnosis'].includes(key)||key==='actions'&&approved||key==='builds'&&(approved||hasPackage)||key==='progress'&&!!s.project_id||['final-package','support'].includes(key)&&delivered);
 }
 
+export function clientLifecycle(snapshot){
+  const next=lifecycle(snapshot);
+  if(next.actor!=='ADMIN')return next;
+  const waiting={
+    briefs:['Your payment is confirmed','Relystra is reviewing the purchased scope and preparing your Builds.'],
+    internal_qa:['Relystra is checking your draft','Functionality and delivery materials are being checked before your review.'],
+    final_qa:['Relystra is preparing your Final Package','The approved Builds, tutorials and support materials are receiving their final checks.'],
+    diagnosis:['Relystra is preparing your diagnosis','Your supplied evidence and context are being prepared for analysis.'],
+    diagnosis_review:['Relystra is reviewing your diagnosis','The findings are being checked before they are shared with you.'],
+    diagnosis_attention:['Relystra is checking the diagnosis','The team will resolve the analysis issue or request the evidence it needs.'],
+    action_curation:['Relystra is preparing your Actions','Your next preparation steps are being reviewed before they are shared.'],
+    action_review:['Relystra is reviewing your input','Your submitted responses are being checked. Any clarification will appear in Actions.'],
+    build_curation:['Relystra is preparing your Build recommendations','The diagnosis and accepted inputs are being turned into scoped recommendations.'],
+  };
+  const copy=waiting[next.stage];
+  return {...next,...(copy?{title:copy[0],detail:copy[1]}:{}),label:next.section==='progress'?'View progress':next.section==='diagnosis'?'View diagnosis':next.section==='actions'?'View Actions':next.section==='builds'?'View Builds':next.label};
+}
+
 export function createLifecycleStore(portal){
   let value=null,sequence=0;
   return {get value(){return value},async refresh(projectId=null){

@@ -1,4 +1,4 @@
-import {createLifecycleStore,lifecycle,visibleDeliverySections,mountMobileMenu} from './portal-delivery-lifecycle.js';
+import {createLifecycleStore,clientLifecycle as lifecycle,visibleDeliverySections,mountMobileMenu} from './portal-delivery-lifecycle.js';
 import {mountBuilds} from './portal-builds.js';
 import {mountPackageDelivery} from './portal-package-delivery.js';
 import {mountDiagnosisOffer} from './portal-diagnosis-offer.js';
