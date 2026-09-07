@@ -104,8 +104,7 @@ async function addComment(task,card){
 }
 function uploadForTask(task){
   portal.prepareUpload?.({taskId:task.id,title:task.title});
-  const filesButton=document.querySelector('#nexusClientPrimaryNav [data-client-view="files"]');
-  filesButton?.click();
+  window.NexusClientShell?.activateView('files');
   setTimeout(()=>document.getElementById('nexusClientUploadHost')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
 }
 

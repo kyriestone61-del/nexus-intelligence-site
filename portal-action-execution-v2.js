@@ -1,4 +1,4 @@
-import {prebuildActionCard,bindPrebuildActions} from './portal-prebuild-actions.js';
+import {prebuildActionCard,bindPrebuildActions,openPrebuildActionCreator} from './portal-prebuild-actions.js';
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Relystra portal context is unavailable.');
 
@@ -31,7 +31,7 @@ function simpleFlowTasks(){
   if(projectId&&rows.some(t=>String(t.project_id)===String(projectId)))rows=rows.filter(t=>String(t.project_id)===String(projectId));
   return rows.sort((a,b)=>(Number(a.sort_order||100)-Number(b.sort_order||100))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
 }
-function prebuildMode(){return (state.tasks||[]).some(t=>t.work_kind==='prebuild_action')}
+function prebuildMode(){return window.__relystraDeliveryLifecycle===true||(state.tasks||[]).some(t=>t.work_kind==='prebuild_action')}
 function actionTasks(){return (state.tasks||[]).filter(t=>prebuildMode()?t.work_kind==='prebuild_action':t.work_kind!=='build_task')}
 function activeActions(){return actionTasks().filter(t=>t.work_kind!=='prebuild_action'||t.action_review_state==='approved')}
 function simpleFlowMode(){return !prebuildMode()&&simpleFlowTasks().length>0}
@@ -69,7 +69,7 @@ function ensureShell(){
     const h=toolbar.querySelector('h1');
     const p=toolbar.querySelector('p.small');
     if(simple){if(h)h.textContent=simpleDeliveryMode()?'Delivery Workflow':'Diagnosis Setup';if(p)p.textContent=simpleDeliveryMode()?'One plan from the diagnosis. Finish these steps in order.':'Complete these two steps in order, then Relystra can run the diagnosis.'}
-    else{if(h)h.textContent=state.admin?'Action Items':'Your Action Items';if(p)p.textContent=state.admin?'Run the client delivery workflow from one queue: assign, hand off, review, approve, and move to the next step.':'See exactly what Relystra needs from you, submit it for review, and track what has been approved.'}
+    else{if(h)h.textContent=state.admin?'Action Items':'Your Action Items';if(p)p.textContent=state.admin?'Gather and accept the evidence needed to scope Builds. Review suggested Actions before assigning work.':'See exactly what Relystra needs from you, submit it for review, and track what has been approved.'}
   }
   let top=$('actionExecutionTop');if(!top){top=document.createElement('div');top.id='actionExecutionTop';top.className='action-execution-top';const note=section.querySelector('.note');(note||list).before(top)}
   let filters=$('actionExecutionFilters');if(!filters){filters=document.createElement('div');filters.id='actionExecutionFilters';filters.className='action-view-tabs';list.before(filters)}
@@ -78,7 +78,8 @@ function ensureShell(){
     let btn=$('assignTemplateBtn');if(btn){btn.textContent='+ Assign work';btn.className='btn primary';btn.onclick=openAssignModal}else{btn=document.createElement('button');btn.id='assignTemplateBtn';btn.className='btn primary';btn.textContent='+ Assign work';btn.onclick=openAssignModal;toolbar?.appendChild(btn)}
     btn.hidden=simple;
   }
-  const newBtn=$('newTaskBtn');if(newBtn){newBtn.classList.toggle('secondary-action-button',state.admin);newBtn.hidden=simple}
+  const newBtn=$('newTaskBtn');if(newBtn){newBtn.classList.toggle('secondary-action-button',state.admin);newBtn.hidden=simple||prebuildMode()}
+  if(prebuildMode()&&state.admin){const btn=$('assignTemplateBtn');if(btn){btn.hidden=false;btn.textContent='+ Add pre-build Action';btn.onclick=()=>openPrebuildActionCreator(portal,()=>renderAll(true))}}
 }
 
 function renderTop(){
@@ -97,12 +98,13 @@ function renderTabs(){
   const root=$('actionExecutionFilters');if(!root)return;
   if(simpleFlowMode()){root.hidden=true;root.innerHTML='';activeView='workflow';return}
   root.hidden=false;
-  const defs=state.admin?[...(prebuildMode()?[['suggested','Suggested Actions']]:[]),['my_work','My Work'],['client_work','Client Work'],['ready_review','Ready for Review'],['completed','Completed']]:[['client_work','Needs Your Attention'],['ready_review','Submitted'],['completed','Completed']];
+  const defs=state.admin?[...(prebuildMode()?[['suggested','Suggested Actions']]:[]),['my_work','My Work'],['client_work','Client Work'],['ready_review','Ready for Review'],['completed','Completed'],...(prebuildMode()?[['history','Historical work']]:[])]:[['client_work','Needs Your Attention'],['ready_review','Submitted'],['completed','Completed']];
   if(!defs.some(x=>x[0]===activeView))activeView=state.admin?'my_work':'client_work';
   root.innerHTML=defs.map(([key,label])=>`<button type="button" data-view="${key}" class="${activeView===key?'active':''}">${label}</button>`).join('');
   root.querySelectorAll('button').forEach(b=>b.onclick=()=>{activeView=b.dataset.view;renderAll(true)});
 }
 function filteredTasks(){
+  if(activeView==='history')return (state.tasks||[]).filter(t=>t.work_kind==='legacy');
   if(simpleFlowMode())return simpleFlowTasks();
   if(activeView==='suggested')return actionTasks().filter(t=>t.action_review_state!=='approved');
   const tasks=activeActions();let out;
@@ -146,7 +148,7 @@ function taskCard(task){
 }
 function renderTasks(){
   const root=$('taskList');if(!root)return;const tasks=filteredTasks();
-  root.innerHTML=tasks.length?tasks.map(taskCard).join(''):`<div class="action-empty-state"><b>${activeView==='completed'?'Nothing completed yet':'You are clear here.'}</b><span>${state.admin?'No workflow step needs attention in this view.':'There are no action items in this view.'}</span></div>`;
+  root.innerHTML=tasks.length?tasks.map(task=>activeView==='history'?`<article class="action-v2-card"><h3>${esc(task.title)}</h3><p>${esc(statusLabel(task.status))}</p><p>${esc(task.instructions||task.description||'')}</p><small>Historical work retained from the earlier engagement.</small></article>`:taskCard(task)).join(''):`<div class="action-empty-state"><b>${activeView==='completed'?'Nothing completed yet':'You are clear here.'}</b><span>${state.admin?'No workflow step needs attention in this view.':'There are no action items in this view.'}</span></div>`;
   bindCards(root);bindPrebuildActions(root,portal,()=>renderAll(true));window.dispatchEvent(new CustomEvent('nexus:action-cards-rendered',{detail:{companyId:state.companyId,simpleWorkflow:simpleFlowMode()}}));
 }
 
@@ -182,7 +184,7 @@ function renderAll(force=false){
   if(!state.user||!state.companyId)return;ensureShell();
   const stamp=JSON.stringify({company:state.companyId,admin:state.admin,view:activeView,activeProject:activeProjectId(),tasks:(state.tasks||[]).map(t=>[t.id,t.status,t.assignee,t.updated_at,t.review_note,t.dependency_task_id,t.project_id,t.workflow_metadata?.one_workflow,t.workflow_metadata?.simple_flow]),comments:comments.map(c=>[c.id,c.created_at])});
   if(!force&&stamp===renderStamp&&$('taskList')?.querySelector('.action-v2-card,.action-empty-state'))return;
-  renderStamp=stamp;renderTop();renderTabs();renderTasks();const btn=$('assignTemplateBtn');if(btn&&state.admin&&!simpleFlowMode())btn.onclick=openAssignModal;
+  renderStamp=stamp;renderTop();renderTabs();renderTasks();const btn=$('assignTemplateBtn');if(btn&&state.admin&&!simpleFlowMode())btn.onclick=prebuildMode()?()=>openPrebuildActionCreator(portal,()=>renderAll(true)):openAssignModal;
 }
 async function reconcile(force=false){if(!state.user||!state.companyId)return;if(force||state.companyId!==lastCompany){lastCompany=state.companyId;renderStamp='';await Promise.all([loadLibrary(),refreshComments()])}renderAll(force)}
 window.addEventListener('nexus:workspace-ready',()=>{if(prebuildMode()&&state.tasks.some(t=>t.action_review_state==='suggested'))activeView='suggested';reconcile(true).catch(console.error)});sb.auth.onAuthStateChange(()=>setTimeout(()=>reconcile(true),300));

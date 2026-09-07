@@ -6,6 +6,7 @@ export default defineConfig({
   testDir:'./tests',
   testMatch:[
     'control-room-reconcile.spec.mjs',
+    'delivery-prepurchase.spec.mjs',
     'baseline-workflow.spec.mjs',
     'operational-release-baseline.spec.mjs',
     'simple-intake-workflow.spec.mjs',

@@ -55,3 +55,51 @@ export function bindPrebuildActions(root,portal,refresh){
     });
   });
 }
+
+export async function openPrebuildActionCreator(portal,refresh){
+  const {sb,state,toast}=portal;
+  if(!state.admin||!state.companyId)return;
+  const companyId=state.companyId;
+  try{
+    const [catalog,diagnoses]=await Promise.all([
+      sb.from('nexus_action_templates').select('*').eq('active',true).eq('workflow_metadata->>work_kind','prebuild_action').order('sort_order'),
+      sb.from('nexus_diagnosis_runs').select('id,created_at,analysis_result').eq('company_id',companyId).eq('status','approved').order('created_at',{ascending:false})
+    ]);
+    if(catalog.error||diagnoses.error)throw new Error(catalog.error?.message||diagnoses.error?.message);
+    if(state.companyId!==companyId)return;
+    const templates=catalog.data||[],sources=[];
+    for(const run of diagnoses.data||[])for(const collection of ['client_action_items','nexus_actions'])
+      for(const [index,action] of (run.analysis_result?.[collection]||[]).entries())if(action?.title)
+        sources.push({run:run.id,path:`${collection}/${index}`,title:action.title,date:run.created_at});
+    if(!templates.length||!sources.length)return toast('An approved diagnosis with source actions is required before adding pre-build work.');
+    document.getElementById('relystraCreateAction')?.remove();
+    const dialog=document.createElement('dialog');dialog.id='relystraCreateAction';dialog.className='modal-card';
+    dialog.style.cssText='width:min(640px,calc(100vw - 32px));max-height:90dvh;overflow:auto;color:var(--text,#fff);background:var(--panel,#171523);border:1px solid #575160;border-radius:16px';
+    dialog.innerHTML=`<form><h2>Add pre-build Action</h2><p>Adapt a template to an approved diagnosis. The Action stays suggested until you approve it.</p>
+      <label>Diagnosis source<select name="source">${sources.map((s,i)=>`<option value="${i}">${esc(s.title)} · ${esc(new Date(s.date).toLocaleDateString())}</option>`).join('')}</select></label>
+      <label>Action template<select name="template">${templates.map(t=>`<option value="${esc(t.code)}">${esc(t.category)} · ${esc(t.title)}</option>`).join('')}</select></label>
+      <label>Title<input name="title" required maxlength="300"></label>
+      <label>Instructions<textarea name="instructions" required rows="5"></textarea></label>
+      <label>Owner<select name="responsible_party"><option value="client">Client</option><option value="admin">Admin</option><option value="ai">AI / System</option></select></label>
+      <label>Due date<input name="due_date" type="date"></label><p role="status"></p>
+      <button class="btn primary" type="submit">Create suggested Action</button> <button class="btn secondary" type="button" data-close>Cancel</button></form>`;
+    document.body.appendChild(dialog);
+    const form=dialog.querySelector('form'),field=name=>form.elements.namedItem(name),requestId=crypto.randomUUID();
+    const applyTemplate=()=>{const t=templates.find(t=>t.code===field('template').value);field('title').value=t.title;field('instructions').value=t.instructions||'';field('responsible_party').value=t.workflow_metadata.responsible_party};
+    field('template').onchange=applyTemplate;applyTemplate();
+    dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+    form.onsubmit=async event=>{
+      event.preventDefault();const button=form.querySelector('[type="submit"]');button.disabled=true;
+      try{
+        if(state.companyId!==companyId)throw new Error('The workspace changed. Close this form and try again.');
+        const source=sources[Number(field('source').value)];
+        const {error}=await sb.rpc('relystra_create_template_action',{p_company_id:companyId,p_run_id:source.run,p_source_path:source.path,p_template_code:field('template').value,p_request_id:requestId,
+          p_patch:Object.fromEntries(['title','instructions','responsible_party','due_date'].map(name=>[name,field(name).value.trim()]))});
+        if(error)throw error;
+        dialog.close();toast('Suggested Action created. Review and approve it before work begins.');
+        if(state.companyId===companyId){await portal.workspace();refresh()}
+      }catch(error){form.querySelector('[role="status"]').textContent=error.message||'Action could not be created.'}finally{button.disabled=false}
+    };
+    dialog.showModal();
+  }catch(error){toast(error.message||'Action templates could not be loaded.')}
+}
