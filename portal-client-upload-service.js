@@ -47,7 +47,7 @@ async function uploadFile({file,requestId=null,requirementId=null,taskId=null,ti
   const task=assertTaskBoundary(taskId),request=requestFor(requestId),requirement=requirementFor(requirementId);
   const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=`${companyId}/${Date.now()}-${crypto.randomUUID()}-${safe}`;
   const sensitivity=request?.sensitivity||requirement?.catalog?.sensitivity||'standard';
-  const projectId=task?.project_id||state.projects?.[0]?.id||null;
+  const projectId=task?.work_kind==='prebuild_action'?null:(task?.project_id||state.activeProjectId||state.activeEngagement?.project_id||null);
   const upload=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||undefined});if(upload.error)throw upload.error;
   try{
     const row={company_id:companyId,project_id:projectId,task_id:task?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category,status:'shared',note:(note||title)?String(note||`File for ${title}`):null,uploaded_by:state.user.id,sensitivity,request_id:requestId||null,data_requirement_id:requirementId||null,document_area:'client_submission',source_role:'client'};

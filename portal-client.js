@@ -185,7 +185,12 @@ async function workspace(companyId=state.companyId,{reason='refresh'}={}){
   ]);
   const projects=queryData(queries[0],'Projects');
   if(queries[8].error)throw new Error(`Active project: ${queries[8].error.message}`);
-  const selected=selectActiveProject(projects,companyId,queries[8].data?.project_id);
+  const requestedUrl=new URL(location.href);
+  const requestedProject=requestedUrl.searchParams.get('company')===companyId?requestedUrl.searchParams.get('project'):null;
+  // An explicit historical package is a view selection, distinct from the current
+  // engagement pointer. Preserve completed handoff links across reloads.
+  const selected=projects.find(project=>project.company_id===companyId&&project.id===requestedProject)
+    ||selectActiveProject(projects,companyId,queries[8].data?.project_id);
   if(selected){const index=projects.findIndex(item=>item.id===selected.id);projects.unshift(...projects.splice(index,1))}
   const next={
     companyId,

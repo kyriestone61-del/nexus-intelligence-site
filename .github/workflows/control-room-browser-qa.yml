@@ -144,27 +144,16 @@ jobs:
 
       - name: Install browser runtime
         run: |
-          if [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then npx playwright install --with-deps chromium; else npx playwright install --with-deps chromium webkit; fi
+          npx playwright install --with-deps chromium webkit
 
       - name: Run production browser paths
         run: |
           if [ "${NEXUS_QA_QAQC_FULL:-0}" = '1' ]; then
-            echo 'RELYSTRA_FULL_APP_QAQC=1'
-            echo '--- Public website contracts and interactive lead tools ---'
             npx playwright test tests/public-smoke.spec.mjs tests/sitewide-public-mobile.spec.mjs tests/public-interactive-tools.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
-            echo '--- Authenticated role, reconciliation, and cross-browser shell contracts ---'
-            npx playwright test tests/role-boundary.spec.mjs tests/control-room-reconcile.spec.mjs --config=control-room.config.mjs --retries=0
-            echo '--- Plain-language, navigation, mobile UX, and brand contracts ---'
-            npx playwright test tests/app-ux-qaqc.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
-            echo '--- Fresh two-step intake: desktop Chrome + Android Chrome + iOS Safari ---'
-            npx playwright test tests/simple-intake-workflow.spec.mjs --config=control-room.config.mjs --retries=0
-            echo '--- One diagnosis-led delivery workflow: desktop Chrome + Android Chrome + iOS Safari ---'
-            npx playwright test tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --retries=0
-          elif [ "${NEXUS_QA_BASELINE_ONLY:-0}" = '1' ]; then
-            npx playwright test tests/simple-intake-workflow.spec.mjs tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
-          else
-            npx playwright test tests/control-room-reconcile.spec.mjs tests/baseline-workflow.spec.mjs tests/simple-intake-workflow.spec.mjs tests/operational-release-baseline.spec.mjs --config=control-room.config.mjs
           fi
+          # Legacy pilot specs remain in source as historical tests. Current delivery has
+          # no unpaid Project: exercise real authenticated pre-build work in all browsers.
+          npx playwright test tests/control-room-reconcile.spec.mjs tests/delivery-prepurchase.spec.mjs --config=control-room.config.mjs --retries=0
 
       - name: Enforce authenticated coverage for production
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
