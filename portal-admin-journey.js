@@ -63,7 +63,7 @@ async function navigate(target){
   else if(target==='settings'){activate('relystra-settings');await renderSettings()}
   else{const key=aliases[target]||target;tools.get(key)?.click();activate(key);if(target==='diagnosis')await offer.refresh(store.value)}
   if(version!==navigationSequence)return;
-  renderHeader();const url=new URL(workspaceUrl(location.href,state.companyId,viewedProject));url.searchParams.set('section',target);history.replaceState(null,'',url.pathname+url.search+url.hash);window.scrollTo({top:0,left:0,behavior:'auto'});
+  renderHeader();const url=new URL(workspaceUrl(location.href,state.companyId,viewedProject),location.origin);url.searchParams.set('section',target);history.replaceState(null,'',url.pathname+url.search+url.hash);window.scrollTo({top:0,left:0,behavior:'auto'});
 }
 async function renderProjects(){
   const {data,error}=await sb.from('nexus_projects').select('id,company_id,name,status,project_type,paid_at,package_stage').order('created_at',{ascending:false});

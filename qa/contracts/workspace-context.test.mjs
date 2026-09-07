@@ -60,3 +60,14 @@ test('a slow previous workspace never overwrites a newer company, pointer, URL o
   assert.equal(events.length,1);
   assert.equal(events[0].detail.companyId,'moon');
 });
+
+test('administrator startup resolves relative workspace links against the current origin',async()=>{
+  const source=fs.readFileSync('portal-admin-journey.js','utf8');
+  const navigate=source.match(/async function navigate\(target\)\{[\s\S]*?\n\}/)[0],urls=[];
+  const ctx=vm.createContext({URL,workspaceUrl,navigationSequence:0,active:null,header:{},state:{companyId:'moon'},viewedProject:null,
+    location:new URL('https://example.test/portal?company=old&task=old-task'),document:{querySelectorAll:()=>[]},
+    activate:()=>{},renderOverview:()=>{},renderHeader:()=>{},window:{scrollTo:()=>{}},history:{replaceState:(_a,_b,url)=>urls.push(url)}});
+  await vm.runInContext(navigate+"\nnavigate('overview')",ctx);
+  assert.deepEqual(urls,['/portal?company=moon&section=overview']);
+  assert.equal(ctx.header.hidden,false);
+});
