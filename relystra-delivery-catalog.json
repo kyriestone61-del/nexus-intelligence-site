@@ -1,0 +1,1961 @@
+{
+  "version": 2,
+  "actions": [
+    {
+      "code": "prebuild_unresolved_question",
+      "category": "Client Inputs",
+      "title": "Answer the remaining diagnosis question",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Answer the specific question in this action. Say what is unknown rather than guessing.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_process_document",
+      "category": "Client Inputs",
+      "title": "Upload a current process document",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Attach one current checklist, SOP, or process example and identify the workflow it describes.",
+      "responsible_party": "client",
+      "task_type": "workflow_evidence",
+      "form_schema": [],
+      "required_evidence": [
+        {
+          "kind": "file",
+          "label": "One representative file",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_representative_sheet",
+      "category": "Client Inputs",
+      "title": "Share a representative spreadsheet",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Attach one useful current spreadsheet with enough context to explain its columns.",
+      "responsible_party": "client",
+      "task_type": "workflow_evidence",
+      "form_schema": [],
+      "required_evidence": [
+        {
+          "kind": "file",
+          "label": "One representative file",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_workflow_owner",
+      "category": "Client Inputs",
+      "title": "Identify the workflow owner",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Name the person responsible for the workflow and a backup contact or role.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_current_tools",
+      "category": "Client Inputs",
+      "title": "Confirm current software and tools",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "List the tools used in this workflow and what each tool does.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_review_submission",
+      "category": "Admin Review & Scope",
+      "title": "Review the client submission",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Compare the submission with the diagnosis question. Record whether it provides the required evidence.",
+      "responsible_party": "admin",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_problem_statement",
+      "category": "Admin Review & Scope",
+      "title": "Confirm the primary problem",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Write one evidence-backed statement of the problem the proposed system must solve.",
+      "responsible_party": "admin",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_desired_outcome",
+      "category": "Admin Review & Scope",
+      "title": "Confirm the desired outcome",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Describe the observable result that would make this work successful.",
+      "responsible_party": "admin",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_scope_boundary",
+      "category": "Admin Review & Scope",
+      "title": "Confirm the scope boundary",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "State what is included and excluded, including any assumptions that need client agreement.",
+      "responsible_party": "admin",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_build_ready",
+      "category": "Admin Review & Scope",
+      "title": "Approve readiness for builds",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Confirm that the required evidence, constraints, permissions and decision owners are known.",
+      "responsible_party": "admin",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_extract_requirements",
+      "category": "AI / System Preparation",
+      "title": "Extract requirements from the diagnosis",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Draft requirements with references to the diagnosis and submitted evidence. Flag uncertainty.",
+      "responsible_party": "ai",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_compare_inputs",
+      "category": "AI / System Preparation",
+      "title": "Compare available and required inputs",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "List which required inputs are available, missing, or insufficient and cite the evidence.",
+      "responsible_party": "ai",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_missing_information",
+      "category": "AI / System Preparation",
+      "title": "Identify missing information",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "List only material unanswered questions that could change scope or implementation.",
+      "responsible_party": "ai",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_map_workflow",
+      "category": "AI / System Preparation",
+      "title": "Map the current workflow",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Map trigger, people, inputs, steps, tools, handoffs, exceptions and outputs from evidence.",
+      "responsible_party": "ai",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_constraints_assumptions",
+      "category": "AI / System Preparation",
+      "title": "Summarize constraints and assumptions",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Separate verified constraints from assumptions and identify the evidence behind each.",
+      "responsible_party": "ai",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Evidence and conclusion",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_destination",
+      "category": "Build Readiness",
+      "title": "Confirm the destination platform",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Identify where the system should run and who owns that workspace or account.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_user_roles",
+      "category": "Build Readiness",
+      "title": "Confirm required user roles",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "List who needs access and what each role should be able to view or change.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_test_data",
+      "category": "Build Readiness",
+      "title": "Provide representative test data",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Attach an authorized, redacted example covering the normal workflow and a relevant exception.",
+      "responsible_party": "client",
+      "task_type": "workflow_evidence",
+      "form_schema": [],
+      "required_evidence": [
+        {
+          "kind": "file",
+          "label": "One representative file",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_permissions",
+      "category": "Build Readiness",
+      "title": "Confirm the access method",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Identify the authorized account owner and the delegated role or connection method. Never paste passwords, API keys or MFA codes.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_constraints",
+      "category": "Build Readiness",
+      "title": "Confirm implementation constraints",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "List deadlines, tool restrictions, approval requirements and operational limitations.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_diagnosis_summary",
+      "category": "Client Review & Approval",
+      "title": "Confirm the diagnosis summary",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Review the diagnosis summary and identify any facts that need correction.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_workflow_description",
+      "category": "Client Review & Approval",
+      "title": "Confirm the workflow description",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Confirm that the description reflects how the work happens today, or explain the differences.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_process_map",
+      "category": "Client Review & Approval",
+      "title": "Review the corrected process map",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Review the map and confirm it or describe the specific change needed.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_information_complete",
+      "category": "Client Review & Approval",
+      "title": "Confirm information completeness",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Confirm the requested information is complete, or identify what is still missing.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    },
+    {
+      "code": "prebuild_recommendation_ready",
+      "category": "Client Review & Approval",
+      "title": "Confirm readiness for build recommendations",
+      "description": "Required to resolve the diagnosis finding attached to this action.",
+      "instructions": "Confirm that the problem, desired result, current inputs and constraints are accurate.",
+      "responsible_party": "client",
+      "task_type": "structured_form",
+      "form_schema": [
+        {
+          "key": "response",
+          "label": "Your response",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "required_evidence": [
+        {
+          "kind": "response",
+          "label": "The requested answer with supporting context",
+          "required": true
+        }
+      ],
+      "completion_criteria": [
+        "Required input is submitted",
+        "Relystra confirms the input resolves the linked diagnosis need"
+      ]
+    }
+  ],
+  "builds": [
+    {
+      "code": "build_lead_intake",
+      "title": "Lead Intake & Routing System",
+      "category": "Lead & Sales Administration",
+      "typical_problem": "Leads arrive through scattered channels without clear ownership.",
+      "typical_outcome": "New leads reach the correct owner with a visible status.",
+      "required_inputs": [
+        "Lead examples",
+        "Routing owners and rules"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_lead_follow_up",
+      "title": "Lead Follow-Up Automation",
+      "category": "Lead & Sales Administration",
+      "typical_problem": "Qualified leads wait without a consistent follow-up process.",
+      "typical_outcome": "Approved follow-ups occur on schedule with escalation and opt-out controls.",
+      "required_inputs": [
+        "Lead stages",
+        "Approved messages and timing"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_sales_pipeline",
+      "title": "Sales Pipeline Tracker",
+      "category": "Lead & Sales Administration",
+      "typical_problem": "The team cannot see the next step for each prospect.",
+      "typical_outcome": "Every opportunity has an owner, stage and next action.",
+      "required_inputs": [
+        "Current prospect list",
+        "Stage definitions"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_inquiry_triage",
+      "title": "Inquiry Triage Assistant",
+      "category": "Lead & Sales Administration",
+      "typical_problem": "Staff repeatedly sort incoming inquiries manually.",
+      "typical_outcome": "Inquiries receive a reviewable category and routing recommendation.",
+      "required_inputs": [
+        "Representative inquiries",
+        "Routing and exception rules"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_sales_summary",
+      "title": "Sales Activity Summary System",
+      "category": "Lead & Sales Administration",
+      "typical_problem": "Sales updates require manual collection and reformatting.",
+      "typical_outcome": "A source-linked summary shows sales activity and outstanding follow-ups.",
+      "required_inputs": [
+        "Activity records",
+        "Approved summary audience"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_bid_intake",
+      "title": "Bid Opportunity Intake System",
+      "category": "Estimating & Preconstruction",
+      "typical_problem": "Bid opportunities are missed or captured inconsistently.",
+      "typical_outcome": "Each bid has a consistent intake record, owner and go/no-go decision.",
+      "required_inputs": [
+        "Bid invitation examples",
+        "Qualification criteria"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_estimate_intake",
+      "title": "Estimate Request / Document Intake System",
+      "category": "Estimating & Preconstruction",
+      "typical_problem": "Estimate requests arrive with incomplete supporting documents.",
+      "typical_outcome": "Required estimating inputs are collected and missing documents are visible.",
+      "required_inputs": [
+        "Estimate request examples",
+        "Required document list"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_scope_extraction",
+      "title": "Scope & Requirement Extraction Assistant",
+      "category": "Estimating & Preconstruction",
+      "typical_problem": "Estimators must repeatedly read documents to locate scope requirements.",
+      "typical_outcome": "A cited requirements draft highlights scope, exclusions and uncertainties.",
+      "required_inputs": [
+        "Authorized bid documents",
+        "Scope review checklist"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_bid_deadlines",
+      "title": "Bid Deadline / Preconstruction Tracker",
+      "category": "Estimating & Preconstruction",
+      "typical_problem": "Bid deadlines and required steps are spread across messages.",
+      "typical_outcome": "Upcoming deadlines and prerequisite owners are visible in one tracker.",
+      "required_inputs": [
+        "Active bid list",
+        "Deadline and escalation rules"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_estimating_documents",
+      "title": "Estimating Document Organization Assistant",
+      "category": "Estimating & Preconstruction",
+      "typical_problem": "Estimating documents have inconsistent locations and names.",
+      "typical_outcome": "Documents are filed consistently with a reviewable exception queue.",
+      "required_inputs": [
+        "Representative document set",
+        "Approved folder and naming rules"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_rfi_submittals",
+      "title": "RFI / Submittal Tracking System",
+      "category": "Project Administration & Documentation",
+      "typical_problem": "RFIs and submittals lack clear response ownership or due dates.",
+      "typical_outcome": "Each item has a traceable status, owner, due date and response.",
+      "required_inputs": [
+        "RFI/submittal examples",
+        "Responsibility and approval roles"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_meeting_actions",
+      "title": "Meeting Notes \u2192 Action System",
+      "category": "Project Administration & Documentation",
+      "typical_problem": "Meeting commitments disappear into notes.",
+      "typical_outcome": "A reviewable list links each commitment to an owner and due date.",
+      "required_inputs": [
+        "Meeting notes",
+        "Action ownership rules"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_field_reports",
+      "title": "Daily / Field Report Processing System",
+      "category": "Project Administration & Documentation",
+      "typical_problem": "Field reports must be manually consolidated before review.",
+      "typical_outcome": "Reports become consistent, reviewable records with exceptions flagged.",
+      "required_inputs": [
+        "Field report examples",
+        "Required fields and review rules"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_project_filing",
+      "title": "Project Document Filing & Naming Automation",
+      "category": "Project Administration & Documentation",
+      "typical_problem": "Project files are difficult to retrieve because names and folders vary.",
+      "typical_outcome": "Approved files follow a consistent naming and filing process.",
+      "required_inputs": [
+        "Project file examples",
+        "Naming and retention conventions"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_closeout",
+      "title": "Closeout / Turnover Tracking System",
+      "category": "Project Administration & Documentation",
+      "typical_problem": "Closeout requirements are discovered late or tracked inconsistently.",
+      "typical_outcome": "The team can see required turnover items, owners and missing evidence.",
+      "required_inputs": [
+        "Turnover requirements",
+        "Example closeout package"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_project_status",
+      "title": "Automated Project Status Update System",
+      "category": "Client Communication",
+      "typical_problem": "Client updates require repeated manual status collection.",
+      "typical_outcome": "Approved updates summarize supported progress and next steps.",
+      "required_inputs": [
+        "Project status sources",
+        "Approved update audience and cadence"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_client_requests",
+      "title": "Client Request Intake System",
+      "category": "Client Communication",
+      "typical_problem": "Client requests are scattered across messages.",
+      "typical_outcome": "Requests have a clear category, owner, status and response path.",
+      "required_inputs": [
+        "Request examples",
+        "Routing and response expectations"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_meeting_recap",
+      "title": "Meeting Recap / Decision Confirmation System",
+      "category": "Client Communication",
+      "typical_problem": "Meeting decisions are not consistently confirmed.",
+      "typical_outcome": "A reviewable recap records decisions, owners and unresolved questions.",
+      "required_inputs": [
+        "Meeting notes",
+        "Confirmation and approval roles"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_approval_reminders",
+      "title": "Client Approval & Reminder Workflow",
+      "category": "Client Communication",
+      "typical_problem": "Work waits on approvals without consistent reminders.",
+      "typical_outcome": "Outstanding decisions receive bounded reminders and escalation.",
+      "required_inputs": [
+        "Approval examples",
+        "Reminder and escalation rules"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_client_faq",
+      "title": "Client Information / FAQ Assistant",
+      "category": "Client Communication",
+      "typical_problem": "Clients repeatedly ask questions already covered in approved materials.",
+      "typical_outcome": "Answers cite approved client information and escalate unsupported questions.",
+      "required_inputs": [
+        "Approved client documents",
+        "Escalation owner"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_sop_knowledge",
+      "title": "Internal SOP Knowledge Assistant",
+      "category": "Internal Operations",
+      "typical_problem": "Staff struggle to locate the correct operating procedure.",
+      "typical_outcome": "Answers cite approved SOPs and identify unsupported or conflicting guidance.",
+      "required_inputs": [
+        "Current approved SOPs",
+        "Role and access boundaries"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_employee_onboarding",
+      "title": "Employee Onboarding Workflow",
+      "category": "Internal Operations",
+      "typical_problem": "New employee setup depends on ad hoc coordination.",
+      "typical_outcome": "Each onboarding step has an owner, due date and completion evidence.",
+      "required_inputs": [
+        "Onboarding checklist",
+        "Role-specific requirements"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_recurring_checklist",
+      "title": "Recurring Operations Checklist System",
+      "category": "Internal Operations",
+      "typical_problem": "Recurring work is missed or its completion is unclear.",
+      "typical_outcome": "Scheduled responsibilities have clear owners and completion records.",
+      "required_inputs": [
+        "Recurring operations list",
+        "Scheduling and exception rules"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_document_approval",
+      "title": "Document Approval / Version Workflow",
+      "category": "Internal Operations",
+      "typical_problem": "Teams use documents whose approval or version is unclear.",
+      "typical_outcome": "Approved versions and pending changes are traceable to decision owners.",
+      "required_inputs": [
+        "Document examples",
+        "Approval and version policy"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    },
+    {
+      "code": "build_management_summary",
+      "title": "Weekly Management Summary Dashboard",
+      "category": "Internal Operations",
+      "typical_problem": "Management reports require manual collection from disconnected sources.",
+      "typical_outcome": "A supported weekly view shows progress, exceptions and decisions needed.",
+      "required_inputs": [
+        "Management data sources",
+        "Metric definitions and review audience"
+      ],
+      "complexity_drivers": [
+        "Input formats and count",
+        "Users and permission roles",
+        "Automation depth",
+        "Integrations and tools",
+        "Operational impact of failure"
+      ],
+      "duration_guidance": {
+        "simple": [
+          1,
+          3
+        ],
+        "standard": [
+          3,
+          5
+        ],
+        "advanced": [
+          5,
+          7
+        ]
+      },
+      "default_checklist": [
+        "Approve the evidence-linked build brief",
+        "Confirm authorized access and representative test inputs",
+        "Implement the approved workflow",
+        "Test the expected outcome and exception handling",
+        "Verify permissions, logging and rollback",
+        "Create the client tutorial",
+        "Write the build FAQ",
+        "Prepare grounded support knowledge",
+        "Pass internal QA"
+      ],
+      "documentation_requirements": [
+        "How to use the delivered system",
+        "Owner and access requirements",
+        "Known limitations and troubleshooting",
+        "FAQ with approved answers",
+        "Grounded support sources",
+        "Rollback and escalation procedure"
+      ]
+    }
+  ]
+}

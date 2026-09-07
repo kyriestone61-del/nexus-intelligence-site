@@ -1,0 +1,22 @@
+[
+  {
+    "table_name": "nexus_activity_log",
+    "column_name": "id",
+    "identity_kind": "a"
+  },
+  {
+    "table_name": "nexus_analytics_events",
+    "column_name": "id",
+    "identity_kind": "d"
+  },
+  {
+    "table_name": "nexus_system_health",
+    "column_name": "id",
+    "identity_kind": "d"
+  },
+  {
+    "table_name": "nexus_task_events",
+    "column_name": "id",
+    "identity_kind": "d"
+  }
+]

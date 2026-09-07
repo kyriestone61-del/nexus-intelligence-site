@@ -37,7 +37,7 @@ The workspace loader resolves company rows, project pointer and associated requi
 
 Validation: eight Node regression tests pass, including executing the actual workspace loader against out-of-order responses. Changed JavaScript passes syntax checks; Git whitespace checks pass. This is local contract verification, not authenticated browser acceptance.
 
-Remaining in this phase: diagnosis approval must stop creating unpaid projects in the database before the complete new diagnosis-to-Actions flow can be deployed. This checkpoint alone does not establish that Moon Wax can complete the lifecycle.
+The next local checkpoint replaces diagnosis approval with company-level Action suggestions and zero project creation. Deployment and authenticated acceptance remain pending.
 
 ## Acceptance and external dependencies
 
@@ -48,3 +48,19 @@ Blue Harbor is user-authorized for disposable QA. The Codex portal browser remai
 Relystra Stripe checkout is not yet configured or verified. Existing Statecraft commerce must not be silently reused as a Relystra payment or treated as evidence of payment. No live charge is authorized by this checkpoint.
 
 The initiative remains **in progress** until the specification's complete Moon Wax acceptance path passes. Local tests, static screenshots or successful build output do not substitute for that result.
+
+
+## Phase E: pre-build Actions and initial catalogs (local)
+
+- Added two unapplied migrations: `20260907000100_relystra_prebuild_actions.sql` and `20260907000200_relystra_delivery_catalog.sql`.
+- Reused `nexus_tasks`, `nexus_action_templates`, `nexus_resolution_catalog`, documents, activity, submissions and review RPCs. No parallel task or approval table was introduced.
+- Explicit `work_kind`, responsible party, Action approval state and immutable diagnosis-reference snapshots distinguish new work from legacy records. Restrictive RLS excludes internal Build Tasks and unapproved new Actions from client reads, and routes new writes through validated RPCs.
+- Diagnosis approval is idempotent and creates suggestions without a Project. Previously approved diagnoses retain their orchestration history. Only approved Actions become active.
+- The existing Actions owner now renders suggested/approved Actions with edit, assignment, approval, rejection, postponement, response review and completed inventory. Client draft saving uses a scoped RPC.
+- Existing diagnosis execution gains an administrator-authorized AI preparation operation. It claims the Action, uses the current diagnosis and accepted inputs, performs one bounded model call and submits the result for human review. Its model call has not been exercised live.
+- Catalog source: `relystra-delivery-catalog.json`, exactly 25 Action templates and 25 Build templates. The generated migration inserts missing codes only, preserving admin edits and all old templates.
+- Local PostgreSQL-compatible tests use PGlite 0.5.8 with audited columns, constraints, RLS policies and the relevant existing submission/owner-boundary functions. They pass approval idempotency, no unpaid Project creation, client/admin ownership, cross-company denial, required responses, stored-file validation, revision and acceptance, retained source evidence and unchanged legacy approvals.
+- The fixture excludes external notification/release workers. Passing it does not certify production trigger integration, concurrent connections, the model proxy, Stripe or authenticated browsers.
+- Nine targeted tests pass. The wider 85-test contract suite exposed a source-location assertion updated for the shared project selector and an already-failing legacy Phase Zero copy assertion. The latter remains pending retirement of the superseded journey.
+
+References used for implementation: [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [PGlite local PostgreSQL](https://pglite.dev/docs/), [Stripe Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/create).

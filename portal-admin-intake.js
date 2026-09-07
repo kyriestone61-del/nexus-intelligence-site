@@ -204,7 +204,7 @@ async function saveAdminContext({silent=false}={}){
 async function openDiagnosis(){const run=latestRun();if(!run)return;try{if(window.NexusDiagnosisReviewRuntime?.openReview)return await window.NexusDiagnosisReviewRuntime.openReview(run.id);return await window.NexusDiagnosisController?.openRun?.(run)}catch(error){toast?.(error.message||'Diagnosis could not be opened.')}}
 async function approveDiagnosis(){
   const run=latestRun();if(!run||run.status!=='ready_for_review')return;const button=$('approveDiagnosisBtn');button.disabled=true;button.textContent='Approving…';
-  try{const {error}=await sb.rpc('nexus_approve_diagnosis',{p_run_id:run.id,p_note:null});if(error)throw error;toast?.('Diagnosis approved. Relystra generated the downstream engagement records and mapped reusable action templates where applicable.');window.NexusDiagnosisController?.invalidateLatest?.();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await workspace?.();await refresh({reload:true})}
+  try{const {error}=await sb.rpc('nexus_approve_diagnosis',{p_run_id:run.id,p_note:null});if(error)throw error;toast?.('Diagnosis approved. Review the suggested pre-build Actions.');window.NexusDiagnosisController?.invalidateLatest?.();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await workspace?.();await refresh({reload:true})}
   catch(error){toast?.(error.message||'Diagnosis could not be approved.')}
   finally{if(button?.isConnected){button.disabled=false;button.textContent='Approve Diagnosis'}}
 }
