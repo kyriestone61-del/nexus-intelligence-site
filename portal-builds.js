@@ -1,3 +1,4 @@
+import {requestBuildRecommendations} from '/portal-build-request.js';
 // Build selection and curation component, mounted by the existing admin/client workspace owners.
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const list=v=>Array.isArray(v)?v:[];
@@ -130,8 +131,7 @@ export function mountBuilds(root,portal){
     try{
       if(button.hasAttribute('data-generate-builds')){
         button.textContent='Preparing evidence-backed recommendations…';
-        const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{operation:'recommend_builds',company_id:company,run_id:diagnosis?.id}});
-        if(error||data?.ok===false)throw await runtimeError(error,data);
+        const data=await requestBuildRecommendations(sb,company,diagnosis?.id);
         if(state.companyId===company)toast(`${data.build_ids?.length||0} recommendations ready for review.`);
       }else if(button.hasAttribute('data-create-build-plan')){
         const {error}=await sb.rpc('relystra_create_build_plan',{p_company_id:company,p_build_ids:[...selected],p_name:'Build Package'});if(error)throw error;selected.clear();
