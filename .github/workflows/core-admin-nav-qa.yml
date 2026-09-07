@@ -41,8 +41,8 @@ jobs:
           grep -Fq 'nexus_save_discovery_admin_context' portal-admin-intake.js
           grep -Fq 'Run Diagnosis' portal-admin-intake.js
           grep -Fq "capture:{source:'evidence_first_step2'" portal-discovery-capture.js
-          grep -Fq "['intake','Discovery & Diagnosis']" portal-admin-journey.js
-          grep -Fq "title:'Discovery & Diagnosis'" portal-admin-journey.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
       - name: No hidden-core regression
         run: |
           set -euo pipefail

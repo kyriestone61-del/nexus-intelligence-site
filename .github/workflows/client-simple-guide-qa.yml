@@ -31,9 +31,8 @@ jobs:
       - name: Primary navigation and utilities contract
         run: |
           set -euo pipefail
-          grep -Fq "['today','01 Today']" portal-client-shell-v2.js
-          grep -Fq "['files','02 Secure Data Room']" portal-client-shell-v2.js
-          grep -Fq "['improvement','03 Improvement Record']" portal-client-shell-v2.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           grep -Fq "nexusClientReportsButton" portal-client-shell-v2.js
           grep -Fq "nexusClientHelpButton" portal-client-shell-v2.js
           grep -Fq "nexusClientInboxButton" portal-client-shell-v2.js

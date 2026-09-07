@@ -125,3 +125,12 @@ This section supersedes the earlier phase-by-phase outstanding-item lists. The b
 5. Run all 59 Moon Wax acceptance steps in the actual application with valid inputs, payment evidence and delivered systems. Historical orphan data remains untouched; no cause or association is inferred. Moon Wax acceptance has not passed.
 
 No production data, schema, Edge deployment, Stripe payment or outbound client message was changed by this checkpoint. The initiative remains in progress.
+
+
+### CI follow-up after opening draft PR #142
+
+The implementation was committed and pushed to `codex/relystra-delivery-refactor`; draft PR: https://github.com/kyriestone61-del/nexus-intelligence-site/pull/142. Cloudflare built a branch preview. Main remains unchanged and Supabase migrations/functions remain unapplied.
+
+The first CI run exposed obsolete six-stage/three-tab assertions and stale VM test harness imports, plus two real integration gaps: administrator Action processing had depended on the retired UX loader, and retained base forms still used the first project. The boot owner now loads the same governed Action engine explicitly for each role; the base renderer/upload/task/metric/milestone/request paths use the shared active-project selector. Legacy fallback engine polling is disabled in the new lifecycle.
+
+Verification after these fixes: 129 contract/database/lifecycle/regression tests and seven feature test scripts pass (136 total). The locally executable static workflow blocks were checked: 162 blocks, with their four initial failures resolved (three required the local `python3` command and one required updating the actual-renderer VM harness). The strict static audit now has zero P0 findings and six retained P1 compatibility findings. Payment/database tests were added to the existing contract CI workflow using pinned dependencies. Remote checks for this follow-up still need confirmation; this is not full production acceptance.

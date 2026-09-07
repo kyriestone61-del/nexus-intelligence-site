@@ -12,7 +12,7 @@ const guard=fs.readFileSync('supabase/migrations/20260903_nexus_task_document_co
 
 // Require an explicit dated RELYSTRA cache-bust release id without pinning this
 // unrelated file-upload contract to one superseded feature tranche.
-assert.match(app,/const BUILD='20260905-relystra-[a-z0-9-]+'/,'action-file release must use an explicit current RELYSTRA portal build id');
+assert.match(app,/const BUILD='[0-9]{8}-relystra-[a-z0-9-]+'/,'action-file release must use an explicit current RELYSTRA portal build id');
 
 assert.match(upload,/task_id:task\?\.id\|\|null/,'direct uploads must store task lineage on the document row');
 assert.match(upload,/uploadFilesForTask/,'upload service must expose multi-file action uploads');

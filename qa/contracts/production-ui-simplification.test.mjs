@@ -17,6 +17,9 @@ test('delivery boot uses the canonical owners and does not load the retired Phas
   assert.doesNotMatch(portalApp,/portal-phase-zero-lifecycle\.js/);
   assert.match(portalApp,/portal-admin-journey\.js/);
   assert.match(portalApp,/portal-client-shell-v2\.js/);
+  assert.equal((portalApp.match(/requiredImport\(asset\(`portal-action-processing-engine\.js/g)||[]).length,2,'both role branches explicitly require governed Action processing');
+  assert.ok(portalApp.lastIndexOf('portal-action-processing-engine.js')<portalApp.lastIndexOf('portal-admin-journey.js'));
+  assert.match(portalApp,/window\.NexusAdminJourney\?\.navigate/);
 });
 
 test('client delivery sections are progressively revealed from the canonical lifecycle',()=>{

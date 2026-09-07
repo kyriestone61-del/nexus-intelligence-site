@@ -76,9 +76,8 @@ jobs:
           ! grep -q "from '/portal-ops.js'" portal-client.js
           ! grep -q 'initOps(' portal-client.js
           grep -q 'nexus_activate_client_workspace' portal-client.js
-          grep -q '01 Today' portal-client-shell-v2.js
-          grep -q '02 Secure Data Room' portal-client-shell-v2.js
-          grep -q '03 Improvement Record' portal-client-shell-v2.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           grep -q 'portal-runtime-hardening.css' portal-app.js
           grep -q 'portal-client-upload-service.js' portal-app.js
           grep -q 'portal-client-shell-v2.js' portal-app.js

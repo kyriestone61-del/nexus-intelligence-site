@@ -4,6 +4,11 @@ on:
   pull_request:
     paths:
       - 'qa/contracts/**'
+      - 'qa/database/**'
+      - 'qa/relystra-delivery-lifecycle.test.mjs'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'portal-*.js'
       - 'portal-discovery-capture.js'
       - 'portal-app.js'
       - 'portal-production-simplification.js'
@@ -32,4 +37,8 @@ jobs:
           node --input-type=module --check < portal-app.js
           node --input-type=module --check < portal-production-simplification.js
       - name: Canonical journey and visibility contracts
-        run: node --test qa/contracts/*.test.mjs
+        run: node --test qa/contracts/*.test.mjs qa/relystra-delivery-lifecycle.test.mjs
+      - name: Install pinned local database test dependencies
+        run: npm ci --prefix qa/database --ignore-scripts
+      - name: Paid delivery database and payment boundary tests
+        run: node --test qa/database/*.test.mjs

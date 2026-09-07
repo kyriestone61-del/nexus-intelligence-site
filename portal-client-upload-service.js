@@ -96,4 +96,4 @@ function loadActionProcessingWhenReady(attempt=0){
   if(document.getElementById('nexusClientPrimaryNav')){import(`/portal-action-processing-engine.js?v=${ACTION_PROCESSING_BUILD}`).catch(error=>console.error('Relystra Action Item Processing Engine failed to load.',error));return}
   if(attempt<80)setTimeout(()=>loadActionProcessingWhenReady(attempt+1),75);
 }
-loadActionProcessingWhenReady();
+if(!window.__relystraDeliveryLifecycle)loadActionProcessingWhenReady();

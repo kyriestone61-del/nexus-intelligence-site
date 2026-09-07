@@ -81,7 +81,8 @@ jobs:
           grep -Fq 'nexus_send_discovery_information_request' portal-admin-intake.js
           grep -Fq "DISCOVERY_CAPTURE_STATUS='draft'" portal-discovery-capture.js
           grep -Fq "capture:{source:'evidence_first_step2'" portal-discovery-capture.js
-          grep -Fq "title:'Discovery & Diagnosis'" portal-admin-journey.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           ! grep -Fq 'nexus:discovery-context-captured' portal-admin-journey.js
       - name: Step 2 routing and fallback contract
         run: |

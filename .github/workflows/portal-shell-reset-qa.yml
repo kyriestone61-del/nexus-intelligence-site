@@ -50,8 +50,7 @@ jobs:
           html=Path('portal.html').read_text()
           app=Path('portal-app.js').read_text()
           assert html.index('nexus-shell-preboot') < html.index('id="portalApp"')
-          assert app.index("labels.includes('Client Journey')") < app.rindex('clearBootLock();')
-          assert app.index("labels.includes('Discovery & Diagnosis')") < app.rindex('clearBootLock();')
+          assert app.index("window.NexusAdminJourney?.navigate") < app.rindex('clearBootLock();')
           assert app.index("document.body.classList.add('nexus-shell-ready');") < app.rindex('clearBootLock();')
           print('Portal cannot reveal before final role-specific navigation.')
           PY

@@ -29,7 +29,8 @@ function harness({admin=true,viewMode='admin'}={}){
     setTimeout(fn){timers.push(fn);return timers.length},clearTimeout(){}});
   // Evaluate both actual module implementations in independent lexical scopes,
   // sharing one DOM and portal state, as they do in the browser.
-  const foundation=source('portal-foundation-hardening.js').split('const inboxNav=')[0];
+  vm.runInContext(source('portal-workspace-context.js').replace(/^export /gm,''),ctx);
+  const foundation=source('portal-foundation-hardening.js').replace(/^import .*;\n/gm,'').split('const inboxNav=')[0];
   vm.runInContext(`(()=>{${foundation}\nwindow.normalizeFoundationInbox=normalizeInbox;})()`,ctx);
   vm.runInContext(`(()=>{${source('portal-approval-inbox.js')}\nwindow.ensureApprovalShell=ensureShell;})()`,ctx);
   return {window,state,button,heading,inbox,events,timers,errors,setRpc(fn){rpc=fn},get calls(){return rpcCalls}};
@@ -126,16 +127,18 @@ test('opening a resolution plan dismisses its underlying diagnosis review',async
   assert.equal(classes.size,0);assert.equal(review['aria-hidden'],'true');assert.equal(bodyClasses.size,0);
 });
 
-test('Home opens before refresh and a late refresh does not pull the user away from another route',async()=>{
-  let finish,renders=0,scrolls=0;
-  const section={classList:{active:false,toggle(_k,v){this.active=v},contains(){return this.active}}};
-  const pending=new Promise(resolve=>{finish=resolve});
-  const code=source('portal-admin-journey.js').split('async function showJourney(){')[1].split('function activateSection')[0];
-  const run=vm.runInNewContext(`async function showJourney(){${code}\nshowJourney`,{state:{admin:true},ensureSection:()=>section,loadJourneyData:()=>pending,document:{querySelectorAll:s=>s==='.section'?[section]:[]},renderJourney(){renders++},window:{scrollTo(){scrolls++}}});
-  const loading=run();
-  assert.equal(section.classList.active,true);assert.equal(renders,1);assert.equal(scrolls,1);
-  section.classList.active=false;finish();await loading;
-  assert.equal(section.classList.active,false);assert.equal(renders,1);
+function navigationHarness(){
+  let finish;const pending=new Promise(resolve=>finish=resolve),routes=[],urls=[];
+  const src=source('portal-admin-journey.js');
+  const fn='async function navigate(target){'+src.split('async function navigate(target){')[1].split('async function renderProjects')[0];
+  const ctx={header:{},state:{companyId:'co'},document:{querySelectorAll:()=>[]},activate:id=>routes.push(id),renderOverview(){},renderHeader(){},builds:{refresh:()=>pending},delivery:{refresh:async()=>{}},store:{value:{}},tools:new Map(),offer:{refresh:async()=>{}},location:{href:'https://example.test/portal'},workspaceUrl:href=>href,URL,history:{replaceState:(_,__,url)=>urls.push(url)},window:{scrollTo(){}}};
+  const navigate=vm.runInNewContext(`let navigationSequence=0,active='overview',viewedProject=null;${fn};navigate`,ctx);
+  return {navigate,finish:()=>finish(),routes,urls};
+}
+test('Home opens immediately and a late route load cannot overwrite a newer route',async()=>{
+  const h=navigationHarness();await h.navigate('overview');assert.equal(h.routes[0],'journey');
+  const pending=h.navigate('builds');await h.navigate('overview');h.finish();await pending;
+  assert.equal(h.routes.at(-1),'journey');assert.match(h.urls.at(-1),/section=overview/);
 });
 
 test('task controls remain disabled through saving and replacement-card refresh',async()=>{
@@ -172,29 +175,25 @@ test('workflow reconciliation reaches a fixed point instead of scheduling itself
   assert.equal(writes,2,'observer callbacks must not recreate unchanged text or markup');
 });
 
-test('Actions uses the shell route and survives the same activation used by refresh',()=>{
+test('Actions uses the shell route and survives the same activation used by refresh',async()=>{
   const src=source('portal-client-shell-v2.js');
   const declaration=src.match(/const ALL_SECTIONS=.*?;/)[0];
-  const activate='function activateView(view){'+src.split('function activateView(view){')[1].split('function renderToday')[0];
+  const activate='async function activateView(view){'+src.split('function activateView(view){')[1].split('function renderToday')[0];
   let renders=0;
   const nodes=['today','actions'].map(clientView=>({dataset:{clientView},classList:{toggle(_key,v){this.active=v}},setAttribute(){}}));
   const window={scrollTo(){},NexusActionProcessingEngine:{renderClientActions(){renders++}}};
   const document={querySelectorAll:()=>nodes};
-  const shell=vm.runInNewContext(`${declaration}\nlet activeView='today';\n${activate}\n({activateView,refresh:()=>activateView(activeView)})`,{window,document,renderToday(){},renderFiles(){},renderImprovement(){},renderReports(){}});
-  shell.activateView('actions');shell.refresh();
+  const shell=vm.runInNewContext(`${declaration}\nlet activeView='today',navigationVersion=0;\n${activate}\n({activateView,refresh:()=>activateView(activeView)})`,{window,document,URL,location:{href:'https://example.test/portal'},history:{replaceState(){}},renderToday(){},renderFiles(){},renderImprovement(){},renderReports(){}});
+  await shell.activateView('actions');await shell.refresh();
   assert.equal(nodes[0].classList.active,false);assert.equal(nodes[1].classList.active,true);assert.equal(renders,2);
 });
 
 
-test('client and administrator loaders use the same fresh action-engine cache version',()=>{
-  const version=name=>source(name).match(/const ACTION_PROCESSING_BUILD='([^']+)'/)[1];
-  assert.equal(version('portal-client-upload-service.js'),version('portal-ux-refinement.js'));
-  assert.notEqual(version('portal-client-upload-service.js'),'20260904-action-processing1');
-  const workflow=source('.github/workflows/control-room-browser-qa.yml');
-  const assets=workflow.match(/assets=\(([^\n]+)\)/)[1].split(/\s+/);
-  for(const asset of ['portal-client-upload-service.js','portal-ux-refinement.js','portal-action-processing-engine.js'])assert.ok(assets.includes(asset),`${asset} must match production before authenticated QA`);
+test('client and administrator boot branches load the same Action engine version explicitly',()=>{
+  const app=source('portal-app.js');
+  assert.equal((app.match(/requiredImport\(asset\(`portal-action-processing-engine\.js\?v=\$\{BUILD\}/g)||[]).length,2);
+  assert.ok(source('portal-client-upload-service.js').includes('if(!window.__relystraDeliveryLifecycle)loadActionProcessingWhenReady();'));
 });
-
 
 test('approval labels do not perpetually retrigger their body mutation observer',()=>{
   let callback,writes=0;
@@ -210,17 +209,13 @@ test('approval labels do not perpetually retrigger their body mutation observer'
 });
 
 
-test('diagnosis events refresh Home data without navigating away from opened work',async()=>{
-  const src=source('portal-admin-journey.js');
-  const fn='async function refreshJourneyInPlace(){'+src.split('async function refreshJourneyInPlace(){')[1].split('function activateSection')[0];
-  let active=true,renders=0,finish;
-  const loaded=new Promise(resolve=>finish=resolve);
-  const refresh=vm.runInNewContext(`${fn};refreshJourneyInPlace`,{$:()=>({classList:{contains:()=>active}}),loadJourneyData:()=>loaded,renderJourney:()=>renders++});
-  const pending=refresh();active=false;finish();await pending;assert.equal(renders,0);
-  active=true;await refresh();assert.equal(renders,1);
-  assert.ok(src.includes('const refreshDiagnosisJourney=()=>setTimeout(refreshJourneyInPlace,120);'));
+test('diagnosis events refresh workspace facts without navigating away from opened work',async()=>{
+  const src=source('portal-admin-journey.js'),fn='async function refresh(){'+src.split('async function refresh(){')[1].split('async function navigate')[0];
+  let finish;const loaded=new Promise(resolve=>finish=resolve),calls=[];
+  const run=vm.runInNewContext(`let refreshSequence=0,company='co',viewedProject=null,active='files',loadError=null;${fn};refresh`,{state:{companyId:'co'},store:{refresh:()=>loaded},renderHeader:()=>calls.push('header'),renderOverview:()=>calls.push('overview'),offer:{refresh:async()=>{}},activate(){throw Error('Refresh must not navigate within the same company')}});
+  const pending=run();finish({company_id:'co'});await pending;assert.deepEqual(calls,['header','overview']);
+  assert.ok(src.includes("'nexus:diagnosis-changed'"));
 });
-
 
 test('rendered action cards trigger administrator controls after filter replacement',()=>{
   const calls=[],listeners={};
@@ -231,7 +226,7 @@ test('rendered action cards trigger administrator controls after filter replacem
   vm.runInNewContext(subscription,{window,state,scheduleAdminDecoration:()=>calls.push('decorate')});
   const execution=source('portal-action-execution-v2.js');
   const render='function renderTasks(){'+execution.split('function renderTasks(){')[1].split('async function saveClientNote')[0];
-  const run=vm.runInNewContext(`${render};renderTasks`,{window,state,$:()=>({innerHTML:''}),filteredTasks:()=>[],activeView:'my_work',bindCards:()=>calls.push('bind'),CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail}}});
+  const run=vm.runInNewContext(`${render};renderTasks`,{window,state,portal:{},$:()=>({innerHTML:''}),filteredTasks:()=>[],prebuildMode:()=>false,simpleFlowMode:()=>false,bindPrebuildActions(){},activeView:'my_work',bindCards:()=>calls.push('bind'),CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail}}});
   run();run();assert.deepEqual(calls,['bind','decorate','bind','decorate']);
   window.dispatchEvent({type:'nexus:action-cards-rendered',detail:{companyId:'another-company'}});assert.equal(calls.length,4);
 });
