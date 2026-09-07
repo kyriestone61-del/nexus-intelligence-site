@@ -15,6 +15,7 @@ Store these values through the deployment platform's secret manager, never sourc
 | `RELYSTRA_STRIPE_ACCOUNT_ID` | Relystra account ID above |
 | `RELYSTRA_STRIPE_TEST_SECRET_KEY` | Relystra test key; Checkout create/read/expire and current-account read permissions |
 | `RELYSTRA_STRIPE_TEST_WEBHOOK_SECRET` | Signing secret for the Relystra test webhook destination |
+| `RELYSTRA_STRIPE_TEST_COMPANY_IDS` | Comma-separated disposable QA company IDs permitted to activate access through test checkout; defaults to none |
 | `RELYSTRA_PORTAL_ORIGIN` | Exact HTTPS origin; initially `https://nexusintelligence.live` |
 | `RELYSTRA_STRIPE_LIVE_SECRET_KEY` | Only after live checkout is explicitly enabled for launch |
 | `RELYSTRA_STRIPE_LIVE_WEBHOOK_SECRET` | Corresponding live destination signing secret |

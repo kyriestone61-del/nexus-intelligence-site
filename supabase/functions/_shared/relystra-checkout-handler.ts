@@ -40,6 +40,10 @@ export async function handleCheckout(req: Request): Promise<Response> {
       if (error) return json({error:'CHECKOUT_UNAVAILABLE',message:'Checkout is not available for this plan yet.'},409);
       plan = data;
     }
+    // Test checkout may activate real database access, so only explicitly designated
+    // disposable companies may use it. Live mode retains the normal company RLS boundary.
+    const testCompanies=(Deno.env.get('RELYSTRA_STRIPE_TEST_COMPANY_IDS')||'').split(',').map(id=>id.trim());
+    if (!plan.checkout_livemode && !testCompanies.includes(plan.company_id)) return json({error:'TEST_WORKSPACE_REQUIRED',message:'Test checkout is available only in the designated QA workspace.'},403);
     const stripe = await stripeForMode(plan.checkout_livemode!,plan.checkout_account_id!);
     const session = plan.checkout_session_id
       ? await stripe.checkout.sessions.retrieve(plan.checkout_session_id)
