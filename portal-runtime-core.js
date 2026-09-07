@@ -154,7 +154,7 @@ export function createModalManager({ events } = {}) {
     if (!modal) return;
     modal.classList.remove('show', 'open');
     modal.setAttribute('aria-hidden', 'true');
-    if (state.keydown) modal.removeEventListener('keydown', state.keydown);
+    if (state.active === modal && state.keydown) document.removeEventListener('keydown', state.keydown, true);
     const trigger = state.active === modal ? state.trigger : null;
     if (state.active === modal) { state.active = null; state.trigger = null; state.keydown = null; }
     setExpanded(trigger, false);
@@ -166,7 +166,7 @@ export function createModalManager({ events } = {}) {
   function open(modalOrId, trigger = document.activeElement) {
     const modal = typeof modalOrId === 'string' ? document.getElementById(modalOrId) : modalOrId;
     if (!modal) return false;
-    if (state.active && state.active !== modal) close(state.active, { restoreFocus: false });
+    if (state.active) close(state.active, { restoreFocus: false });
     state.active = modal;
     state.trigger = trigger instanceof HTMLElement ? trigger : null;
     setExpanded(state.trigger, true);
@@ -179,13 +179,15 @@ export function createModalManager({ events } = {}) {
       const nodes = focusables(modal);
       if (!nodes.length) { event.preventDefault(); modal.focus?.(); return; }
       const first = nodes[0], last = nodes[nodes.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!modal.contains(document.activeElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
+      else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     state.keydown = handler;
-    modal.addEventListener('keydown', handler);
+    // Capture while open, including the interval before focus enters an animated drawer.
+    document.addEventListener('keydown', handler, true);
     modal.dispatchEvent(new CustomEvent('nexus:modal-opened', { bubbles: false, detail: { modalId: modal.id || null } }));
-    setTimeout(() => focusables(modal)[0]?.focus(), 0);
+    setTimeout(() => { if (state.active === modal) focusables(modal)[0]?.focus(); }, 0);
     return true;
   }
 
