@@ -25,7 +25,7 @@ export function checkoutParameters(plan: BuildPlan, portalOrigin: string) {
     scope_digest:plan.snapshot_digest,account_id:plan.checkout_account_id};
   const route = `${portalOrigin}/portal?company=${encodeURIComponent(plan.company_id)}&plan=${encodeURIComponent(plan.id)}`;
   return {
-    mode:'payment' as const,ui_mode:'hosted' as const,client_reference_id:plan.id,
+    mode:'payment' as const,ui_mode:'hosted_page' as const,client_reference_id:plan.id,
     integration_identifier:plan.checkout_integration_id,metadata,payment_intent_data:{metadata},
     expires_at:Math.floor(Date.parse(plan.checkout_expires_at)/1000),
     success_url:`${route}&payment=return`,cancel_url:`${route}&payment=cancelled`,

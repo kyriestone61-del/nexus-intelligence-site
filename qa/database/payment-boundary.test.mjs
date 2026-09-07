@@ -13,6 +13,7 @@ const session={id:plan.checkout_session_id,mode:'payment',livemode:false,status:
 const event={id:'evt_test_fixture',type:'checkout.session.completed',livemode:false,data:{object:session}};
 
 test('hosted checkout uses the saved scope and server-controlled return context',()=>{
+  assert.equal(params.ui_mode,'hosted_page','matches the pinned Dahlia API hosted checkout mode');
   assert.equal(params.line_items.reduce((n,i)=>n+i.price_data.unit_amount,0),425000);
   assert.ok(params.success_url.includes(`company=${plan.company_id}&plan=${plan.id}`));
   assert.equal(params.payment_method_types,undefined,'configured dynamic payment methods remain available');
