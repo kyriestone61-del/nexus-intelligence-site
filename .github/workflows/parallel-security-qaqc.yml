@@ -57,6 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'nexus_onboard_company_atomic' portal-foundation-hardening.js
-          grep -Fq 'nexus_active_engagements' portal-foundation-hardening.js
+          grep -Fq 'selectActiveProject' portal-foundation-hardening.js
+          node --test qa/contracts/workspace-context.test.mjs
           grep -Fq 'nexus_onboard_company_atomic' supabase/migrations/20260831_nexus_workspace_foundation_hardening.sql
           grep -Fq 'nexus_active_engagements' supabase/migrations/20260831_nexus_workspace_foundation_hardening.sql

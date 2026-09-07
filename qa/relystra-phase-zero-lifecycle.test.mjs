@@ -75,9 +75,9 @@ test('completion requires both handoff and client acceptance',()=>{
   assert.match(migration,/status='complete'/);
 });
 
-test('portal exposes a simple lifecycle in both client and admin shells',()=>{
-  assert.match(portalApp,/portal-phase-zero-lifecycle\.css/);
-  assert.equal((portalApp.match(/portal-phase-zero-lifecycle\.js/g)||[]).length,2);
+test('retained historical lifecycle stays unmounted in the new delivery shells',()=>{
+  assert.doesNotMatch(portalApp,/portal-phase-zero-lifecycle\.css/);
+  assert.equal((portalApp.match(/portal-phase-zero-lifecycle\.js/g)||[]).length,0);
   for(const label of ['Understand','Diagnose','Agree & Pay','Kickoff','Build','Verify','Measure','Accept','Complete'])assert.match(lifecycle,new RegExp(label.replace('&','\\&')));
   assert.match(lifecycle,/nexus_get_phase_zero_status/);
   assert.match(lifecycle,/nexus_admin_record_engagement_gate/);

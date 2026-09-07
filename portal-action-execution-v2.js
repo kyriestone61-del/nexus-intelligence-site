@@ -1,3 +1,4 @@
+import {prebuildActionCard,bindPrebuildActions} from './portal-prebuild-actions.js';
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Relystra portal context is unavailable.');
 
@@ -30,11 +31,14 @@ function simpleFlowTasks(){
   if(projectId&&rows.some(t=>String(t.project_id)===String(projectId)))rows=rows.filter(t=>String(t.project_id)===String(projectId));
   return rows.sort((a,b)=>(Number(a.sort_order||100)-Number(b.sort_order||100))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
 }
-function simpleFlowMode(){return simpleFlowTasks().length>0}
+function prebuildMode(){return (state.tasks||[]).some(t=>t.work_kind==='prebuild_action')}
+function actionTasks(){return (state.tasks||[]).filter(t=>prebuildMode()?t.work_kind==='prebuild_action':t.work_kind!=='build_task')}
+function activeActions(){return actionTasks().filter(t=>t.work_kind!=='prebuild_action'||t.action_review_state==='approved')}
+function simpleFlowMode(){return !prebuildMode()&&simpleFlowTasks().length>0}
 function simpleDeliveryMode(){return simpleFlowTasks().some(t=>t.workflow_metadata?.one_workflow===true||t.workflow_metadata?.delivery_step)}
 function simpleStepIndex(task){return Math.max(0,simpleFlowTasks().findIndex(t=>t.id===task.id))}
-function taskCounts(){const tasks=state.tasks||[];return {my:tasks.filter(nexusOwned).length,client:tasks.filter(clientOwned).length,review:tasks.filter(t=>reviewStatus(t.status)).length,completed:tasks.filter(t=>completedStatus(t.status)).length}}
-function clientCounts(){const tasks=state.tasks||[];return {attention:tasks.filter(t=>clientOwned(t)&&!reviewStatus(t.status)).length,submitted:tasks.filter(t=>reviewStatus(t.status)).length,completed:tasks.filter(t=>completedStatus(t.status)).length}}
+function taskCounts(){const tasks=activeActions();return {my:tasks.filter(nexusOwned).length,client:tasks.filter(clientOwned).length,review:tasks.filter(t=>reviewStatus(t.status)).length,completed:tasks.filter(t=>completedStatus(t.status)).length}}
+function clientCounts(){const tasks=activeActions();return {attention:tasks.filter(t=>clientOwned(t)&&!reviewStatus(t.status)).length,submitted:tasks.filter(t=>reviewStatus(t.status)).length,completed:tasks.filter(t=>completedStatus(t.status)).length}}
 
 function ensureSimpleStyles(){
   if(document.getElementById('relystraSimpleWorkflowStyles'))return;
@@ -93,14 +97,15 @@ function renderTabs(){
   const root=$('actionExecutionFilters');if(!root)return;
   if(simpleFlowMode()){root.hidden=true;root.innerHTML='';activeView='workflow';return}
   root.hidden=false;
-  const defs=state.admin?[['my_work','My Work'],['client_work','Client Work'],['ready_review','Ready for Review'],['completed','Completed']]:[['client_work','Needs Your Attention'],['ready_review','Submitted'],['completed','Completed']];
+  const defs=state.admin?[...(prebuildMode()?[['suggested','Suggested Actions']]:[]),['my_work','My Work'],['client_work','Client Work'],['ready_review','Ready for Review'],['completed','Completed']]:[['client_work','Needs Your Attention'],['ready_review','Submitted'],['completed','Completed']];
   if(!defs.some(x=>x[0]===activeView))activeView=state.admin?'my_work':'client_work';
   root.innerHTML=defs.map(([key,label])=>`<button type="button" data-view="${key}" class="${activeView===key?'active':''}">${label}</button>`).join('');
   root.querySelectorAll('button').forEach(b=>b.onclick=()=>{activeView=b.dataset.view;renderAll(true)});
 }
 function filteredTasks(){
   if(simpleFlowMode())return simpleFlowTasks();
-  const tasks=[...(state.tasks||[])];let out;
+  if(activeView==='suggested')return actionTasks().filter(t=>t.action_review_state!=='approved');
+  const tasks=activeActions();let out;
   if(activeView==='my_work')out=tasks.filter(nexusOwned);else if(activeView==='client_work')out=tasks.filter(clientOwned);else if(activeView==='ready_review')out=tasks.filter(t=>reviewStatus(t.status));else out=tasks.filter(t=>completedStatus(t.status));
   return out.sort((a,b)=>(Number(a.sort_order||100)-Number(b.sort_order||100))||String(a.due_date||'9999').localeCompare(String(b.due_date||'9999')));
 }
@@ -126,6 +131,7 @@ function simpleTaskCard(task){
   </article>`;
 }
 function taskCard(task){
+  if(task.work_kind==='prebuild_action')return prebuildActionCard(task,state.docs||[]);
   if(isSimpleTask(task))return simpleTaskCard(task);
   const dep=dependency(task),blocked=dependencyBlocked(task),review=reviewStatus(task.status),overdue=task.due_date&&!completedStatus(task.status)&&new Date(task.due_date+'T23:59:59')<new Date();
   return `<article class="operational-action-card action-v2-card ${review?'review-ready':''} ${completedStatus(task.status)?'completed':''} ${blocked?'dependency-blocked':''}" data-task-id="${task.id}">
@@ -141,7 +147,7 @@ function taskCard(task){
 function renderTasks(){
   const root=$('taskList');if(!root)return;const tasks=filteredTasks();
   root.innerHTML=tasks.length?tasks.map(taskCard).join(''):`<div class="action-empty-state"><b>${activeView==='completed'?'Nothing completed yet':'You are clear here.'}</b><span>${state.admin?'No workflow step needs attention in this view.':'There are no action items in this view.'}</span></div>`;
-  bindCards(root);window.dispatchEvent(new CustomEvent('nexus:action-cards-rendered',{detail:{companyId:state.companyId,simpleWorkflow:simpleFlowMode()}}));
+  bindCards(root);bindPrebuildActions(root,portal,()=>renderAll(true));window.dispatchEvent(new CustomEvent('nexus:action-cards-rendered',{detail:{companyId:state.companyId,simpleWorkflow:simpleFlowMode()}}));
 }
 
 async function saveClientNote(task,card){const note=card.querySelector(`[data-client-note="${task.id}"]`)?.value.trim()||'';return {...(task.response_data||{}),client_note:note}}
@@ -162,8 +168,8 @@ function bindCards(root){
   root.querySelectorAll('.add-task-comment').forEach(b=>{const card=b.closest('.action-v2-card'),task=state.tasks.find(t=>t.id===card.dataset.taskId);b.onclick=()=>addComment(task,card)});
 }
 
-async function loadLibrary(){if(!state.admin){templates=[];packages=[];packageItems=[];return}const [t,p,i]=await Promise.all([sb.from('nexus_action_templates').select('*').eq('active',true).order('sort_order'),sb.from('nexus_action_packages').select('*').eq('active',true).order('sort_order'),sb.from('nexus_action_package_items').select('*').order('sort_order')]);templates=t.data||[];packages=p.data||[];packageItems=i.data||[]}
-async function refreshComments(){if(!state.companyId){comments=[];return}const {data,error}=await sb.from('nexus_task_comments').select('*').eq('company_id',state.companyId).order('created_at',{ascending:true});if(error){console.error(error);comments=[];return}comments=data||[]}
+async function loadLibrary(){if(!state.admin){templates=[];packages=[];packageItems=[];return}const [t,p,i]=await Promise.all([sb.from('nexus_action_templates').select('*').eq('active',true).order('sort_order'),sb.from('nexus_action_packages').select('*').eq('active',true).order('sort_order'),sb.from('nexus_action_package_items').select('*').order('sort_order')]);templates=(t.data||[]).filter(t=>t.workflow_metadata?.work_kind!=='prebuild_action');packages=p.data||[];packageItems=i.data||[]}
+async function refreshComments(){if(!state.companyId){comments=[];return}const companyId=state.companyId;const {data,error}=await sb.from('nexus_task_comments').select('*').eq('company_id',companyId).order('created_at',{ascending:true});if(state.companyId!==companyId)return;if(error){console.error(error);comments=[];return}comments=data||[]}
 
 function ensureAssignModal(){if($('actionExecutionModal'))return;const modal=document.createElement('div');modal.id='actionExecutionModal';modal.className='modal';modal.innerHTML=`<div class="modal-card action-execution-modal-card"><div class="toolbar"><div><div class="kicker">Relystra delivery methodology</div><h2 style="margin:4px 0">Assign work</h2><p class="small">Apply a full workflow package or select only the actions this client needs.</p></div><button class="btn secondary action-execution-close" type="button">Close</button></div><div class="assign-mode-tabs"><button class="active" data-mode="packages" type="button">Workflow packages</button><button data-mode="templates" type="button">Individual actions</button></div><div id="actionPackagePane"></div><div id="actionTemplatePane" hidden></div></div>`;document.body.appendChild(modal);modal.querySelector('.action-execution-close').onclick=()=>modal.classList.remove('show');modal.onclick=e=>{if(e.target===modal)modal.classList.remove('show')};modal.querySelectorAll('.assign-mode-tabs button').forEach(b=>b.onclick=()=>{modal.querySelectorAll('.assign-mode-tabs button').forEach(x=>x.classList.toggle('active',x===b));$('actionPackagePane').hidden=b.dataset.mode!=='packages';$('actionTemplatePane').hidden=b.dataset.mode!=='templates'})}
 function packageCard(pkg){const count=packageItems.filter(i=>i.package_id===pkg.id).length;return `<article class="package-choice"><div><span>${esc(phaseLabel(pkg.phase))}</span><h3>${esc(pkg.title)}</h3><p>${esc(pkg.description||'')}</p><small>${count} structured action${count===1?'':'s'}</small></div><button class="btn primary assign-package" data-code="${esc(pkg.code)}" type="button">Apply package</button></article>`}
@@ -179,5 +185,5 @@ function renderAll(force=false){
   renderStamp=stamp;renderTop();renderTabs();renderTasks();const btn=$('assignTemplateBtn');if(btn&&state.admin&&!simpleFlowMode())btn.onclick=openAssignModal;
 }
 async function reconcile(force=false){if(!state.user||!state.companyId)return;if(force||state.companyId!==lastCompany){lastCompany=state.companyId;renderStamp='';await Promise.all([loadLibrary(),refreshComments()])}renderAll(force)}
-$('companySelect')?.addEventListener('change',()=>setTimeout(()=>reconcile(true),300));sb.auth.onAuthStateChange(()=>setTimeout(()=>reconcile(true),300));setInterval(()=>reconcile(false).catch(console.error),900);
+window.addEventListener('nexus:workspace-ready',()=>{if(prebuildMode()&&state.tasks.some(t=>t.action_review_state==='suggested'))activeView='suggested';reconcile(true).catch(console.error)});sb.auth.onAuthStateChange(()=>setTimeout(()=>reconcile(true),300));
 await reconcile(true);

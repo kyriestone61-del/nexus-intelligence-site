@@ -110,12 +110,8 @@ jobs:
           grep -q 'getWorkspaceCurrentActionContext' portal-client-core.js
           grep -q 'aggregateNotifications' portal-client-core.js
           grep -q 'serializeReleasedClientReport' portal-client-core.js
-          grep -q '01 Today' portal-client-shell-v2.js
-          grep -q '02 Secure Data Room' portal-client-shell-v2.js
-          grep -q '03 Improvement Record' portal-client-shell-v2.js
-          grep -q 'YOUR NEXT STEP' portal-client-shell-v2.js
-          grep -q 'Complete this step →' portal-client-shell-v2.js
-          grep -q 'UP NEXT —' portal-client-shell-v2.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           grep -q 'Needs action' portal-client-shell-v2.js
           grep -q 'Updates' portal-client-shell-v2.js
           grep -q 'Available after Relystra completes' portal-client-shell-v2.js

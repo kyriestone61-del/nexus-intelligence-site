@@ -1,0 +1,1780 @@
+[
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "code",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "category",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'General'::text"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "title",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "description",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "instructions",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "assignee",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'client'::text"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "priority",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'normal'::text"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "task_type",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'standard'::text"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "form_schema",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "active",
+    "column_type": "boolean",
+    "not_null": true,
+    "default_value": "true"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "sort_order",
+    "column_type": "integer",
+    "not_null": true,
+    "default_value": "100"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "created_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "phase",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'general'::text"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "required_evidence",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "completion_criteria",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_action_templates",
+    "column_name": "workflow_metadata",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'{}'::jsonb"
+  },
+  {
+    "table_name": "nexus_active_engagements",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_active_engagements",
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_active_engagements",
+    "column_name": "updated_by",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_active_engagements",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_activity_log",
+    "column_name": "id",
+    "column_type": "bigint",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_activity_log",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_activity_log",
+    "column_name": "actor_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_activity_log",
+    "column_name": "action",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_activity_log",
+    "column_name": "entity_type",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_activity_log",
+    "column_name": "entity_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_activity_log",
+    "column_name": "summary",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_activity_log",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "category",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'general'::text"
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "title",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "description",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "priority",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'normal'::text"
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'submitted'::text"
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "requested_by",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_client_requests",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_commercial_offerings",
+    "column_name": "code",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_commercial_offerings",
+    "column_name": "name",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_commercial_offerings",
+    "column_name": "description",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_commercial_offerings",
+    "column_name": "client_outcome",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_commercial_offerings",
+    "column_name": "pricing_model",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_commercial_offerings",
+    "column_name": "sort_order",
+    "column_type": "integer",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_commercial_offerings",
+    "column_name": "active",
+    "column_type": "boolean",
+    "not_null": true,
+    "default_value": "true"
+  },
+  {
+    "table_name": "nexus_commercial_offerings",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_commercial_offerings",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_companies",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_companies",
+    "column_name": "name",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_companies",
+    "column_name": "website",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_companies",
+    "column_name": "industry",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_companies",
+    "column_name": "created_by",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_companies",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_companies",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_company_members",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_company_members",
+    "column_name": "user_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_company_members",
+    "column_name": "member_role",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'client'::text"
+  },
+  {
+    "table_name": "nexus_company_members",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_company_members",
+    "column_name": "active",
+    "column_type": "boolean",
+    "not_null": true,
+    "default_value": "true"
+  },
+  {
+    "table_name": "nexus_company_members",
+    "column_name": "added_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_company_members",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "diagnosis_run_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "client_report",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'{}'::jsonb"
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'draft'::text"
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "report_version",
+    "column_type": "integer",
+    "not_null": true,
+    "default_value": "1"
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "released_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "released_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "revoked_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_diagnosis_report_releases",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "agent_code",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'client_diagnosis'::text"
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'ready_for_analysis'::text"
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "transcript_document_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "supporting_document_ids",
+    "column_type": "uuid[]",
+    "not_null": true,
+    "default_value": "'{}'::uuid[]"
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "meeting_date",
+    "column_type": "date",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "participants",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "discovery_notes",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "analysis_packet",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'{}'::jsonb"
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "analysis_result",
+    "column_type": "jsonb",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "review_notes",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "created_by",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "queued_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "analysis_started_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "analysis_completed_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "execution_error",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "execution_attempts",
+    "column_type": "integer",
+    "not_null": true,
+    "default_value": "0"
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "approved_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "approved_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "revision_requested_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "blocked_reason",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "orchestrated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_diagnosis_runs",
+    "column_name": "orchestration_summary",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'{}'::jsonb"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "storage_path",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "file_name",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "mime_type",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "size_bytes",
+    "column_type": "bigint",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "category",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'general'::text"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'shared'::text"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "version_number",
+    "column_type": "integer",
+    "not_null": true,
+    "default_value": "1"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "note",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "uploaded_by",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "sensitivity",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'standard'::text"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "request_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "document_area",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'client_submission'::text"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "source_role",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'client'::text"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "data_requirement_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "evidence_parser",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "evidence_summary",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "evidence_claims",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "evidence_classification",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'{}'::jsonb"
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "evidence_ingested_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_documents",
+    "column_name": "task_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "user_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "notification_type",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'general'::text"
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "title",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "message",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "related_type",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "related_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "read_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "created_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_notifications",
+    "column_name": "action_url",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "title",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "problem",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "source",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'nexus'::text"
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'backlog'::text"
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "value_score",
+    "column_type": "smallint",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "effort_score",
+    "column_type": "smallint",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "readiness_score",
+    "column_type": "smallint",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "recommendation",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "created_by",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_opportunities",
+    "column_name": "source_diagnosis_run_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_platform_admins",
+    "column_name": "user_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_platform_admins",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "name",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "service_type",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'planning'::text"
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "summary",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "start_date",
+    "column_type": "date",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "target_end_date",
+    "column_type": "date",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "created_by",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "service_slug",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "project_type",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "source_diagnosis_run_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "engagement_stage",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'discovery'::text"
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "owner_scope",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'nexus'::text"
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "client_status_update",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "client_status_updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_projects",
+    "column_name": "client_status_updated_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "code",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "title",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "category",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "description",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "match_terms",
+    "column_type": "text[]",
+    "not_null": true,
+    "default_value": "'{}'::text[]"
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "default_recipe",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "version",
+    "column_type": "integer",
+    "not_null": true,
+    "default_value": "1"
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "active",
+    "column_type": "boolean",
+    "not_null": true,
+    "default_value": "true"
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_resolution_catalog",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "system_code",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "name",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "purpose",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "trigger_definition",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "inputs",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "outputs",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "owner_label",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "ai_role",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "deterministic_logic",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "human_approvals",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "exception_classes",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "logging_requirements",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "operating_cost_note",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "kpi_definition",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "rollback_procedure",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "acceptance_criteria",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "version",
+    "column_type": "integer",
+    "not_null": true,
+    "default_value": "1"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'draft'::text"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "client_visible",
+    "column_type": "boolean",
+    "not_null": true,
+    "default_value": "false"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "created_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_system_cards",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "title",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "description",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "assignee",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'client'::text"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'open'::text"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "priority",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'normal'::text"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "due_date",
+    "column_type": "date",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "created_by",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "notify_client",
+    "column_type": "boolean",
+    "not_null": true,
+    "default_value": "true"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "task_type",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'standard'::text"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "instructions",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "form_schema",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "response_data",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'{}'::jsonb"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "response_updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "template_code",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "phase",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'general'::text"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "package_code",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "dependency_task_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "review_note",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "submitted_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "reviewed_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "completed_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "sort_order",
+    "column_type": "integer",
+    "not_null": true,
+    "default_value": "100"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "source_diagnosis_run_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "owner_scope",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "source_gap_analysis_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "source_resolution_proposal_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "resolution_step_key",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "owner_user_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "required_evidence",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "completion_criteria",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'[]'::jsonb"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "workflow_metadata",
+    "column_type": "jsonb",
+    "not_null": true,
+    "default_value": "'{}'::jsonb"
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "help_requested_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "help_requested_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "archived_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "archived_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "converted_to_project_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "converted_to_project_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null
+  },
+  {
+    "table_name": "nexus_tasks",
+    "column_name": "converted_to_project_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null
+  }
+]

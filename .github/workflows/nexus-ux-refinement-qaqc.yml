@@ -28,14 +28,14 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq "'portal-ux-refinement.css'" portal-app.js
-          grep -Fq "portal-ux-refinement.js?v=\${BUILD}" portal-app.js
-          grep -Fq "front-end UX refinement" portal-app.js
+          ! grep -Fq "portal-ux-refinement.js?v=\${BUILD}" portal-app.js
+          grep -Fq "Relystra delivery workspace" portal-app.js
           grep -Eq "^const BUILD='[0-9]{8}-[A-Za-z0-9._-]+';" portal-app.js
       - name: Idempotent runtime contract
         run: |
           set -euo pipefail
           grep -Fq "bar.dataset.signature===signature" portal-ux-refinement.js
-          grep -Fq "observer.observe(document.body,{subtree:true,childList:true})" portal-ux-refinement.js
+          grep -Fq "observer.observe(document.body,{subtree:true,childList:true,characterData:true})" portal-ux-refinement.js
           grep -Fq "observer.observe(document.getElementById('consoleApp')||document.body,{subtree:true,childList:true})" operations-ux-refinement.js
           if grep -Fq "attributeFilter:['class']" portal-ux-refinement.js; then
             echo 'UX refinement must not continuously observe and rewrite body classes.' >&2

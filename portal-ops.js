@@ -74,6 +74,7 @@ export async function initOps({sb,state,$,toast,workspace,log}){
       sb.from('nexus_document_requests').select('*').eq('company_id',cid).order('created_at',{ascending:false}),
       sb.from('nexus_company_memory').select('*').eq('company_id',cid).maybeSingle()
     ]);
+    if(state.companyId!==cid)return;
     local={requests:r.data||[],approvals:a.data||[],automations:au.data||[],opportunities:o.data||[],docRequests:d.data||[],memory:m.data||null};
   }
   async function loadGlobal(){
@@ -156,7 +157,7 @@ export async function initOps({sb,state,$,toast,workspace,log}){
     root.querySelectorAll('.open-client').forEach(b=>b.onclick=()=>openCompany(b.dataset.company,'overview'));
   }
   async function openCompany(cid,section='overview'){
-    state.companyId=cid;if($('companySelect'))$('companySelect').value=cid;await workspace();await loadLocal();renderAll();const b=document.querySelector(`.side-nav button[data-section="${section}"]`);b?.click();
+    const loaded=await workspace(cid,{reason:'open-client'});if(!loaded||state.companyId!==cid)return;await loadLocal();if(state.companyId!==cid)return;renderAll();const b=section==='overview'&&state.admin?document.querySelector('.journey-primary'):document.querySelector(`.side-nav button[data-section="${section}"]`);b?.click();
   }
   function secureLabels(){
     const sec=$('section-documents');if(!sec)return;const h=sec.querySelector('h1');if(h)h.textContent='Secure Files';const headings=[...sec.querySelectorAll('.secure-doc-section h2')];if(headings[0])headings[0].textContent=state.admin?'Requested from Client':'Requested from You';if(headings[1])headings[1].textContent=state.admin?'Files Shared with Client':'Shared with You';const sub=sec.querySelector('.secure-subhead');if(sub)sub.textContent=state.admin?'Client Submissions':'Your Recent Submissions';

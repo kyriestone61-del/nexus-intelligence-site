@@ -11,20 +11,22 @@ const resolution=readFileSync(new URL('../../portal-resolution-plan.js',import.m
 const lifecycle=readFileSync(new URL('../../portal-phase-zero-lifecycle.js',import.meta.url),'utf8');
 const redirects=readFileSync(new URL('../../_redirects',import.meta.url),'utf8');
 
-test('portal uses an explicit current RELYSTRA build and loads Phase Zero in both role shells',()=>{
-  assert.match(portalApp,/const BUILD='20260905-relystra-[a-z0-9-]+'/);
-  assert.match(portalApp,/portal-phase-zero-lifecycle\.css/);
-  assert.equal((portalApp.match(/portal-phase-zero-lifecycle\.js/g)||[]).length,2);
-  const clientLifecycle=portalApp.indexOf("portal-phase-zero-lifecycle.js?v=${BUILD}`),'Phase Zero engagement lifecycle'");
-  const clientSimplification=portalApp.indexOf("portal-production-simplification.js?v=${BUILD}`),'production simplification'",clientLifecycle);
-  assert.ok(clientLifecycle>=0&&clientSimplification>clientLifecycle,'client Phase Zero must load before final role simplification');
+test('delivery boot uses the canonical owners and does not load the retired Phase Zero overlay',()=>{
+  assert.match(portalApp,/const BUILD='20260907-relystra-[a-z0-9-]+'/);
+  assert.match(portalApp,/portal-delivery\.css/);
+  assert.doesNotMatch(portalApp,/portal-phase-zero-lifecycle\.js/);
+  assert.match(portalApp,/portal-admin-journey\.js/);
+  assert.match(portalApp,/portal-client-shell-v2\.js/);
+  assert.equal((portalApp.match(/requiredImport\(asset\(`portal-action-processing-engine\.js/g)||[]).length,2,'both role branches explicitly require governed Action processing');
+  assert.ok(portalApp.lastIndexOf('portal-action-processing-engine.js')<portalApp.lastIndexOf('portal-admin-journey.js'));
+  assert.match(portalApp,/window\.NexusAdminJourney\?\.navigate/);
 });
 
-test('client daily workspace stays intentionally small and action-oriented',()=>{
-  assert.match(clientShell,/const PRIMARY_VIEWS=\[\['today','01 Today'\],\['files','02 Secure Data Room'\],\['improvement','03 Improvement Record'\]\]/);
-  assert.match(clientShell,/Your next move\./);
-  assert.match(clientShell,/Relystra will put the next required action here when it is actually ready/);
-  assert.match(clientShell,/Important boundaries/);
+test('client delivery sections are progressively revealed from the canonical lifecycle',()=>{
+  for(const label of ['Overview','Diagnosis','Actions','Builds','Progress','Final Package','Support'])assert.ok(clientShell.includes(label));
+  assert.match(clientShell,/visibleDeliverySections/);
+  assert.match(clientShell,/lifecycle\(lifecycleStore\.value\)/);
+  assert.match(clientShell,/mountPackageDelivery/);
 });
 
 test('admin portfolio and Decisions surfaces remain role-specific',()=>{
@@ -36,11 +38,11 @@ test('admin portfolio and Decisions surfaces remain role-specific',()=>{
   assert.match(inbox,/Approval & action routing/);
 });
 
-test('diagnosis solution selection now enters the Phase Zero commercial gate',()=>{
-  assert.match(resolution,/nexus_phase_zero_confirm_resolution_plan/);
-  assert.doesNotMatch(resolution,/sb\.rpc\('nexus_confirm_resolution_plan'/);
-  assert.match(resolution,/Confirmed for commercial close/);
-  assert.match(resolution,/implementation is not released until signed scope, payment verification, and kickoff are complete/);
+test('diagnosis approval routes into curated Actions and retains the old plan only outside the new lifecycle',()=>{
+  const approval=readFileSync(new URL('../../portal-diagnosis-approval-ux.js',import.meta.url),'utf8');
+  const bridge=readFileSync(new URL('../../portal-resolution-inline-approval-bridge.js',import.meta.url),'utf8');
+  assert.match(approval,/if\(!window\.__relystraDeliveryLifecycle\)await import\('\/portal-resolution-plan/);
+  assert.match(bridge,/NexusAdminJourney\?\.navigate\?\.\('actions'\)/);
 });
 
 test('Phase Zero UI makes verified measured client acceptance the finish line',()=>{

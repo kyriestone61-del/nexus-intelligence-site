@@ -48,32 +48,21 @@ jobs:
           node --input-type=module --check < portal-diagnosis-release-queue.js
           node --input-type=module --check < portal-app.js
           node --check functions/portal.js
-      - name: Six-stage workflow assertions
+      - name: Paid delivery lifecycle assertions
         run: |
           set -euo pipefail
-          grep -Fq "title:'Set Up Client'" portal-admin-journey.js
-          grep -Fq "title:'Discovery & Diagnosis'" portal-admin-journey.js
-          grep -Fq "title:'Agree on the Plan'" portal-admin-journey.js
-          grep -Fq "title:'Build, Test & Launch'" portal-admin-journey.js
-          grep -Fq "title:'Train & Handoff'" portal-admin-journey.js
-          grep -Fq "title:'Measure, Optimize & Complete'" portal-admin-journey.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           ! grep -Fq "title:'Collect Information'" portal-admin-journey.js
           ! grep -Fq "title:'Diagnose'" portal-admin-journey.js
-          grep -Fq 'Step ${current.n} of ${STAGES.length}' portal-admin-journey.js
-          grep -Fq 'Your next move' portal-admin-journey.js
-          grep -Fq 'Client Journey' portal-admin-journey.js
-          grep -Fq 'Tools & records' portal-admin-journey.js
-          grep -Fq 'ready_to_finish' portal-admin-journey.js
       - name: Unified Step 2 and diagnosis gate assertions
         run: |
           set -euo pipefail
           ! grep -Fq "package:'client_discovery'" portal-admin-journey.js
           ! grep -Fq 'Send Client Checklist (optional)' portal-admin-journey.js
-          grep -Fq 'diagnosisApproved' portal-admin-journey.js
-          grep -Fq 'analysis_result' portal-admin-journey.js
-          grep -Fq 'ready_for_review' portal-admin-journey.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           grep -Fq 'nexus:diagnosis-changed' portal-admin-journey.js
-          grep -Fq 'Build the evidence-backed diagnosis' portal-admin-journey.js
           grep -Fq 'Discovery & Diagnosis' portal-admin-intake.js
           grep -Fq 'Analyze Missing Information' portal-admin-intake.js
           grep -Fq 'Review Missing Information' portal-admin-intake.js
@@ -88,19 +77,13 @@ jobs:
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
           grep -Fq 'nexus_release_client_task' portal-diagnosis-release-queue.js
           grep -Fq 'Finish Step 2 with ChatGPT' portal-diagnosis-manual-fallback.js
-          grep -Fq "package:'solution_design'" portal-admin-journey.js
-          grep -Fq "package:'implementation_launch'" portal-admin-journey.js
-          grep -Fq "package:'training_handoff'" portal-admin-journey.js
-          grep -Fq "package:'monthly_optimization'" portal-admin-journey.js
-          grep -Fq 'nexus_assign_action_package' portal-admin-journey.js
-          grep -Fq "status:'complete'" portal-admin-journey.js
-          grep -Fq 'Mark Engagement Complete' portal-admin-journey.js
       - name: Client selection and Step 2 routing assertions
         run: |
           set -euo pipefail
-          grep -Fq '.open-client' portal-admin-journey-router.js
+          node --test qa/contracts/workspace-context.test.mjs
           grep -Fq '.journey-primary' portal-admin-journey-router.js
-          grep -Fq 'portal-admin-journey-router.js' portal-app.js
+          ! grep -Fq 'portal-admin-journey-router.js' portal-app.js
+          grep -Fq 'portal-action-processing-engine.js' portal-app.js
           grep -Fq "section.id='section-intake'" portal-admin-intake.js
           grep -Fq 'openIntake' portal-diagnosis-controller-v2.js
           grep -Fq "==='Discovery & Diagnosis'" portal-diagnosis-controller-v2.js

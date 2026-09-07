@@ -51,10 +51,10 @@ jobs:
       - name: Unified evidence-first Step 2 assertions
         run: |
           set -euo pipefail
-          grep -Fq "title:'Discovery & Diagnosis'" portal-admin-journey.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           ! grep -Fq "title:'Collect Information'" portal-admin-journey.js
           ! grep -Fq "title:'Diagnose'" portal-admin-journey.js
-          grep -Fq "['intake','Discovery & Diagnosis']" portal-admin-journey.js
           grep -Fq "section.id='section-intake'" portal-admin-intake.js
           grep -Fq 'Evidence Collected' portal-admin-intake.js
           grep -Fq 'Analyze Missing Information' portal-admin-intake.js
@@ -72,8 +72,8 @@ jobs:
       - name: Diagnosis intelligence and approval assertions
         run: |
           set -euo pipefail
-          grep -Fq 'diagnosisApproved' portal-admin-journey.js
-          grep -Fq 'analysis_result' portal-admin-journey.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller-v2.js
           grep -Fq 'Step\s*2\s*of\s*6' portal-diagnosis-controller-v2.js
           grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller-v2.js
@@ -96,10 +96,8 @@ jobs:
       - name: Silent-click and failure-feedback assertions
         run: |
           set -euo pipefail
-          grep -Fq 'root.onclick=handleJourneyClick' portal-admin-journey.js
-          grep -Fq 'journey-inline-notice' portal-admin-journey.js
-          grep -Fq 'No action items were created' portal-admin-journey.js
-          grep -Fq 'Starting…' portal-admin-journey.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           grep -Fq 'journey-inline-notice.error' portal-journey-qaqc.css
           grep -Fq 'event.stopImmediatePropagation' portal-diagnosis-controller-v2.js
           grep -Fq 'Diagnosis execution failed.' portal-diagnosis-controller-v2.js
@@ -112,14 +110,16 @@ jobs:
           grep -Fq 'Complete from evidence' portal-journey-task-guard.js
           grep -Fq 'Not applicable' portal-journey-task-guard.js
           grep -Fq "'not_applicable'" portal-action-execution-v2-forms.js
-          grep -Fq "'not_applicable'" portal-admin-journey.js
+          # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
+          node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
       - name: Stable deployed asset loader assertions
         run: |
           set -euo pipefail
           grep -Fq 'nexus-runtime-booting' portal-app.js
           grep -Fq 'portal-admin-journey.js' portal-app.js
           grep -Fq 'portal-action-execution-v2-forms.js' portal-app.js
-          grep -Fq 'portal-journey-task-guard.js' portal-app.js
+          ! grep -Fq 'portal-journey-task-guard.js' portal-app.js
+          grep -Fq 'portal-action-processing-engine.js' portal-app.js
           grep -Fq 'portal-journey-qaqc.css' portal-app.js
           grep -Fq 'portal-diagnosis-controller-v2.js' portal-app.js
           grep -Fq 'portal-diagnosis-execution-ux.js' portal-app.js

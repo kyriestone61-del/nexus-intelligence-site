@@ -52,7 +52,9 @@ async function saveTaskProgress(form){
   const task=taskById(form.dataset.taskId);
   if(!isClientOwned(task))throw new Error('This action is no longer editable by the client.');
   const now=new Date().toISOString();
-  const result=await sb.from('nexus_tasks').update({response_data:taskFormData(form),response_updated_at:now,status:'in_progress',updated_at:now}).eq('id',task.id).eq('company_id',state.companyId).eq('assignee','client');
+  const result=task.work_kind==='prebuild_action'
+    ?await sb.rpc('relystra_save_action_response',{p_task_id:task.id,p_response:taskFormData(form)})
+    :await sb.from('nexus_tasks').update({response_data:taskFormData(form),response_updated_at:now,status:'in_progress',updated_at:now}).eq('id',task.id).eq('company_id',state.companyId).eq('assignee','client');
   if(result.error)throw result.error;
   toast?.('Progress saved. You can return and submit when ready.');
   await portal.workspace?.();

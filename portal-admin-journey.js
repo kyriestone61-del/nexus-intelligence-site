@@ -1,159 +1,106 @@
+import {createLifecycleStore,lifecycle,visibleDeliverySections,mountMobileMenu} from './portal-delivery-lifecycle.js';
+import {mountBuilds} from './portal-builds.js';
+import {mountPackageDelivery} from './portal-package-delivery.js';
+import {mountDiagnosisOffer} from './portal-diagnosis-offer.js';
+import {workspaceUrl} from './portal-workspace-context.js';
+
 const portal=window.NexusPortal;
-if(!portal)throw new Error('Relystra portal context is unavailable.');
-const {sb,state,$,toast,workspace,log}=portal;
+if(!portal?.state.admin)throw new Error('Administrator workspace required');
+const {state,sb,toast}=portal,$=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const done=s=>['completed','approved','done','complete','not_applicable'].includes(String(s||'').toLowerCase());
-const clientWaiting=t=>t.assignee==='client'&&!done(t.status)&&t.status!=='ready_for_review';
-const nexusWaiting=t=>t.assignee==='nexus'&&!done(t.status)&&t.status!=='ready_for_review';
-const reviewWaiting=t=>t.status==='ready_for_review';
+const store=createLifecycleStore(portal),tools=new Map();
+let company=state.companyId,viewedProject=new URL(location.href).searchParams.get('project'),active='overview',refreshSequence=0,navigationSequence=0,loadError=null;
+const main=document.querySelector('.main'),nav=document.querySelector('.side-nav');
+function section(id){let el=$('section-'+id);if(!el){el=document.createElement('section');el.id='section-'+id;el.className='section';main.append(el)}return el}
+const overview=section('journey'),buildRoot=section('relystra-builds'),deliveryRoot=section('relystra-delivery'),projectsRoot=section('relystra-projects'),templatesRoot=section('relystra-templates'),settingsRoot=section('relystra-settings');
+overview.innerHTML='<div id="adminJourneyRoot"></div>';
+const header=document.createElement('div');header.id='relystraWorkspaceHeader';main.prepend(header);
+const offerRoot=document.createElement('div');offerRoot.id='relystraDiagnosisOffer';section('intake').prepend(offerRoot);
+const builds=mountBuilds(buildRoot,portal),delivery=mountPackageDelivery(deliveryRoot,portal),offer=mountDiagnosisOffer(offerRoot,portal);
 
-const STAGES=[
- {n:1,key:'setup',title:'Set Up Client',desc:'Confirm the client workspace and engagement project. This is the only setup step.',section:'clients'},
- {n:2,key:'discovery',title:'Discovery & Diagnosis',desc:'Collect evidence, let Relystra identify material information gaps, request only what is still missing, add admin context, run the diagnosis, and approve the findings.',phase:'discovery'},
- {n:3,key:'plan',title:'Agree on the Plan',desc:'Turn the approved diagnosis into one practical implementation plan and get explicit approval before building.',phase:'solution_design',package:'solution_design'},
- {n:4,key:'implementation',title:'Build, Test & Launch',desc:'Build the approved solution, run functional testing and QA/QC, complete client acceptance testing, and approve launch.',phase:'implementation',package:'implementation_launch'},
- {n:5,key:'training',title:'Train & Handoff',desc:'Train the owner/team, confirm the SOP, and make sure the client knows how the system is controlled.',phase:'training',package:'training_handoff'},
- {n:6,key:'finish',title:'Measure, Optimize & Complete',desc:'Record what changed, review failures and feedback, decide what comes next, and explicitly close the engagement.',phase:'optimization',package:'monthly_optimization'}
-];
+// Keep supporting tool buttons and their handlers, with navigation owned here.
+for(const button of nav.querySelectorAll('button[data-section]'))tools.set(button.dataset.section,button);
+const retained=document.createElement('div');retained.hidden=true;retained.id='relystraRetainedToolRoutes';
+for(const button of tools.values())retained.append(button);
+nav.replaceChildren();nav.append(retained);
+function navButton(title,target,parent=nav){const b=document.createElement('button');b.type='button';b.textContent=title;b.dataset.relystraNav=target;b.onclick=()=>navigate(target);parent.append(b);return b}
+navButton('Home','overview').classList.add('journey-primary');navButton('Clients','clients');navButton('Projects','projects');navButton('Sales','sales');
+const records=document.createElement('details');records.className='admin-tool-drawer';records.innerHTML='<summary>Records & Tools</summary>';nav.append(records);
+navButton('Files','files',records);navButton('Activity','activity',records);navButton('Templates','templates',records);
+navButton('Settings','settings').classList.add('relystra-settings-nav');
+mountMobileMenu(nav);
 
-let initialized=false,journeyButton=null,toolButtons={},diagnosisRuns=[],journeyNotice=null,renderedMove=null;
-
-function company(){return state.companies?.find(c=>c.id===state.companyId)||null}
-function project(){return window.NexusFoundationHardening?.activeProject?.()||state.projects?.[0]||null}
-function tasksFor(stage){return stage.phase?(state.tasks||[]).filter(t=>t.phase===stage.phase):[]}
-function packageExists(stage){return !!stage.package&&(state.tasks||[]).some(t=>t.package_code===stage.package)}
-function latestDiagnosis(){return diagnosisRuns.find(run=>run.status!=='draft')||null}
-function diagnosisHasResult(run=latestDiagnosis()){const r=run?.analysis_result;return !!r&&(typeof r==='string'?!!r.trim():Object.keys(r||{}).length>0)}
-function diagnosisApproved(){const r=latestDiagnosis();return !!r&&r.status==='approved'&&diagnosisHasResult(r)}
-function stageStatus(stage){
- if(stage.key==='setup')return project()?'complete':'not_started';
- if(stage.key==='discovery'){
-   const r=latestDiagnosis();
-   if(r){
-     if(diagnosisApproved())return 'complete';
-     if(r.status==='ready_for_review'&&diagnosisHasResult(r))return 'review';
-     if(['queued','analyzing'].includes(r.status))return 'in_progress';
-     if(['ready_for_analysis','revision_requested','blocked','failed'].includes(r.status))return 'nexus';
-     if(diagnosisHasResult(r))return 'review';
-   }
-   const tasks=tasksFor(stage);
-   if(tasks.some(reviewWaiting))return 'review';
-   if(tasks.some(clientWaiting))return 'client';
-   if(tasks.some(nexusWaiting)||tasks.length)return 'in_progress';
-   return 'not_started';
- }
- if(stage.key==='finish'&&String(project()?.status||'').toLowerCase()==='complete')return 'complete';
- const tasks=tasksFor(stage);
- if(!tasks.length)return 'not_started';
- if(tasks.every(t=>done(t.status))){if(stage.key==='finish')return !(state.metrics||[]).length?'needs_measurement':'ready_to_finish';return 'complete'}
- if(tasks.some(reviewWaiting))return 'review';
- if(tasks.some(clientWaiting))return 'client';
- if(tasks.some(nexusWaiting))return 'nexus';
- return 'in_progress';
+function activate(id){document.querySelectorAll('.main > .section').forEach(el=>el.classList.toggle('active',el.id==='section-'+id))}
+function renderHeader(){
+  const s=store.value;if(!s){header.innerHTML='';return}
+  const name=state.companies?.find(c=>c.id===state.companyId)?.name||'Client workspace';
+  header.innerHTML=`<div class="relystra-workspace-context"><div><small>Client workspace</small><h2>${esc(name)}</h2></div><label>Build Package<select data-package-picker><option value="">Current package</option>${s.projects.map(p=>`<option value="${esc(p.id)}" ${viewedProject===p.id?'selected':''}>${esc(p.name)}${p.status==='complete'?' · Completed':''}${!p.paid?' · Historical':''}</option>`).join('')}</select></label></div><nav class="relystra-workspace-tabs" aria-label="Client delivery">${visibleDeliverySections(s).map(([key,title])=>`<button type="button" class="btn secondary ${active===key?'active':''}" data-delivery-nav="${key}" aria-current="${active===key?'page':'false'}">${title}</button>`).join('')}</nav>`;
 }
-function firstIncomplete(){return STAGES.find(s=>stageStatus(s)!=='complete')||STAGES[STAGES.length-1]}
-function priorComplete(stage){return STAGES.filter(s=>s.n<stage.n).every(s=>stageStatus(s)==='complete')}
-function counts(){const tasks=state.tasks||[];return {client:tasks.filter(clientWaiting).length,nexus:tasks.filter(nexusWaiting).length,review:tasks.filter(reviewWaiting).length}}
-function statusText(status){return ({complete:'Complete',not_started:'Not started',client:'Waiting on client',nexus:'Your work',review:'Ready for review',in_progress:'In progress',needs_measurement:'Record a result',ready_to_finish:'Ready to complete'}[status]||'In progress')}
-function statusClass(status,current){if(status==='complete')return 'complete';if(['review','client','needs_measurement','ready_to_finish'].includes(status))return 'attention';return current?'current':''}
-function stepCounts(stage){const tasks=tasksFor(stage);return {all:tasks.length,done:tasks.filter(t=>done(t.status)).length,client:tasks.filter(clientWaiting).length,nexus:tasks.filter(nexusWaiting).length,review:tasks.filter(reviewWaiting).length}}
-
-async function loadJourneyData(){
- const activeProject=project();if(!state.admin||!state.companyId||!activeProject?.id){diagnosisRuns=[];return}
- const {data,error}=await sb.from('nexus_diagnosis_runs').select('id,project_id,status,created_at,analysis_result,analysis_completed_at,execution_error').eq('company_id',state.companyId).eq('project_id',activeProject.id).neq('status','draft').order('created_at',{ascending:false}).limit(20);
- if(error){console.error('Journey diagnosis status load failed',error);diagnosisRuns=[];journeyNotice={message:'Relystra could not read Discovery & Diagnosis status. Refresh the workspace or open Discovery & Diagnosis.',type:'error'};return}
- diagnosisRuns=data||[];
+function renderOverview(){
+  if(loadError){$('adminJourneyRoot').innerHTML=`<p role="alert">${esc(loadError.message)}</p><button class="btn secondary" data-workspace-retry>Retry</button>`;return}
+  const next=lifecycle(store.value),actor={ADMIN:'Relystra',CLIENT:'Client',AI_SYSTEM:'AI / system',NO_ACTION_COMPLETE:'No action required'}[next.actor];
+  $('adminJourneyRoot').innerHTML=`<header><div class="eyebrow">Overview</div><h1>${esc(next.title)}</h1><p>${esc(next.detail)}</p></header><section class="relystra-build-card"><p><b>Who moves next:</b> ${actor}</p>${next.blocker?`<p role="status">${esc(next.blocker)}</p>`:''}${next.percent!==null?`<label>Build Package progress <progress max="100" value="${next.percent}">${next.percent}%</progress> ${next.percent}%</label>`:''}<button type="button" class="btn primary" data-delivery-nav="${esc(next.section)}">${esc(next.label)}</button></section><p>Current stage: ${esc(next.stage.replaceAll('_',' '))}</p>`;
 }
-function ensureSection(){const main=document.querySelector('.main');if(!main)return null;let section=$('section-journey');if(!section){section=document.createElement('section');section.id='section-journey';section.className='section admin-journey-section';section.innerHTML='<div id="adminJourneyRoot"></div>';main.prepend(section)}return section}
-async function showJourney(){
- if(!state.admin)return;
- const section=ensureSection();
- document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s===section));
- document.querySelectorAll('.side-nav button').forEach(b=>b.classList.toggle('active',b===journeyButton));
- renderJourney();window.scrollTo(0,0);
- await loadJourneyData();
- if(section?.classList.contains('active'))renderJourney();
+async function refresh(){
+  const version=++refreshSequence;
+  if(company!==state.companyId){company=state.companyId;viewedProject=null;active='overview';navigationSequence++;header.hidden=false;activate('journey');store.invalidate();buildRoot.replaceChildren();deliveryRoot.replaceChildren()}
+  try{const s=await store.refresh(viewedProject);if(!s||version!==refreshSequence)return;loadError=null;renderHeader();renderOverview();await offer.refresh(s);
+    if(active==='builds')await builds.refresh();else if(['progress','final-package','support'].includes(active))await delivery.refresh({projectId:s.project_id,section:active});
+  }catch(error){if(version===refreshSequence){loadError=error;header.innerHTML='<p role="alert">Workspace status could not be loaded.</p>';$('adminJourneyRoot').innerHTML=`<p role="alert">${esc(error.message)}</p><button class="btn secondary" data-workspace-retry>Retry</button>`}}
 }
-async function refreshJourneyInPlace(){await loadJourneyData();if($('section-journey')?.classList.contains('active'))renderJourney()}
-function activateSection(section){document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===`section-${section}`));document.querySelectorAll('.side-nav button').forEach(b=>b.classList.toggle('active',b.dataset.section===section));window.scrollTo(0,0)}
-function openTool(section,view){const b=toolButtons[section]||document.querySelector(`.side-nav button[data-section="${section}"]`);if(b)b.click();else if($(`section-${section}`))activateSection(section);else return toast('That tool is not available in this workspace.');if(section==='tasks'&&view)setTimeout(()=>document.querySelector(`#actionExecutionFilters button[data-view="${view}"]`)?.click(),120)}
-function rebuildAdminNav(){
- if(!state.admin)return;const nav=document.querySelector('.side-nav');if(!nav)return;
- const existing=[...nav.querySelectorAll('button[data-section]')];existing.forEach(b=>toolButtons[b.dataset.section]=b);nav.innerHTML='';
- const head=document.createElement('div');head.className='ops-nav-group';head.textContent='Client Delivery';nav.appendChild(head);
- journeyButton=document.createElement('button');journeyButton.type='button';journeyButton.className='journey-primary active';journeyButton.textContent='Client Journey';journeyButton.onclick=showJourney;nav.appendChild(journeyButton);
- if(toolButtons.clients){toolButtons.clients.textContent='Clients';nav.appendChild(toolButtons.clients)}
- const note=document.createElement('div');note.className='admin-journey-only-note';note.textContent='Run the engagement from Client Journey. Open supporting tools only when the current step sends you there.';nav.appendChild(note);
- const drawer=document.createElement('details');drawer.className='admin-tool-drawer';drawer.innerHTML='<summary>Tools & records</summary><div class="admin-tool-buttons"></div>';const box=drawer.querySelector('.admin-tool-buttons');
- const order=[['intake','Discovery & Diagnosis'],['tasks','Action Items'],['documents','Files & Information'],['approvals','Approvals'],['automations','Automations'],['metrics','Improvements'],['timeline','Projects & Milestones'],['requests','Requests'],['activity','Activity'],['command','Command Center'],['overview','Client Snapshot']];
- order.forEach(([key,label])=>{const b=toolButtons[key];if(!b)return;b.textContent=label;box.appendChild(b)});nav.appendChild(drawer);
- const pill=document.querySelector('.topbar .pill');if(pill)pill.textContent='CLIENT DELIVERY';
+async function navigate(target){
+  const version=++navigationSequence;
+  active=target;header.hidden=['clients','sales','projects','templates','settings'].includes(target);
+  document.querySelectorAll('[data-relystra-nav]').forEach(b=>b.classList.toggle('active',b.dataset.relystraNav===target));
+  const aliases={diagnosis:'intake',actions:'tasks',files:'documents',sales:'revenue'};
+  if(target==='overview'){activate('journey');renderOverview()}
+  else if(target==='builds'){activate('relystra-builds');await builds.refresh()}
+  else if(['progress','final-package','support'].includes(target)){
+    if(store.value?.project_type&&store.value.project_type!=='build_package'){tools.get('timeline')?.click();activate('timeline')}
+    else{activate('relystra-delivery');await delivery.refresh({projectId:store.value?.project_id,section:target})}
+  }else if(target==='projects'){activate('relystra-projects');await renderProjects()}
+  else if(target==='templates'){activate('relystra-templates');await renderTemplates()}
+  else if(target==='settings'){activate('relystra-settings');await renderSettings()}
+  else{const key=aliases[target]||target;tools.get(key)?.click();activate(key);if(target==='diagnosis')await offer.refresh(store.value)}
+  if(version!==navigationSequence)return;
+  renderHeader();const url=new URL(workspaceUrl(location.href,state.companyId,viewedProject));url.searchParams.set('section',target);history.replaceState(null,'',url.pathname+url.search+url.hash);window.scrollTo({top:0,left:0,behavior:'auto'});
 }
-function recordsTarget(stage){return ({setup:'clients',discovery:'intake',plan:'approvals',implementation:'automations',training:'tasks',finish:'metrics'}[stage.key]||'tasks')}
-function stageAction(stage,status,locked){
- if(locked)return '<span class="journey-status">Locked</span>';
- if(stage.key==='setup')return project()?'<button class="btn secondary" data-open="clients" type="button">View client</button>':'<button class="btn primary" data-open="clients" type="button">Set up client →</button>';
- if(stage.key==='discovery'){
-   const label=status==='complete'?'View approved diagnosis':status==='review'?'Review diagnosis':status==='client'?'Review Discovery & Diagnosis':status==='in_progress'?'View Discovery & Diagnosis':'Open Discovery & Diagnosis →';
-   return `<button class="btn ${status==='complete'?'secondary':'primary'}" data-open="intake" type="button">${label}</button>`;
- }
- if(status==='complete')return `<button class="btn secondary" data-stage-records="${stage.key}" type="button">View records</button>`;
- if(status==='ready_to_finish')return '<button class="btn primary" data-finish-engagement type="button">Complete engagement →</button>';
- if(status==='review')return '<button class="btn primary" data-open="tasks" data-view="ready_review" type="button">Review submission →</button>';
- if(status==='client')return '<button class="btn primary" data-open="tasks" data-view="client_work" type="button">See what client owes →</button>';
- if(status==='nexus'||status==='in_progress')return '<button class="btn primary" data-open="tasks" data-view="my_work" type="button">Continue my work →</button>';
- if(status==='needs_measurement')return '<button class="btn primary" data-open="metrics" type="button">Record result →</button>';
- if(status==='not_started'&&stage.package)return `<button class="btn primary" data-start-package="${stage.package}" type="button">Start this step →</button>`;
- return '';
+async function renderProjects(){
+  const {data,error}=await sb.from('nexus_projects').select('id,company_id,name,status,project_type,paid_at,package_stage').order('created_at',{ascending:false});
+  projectsRoot.innerHTML=`<h1>Projects</h1><p>Each new Project is a paid Build Package. Existing engagements remain available as historical records.</p>${error?`<p role="alert">${esc(error.message)}</p>`:`<div class="relystra-build-grid">${(data||[]).map(p=>`<article class="relystra-build-card"><h2>${esc(p.name)}</h2><p>${esc(state.companies?.find(c=>c.id===p.company_id)?.name||'Client')}</p><p>${esc(p.paid_at?p.package_stage||p.status:'Historical engagement · '+p.status)}</p><button type="button" class="btn secondary" data-project-open="${esc(p.id)}" data-company="${esc(p.company_id)}">Open package</button></article>`).join('')||'<p>No Projects yet. Verified Build Plan payment creates the first package.</p>'}</div>`}`;
 }
-function nextMove(stage,status){
- if(stage.key==='setup'&&!project())return {title:'Set up this client first',copy:'Create or confirm the client engagement project. After that, Relystra can guide the work in order.',label:'Open Clients',open:'clients'};
- if(stage.key==='discovery'){
-   const r=latestDiagnosis();
-   if(!r){
-     if(status==='client')return {title:'The client has requested discovery information to complete',copy:'Open Discovery & Diagnosis to see the outstanding information gaps and current evidence. Relystra will automatically incorporate the client response when it arrives.',label:'Open Discovery & Diagnosis',open:'intake'};
-     if(status==='review')return {title:'New client discovery information is ready',copy:'Open Discovery & Diagnosis, review the new evidence, refresh the material-gap analysis, and run the diagnosis when the evidence is sufficient.',label:'Review Discovery Information',open:'intake'};
-     return {title:'Build the evidence-backed diagnosis',copy:'Open Discovery & Diagnosis. Add relevant evidence, let Relystra identify material information gaps, request only what is still missing, add your context, then run the diagnosis.',label:'Open Discovery & Diagnosis',open:'intake'};
-   }
-   if(['queued','analyzing'].includes(r.status))return {title:'Diagnosis is running',copy:'Relystra is analyzing the authorized evidence, client responses, and admin context. Open Discovery & Diagnosis to view the current state.',label:'View Diagnosis Status',open:'intake'};
-   if(['ready_for_analysis'].includes(r.status))return {title:'Run the diagnosis',copy:'The evidence is ready for analysis. Open Discovery & Diagnosis and run the existing diagnosis.',label:'Run Diagnosis',open:'intake'};
-   if(['revision_requested','blocked','failed'].includes(r.status))return {title:'Resolve the diagnosis issue',copy:'Open Discovery & Diagnosis to review the failure or revision instruction, correct the issue, and retry without losing the evidence already collected.',label:'Resolve Diagnosis',open:'intake'};
-   if(r.status==='ready_for_review'||diagnosisHasResult(r))return {title:'Review and approve the diagnosis',copy:'Analysis is complete. Review the evidence-backed current state, process map, bottlenecks, root causes, baselines, priorities, unknowns, and recommended first intervention, then approve when correct.',label:'Review Diagnosis',open:'intake'};
-   return {title:'Continue Discovery & Diagnosis',copy:'Open Step 2 to continue from the current evidence and diagnosis state.',label:'Open Discovery & Diagnosis',open:'intake'};
- }
- if(stage.key==='finish'){
-   if(!(state.metrics||[]).length)return {title:'Record what changed',copy:'Add at least one baseline/current result before closing the engagement. This becomes your proof of impact.',label:'Open Improvements',open:'metrics'};
-   if(status==='not_started')return {title:'Run the final review',copy:'Create the optimization/closeout actions to review KPIs, failures, feedback, and the next recommendation.',label:'Start Final Review',package:stage.package};
-   if(status==='ready_to_finish')return {title:'Complete the engagement',copy:'Delivery, handoff, optimization review, and a measured result are complete. Close the engagement when you are satisfied.',label:'Mark Engagement Complete',finish:true};
- }
- if(status==='not_started'&&stage.package)return {title:`Start Step ${stage.n}: ${stage.title}`,copy:'Relystra will create the standard actions for this stage in the correct order.',label:'Start This Step',package:stage.package};
- if(status==='review')return {title:'A submission is ready for you',copy:'Review what the client submitted. Approve it or send it back for revision.',label:'Review Now',open:'tasks',view:'ready_review'};
- if(status==='client')return {title:'The client has the next move',copy:'Check the client queue and follow up only on the outstanding action.',label:'View Client Work',open:'tasks',view:'client_work'};
- if(status==='nexus'||status==='in_progress')return {title:'You have the next move',copy:'Open your Relystra work and complete the next unblocked action.',label:'Continue My Work',open:'tasks',view:'my_work'};
- if(status==='needs_measurement')return {title:'Record the result before closing',copy:'Capture the baseline, current value, and measurement context so the impact is documented.',label:'Record Result',open:'metrics'};
- return {title:'Review this stage',copy:'Open the supporting records for this stage.',label:'Open Records',open:recordsTarget(stage)};
+async function renderTemplates(){
+  const rows=await Promise.all([sb.from('nexus_action_templates').select('code,title,instructions,workflow_metadata').eq('active',true).order('sort_order'),sb.from('nexus_resolution_catalog').select('code,title,category,default_recipe').eq('active',true).order('title')]);
+  const error=rows.find(r=>r.error)?.error;
+  templatesRoot.innerHTML=`<h1>Templates</h1>${error?`<p role="alert">${esc(error.message)}</p>`:`<h2>Pre-build Actions</h2>${rows[0].data.filter(t=>t.workflow_metadata?.work_kind==='prebuild_action').map(t=>`<details class="relystra-build-card"><summary>${esc(t.title)}</summary><p>${esc(t.instructions)}</p></details>`).join('')}<h2>Builds</h2>${rows[1].data.filter(t=>t.default_recipe?.catalog_kind==='build_template').map(t=>`<details class="relystra-build-card"><summary>${esc(t.title)}</summary><p>${esc(t.category)}</p><ul>${(t.default_recipe.default_checklist||[]).map(i=>`<li>${esc(i)}</li>`).join('')}</ul></details>`).join('')}`}`;
 }
-function renderJourney(){
- if(!state.admin)return;const root=$('adminJourneyRoot');if(!root)return;
- const current=firstIncomplete(),currentStatus=stageStatus(current),move=nextMove(current,currentStatus),c=counts(),co=company(),p=project(),completed=STAGES.filter(s=>stageStatus(s)==='complete').length;renderedMove={move,stage:current};
- root.innerHTML=`<div class="admin-journey-hero"><div><div class="eyebrow">Relystra admin · guided delivery</div><h1>Run this client one step at a time.</h1><p>Stay on this page. Relystra tells you the current stage, who has the next move, and which supporting tool to open.</p></div><div class="admin-journey-client"><span>Active client</span><b>${esc(co?.name||'No client selected')}</b><span style="margin-top:7px">${esc(p?.name||'No engagement project')}</span></div></div>
- <div class="journey-progress">${STAGES.map(s=>`<span class="${stageStatus(s)==='complete'?'complete':s.key===current.key?'current':''}"></span>`).join('')}</div>
- <section class="journey-focus"><div class="journey-focus-top"><div><div class="kicker">Your next move · Step ${current.n} of ${STAGES.length}</div><h2>${esc(move.title)}</h2><p>${esc(move.copy)}</p></div><span class="journey-status ${statusClass(currentStatus,true)}">${esc(statusText(currentStatus))}</span></div>${journeyNotice?`<div class="journey-inline-notice ${esc(journeyNotice.type)}">${esc(journeyNotice.message)}</div>`:''}<div class="journey-focus-actions"><button id="journeyPrimaryAction" class="btn primary" data-primary-action type="button">${esc(move.label)} →</button>${current.n>1?'<button class="btn secondary" data-current-records type="button">View step records</button>':''}</div></section>
- <div class="journey-summary-grid"><div class="journey-summary-card"><b>${completed}/${STAGES.length}</b><span>Stages complete</span></div><div class="journey-summary-card"><b>${c.client}</b><span>Waiting on client</span></div><div class="journey-summary-card"><b>${c.review+c.nexus}</b><span>Need your attention</span></div></div>
- <div class="journey-steps">${STAGES.map(stage=>{const status=stageStatus(stage),isCurrent=stage.key===current.key,locked=!priorComplete(stage),sc=stepCounts(stage);let meta='';if(stage.key==='discovery'){const r=latestDiagnosis();meta=diagnosisApproved()?'<span>Diagnosis approved</span>':r?.status==='ready_for_review'?'<span>Diagnosis ready for review</span>':['queued','analyzing'].includes(r?.status)?'<span>Diagnosis running</span>':['blocked','failed','revision_requested'].includes(r?.status)?'<span>Diagnosis needs attention</span>':r?.status==='ready_for_analysis'?'<span>Evidence ready for diagnosis</span>':diagnosisHasResult(r)?'<span>Diagnosis output ready</span>':sc.client?`<span>${sc.client} client request${sc.client===1?'':'s'} open</span>`:'<span>Evidence collection and diagnosis not yet approved</span>'}else if(stage.phase)meta=`<span>${sc.done}/${sc.all||0} actions complete</span>`;return `<article class="journey-step ${status==='complete'?'complete':''} ${isCurrent?'current':''} ${locked?'locked':''}"><div class="journey-step-number">${status==='complete'?'✓':stage.n}</div><div><h3>${stage.title}</h3><p>${stage.desc}</p><div class="journey-step-meta">${meta}${sc.client&&stage.key!=='discovery'?`<span>${sc.client} client</span>`:''}${sc.review?`<span>${sc.review} review</span>`:''}${sc.nexus?`<span>${sc.nexus} Relystra</span>`:''}</div></div><div class="journey-step-action">${stageAction(stage,status,locked)}</div></article>`}).join('')}</div>
- <details class="journey-help"><summary>What happened to the other Relystra tabs?</summary><p>Nothing was removed. Discovery & Diagnosis, Action Items, Files, Approvals, Automations, Improvements, Projects, Requests, and Activity remain supporting systems. Client Journey tells you when to use them.</p></details>`;
- root.onclick=handleJourneyClick;
+async function renderSettings(){
+  const {data,error}=await sb.from('nexus_delivery_settings').select('*').single();
+  settingsRoot.innerHTML=`<h1>Settings</h1>${error?`<p role="alert">${esc(error.message)}</p>`:`<form id="relystraDeliverySettings" class="relystra-build-card"><label>Diagnosis price (${esc(data.currency.toUpperCase())})<input name="price" type="number" min="0.01" step="0.01" required value="${data.diagnosis_price_cents/100}"></label><label>Parallel Build capacity<input name="capacity" type="number" min="1" step="1" required value="${data.parallel_capacity}"></label><label>QA allowance (business days)<input name="qa" type="number" min="1" step="1" required value="${data.qa_days}"></label><label>Client review allowance (business days)<input name="review" type="number" min="1" step="1" required value="${data.client_review_days}"></label><fieldset><legend>Complexity scoring</legend><label>Simple maximum score<input name="simple_max" type="number" min="5" max="13" required value="${data.simple_max}"></label><label>Standard maximum score<input name="standard_max" type="number" min="6" max="14" required value="${data.standard_max}"></label></fieldset>${['simple','standard','advanced'].map(tier=>`<fieldset><legend>${esc(tier)} Build guidance</legend><label>Minimum price (${esc(data.currency.toUpperCase())})<input name="${tier}_price_min" type="number" min="0.01" step="0.01" required value="${data.price_guidance[tier][0]/100}"></label><label>Maximum guide price<input name="${tier}_price_max" type="number" min="0.01" step="0.01" required value="${data.price_guidance[tier][1]/100}"></label><label>Minimum business days<input name="${tier}_days_min" type="number" min="1" required value="${data.duration_guidance[tier][0]}"></label><label>Maximum business days<input name="${tier}_days_max" type="number" min="1" required value="${data.duration_guidance[tier][1]}"></label></fieldset>`).join('')}<p>Guidance supports review. Each approved Build retains its own fixed price and duration.</p><button class="btn primary">Save delivery settings</button></form>`}`;
 }
-async function handleJourneyClick(event){const b=event.target.closest('button');if(!b)return;if(b.matches('[data-primary-action]')){event.preventDefault();return runMove(renderedMove?.move,renderedMove?.stage,b)}if(b.dataset.open){event.preventDefault();return openTool(b.dataset.open,b.dataset.view||null)}if(b.dataset.startPackage){event.preventDefault();return startPackage(b.dataset.startPackage,b)}if(b.dataset.currentRecords!==undefined){event.preventDefault();return openTool(recordsTarget(renderedMove.stage))}if(b.dataset.stageRecords){event.preventDefault();const stage=STAGES.find(s=>s.key===b.dataset.stageRecords);return openTool(recordsTarget(stage))}if(b.hasAttribute('data-finish-engagement')){event.preventDefault();return finishEngagement()}}
-async function runMove(move,stage,button){if(!move||!stage){journeyNotice={message:'Relystra could not resolve the current action. Reload the workspace and try again.',type:'error'};return renderJourney()}if(move.open)return openTool(move.open,move.view);if(move.package)return startPackage(move.package,button);if(move.finish)return finishEngagement();return openTool(recordsTarget(stage))}
-async function startPackage(code,button){
- const stage=STAGES.find(s=>s.package===code);if(!stage){journeyNotice={message:'This workflow package is not recognized.',type:'error'};return renderJourney()}
- if(packageExists(stage))return openTool('tasks',stageStatus(stage)==='client'?'client_work':stageStatus(stage)==='review'?'ready_review':'my_work');
- const p=project();if(!p){journeyNotice={message:'Set up the client project first.',type:'error'};return renderJourney()}
- const original=button?.textContent;if(button){button.disabled=true;button.textContent='Starting…'}journeyNotice=null;
- try{const {data,error}=await sb.rpc('nexus_assign_action_package',{p_company_id:state.companyId,p_project_id:p.id,p_package_code:code,p_start_date:new Date().toISOString().slice(0,10)});if(error)throw error;try{if(log)await log('journey_stage_started','project',p.id,`Started guided client stage: ${stage.title}`)}catch{}await workspace();await loadJourneyData();if(!packageExists(stage))throw new Error('No action items were created. Relystra kept the stage unchanged so it can be retried safely.');journeyNotice={message:Number(data)>0?`${data} action item${Number(data)===1?'':'s'} created for ${stage.title}.`:`${stage.title} was already initialized. No duplicate work was created.`,type:'success'};renderJourney()}catch(error){console.error('Journey package start failed',error);journeyNotice={message:`${stage.title} could not start: ${error.message||'Unknown error'}.`,type:'error'};toast(journeyNotice.message);renderJourney()}finally{if(button&&button.isConnected){button.disabled=false;button.textContent=original||'Start this step →'}}
-}
-async function finishEngagement(){const p=project();if(!p)return;if(!confirm('Mark this client engagement complete? All records will remain available.'))return;const {error}=await sb.from('nexus_projects').update({status:'complete',updated_at:new Date().toISOString()}).eq('id',p.id);if(error){journeyNotice={message:error.message||'The engagement could not be completed.',type:'error'};return renderJourney()}try{if(log)await log('engagement_completed','project',p.id,`Engagement completed: ${p.name}`)}catch{}toast('Engagement marked complete.');await workspace();await showJourney()}
-async function init(){if(initialized||!state.admin)return;initialized=true;ensureSection();rebuildAdminNav();await showJourney();$('companySelect')?.addEventListener('change',()=>setTimeout(async()=>{journeyNotice=null;rebuildAdminNav();await showJourney()},650));const refreshDiagnosisJourney=()=>setTimeout(refreshJourneyInPlace,120);window.addEventListener('nexus:diagnosis-changed',refreshDiagnosisJourney);window.addEventListener('nexus:diagnosis-updated',refreshDiagnosisJourney)}
-function tryInit(){if(state.admin&&state.user&&document.querySelector('.side-nav'))init()}
-tryInit();sb.auth.onAuthStateChange(()=>setTimeout(tryInit,500));
+main.addEventListener('click',async event=>{
+  const button=event.target.closest('button');if(!button)return;
+  if(button.dataset.deliveryNav)navigate(button.dataset.deliveryNav);
+  if(button.hasAttribute('data-workspace-retry'))refresh();
+  if(button.dataset.projectOpen){
+    const id=button.dataset.projectOpen,co=button.dataset.company;await portal.workspace(co,{reason:'open-paid-project'});if(state.companyId!==co)return;
+    company=co;viewedProject=id;await refresh();await navigate('progress');
+  }
+});
+header.addEventListener('change',async event=>{if(!event.target.matches('[data-package-picker]'))return;viewedProject=event.target.value||null;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,viewedProject));await refresh();await navigate('overview')});
+settingsRoot.addEventListener('submit',async event=>{
+  event.preventDefault();const form=event.target,fd=new FormData(form),n=key=>Number(fd.get(key)),button=form.querySelector('button');
+  const price_guidance={},duration_guidance={};
+  for(const tier of ['simple','standard','advanced']){
+    price_guidance[tier]=['min','max'].map(edge=>Math.round(n(`${tier}_price_${edge}`)*100));
+    duration_guidance[tier]=['min','max'].map(edge=>n(`${tier}_days_${edge}`));
+    if(price_guidance[tier][0]>price_guidance[tier][1]||duration_guidance[tier][0]>duration_guidance[tier][1]){toast('Each guidance maximum must be at least its minimum.');return}
+  }
+  if(n('standard_max')<=n('simple_max')){toast('Standard scoring must extend beyond Simple scoring.');return}
+  button.disabled=true;
+  try{const {error}=await sb.from('nexus_delivery_settings').update({diagnosis_price_cents:Math.round(n('price')*100),parallel_capacity:n('capacity'),qa_days:n('qa'),client_review_days:n('review'),simple_max:n('simple_max'),standard_max:n('standard_max'),price_guidance,duration_guidance,updated_by:state.user.id,updated_at:new Date().toISOString()}).eq('singleton',true);if(error)throw error;toast('Delivery settings saved.');await refresh()}
+  catch(error){toast(error.message)}finally{button.disabled=false}
+});
+for(const event of ['nexus:workspace-ready','nexus:diagnosis-changed','nexus:diagnosis-updated','nexus:delivery-changed','relystra:delivery-changed'])window.addEventListener(event,refresh);
+window.NexusAdminJourney=Object.freeze({refresh,navigate});
+await refresh();await navigate(new URL(location.href).searchParams.get('section')||'overview');

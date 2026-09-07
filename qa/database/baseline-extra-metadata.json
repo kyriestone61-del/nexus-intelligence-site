@@ -1,0 +1,285 @@
+{
+  "columns": [
+    {
+      "not_null": true,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "id",
+      "column_type": "uuid",
+      "default_value": "gen_random_uuid()"
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "company_id",
+      "column_type": "uuid",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "offering_code",
+      "column_type": "text",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "status",
+      "column_type": "text",
+      "default_value": "'active'::text"
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "source",
+      "column_type": "text",
+      "default_value": "'manual'::text"
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "scope",
+      "column_type": "jsonb",
+      "default_value": "'{}'::jsonb"
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "starts_at",
+      "column_type": "timestamp with time zone",
+      "default_value": "now()"
+    },
+    {
+      "not_null": false,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "ends_at",
+      "column_type": "timestamp with time zone",
+      "default_value": null
+    },
+    {
+      "not_null": false,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "created_by",
+      "column_type": "uuid",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "created_at",
+      "column_type": "timestamp with time zone",
+      "default_value": "now()"
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_company_entitlements",
+      "column_name": "updated_at",
+      "column_type": "timestamp with time zone",
+      "default_value": "now()"
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_comments",
+      "column_name": "id",
+      "column_type": "uuid",
+      "default_value": "gen_random_uuid()"
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_comments",
+      "column_name": "company_id",
+      "column_type": "uuid",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_comments",
+      "column_name": "task_id",
+      "column_type": "uuid",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_comments",
+      "column_name": "author_id",
+      "column_type": "uuid",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_comments",
+      "column_name": "body",
+      "column_type": "text",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_comments",
+      "column_name": "created_at",
+      "column_type": "timestamp with time zone",
+      "default_value": "now()"
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_events",
+      "column_name": "id",
+      "column_type": "bigint",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_events",
+      "column_name": "company_id",
+      "column_type": "uuid",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_events",
+      "column_name": "task_id",
+      "column_type": "uuid",
+      "default_value": null
+    },
+    {
+      "not_null": false,
+      "table_name": "nexus_task_events",
+      "column_name": "actor_id",
+      "column_type": "uuid",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_events",
+      "column_name": "actor_scope",
+      "column_type": "text",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_events",
+      "column_name": "event_type",
+      "column_type": "text",
+      "default_value": null
+    },
+    {
+      "not_null": false,
+      "table_name": "nexus_task_events",
+      "column_name": "from_status",
+      "column_type": "text",
+      "default_value": null
+    },
+    {
+      "not_null": false,
+      "table_name": "nexus_task_events",
+      "column_name": "to_status",
+      "column_type": "text",
+      "default_value": null
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_events",
+      "column_name": "detail",
+      "column_type": "jsonb",
+      "default_value": "'{}'::jsonb"
+    },
+    {
+      "not_null": true,
+      "table_name": "nexus_task_events",
+      "column_name": "created_at",
+      "column_type": "timestamp with time zone",
+      "default_value": "now()"
+    }
+  ],
+  "constraints": [
+    {
+      "name": "nexus_company_entitlements_company_id_fkey",
+      "table": "nexus_company_entitlements",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_company_entitlements_company_id_offering_code_key",
+      "table": "nexus_company_entitlements",
+      "definition": "UNIQUE (company_id, offering_code)"
+    },
+    {
+      "name": "nexus_company_entitlements_created_by_fkey",
+      "table": "nexus_company_entitlements",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_company_entitlements_offering_code_fkey",
+      "table": "nexus_company_entitlements",
+      "definition": "FOREIGN KEY (offering_code) REFERENCES nexus_commercial_offerings(code) ON DELETE RESTRICT"
+    },
+    {
+      "name": "nexus_company_entitlements_pkey",
+      "table": "nexus_company_entitlements",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_company_entitlements_scope_check",
+      "table": "nexus_company_entitlements",
+      "definition": "CHECK ((jsonb_typeof(scope) = 'object'::text))"
+    },
+    {
+      "name": "nexus_company_entitlements_source_check",
+      "table": "nexus_company_entitlements",
+      "definition": "CHECK ((source = ANY (ARRAY['manual'::text, 'contract'::text, 'purchase'::text, 'legacy'::text, 'diagnosis_delivery'::text])))"
+    },
+    {
+      "name": "nexus_company_entitlements_status_check",
+      "table": "nexus_company_entitlements",
+      "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'pending'::text, 'expired'::text, 'cancelled'::text])))"
+    },
+    {
+      "name": "nexus_task_comments_author_id_fkey",
+      "table": "nexus_task_comments",
+      "definition": "FOREIGN KEY (author_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_task_comments_body_check",
+      "table": "nexus_task_comments",
+      "definition": "CHECK (((char_length(TRIM(BOTH FROM body)) >= 1) AND (char_length(TRIM(BOTH FROM body)) <= 4000)))"
+    },
+    {
+      "name": "nexus_task_comments_company_id_fkey",
+      "table": "nexus_task_comments",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_task_comments_pkey",
+      "table": "nexus_task_comments",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_task_comments_task_id_fkey",
+      "table": "nexus_task_comments",
+      "definition": "FOREIGN KEY (task_id) REFERENCES nexus_tasks(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_task_events_actor_id_fkey",
+      "table": "nexus_task_events",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_task_events_actor_scope_check",
+      "table": "nexus_task_events",
+      "definition": "CHECK ((actor_scope = ANY (ARRAY['client'::text, 'nexus'::text, 'system'::text])))"
+    },
+    {
+      "name": "nexus_task_events_company_id_fkey",
+      "table": "nexus_task_events",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_task_events_pkey",
+      "table": "nexus_task_events",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_task_events_task_id_fkey",
+      "table": "nexus_task_events",
+      "definition": "FOREIGN KEY (task_id) REFERENCES nexus_tasks(id) ON DELETE CASCADE"
+    }
+  ]
+}

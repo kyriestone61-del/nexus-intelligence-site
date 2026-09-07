@@ -86,8 +86,8 @@ jobs:
           set -euo pipefail
           grep -Fq 'Never share passwords or secrets here.' portal-action-execution-v2.js
           grep -Fq 'Open secure upload' portal-action-execution-v2.js
-          grep -Fq 'Request revision' portal-action-execution-v2.js
-          grep -Fq 'Approve & complete' portal-action-execution-v2.js
+          grep -Fq 'Request change' portal-action-execution-v2.js
+          grep -Fq 'Approve step' portal-action-execution-v2.js
           grep -Fq 'Submit uploaded item for review' portal-action-execution-v2-forms.js
           grep -Fq 'data-v2-field' portal-action-execution-v2-forms.js
           grep -Fq 'Address ${remaining.length} remaining checklist item' portal-action-execution-v2-forms.js

@@ -1,9 +1,10 @@
+import {selectActiveProject,terminalProject} from './portal-workspace-context.js';
+
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast}=portal;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let memoryBusy=false,memoryScheduled=false,engagementBusy=false;
-const terminalProject=p=>['complete','cancelled'].includes(String(p?.status||'').toLowerCase());
+let memoryBusy=false,memoryScheduled=false;
 
 function ensureMobileHardening(){
   if(document.getElementById('nexusMobileHardening'))return;
@@ -81,12 +82,7 @@ Object.defineProperty(state,'projects',{
 state.projects=projectRows;
 
 function openProjects(){return (state.projects||[]).filter(p=>!terminalProject(p))}
-function activeProject(){
-  const explicit=state.activeProjectId&&state.projects?.find(p=>p.id===state.activeProjectId);
-  if(explicit&&!terminalProject(explicit))return explicit;
-  const open=openProjects();
-  return open.length===1?open[0]:null;
-}
+function activeProject(){return selectActiveProject(state.projects||[],state.companyId,state.activeProjectId)}
 portal.activeProject=activeProject;
 
 // portal-ops still contains an old shared raw Company Memory SELECT. Production RLS correctly
@@ -114,29 +110,8 @@ function createOpsClient(base){
 }
 const opsClient=createOpsClient(sb);
 
-async function syncActiveEngagement(){
-  if(engagementBusy||!state.user||!state.companyId)return activeProject();
-  engagementBusy=true;
-  try{
-    const {data,error}=await sb.from('nexus_active_engagements').select('project_id').eq('company_id',state.companyId).maybeSingle();
-    if(error){
-      if(!/does not exist|schema cache/i.test(String(error.message||'')))console.error('Active engagement lookup failed',error);
-      return activeProject();
-    }
-    state.activeProjectId=data?.project_id||null;
-    state.projects=[...(state.projects||[])];
-    const project=activeProject();
-    if(project){
-      const projectBox=document.getElementById('projectBox');
-      if(projectBox)projectBox.innerHTML=`<span class="pill">${esc(project.status)}</span><h3>${esc(project.name)}</h3><p class="small">${esc(project.summary||project.service_type||'Relystra engagement workspace')}</p>`;
-    }
-    if(!project&&openProjects().length>1){
-      console.error('Relystra active engagement is ambiguous for the selected company.');
-      toast?.('This client has multiple open projects. Select the active engagement before continuing.');
-    }
-    return project;
-  }finally{engagementBusy=false}
-}
+// The workspace loader owns the pointer and rows as one atomic snapshot.
+async function syncActiveEngagement(){return activeProject()}
 portal.syncActiveEngagement=syncActiveEngagement;
 
 async function renderClientMemory(){
@@ -215,25 +190,8 @@ document.addEventListener('change',async event=>{
   }catch(error){console.error('Constrained task transition failed',error);toast?.(error?.message||'Action status could not be updated.')}
 },true);
 
-const companySelect=document.getElementById('companySelect');
-companySelect?.addEventListener('change',()=>setTimeout(async()=>{
-  state.activeProjectId=null;
-  const before=state.projects?.[0]?.id||null;
-  const project=await syncActiveEngagement();
-  // Re-run the base workspace only when canonical ordering changed so project-scoped preparation
-  // data is reloaded against the explicit active project.
-  if(project&&before&&before!==project.id)await portal.workspace();
-  scheduleMemory();
-  normalizeInbox();
-},180));
-
-window.addEventListener('nexus:diagnosis-changed',()=>setTimeout(syncActiveEngagement,100));
-for(const ms of [0,180,600])setTimeout(async()=>{
-  const before=state.projects?.[0]?.id||null;
-  const project=await syncActiveEngagement();
-  if(ms===180&&project&&before&&before!==project.id)await portal.workspace();
-  scheduleMemory();
-  normalizeInbox();
-},ms);
+window.addEventListener('nexus:workspace-ready',()=>{scheduleMemory();normalizeInbox()});
+scheduleMemory();
+normalizeInbox();
 
 window.NexusFoundationHardening={activeProject,syncActiveEngagement,renderClientMemory,opsClient,terminalProject,normalizeInbox,activateInbox};

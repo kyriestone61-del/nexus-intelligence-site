@@ -41,7 +41,8 @@ jobs:
             echo 'Rich Action Items 900ms reconciliation must not be suppressed; workspace refreshes otherwise restore the legacy task renderer.' >&2
             exit 1
           fi
-          grep -Fq 'setInterval(()=>reconcile(false).catch(console.error),900)' portal-action-execution-v2.js
+          ! grep -Fq 'setInterval(()=>reconcile(false).catch(console.error),900)' portal-action-execution-v2.js
+          grep -Fq 'nexus:workspace-ready' portal-action-execution-v2.js
           if grep -Fq 'setInterval(enhance,450)' portal-action-execution-v2-forms.js; then
             echo '450ms DOM polling must not return.' >&2
             exit 1

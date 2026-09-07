@@ -1,0 +1,1196 @@
+{
+  "constraints": [
+    {
+      "name": "nexus_platform_admins_pkey",
+      "table": "nexus_platform_admins",
+      "definition": "PRIMARY KEY (user_id)"
+    },
+    {
+      "name": "nexus_platform_admins_user_id_fkey",
+      "table": "nexus_platform_admins",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_companies_pkey",
+      "table": "nexus_companies",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_companies_created_by_fkey",
+      "table": "nexus_companies",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "nexus_company_members_pkey",
+      "table": "nexus_company_members",
+      "definition": "PRIMARY KEY (company_id, user_id)"
+    },
+    {
+      "name": "nexus_company_members_company_id_fkey",
+      "table": "nexus_company_members",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_company_members_user_id_fkey",
+      "table": "nexus_company_members",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_projects_status_check",
+      "table": "nexus_projects",
+      "definition": "CHECK ((status = ANY (ARRAY['planning'::text, 'active'::text, 'paused'::text, 'complete'::text, 'cancelled'::text])))"
+    },
+    {
+      "name": "nexus_projects_pkey",
+      "table": "nexus_projects",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_projects_company_id_fkey",
+      "table": "nexus_projects",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_projects_created_by_fkey",
+      "table": "nexus_projects",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "nexus_tasks_assignee_check",
+      "table": "nexus_tasks",
+      "definition": "CHECK ((assignee = ANY (ARRAY['client'::text, 'nexus'::text])))"
+    },
+    {
+      "name": "nexus_tasks_priority_check",
+      "table": "nexus_tasks",
+      "definition": "CHECK ((priority = ANY (ARRAY['low'::text, 'normal'::text, 'high'::text])))"
+    },
+    {
+      "name": "nexus_tasks_pkey",
+      "table": "nexus_tasks",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_tasks_company_id_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_tasks_project_id_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (project_id) REFERENCES nexus_projects(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_tasks_created_by_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "nexus_documents_status_check",
+      "table": "nexus_documents",
+      "definition": "CHECK ((status = ANY (ARRAY['uploaded'::text, 'in_review'::text, 'shared'::text, 'archived'::text])))"
+    },
+    {
+      "name": "nexus_documents_pkey",
+      "table": "nexus_documents",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_documents_storage_path_key",
+      "table": "nexus_documents",
+      "definition": "UNIQUE (storage_path)"
+    },
+    {
+      "name": "nexus_documents_company_id_fkey",
+      "table": "nexus_documents",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_documents_project_id_fkey",
+      "table": "nexus_documents",
+      "definition": "FOREIGN KEY (project_id) REFERENCES nexus_projects(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_documents_uploaded_by_fkey",
+      "table": "nexus_documents",
+      "definition": "FOREIGN KEY (uploaded_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "nexus_notifications_pkey",
+      "table": "nexus_notifications",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_notifications_company_id_fkey",
+      "table": "nexus_notifications",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_notifications_user_id_fkey",
+      "table": "nexus_notifications",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_notifications_created_by_fkey",
+      "table": "nexus_notifications",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "nexus_activity_log_pkey",
+      "table": "nexus_activity_log",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_activity_log_company_id_fkey",
+      "table": "nexus_activity_log",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_activity_log_actor_id_fkey",
+      "table": "nexus_activity_log",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_documents_request_id_fkey",
+      "table": "nexus_documents",
+      "definition": "FOREIGN KEY (request_id) REFERENCES nexus_document_requests(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_documents_sensitivity_check",
+      "table": "nexus_documents",
+      "definition": "CHECK ((sensitivity = ANY (ARRAY['standard'::text, 'confidential'::text])))"
+    },
+    {
+      "name": "nexus_documents_area_check",
+      "table": "nexus_documents",
+      "definition": "CHECK ((document_area = ANY (ARRAY['client_submission'::text, 'nexus_shared'::text, 'company_library'::text])))"
+    },
+    {
+      "name": "nexus_documents_source_role_check",
+      "table": "nexus_documents",
+      "definition": "CHECK ((source_role = ANY (ARRAY['client'::text, 'nexus'::text])))"
+    },
+    {
+      "name": "nexus_client_requests_priority_check",
+      "table": "nexus_client_requests",
+      "definition": "CHECK ((priority = ANY (ARRAY['low'::text, 'normal'::text, 'high'::text, 'urgent'::text])))"
+    },
+    {
+      "name": "nexus_client_requests_status_check",
+      "table": "nexus_client_requests",
+      "definition": "CHECK ((status = ANY (ARRAY['submitted'::text, 'reviewing'::text, 'planned'::text, 'in_progress'::text, 'waiting_client'::text, 'complete'::text, 'declined'::text])))"
+    },
+    {
+      "name": "nexus_client_requests_pkey",
+      "table": "nexus_client_requests",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_client_requests_company_id_fkey",
+      "table": "nexus_client_requests",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_client_requests_project_id_fkey",
+      "table": "nexus_client_requests",
+      "definition": "FOREIGN KEY (project_id) REFERENCES nexus_projects(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_client_requests_requested_by_fkey",
+      "table": "nexus_client_requests",
+      "definition": "FOREIGN KEY (requested_by) REFERENCES auth.users(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "nexus_documents_task_id_fkey",
+      "table": "nexus_documents",
+      "definition": "FOREIGN KEY (task_id) REFERENCES nexus_tasks(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_opportunities_status_check",
+      "table": "nexus_opportunities",
+      "definition": "CHECK ((status = ANY (ARRAY['backlog'::text, 'assessing'::text, 'recommended'::text, 'approved'::text, 'declined'::text, 'implemented'::text])))"
+    },
+    {
+      "name": "nexus_opportunities_value_score_check",
+      "table": "nexus_opportunities",
+      "definition": "CHECK (((value_score >= 1) AND (value_score <= 5)))"
+    },
+    {
+      "name": "nexus_opportunities_effort_score_check",
+      "table": "nexus_opportunities",
+      "definition": "CHECK (((effort_score >= 1) AND (effort_score <= 5)))"
+    },
+    {
+      "name": "nexus_opportunities_readiness_score_check",
+      "table": "nexus_opportunities",
+      "definition": "CHECK (((readiness_score >= 1) AND (readiness_score <= 5)))"
+    },
+    {
+      "name": "nexus_opportunities_pkey",
+      "table": "nexus_opportunities",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_opportunities_company_id_fkey",
+      "table": "nexus_opportunities",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_opportunities_project_id_fkey",
+      "table": "nexus_opportunities",
+      "definition": "FOREIGN KEY (project_id) REFERENCES nexus_projects(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_opportunities_created_by_fkey",
+      "table": "nexus_opportunities",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "nexus_commercial_offerings_pkey",
+      "table": "nexus_commercial_offerings",
+      "definition": "PRIMARY KEY (code)"
+    },
+    {
+      "name": "nexus_company_members_member_role_check",
+      "table": "nexus_company_members",
+      "definition": "CHECK ((member_role = ANY (ARRAY['owner'::text, 'executive'::text, 'finance'::text, 'tech_lead'::text, 'manager'::text, 'employee'::text, 'viewer'::text, 'client'::text])))"
+    },
+    {
+      "name": "nexus_company_members_added_by_fkey",
+      "table": "nexus_company_members",
+      "definition": "FOREIGN KEY (added_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "nexus_projects_service_slug_check",
+      "table": "nexus_projects",
+      "definition": "CHECK (((service_slug IS NULL) OR (service_slug = ANY (ARRAY['ai-opportunity-assessment'::text, 'implementation-sprint'::text, 'ai-enablement-training'::text, 'managed-ai-operations'::text, 'business-transformation'::text, 'fractional-ai-director'::text]))))"
+    },
+    {
+      "name": "nexus_documents_data_requirement_id_fkey",
+      "table": "nexus_documents",
+      "definition": "FOREIGN KEY (data_requirement_id) REFERENCES nexus_project_data_requirements(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_system_cards_version_check",
+      "table": "nexus_system_cards",
+      "definition": "CHECK ((version > 0))"
+    },
+    {
+      "name": "nexus_system_cards_status_check",
+      "table": "nexus_system_cards",
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'pilot'::text, 'active'::text, 'paused'::text, 'retired'::text])))"
+    },
+    {
+      "name": "nexus_system_cards_pkey",
+      "table": "nexus_system_cards",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_system_cards_company_id_system_code_version_key",
+      "table": "nexus_system_cards",
+      "definition": "UNIQUE (company_id, system_code, version)"
+    },
+    {
+      "name": "nexus_system_cards_company_id_fkey",
+      "table": "nexus_system_cards",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_system_cards_project_id_fkey",
+      "table": "nexus_system_cards",
+      "definition": "FOREIGN KEY (project_id) REFERENCES nexus_projects(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_system_cards_created_by_fkey",
+      "table": "nexus_system_cards",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "nexus_diagnosis_runs_status_check",
+      "table": "nexus_diagnosis_runs",
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'queued'::text, 'analyzing'::text, 'ready_for_review'::text, 'revision_requested'::text, 'blocked'::text, 'approved'::text, 'failed'::text, 'archived'::text, 'ready_for_analysis'::text, 'in_review'::text])))"
+    },
+    {
+      "name": "nexus_opportunities_source_diagnosis_run_id_fkey",
+      "table": "nexus_opportunities",
+      "definition": "FOREIGN KEY (source_diagnosis_run_id) REFERENCES nexus_diagnosis_runs(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_projects_source_diagnosis_run_id_fkey",
+      "table": "nexus_projects",
+      "definition": "FOREIGN KEY (source_diagnosis_run_id) REFERENCES nexus_diagnosis_runs(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_diagnosis_runs_pkey",
+      "table": "nexus_diagnosis_runs",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_diagnosis_runs_company_id_fkey",
+      "table": "nexus_diagnosis_runs",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_diagnosis_runs_project_id_fkey",
+      "table": "nexus_diagnosis_runs",
+      "definition": "FOREIGN KEY (project_id) REFERENCES nexus_projects(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_diagnosis_runs_transcript_document_id_fkey",
+      "table": "nexus_diagnosis_runs",
+      "definition": "FOREIGN KEY (transcript_document_id) REFERENCES nexus_documents(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_action_templates_pkey",
+      "table": "nexus_action_templates",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_action_templates_code_key",
+      "table": "nexus_action_templates",
+      "definition": "UNIQUE (code)"
+    },
+    {
+      "name": "nexus_tasks_dependency_task_id_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (dependency_task_id) REFERENCES nexus_tasks(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_tasks_source_diagnosis_run_id_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (source_diagnosis_run_id) REFERENCES nexus_diagnosis_runs(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_tasks_status_check",
+      "table": "nexus_tasks",
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'open'::text, 'not_started'::text, 'waiting_on_client'::text, 'in_progress'::text, 'blocked'::text, 'ready_for_review'::text, 'needs_revision'::text, 'approved'::text, 'completed'::text, 'done'::text, 'not_applicable'::text])))"
+    },
+    {
+      "name": "nexus_projects_client_status_updated_by_fkey",
+      "table": "nexus_projects",
+      "definition": "FOREIGN KEY (client_status_updated_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_projects_company_id_id_key",
+      "table": "nexus_projects",
+      "definition": "UNIQUE (company_id, id)"
+    },
+    {
+      "name": "nexus_active_engagements_pkey",
+      "table": "nexus_active_engagements",
+      "definition": "PRIMARY KEY (company_id)"
+    },
+    {
+      "name": "nexus_active_engagements_company_id_fkey",
+      "table": "nexus_active_engagements",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_active_engagements_updated_by_fkey",
+      "table": "nexus_active_engagements",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "nexus_active_engagement_company_project_fkey",
+      "table": "nexus_active_engagements",
+      "definition": "FOREIGN KEY (company_id, project_id) REFERENCES nexus_projects(company_id, id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_tasks_owner_user_id_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (owner_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_tasks_help_requested_by_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (help_requested_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_diagnosis_report_releases_status_check",
+      "table": "nexus_diagnosis_report_releases",
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'released'::text, 'revoked'::text])))"
+    },
+    {
+      "name": "nexus_diagnosis_report_releases_pkey",
+      "table": "nexus_diagnosis_report_releases",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "nexus_diagnosis_report_releases_diagnosis_run_id_key",
+      "table": "nexus_diagnosis_report_releases",
+      "definition": "UNIQUE (diagnosis_run_id)"
+    },
+    {
+      "name": "nexus_diagnosis_report_releases_company_id_fkey",
+      "table": "nexus_diagnosis_report_releases",
+      "definition": "FOREIGN KEY (company_id) REFERENCES nexus_companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_diagnosis_report_releases_project_id_fkey",
+      "table": "nexus_diagnosis_report_releases",
+      "definition": "FOREIGN KEY (project_id) REFERENCES nexus_projects(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_diagnosis_report_releases_diagnosis_run_id_fkey",
+      "table": "nexus_diagnosis_report_releases",
+      "definition": "FOREIGN KEY (diagnosis_run_id) REFERENCES nexus_diagnosis_runs(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "nexus_diagnosis_report_releases_released_by_fkey",
+      "table": "nexus_diagnosis_report_releases",
+      "definition": "FOREIGN KEY (released_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "nexus_tasks_archived_by_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (archived_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_resolution_catalog_version_check",
+      "table": "nexus_resolution_catalog",
+      "definition": "CHECK ((version > 0))"
+    },
+    {
+      "name": "nexus_projects_owner_scope_check",
+      "table": "nexus_projects",
+      "definition": "CHECK ((owner_scope = ANY (ARRAY['client'::text, 'nexus'::text])))"
+    },
+    {
+      "name": "nexus_tasks_owner_scope_check",
+      "table": "nexus_tasks",
+      "definition": "CHECK ((owner_scope = ANY (ARRAY['client'::text, 'nexus'::text])))"
+    },
+    {
+      "name": "nexus_projects_client_status_update_length",
+      "table": "nexus_projects",
+      "definition": "CHECK (((client_status_update IS NULL) OR ((char_length(client_status_update) >= 1) AND (char_length(client_status_update) <= 240))))"
+    },
+    {
+      "name": "nexus_tasks_source_gap_analysis_id_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (source_gap_analysis_id) REFERENCES nexus_discovery_gap_analyses(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_resolution_catalog_recipe_object",
+      "table": "nexus_resolution_catalog",
+      "definition": "CHECK ((jsonb_typeof(default_recipe) = 'object'::text))"
+    },
+    {
+      "name": "nexus_resolution_catalog_pkey",
+      "table": "nexus_resolution_catalog",
+      "definition": "PRIMARY KEY (code)"
+    },
+    {
+      "name": "nexus_tasks_source_resolution_proposal_id_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (source_resolution_proposal_id) REFERENCES nexus_resolution_proposals(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_tasks_converted_to_project_id_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (converted_to_project_id) REFERENCES nexus_projects(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_tasks_converted_to_project_by_fkey",
+      "table": "nexus_tasks",
+      "definition": "FOREIGN KEY (converted_to_project_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "nexus_projects_engagement_stage_check",
+      "table": "nexus_projects",
+      "definition": "CHECK ((engagement_stage = ANY (ARRAY['discovery'::text, 'diagnosis'::text, 'commercial'::text, 'onboarding'::text, 'implementation'::text, 'verification'::text, 'measurement'::text, 'acceptance'::text, 'complete'::text, 'build_test'::text, 'launch'::text])))"
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "SELECT",
+      "qual": "(user_id = ( SELECT auth.uid() AS uid))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_platform_admins",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins can see own admin record",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "((created_by = auth.uid()) OR nexus_is_company_member(id) OR nexus_is_platform_admin())",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_companies",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus company members can view companies",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "((created_by = auth.uid()) OR nexus_is_platform_admin())",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_companies",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus owners and admins can update companies",
+      "schemaname": "public",
+      "with_check": "((created_by = auth.uid()) OR nexus_is_platform_admin())"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_companies",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus users can create companies",
+      "schemaname": "public",
+      "with_check": "(created_by = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_activity_log",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members can add activity",
+      "schemaname": "public",
+      "with_check": "((actor_id = auth.uid()) AND (nexus_is_company_member(company_id) OR nexus_is_platform_admin()))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(nexus_is_company_member(company_id) OR nexus_is_platform_admin())",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_activity_log",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members can view activity",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_notifications",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members can create notifications",
+      "schemaname": "public",
+      "with_check": "((created_by = auth.uid()) AND (nexus_is_company_member(company_id) OR nexus_is_platform_admin()))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(((user_id IS NULL) OR (user_id = auth.uid())) AND (nexus_is_company_member(company_id) OR nexus_is_platform_admin()))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_notifications",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members can view notifications",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(((user_id IS NULL) OR (user_id = auth.uid())) AND (nexus_is_company_member(company_id) OR nexus_is_platform_admin()))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_notifications",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus users can mark visible notifications read",
+      "schemaname": "public",
+      "with_check": "(((user_id IS NULL) OR (user_id = auth.uid())) AND (nexus_is_company_member(company_id) OR nexus_is_platform_admin()))"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_company_members",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus creator can join own company",
+      "schemaname": "public",
+      "with_check": "(((user_id = auth.uid()) AND nexus_is_company_creator(company_id)) OR nexus_is_platform_admin())"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "((user_id = auth.uid()) OR nexus_is_platform_admin())",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_company_members",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members can view own membership",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_client_requests",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins delete client requests",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_client_requests",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins update client requests",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_client_requests",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members create client requests",
+      "schemaname": "public",
+      "with_check": "((nexus_is_platform_admin() OR nexus_is_company_member(company_id)) AND (requested_by = auth.uid()))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(nexus_is_platform_admin() OR nexus_is_company_member(company_id))",
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_client_requests",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members view client requests",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_opportunities",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins delete opportunities",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_opportunities",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins update opportunities",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_opportunities",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members suggest opportunities",
+      "schemaname": "public",
+      "with_check": "((nexus_is_platform_admin() OR nexus_is_company_member(company_id)) AND (created_by = auth.uid()))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(nexus_is_platform_admin() OR nexus_is_company_member(company_id))",
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_opportunities",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members view opportunities",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_documents",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members can add document metadata",
+      "schemaname": "public",
+      "with_check": "((uploaded_by = auth.uid()) AND (nexus_is_company_member(company_id) OR nexus_is_platform_admin()))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(nexus_is_company_member(company_id) OR nexus_is_platform_admin())",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_documents",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members can view documents",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_system_cards",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus_system_cards_admin_delete",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_system_cards",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus_system_cards_admin_insert",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_system_cards",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus_system_cards_admin_update",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(nexus_is_platform_admin() OR (client_visible AND (company_id IS NOT NULL) AND nexus_is_company_member(company_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_system_cards",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus_system_cards_read",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_tasks",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins create tasks",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(nexus_is_platform_admin() OR (nexus_is_company_member(company_id) AND (assignee = 'client'::text) AND (status <> 'draft'::text)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_tasks",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins or clients update assigned tasks",
+      "schemaname": "public",
+      "with_check": "(nexus_is_platform_admin() OR (nexus_is_company_member(company_id) AND (assignee = 'client'::text) AND (status <> 'draft'::text)))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(nexus_is_platform_admin() OR (nexus_is_company_member(company_id) AND (status <> 'draft'::text)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_tasks",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members can view tasks",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_diagnosis_runs",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins create diagnosis runs",
+      "schemaname": "public",
+      "with_check": "(nexus_is_platform_admin() AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_diagnosis_runs",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins delete diagnosis runs",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_diagnosis_runs",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins update diagnosis runs",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "public"
+      ],
+      "tablename": "nexus_diagnosis_runs",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins view diagnosis runs",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(active = true)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_commercial_offerings",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus_commercial_offerings_authenticated_select",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_projects",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins update projects",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(nexus_is_company_member(company_id) OR nexus_is_platform_admin())",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_projects",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members can view projects",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_projects",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus onboarding or admins create projects",
+      "schemaname": "public",
+      "with_check": "(nexus_is_platform_admin() OR ((created_by = auth.uid()) AND nexus_is_company_member(company_id) AND (service_slug = 'ai-opportunity-assessment'::text) AND (status = 'planning'::text) AND (name = 'Nexus Opportunity Assessment'::text)))"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_active_engagements",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins manage active engagement",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(nexus_is_platform_admin() OR nexus_is_company_member(company_id))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_active_engagements",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members view active engagement",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "ALL",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_diagnosis_report_releases",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins manage diagnosis report releases",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "((status = 'released'::text) AND (revoked_at IS NULL) AND nexus_is_company_member(company_id))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_diagnosis_report_releases",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus members view released diagnosis reports",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_resolution_catalog",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus_resolution_catalog_admin_select",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_action_templates",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins create action templates",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_action_templates",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins delete action templates",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_action_templates",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins update action templates",
+      "schemaname": "public",
+      "with_check": "nexus_is_platform_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "nexus_is_platform_admin()",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "nexus_action_templates",
+      "permissive": "PERMISSIVE",
+      "policyname": "nexus admins view action templates",
+      "schemaname": "public",
+      "with_check": null
+    }
+  ],
+  "triggers": [
+    {
+      "table": "nexus_documents",
+      "definition": "CREATE TRIGGER nexus_document_notify_admins AFTER INSERT ON public.nexus_documents FOR EACH ROW EXECUTE FUNCTION private.nexus_notify_admins_on_document()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_task_notify_admins AFTER INSERT ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_notify_admins_on_task()"
+    },
+    {
+      "table": "nexus_documents",
+      "definition": "CREATE TRIGGER nexus_document_request_received AFTER INSERT ON public.nexus_documents FOR EACH ROW EXECUTE FUNCTION nexus_mark_document_request_received()"
+    },
+    {
+      "table": "nexus_projects",
+      "definition": "CREATE TRIGGER trg_nexus_seed_project_requirements AFTER INSERT OR UPDATE OF service_slug ON public.nexus_projects FOR EACH ROW EXECUTE FUNCTION nexus_seed_project_requirements()"
+    },
+    {
+      "table": "nexus_documents",
+      "definition": "CREATE TRIGGER trg_nexus_mark_requirement_uploaded AFTER INSERT ON public.nexus_documents FOR EACH ROW EXECUTE FUNCTION nexus_mark_requirement_uploaded()"
+    },
+    {
+      "table": "nexus_system_cards",
+      "definition": "CREATE TRIGGER nexus_system_cards_touch BEFORE UPDATE ON public.nexus_system_cards FOR EACH ROW EXECUTE FUNCTION nexus_touch_updated_at()"
+    },
+    {
+      "table": "nexus_projects",
+      "definition": "CREATE TRIGGER nexus_initialize_intake_project AFTER INSERT OR UPDATE OF service_slug ON public.nexus_projects FOR EACH ROW EXECUTE FUNCTION private.nexus_initialize_intake_project()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_enforce_task_update_boundary BEFORE UPDATE ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_enforce_task_update_boundary()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_notify_admins_on_client_task_update AFTER UPDATE ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_notify_admins_on_client_task_update()"
+    },
+    {
+      "table": "nexus_diagnosis_runs",
+      "definition": "CREATE TRIGGER nexus_seed_request_drafts_for_run AFTER INSERT ON public.nexus_diagnosis_runs FOR EACH ROW EXECUTE FUNCTION private.nexus_seed_request_drafts_for_run()"
+    },
+    {
+      "table": "nexus_diagnosis_runs",
+      "definition": "CREATE TRIGGER nexus_sync_request_drafts_from_analysis AFTER UPDATE OF analysis_result ON public.nexus_diagnosis_runs FOR EACH ROW EXECUTE FUNCTION private.nexus_sync_request_drafts_from_analysis()"
+    },
+    {
+      "table": "nexus_notifications",
+      "definition": "CREATE TRIGGER nexus_guard_notification_update_trigger BEFORE UPDATE ON public.nexus_notifications FOR EACH ROW EXECUTE FUNCTION nexus_guard_notification_update()"
+    },
+    {
+      "table": "nexus_opportunities",
+      "definition": "CREATE TRIGGER nexus_normalize_opportunity_scores BEFORE INSERT OR UPDATE OF value_score, effort_score, readiness_score ON public.nexus_opportunities FOR EACH ROW EXECUTE FUNCTION private.nexus_normalize_opportunity_scores()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_client_task_notifications AFTER INSERT OR UPDATE OF status, notify_client ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_notify_client_on_task()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_normalize_task_contract BEFORE INSERT OR UPDATE OF priority ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_normalize_task_contract()"
+    },
+    {
+      "table": "nexus_projects",
+      "definition": "CREATE TRIGGER nexus_project_terminal_reconcile_active_engagement AFTER UPDATE OF status ON public.nexus_projects FOR EACH ROW WHEN ((new.status = ANY (ARRAY['complete'::text, 'cancelled'::text]))) EXECUTE FUNCTION nexus_reconcile_active_engagement_after_project_terminal()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_task_release_chain AFTER INSERT OR UPDATE OF status ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_create_internal_release_chain()"
+    },
+    {
+      "table": "nexus_diagnosis_runs",
+      "definition": "CREATE TRIGGER nexus_diagnosis_report_release_chain AFTER UPDATE OF status ON public.nexus_diagnosis_runs FOR EACH ROW WHEN (((new.status = 'approved'::text) AND (old.status IS DISTINCT FROM new.status))) EXECUTE FUNCTION private.nexus_create_internal_release_chain()"
+    },
+    {
+      "table": "nexus_diagnosis_report_releases",
+      "definition": "CREATE TRIGGER nexus_guard_diagnosis_report_release_chain BEFORE INSERT OR UPDATE OF status, report_version ON public.nexus_diagnosis_report_releases FOR EACH ROW EXECUTE FUNCTION private.nexus_guard_diagnosis_report_release_chain()"
+    },
+    {
+      "table": "nexus_documents",
+      "definition": "CREATE TRIGGER nexus_documents_lineage_guard BEFORE INSERT OR UPDATE OF company_id, project_id, data_requirement_id, request_id ON public.nexus_documents FOR EACH ROW EXECUTE FUNCTION nexus_validate_document_lineage()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_tasks_default_instructions BEFORE INSERT OR UPDATE OF task_type, description, instructions ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION nexus_default_task_instructions()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_release_unblocked_client_tasks AFTER UPDATE OF status ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_notify_newly_unblocked_client_tasks()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_tasks_sync_owner BEFORE INSERT OR UPDATE OF assignee, owner_scope ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_sync_task_owner()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_tasks_refresh_project_owner AFTER INSERT OR DELETE OR UPDATE OF status, owner_scope, project_id ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_refresh_project_owner_from_child()"
+    },
+    {
+      "table": "nexus_projects",
+      "definition": "CREATE TRIGGER nexus_projects_guard_engagement_stage BEFORE UPDATE OF engagement_stage ON public.nexus_projects FOR EACH ROW EXECUTE FUNCTION private.nexus_guard_engagement_stage_transition()"
+    },
+    {
+      "table": "nexus_diagnosis_runs",
+      "definition": "CREATE TRIGGER nexus_diagnosis_runs_advance_stage AFTER INSERT OR UPDATE OF status ON public.nexus_diagnosis_runs FOR EACH ROW EXECUTE FUNCTION private.nexus_advance_stage_from_diagnosis()"
+    },
+    {
+      "table": "nexus_documents",
+      "definition": "CREATE TRIGGER nexus_validate_document_request_upload BEFORE INSERT OR UPDATE OF request_id, company_id, mime_type, size_bytes ON public.nexus_documents FOR EACH ROW EXECUTE FUNCTION private.nexus_validate_document_request_upload()"
+    },
+    {
+      "table": "nexus_documents",
+      "definition": "CREATE TRIGGER nexus_sync_document_request_upload AFTER INSERT ON public.nexus_documents FOR EACH ROW EXECUTE FUNCTION private.nexus_sync_document_request_upload()"
+    },
+    {
+      "table": "nexus_diagnosis_runs",
+      "definition": "CREATE TRIGGER nexus_apply_diagnosis_action_templates AFTER UPDATE OF status ON public.nexus_diagnosis_runs FOR EACH ROW EXECUTE FUNCTION private.nexus_apply_diagnosis_action_templates_trigger()"
+    },
+    {
+      "table": "nexus_company_members",
+      "definition": "CREATE TRIGGER nexus_company_member_onboarding_notice AFTER INSERT OR UPDATE OF active ON public.nexus_company_members FOR EACH ROW EXECUTE FUNCTION private.nexus_notify_new_company_member()"
+    },
+    {
+      "table": "nexus_diagnosis_runs",
+      "definition": "CREATE TRIGGER nexus_diagnosis_production_quality_certification AFTER INSERT OR UPDATE OF status, analysis_result ON public.nexus_diagnosis_runs FOR EACH ROW EXECUTE FUNCTION private.nexus_certify_diagnosis_run()"
+    },
+    {
+      "table": "nexus_documents",
+      "definition": "CREATE TRIGGER nexus_documents_task_company_guard BEFORE INSERT OR UPDATE OF task_id, company_id ON public.nexus_documents FOR EACH ROW EXECUTE FUNCTION nexus_validate_document_task_company()"
+    },
+    {
+      "table": "nexus_diagnosis_report_releases",
+      "definition": "CREATE TRIGGER nexus_open_diagnosis_approval_on_report_release AFTER INSERT OR UPDATE OF status, report_version, released_at, revoked_at ON public.nexus_diagnosis_report_releases FOR EACH ROW EXECUTE FUNCTION private.nexus_open_diagnosis_approval_on_report_release()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_activate_resolution_dependents_trg AFTER UPDATE OF status ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_activate_resolution_dependents()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_task_event_capture AFTER INSERT OR UPDATE ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_capture_task_event()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_guard_client_task_update BEFORE UPDATE ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_guard_client_task_update()"
+    },
+    {
+      "table": "nexus_tasks",
+      "definition": "CREATE TRIGGER nexus_enforce_task_dependency_order BEFORE UPDATE OF status ON public.nexus_tasks FOR EACH ROW EXECUTE FUNCTION private.nexus_enforce_task_dependency_order()"
+    }
+  ]
+}

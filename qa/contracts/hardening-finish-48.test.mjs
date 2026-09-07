@@ -14,8 +14,8 @@ assert.match(app,/NexusFoundationHardening\?\.opsClient\|\|portal\.sb/);
 assert.match(app,/initOps\(\{sb:opsClient/);
 
 // Explicit active engagement must never resolve a terminal project.
-assert.match(foundation,/const terminalProject=/);
-assert.match(foundation,/if\(explicit&&!terminalProject\(explicit\)\)return explicit/);
+assert.match(foundation,/import \{selectActiveProject,terminalProject\} from '\.\/portal-workspace-context\.js'/);
+assert.match(foundation,/selectActiveProject\(state.projects\|\|\[\],state.companyId,state.activeProjectId\)/);
 assert.match(foundation,/function openProjects\(\).*filter\(p=>!terminalProject\(p\)\)/s);
 
 // Database is the final invariant owner on project completion/cancellation.

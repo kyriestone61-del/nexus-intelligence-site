@@ -13,10 +13,14 @@ import {
 const company={id:'company-1',name:'Acme',industry:'Services',website:'https://example.test'};
 const project={id:'project-1',name:'Opportunity Assessment',service_type:'Assessment'};
 
-test('legacy capture helper still requires company, active project, administrator, and meaningful discovery context',()=>{
+test('legacy capture helper still requires company, administrator, and meaningful context without a project',()=>{
   assert.equal(hasDiscoveryContext({notes:'Observed a manual handoff.'}),true);
   assert.equal(hasDiscoveryContext({notes:'   '}),false);
-  assert.throws(()=>buildDiscoveryCapturePayload({draft:{notes:'Context'},company,userId:'admin-1'}),/active engagement project/i);
+  const prePurchase=buildDiscoveryCapturePayload({draft:{notes:'Context'},company,userId:'admin-1'});
+  assert.equal(prePurchase.project_id,null);
+  assert.equal(prePurchase.analysis_packet.project.id,null);
+  assert.throws(()=>buildDiscoveryCapturePayload({draft:{notes:'Context'},userId:'admin-1'}),/client company/i);
+  assert.throws(()=>buildDiscoveryCapturePayload({draft:{notes:'Context'},company}),/authenticated/i);
   assert.throws(()=>buildDiscoveryCapturePayload({draft:{},company,project,userId:'admin-1'}),/discovery context/i);
 });
 
