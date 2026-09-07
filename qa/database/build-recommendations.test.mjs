@@ -51,3 +51,22 @@ test('generated Build batches reject stale evidence, roll back partial failures 
     await asUser(db,client,()=>db.query('select relystra_build_menu($1) menu',[company]).then(r=>assert.deepEqual(r.rows[0].menu,[])));
   }finally{await db.close()}
 });
+
+test('invalid generated references get one bounded repair and still require full validation',async()=>{
+  const {validatedBuildRecommendations}=await import('../../supabase/functions/_shared/relystra-build-recommendations.ts');
+  const findings=[{source_path:'claims/0'}],templates=[{code:'valid_template'}],inputs=[];
+  const valid={name:'Bounded QA Build',outcome:'Reviewable QA outcome',source_path:'claims/0',template_code:'valid_template',completed_action_ids:[]};
+  let attempts=0;
+  const builds=await validatedBuildRecommendations(async(correction,timeout)=>{
+    attempts++;assert.ok(timeout<=65000);
+    if(attempts===1)return {builds:[{...valid,template_code:'invented'}]};
+    assert.equal(correction.validation_error,'UNSUPPORTED_BUILD_RECOMMENDATION_TEMPLATE_CODE');return {builds:[valid]};
+  },findings,templates,inputs);
+  assert.equal(attempts,2);assert.equal(builds[0].template_code,'valid_template');
+  attempts=0;
+  await assert.rejects(validatedBuildRecommendations(async()=>{attempts++;return {builds:[{...valid,completed_action_ids:['foreign']}]};},findings,templates,inputs),/ACTION_IDS/);
+  assert.equal(attempts,2);
+  attempts=0;
+  await assert.rejects(validatedBuildRecommendations(async()=>{attempts++;throw Error('MODEL_PROXY_ACCESS_403');},findings,templates,inputs),/MODEL_PROXY_ACCESS_403/);
+  assert.equal(attempts,1);
+});
