@@ -17,7 +17,7 @@ test('recommendation relay forwards only the caller and fixed operation, preserv
   t.mock.method(globalThis,'fetch',async(url,options)=>{
     count++;assert.equal(url,'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-diagnosis-execute');
     assert.equal(options.headers.authorization,'Bearer test-caller');
-    assert.equal(options.redirect,'error');assert.ok(options.signal);
+    assert.equal(options.redirect,'manual');assert.ok(options.signal);
     assert.deepEqual(JSON.parse(options.body),{operation:'recommend_builds',company_id:company,run_id:run});
     return Response.json({ok:false,error:'ADMIN_REQUIRED'},{status:403});
   });
@@ -41,4 +41,9 @@ test('browser uses same-origin relay and returns real generation IDs',async t=>{
 test('browser distinguishes upstream failure and keeps its correlation reference',async t=>{
   t.mock.method(globalThis,'fetch',async()=>Response.json({ok:false,error:'BUILD_SERVICE_UNAVAILABLE',request_id:'qa-reference'},{status:502}));
   await assert.rejects(requestBuildRecommendations({auth:{getSession:async()=>({data:{session:{access_token:'caller'}}})}},company,run),/could not be reached.*qa-reference/);
+});
+
+test('redirected upstream is rejected without forwarding caller credentials to another destination',async t=>{
+  let count=0;t.mock.method(globalThis,'fetch',async(url,options)=>{count++;assert.equal(options.redirect,'manual');return new Response(null,{status:302,headers:{location:'https://untrusted.test'}})});
+  const response=await onRequest({request:request()});assert.equal(response.status,502);assert.equal((await response.json()).error,'BUILD_SERVICE_INVALID_RESPONSE');assert.equal(count,1);
 });

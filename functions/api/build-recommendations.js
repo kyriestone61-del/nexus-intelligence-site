@@ -16,7 +16,7 @@ export async function onRequest({request}){
   const timer=setTimeout(()=>controller.abort(),120000);
   try{
     // Do not retry an ambiguous POST: generation may already have committed.
-    const upstream=await fetch(endpoint,{method:'POST',redirect:'error',
+    const upstream=await fetch(endpoint,{method:'POST',redirect:'manual',
       headers:{authorization,apikey:publishable,'content-type':'application/json'},
       body:JSON.stringify({operation:'recommend_builds',company_id:body.company_id,run_id:body.run_id}),
       signal:controller.signal});
@@ -33,6 +33,6 @@ export async function onRequest({request}){
     const timeout=error?.name==='TimeoutError'||error?.name==='AbortError';
     const diagnostic=String(error?.message||error).replaceAll(authorization,'[redacted]').slice(0,240);
     console.error('build_recommendations_transport_error',{requestId,kind:timeout?'timeout':'connection',diagnostic});
-    return reply({ok:false,error:timeout?'BUILD_SERVICE_TIMEOUT':'BUILD_SERVICE_UNAVAILABLE',request_id:requestId,diagnostic},timeout?504:502);
+    return reply({ok:false,error:timeout?'BUILD_SERVICE_TIMEOUT':'BUILD_SERVICE_UNAVAILABLE',request_id:requestId},timeout?504:502);
   }finally{clearTimeout(timer)}
 }
