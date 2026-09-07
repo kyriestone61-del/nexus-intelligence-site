@@ -100,10 +100,17 @@ jobs:
           set -euo pipefail
           result="$(mktemp)"
           trap 'rm -f "$result"' EXIT
-          status="$(curl --silent --show-error --max-time 20 --output "$result" --write-out '%{http_code}' --request POST "$NEXUS_QA_BASE_URL/api/build-recommendations" --header 'content-type: application/json' --header 'Authorization: Bearer deliberately-invalid-qa-token' --data '{"company_id":"00000000-0000-4000-8000-000000000001","run_id":"00000000-0000-4000-8000-000000000002"}')"
-          test "$status" = '401'
-          jq -e '.ok == false and .error == "AUTH_REQUIRED" and (.request_id | type == "string")' "$result"
-          echo 'BUILD_RECOMMENDATION_EDGE_AUTH_BOUNDARY=VERIFIED'
+          for attempt in $(seq 1 12); do
+            status="$(curl --silent --show-error --max-time 20 --output "$result" --write-out '%{http_code}' --request POST "$NEXUS_QA_BASE_URL/api/build-recommendations" --header 'content-type: application/json' --header 'Authorization: Bearer deliberately-invalid-qa-token' --data '{"company_id":"00000000-0000-4000-8000-000000000001","run_id":"00000000-0000-4000-8000-000000000002"}' || true)"
+            if [ "$status" = '401' ] && jq -e '.ok == false and .error == "AUTH_REQUIRED" and (.request_id | type == "string")' "$result" >/dev/null; then
+              echo 'BUILD_RECOMMENDATION_EDGE_AUTH_BOUNDARY=VERIFIED'
+              exit 0
+            fi
+            echo "Waiting for deployed recommendation function (attempt $attempt, HTTP $status)"
+            sleep 5
+          done
+          echo '::error::The deployed recommendation relay did not reach Edge authentication.'
+          exit 1
 
       - name: Provision disposable authenticated QA identities
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
