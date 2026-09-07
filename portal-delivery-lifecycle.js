@@ -53,6 +53,7 @@ export function clientLifecycle(snapshot){
     diagnosis_review:['Relystra is reviewing your diagnosis','The findings are being checked before they are shared with you.'],
     diagnosis_attention:['Relystra is checking the diagnosis','The team will resolve the analysis issue or request the evidence it needs.'],
     action_curation:['Relystra is preparing your Actions','Your next preparation steps are being reviewed before they are shared.'],
+    actions:['Relystra is preparing the Build inputs','Relystra is completing the approved preparation and will review the results before Build planning.'],
     action_review:['Relystra is reviewing your input','Your submitted responses are being checked. Any clarification will appear in Actions.'],
     build_curation:['Relystra is preparing your Build recommendations','The diagnosis and accepted inputs are being turned into scoped recommendations.'],
   };

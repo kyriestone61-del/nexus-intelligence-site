@@ -72,3 +72,13 @@ test('stale diagnosis actions cannot mutate a different workspace',async()=>{
   const f=diagnosisOfferFixture();await f.offer.refresh(f.snapshot);
   f.portal.state.companyId='blue';await f.click('cancel');assert.equal(f.calls.length,0);f.offer.destroy();
 });
+
+test('clients are not instructed to execute administrator or AI preparation',()=>{
+  for(const actions of [{admin:1},{ai:1}]){
+    const snapshot={company_id:'company',diagnosis:{status:'approved'},actions};
+    assert.equal(clientLifecycle(snapshot).title,'Relystra is preparing the Build inputs');
+    assert.equal(clientLifecycle(snapshot).label,'View Actions');
+    assert.equal(clientLifecycle(snapshot).actor,'ADMIN');
+    assert.notEqual(clientLifecycle(snapshot).detail,lifecycle(snapshot).detail);
+  }
+});
