@@ -46,7 +46,7 @@ test('a slow previous workspace never overwrites a newer company, pointer, URL o
     const data=table==='nexus_active_engagements'?(cid==='old'?{project_id:'old-project'}:null):table==='nexus_projects'&&cid==='old'?[{id:'old-project',company_id:'old',status:'active'}]:[];
     return {data,error:null};
   })().then(resolve,reject)}};return q}};
-  const ctx=vm.createContext({sb,state:controller.state,stateController:controller,workspaceRequests:createLatestRequestController(),selectActiveProject,workspaceUrl,location:{href:'https://example.test/portal?company=old&task=old-task'},history:{state:null,replaceState(_,__,url){urls.push(url)}},queryData:r=>r.data||[],fetchDataRequirements:async()=>[],fetchNotificationPrefs:async()=>null,fetchEmailStatus:async()=>false,$:()=>null,render:()=>renders.push(controller.state.companyId),esc:String,window:{dispatchEvent:event=>events.push(event)},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail}}});
+  const ctx=vm.createContext({URL,sb,state:controller.state,stateController:controller,workspaceRequests:createLatestRequestController(),selectActiveProject,workspaceUrl,location:{href:'https://example.test/portal?company=old&task=old-task'},history:{state:null,replaceState(_,__,url){urls.push(url)}},queryData:r=>r.data||[],fetchDataRequirements:async()=>[],fetchNotificationPrefs:async()=>null,fetchEmailStatus:async()=>false,$:()=>null,render:()=>renders.push(controller.state.companyId),esc:String,window:{dispatchEvent:event=>events.push(event)},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail}}});
   vm.runInContext(workspaceSource+';globalThis.load=workspace;',ctx);
   const previous=ctx.load('old');
   assert.equal(await ctx.load('moon'),true);
@@ -70,4 +70,16 @@ test('administrator startup resolves relative workspace links against the curren
   await vm.runInContext(navigate+"\nnavigate('overview')",ctx);
   assert.deepEqual(urls,['/portal?company=moon&section=overview']);
   assert.equal(ctx.header.hidden,false);
+});
+
+test('workspace reload retains explicit completed package links without changing the active pointer',async()=>{
+  const projects=[{id:'closed',company_id:'moon',status:'complete'},{id:'active',company_id:'moon',status:'active',paid_at:'2026-09-01',activated_at:'2026-09-01'}];
+  for(const [href,expected] of [['https://example.test/portal?company=moon&project=closed','closed'],['https://example.test/portal?company=other&project=closed','active']]){
+    const controller=createStateController({user:{id:'admin'},companyId:'moon',companies:[{id:'moon'}]}),urls=[];
+    const sb={from(table){const q={select(){return q},eq(){return q},order(){return q},limit(){return q},maybeSingle(){return q},then(resolve){return Promise.resolve({data:table==='nexus_projects'?[...projects]:table==='nexus_active_engagements'?{project_id:'active'}:[],error:null}).then(resolve)}};return q}};
+    const ctx=vm.createContext({URL,sb,state:controller.state,stateController:controller,workspaceRequests:createLatestRequestController(),selectActiveProject,workspaceUrl,location:{href},history:{state:null,replaceState(_,__,url){urls.push(url)}},queryData:r=>r.data||[],fetchDataRequirements:async()=>[],fetchNotificationPrefs:async()=>null,fetchEmailStatus:async()=>false,$:()=>null,render:()=>{},esc:String,window:{dispatchEvent:()=>{}},CustomEvent:class{}});
+    await vm.runInContext(workspaceSource+"\nworkspace('moon')",ctx);
+    assert.equal(controller.state.activeProjectId,expected);
+    assert.ok(urls[0].includes(`project=${expected}`));
+  }
 });
