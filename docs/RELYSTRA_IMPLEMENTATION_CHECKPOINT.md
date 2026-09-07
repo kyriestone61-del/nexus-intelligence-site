@@ -45,7 +45,7 @@ Moon Wax's current company exists with an active owner membership but no current
 
 Blue Harbor is user-authorized for disposable QA. The Codex portal browser remains signed out; an authenticated test session is requested. Actual desktop, tablet and mobile client/admin acceptance remains pending.
 
-Relystra Stripe checkout is not yet configured or verified. Existing Statecraft commerce must not be silently reused as a Relystra payment or treated as evidence of payment. No live charge is authorized by this checkpoint.
+The user connected the Relystra Stripe account and test mode is available through the connector. Runtime checkout secrets and webhook deployment are not yet configured or verified. Existing Statecraft commerce must not be silently reused as a Relystra payment or treated as evidence of payment. No live charge is authorized by this checkpoint.
 
 The initiative remains **in progress** until the specification's complete Moon Wax acceptance path passes. Local tests, static screenshots or successful build output do not substitute for that result.
 
@@ -64,3 +64,15 @@ The initiative remains **in progress** until the specification's complete Moon W
 - Nine targeted tests pass. The wider 85-test contract suite exposed a source-location assertion updated for the shared project selector and an already-failing legacy Phase Zero copy assertion. The latter remains pending retirement of the superseded journey.
 
 References used for implementation: [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [PGlite local PostgreSQL](https://pglite.dev/docs/), [Stripe Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/create).
+
+## Phases F–I: Build planning and payment foundation (local, partial)
+
+- New unapplied migrations: `20260907000300_relystra_build_planning.sql` and `20260907000400_relystra_paid_activation.sql`.
+- Build evaluation extends `nexus_opportunities`; purchased Builds extend `nexus_system_cards`; paid packages extend `nexus_projects`. New `nexus_delivery_settings`, `nexus_build_plans` and `nexus_delivery_payment_events` represent configuration, immutable commercial selection and verified provider evidence, which had no existing Relystra authority.
+- Build approval requires an approved same-company diagnosis, valid finding snapshot, accepted input references, five scored complexity dimensions, explicit tier, fixed price, duration, scope and acceptance criteria. Client reads receive only the approved projection. Existing member suggestion permissions cannot forge approval or commercial terms.
+- Build Plans permit multiple approved Builds, reject missing/circular dependencies, prevent duplicate unpaid reservations, and calculate the greater of dependency-path duration and capacity duration plus QA/client-review allowance. A plan creates zero Projects before verified payment.
+- New Edge modules: `_shared/relystra-payments.ts`, `_shared/relystra-stripe.ts`, `relystra-checkout/index.ts`, `relystra-stripe-webhook/index.ts`. Checkout uses saved prices, an idempotent claim, separate account/mode checks and safe cancellation. Only verified settled payments activate the package in an atomic, replay-safe transaction. The diagnosis offer uses the existing `find` entitlement and creates no Project.
+- `qa/database/build-planning.test.mjs` and `qa/database/payment-boundary.test.mjs` cover scope isolation, forged approval rejection, dependency totals, cancellation, wrong amount/account/mode/session, signatures, delayed settlement, replay, immutable paid scope, missing-entitlement rollback and diagnosis access. The fixture adds audited entitlement/event/comment metadata; external workers still remain outside the fixture.
+- Both new Edge entrypoints pass Deno 2.9.6 type checking against Stripe 22.6.1 / API 2026-08-26.dahlia. Payment configuration and deployment requirements are in `docs/RELYSTRA_PAYMENTS.md`.
+- Remaining within these phases: evidence-backed AI Build recommendation generation, Build curation/selection UI, paid diagnosis gating in the diagnosis owner, approved Build briefs and internal task generation. Payment notifications are not wired yet. The older journey still requires replacement before deployment.
+- No real payment, deployed checkout, authenticated browser, or Moon Wax lifecycle acceptance has been certified. The initiative remains in progress.
