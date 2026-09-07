@@ -21,7 +21,7 @@ export function mountDiagnosisOffer(root,portal){
       let id=plans[0]?.id;
       if(cancel&&!id)return;
       if(!id){const result=await portal.sb.rpc('relystra_create_diagnosis_plan',{p_company_id:company});if(result.error)throw result.error;id=result.data}
-      const {data,error}=await portal.sb.functions.invoke('relystra-checkout',{body:{plan_id:id,operation:cancel?'cancel':'checkout'}});
+      const {data,error}=await portal.sb.functions.invoke('nexus-diagnosis-execute?handler=checkout',{body:{plan_id:id,operation:cancel?'cancel':'checkout'}});
       if(error||data?.error)throw new Error(data?.message||error?.message||'Payment could not be opened.');
       if(company!==portal.state.companyId)return;
       if(cancel){

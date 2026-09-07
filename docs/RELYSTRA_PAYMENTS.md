@@ -25,16 +25,16 @@ The handlers also use the existing Supabase URL, anon key and service-role envir
 
 Apply migrations in order only after a fresh production parity check and the remaining delivery UI is integrated. `20260907000300` introduces the Build Plan and configuration records while extending existing opportunities, projects and system cards. `20260907000400` adds verified payment evidence and checkout/activation RPCs. Neither rewrites historical projects.
 
-Deploy `relystra-checkout` with JWT verification and `relystra-stripe-webhook` with gateway JWT verification disabled: Stripe authenticates through the verified raw-body signature. The webhook must receive these events:
+Deploy the payment handlers through the existing `nexus-diagnosis-execute` gateway, whose custom authentication is retained. This avoids exceeding the shared project’s Edge Function quota. The `handler=checkout` route validates the user token with Supabase Auth and applies plan RLS; the `handler=stripe_webhook` route authenticates Stripe through the verified raw-body signature. Standalone wrappers remain available for environments with separate function capacity. The webhook must receive these events:
 
 - `checkout.session.completed`
 - `checkout.session.async_payment_succeeded`
 
-The webhook URL is `https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/relystra-stripe-webhook`. Use the pinned API version when configuring the destination.
+The webhook URL is `https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-diagnosis-execute?handler=stripe_webhook`. Use the pinned API version when configuring the destination.
 
 Set the single `nexus_delivery_settings` row to the Relystra account, `payment_livemode=false` and `checkout_enabled=true` only once the test secret and destination are verified. Manual payment fallback remains disabled. Do not set a plan or project paid to simulate payment.
 
-The browser creates or opens a diagnosis plan with `relystra_create_diagnosis_plan(company_id)` or a selected Build Plan with `relystra_create_build_plan(company_id, build_ids, name)`. It invokes `relystra-checkout` with `{plan_id, operation: 'checkout'}` and follows only the returned Stripe URL. To release an unpaid selection it invokes the same handler with `operation: 'cancel'`.
+The browser creates or opens a diagnosis plan with `relystra_create_diagnosis_plan(company_id)` or a selected Build Plan with `relystra_create_build_plan(company_id, build_ids, name)`. It invokes `nexus-diagnosis-execute?handler=checkout` with `{plan_id, operation: 'checkout'}` and follows only the returned Stripe URL. To release an unpaid selection it invokes the same handler with `operation: 'cancel'`.
 
 The payment return URL keeps both company and plan context. The browser reloads the plan and displays verification pending until the database records payment; URL parameters never activate anything. Client UI is wired on this branch; deployed browser/payment verification remains outstanding.
 

@@ -53,7 +53,7 @@ test('diagnosis cancellation uses the verified checkout boundary and refreshes t
   globalThis.CustomEvent=class{constructor(type,options){this.type=type;this.detail=options.detail}};
   try{
     await f.offer.refresh(f.snapshot);await f.click('cancel');
-    assert.deepEqual(f.calls,[{name:'relystra-checkout',plan_id:'saved-plan',operation:'cancel'}]);
+    assert.deepEqual(f.calls,[{name:'nexus-diagnosis-execute?handler=checkout',plan_id:'saved-plan',operation:'cancel'}]);
     assert.match(f.root.innerHTML,/250\.00/);assert.doesNotMatch(f.root.innerHTML,/data-diagnosis-cancel/);
     assert.equal(events[0].detail.companyId,'moon');
     assert.equal(f.messages[0],'Unpaid diagnosis plan cancelled.');

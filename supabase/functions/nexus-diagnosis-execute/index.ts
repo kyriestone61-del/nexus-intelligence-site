@@ -1,3 +1,5 @@
+import {handleCheckout} from '../_shared/relystra-checkout-handler.ts';
+import {handleStripeWebhook} from '../_shared/relystra-webhook-handler.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {recommendationFindings,buildRecommendationPayload} from '../_shared/relystra-build-recommendations.ts';
@@ -297,6 +299,12 @@ async function notifyAdminsReady(run:any){
 function isNonTransient(msg:string){return /MODEL_PROXY_AUTH_NOT_CONFIGURED|AI_PROVIDER_BILLING_REQUIRED|MODEL_PROXY_ACCESS_|MODEL_TIMEOUT|Invalid prompt|not configured|free tier|billing/i.test(msg)}
 
 Deno.serve(async(req:Request)=>{
+  // Reuse this deployed gateway within the project's function quota. Each payment
+  // handler enforces its own authentication before any privileged operation.
+  const handler=new URL(req.url).searchParams.get('handler');
+  if(handler==='stripe_webhook')return handleStripeWebhook(req);
+  if(handler==='checkout')return handleCheckout(req);
+  if(handler)return new Response('Unknown handler',{status:404});
   if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
   if(req.method!=="POST")return new Response(JSON.stringify({ok:false,error:"Method not allowed"}),{status:405,headers:jh});
   let runId="";let authState:{mode:"worker"|"admin"|"client",userId:string|null}={mode:"admin",userId:null};

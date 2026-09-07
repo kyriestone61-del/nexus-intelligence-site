@@ -143,3 +143,12 @@ Verification after these fixes: 129 contract/database/lifecycle/regression tests
 - Inspected all 26 live triggers on diagnosis runs, opportunities, Projects, system cards and tasks, and the relevant initialization, release, notification and owner-update function bodies. Paid activation leaves service_slug unset, so historical intake/requirements triggers do not seed unpaid discovery work for the new Build Package. Existing compatibility triggers still need integration verification against the deployed migration set.
 - Supabase custom secrets currently include the unrelated Stripe OS key and Resend key, but no dedicated Relystra Stripe runtime secrets. The Relystra test account is accessible and a restricted key form is prepared. Credential creation and transfer to Supabase await the browser-required user confirmation; no key creation or secret storage has been verified.
 - The production portal remains on the old six-stage journey. Its authenticated administrator session is available, including the authorized Blue Harbor QA company. No production migration, Edge deployment, payment, or client-data mutation was performed in this follow-up.
+
+
+### Backend deployment — September 7
+
+The twelve ordered SQL migrations were applied atomically as `relystra_delivery_refactor_v2`. Historical entity counts remained 4 Projects, 31 tasks, 1 diagnosis run and 1 system card. Checkout, manual payments and delivery email remain disabled pending hosted test verification.
+
+The dedicated Relystra restricted test key and webhook signing secret are stored in Supabase, alongside the explicit account and portal origin. Test destination `we_1UCwIhC88swJVkVOE8xABvt5` receives only Checkout completion and asynchronous success with API version `2026-08-26.dahlia`.
+
+Supabase rejected adding a function because the shared project is at its function quota. The existing diagnosis gateway now routes `handler=checkout` to the Auth/RLS-verified checkout handler and `handler=stripe_webhook` to the raw-signature-verified handler. It was deployed as version 18; the email worker's support-expiration addition was deployed as version 14, preserving its existing worker authentication and auth-recovery implementation. Anonymous Checkout returns 401 and an unsigned webhook returns 400. These responses verify the deployed authentication boundary, not paid activation. All 132 local tests and the gateway's Deno type check pass after routing changes. Frontend rollout and hosted payment acceptance are next.

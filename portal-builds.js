@@ -124,7 +124,7 @@ export function mountBuilds(root,portal){
       }else if(button.hasAttribute('data-create-build-plan')){
         const {error}=await sb.rpc('relystra_create_build_plan',{p_company_id:company,p_build_ids:[...selected],p_name:'Build Package'});if(error)throw error;selected.clear();
       }else if(button.dataset.planCheckout||button.dataset.planCancel){
-        const {data,error}=await sb.functions.invoke('relystra-checkout',{body:{plan_id:button.dataset.planCheckout||button.dataset.planCancel,operation:button.dataset.planCancel?'cancel':'checkout'}});
+        const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute?handler=checkout',{body:{plan_id:button.dataset.planCheckout||button.dataset.planCancel,operation:button.dataset.planCancel?'cancel':'checkout'}});
         if(error||data?.error)throw new Error(data?.message||error?.message||'Checkout could not be updated.');
         if(state.companyId!==company)return;
         if(data.url){const destination=new URL(data.url);if(destination.protocol!=='https:'||destination.hostname!=='checkout.stripe.com')throw new Error('Unexpected checkout destination.');location.assign(destination.href);return}
