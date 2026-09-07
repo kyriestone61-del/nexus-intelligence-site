@@ -43,7 +43,7 @@ The next local checkpoint replaces diagnosis approval with company-level Action 
 
 Moon Wax's current company exists with an active owner membership but no current project or diagnosis. The historical orphaned upload prefix and report identifiers are preserved; do not merge or reassign them automatically.
 
-Blue Harbor is user-authorized for disposable QA. The Codex portal browser remains signed out; an authenticated test session is requested. Actual desktop, tablet and mobile client/admin acceptance remains pending.
+Blue Harbor is user-authorized for disposable QA. The Codex portal browser is now authenticated as Relystra Admin. Read-only interaction reproduced the live Moon Wax setup CTA routing to the generic Clients list. Actual acceptance of the new branch, including desktop, tablet and mobile client/admin flows, remains pending.
 
 The user connected the Relystra Stripe account and test mode is available through the connector. Runtime checkout secrets and webhook deployment are not yet configured or verified. Existing Statecraft commerce must not be silently reused as a Relystra payment or treated as evidence of payment. No live charge is authorized by this checkpoint.
 
@@ -76,3 +76,11 @@ References used for implementation: [Supabase RLS](https://supabase.com/docs/gui
 - Both new Edge entrypoints pass Deno 2.9.6 type checking against Stripe 22.6.1 / API 2026-08-26.dahlia. Payment configuration and deployment requirements are in `docs/RELYSTRA_PAYMENTS.md`.
 - Remaining within these phases: evidence-backed AI Build recommendation generation, Build curation/selection UI, paid diagnosis gating in the diagnosis owner, approved Build briefs and internal task generation. Payment notifications are not wired yet. The older journey still requires replacement before deployment.
 - No real payment, deployed checkout, authenticated browser, or Moon Wax lifecycle acceptance has been certified. The initiative remains in progress.
+
+## Phase F and G follow-up: evidence-backed recommendations and Build UI component
+
+- `20260907000500_relystra_build_recommendations.sql` adds an atomic, administrator-only proposal batch RPC using the existing review boundary. It rejects changed diagnosis/accepted-input versions and rolls back a batch if any source/template is invalid. Repeated source/template recommendations reuse the original record.
+- The existing `nexus-diagnosis-execute/index.ts` gains `recommend_builds` through its existing provider. `_shared/relystra-build-recommendations.ts` validates source paths, template codes and completed Action IDs, rejects duplicates and strips model-supplied final commercial terms. No new AI provider or autonomous approval path is added. A pre-existing PDF union type assertion was corrected without changing extraction behavior.
+- `portal-builds.js` provides an explicitly mounted component for existing shell owners: administrator curation, five-factor complexity guidance, fixed pricing, durations, dependencies, client selection, saved plans and checkout/cancellation. `portal-delivery.css` supplies its layout. It is not yet wired into boot/navigation; browser interaction verification remains pending.
+- `qa/database/build-recommendations.test.mjs` passes evidence validation, stale-version rejection, batch rollback, replay and client invisibility. All seven local database/payment/recommendation tests pass; the diagnosis executor passes Deno type checking.
+- Authenticated production baseline was observed in Codex: Moon Wax's setup CTA opens the generic Clients list, and reopening Moon Wax landed on Client Today with no next actionable item. This is baseline defect evidence, not acceptance of the local fixes.

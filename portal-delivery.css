@@ -1,0 +1,15 @@
+.relystra-build-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px;margin:18px 0 26px}
+.relystra-build-card{border:1px solid var(--border,rgba(229,224,255,.16));border-radius:14px;padding:20px;background:var(--panel,#15131f);overflow-wrap:anywhere}
+.relystra-build-card>summary{cursor:pointer;min-height:44px;padding:8px 0}
+.relystra-build-card h3{margin:0 0 12px}.relystra-build-card p{line-height:1.6}
+.relystra-build-card label{display:grid;gap:7px;margin:12px 0;font-size:14px}
+.relystra-build-card input:not([type=checkbox]),.relystra-build-card textarea,.relystra-build-card select{width:100%;min-width:0;max-width:100%;box-sizing:border-box;min-height:44px;font:inherit}
+.relystra-build-card textarea{resize:vertical}.relystra-build-card input[type=checkbox]{width:22px;height:22px;accent-color:#b7a0ff;flex:none}
+.relystra-build-card fieldset{min-width:0;border:1px solid rgba(229,224,255,.12);border-radius:9px;margin:16px 0;padding:12px}
+.relystra-build-card fieldset label:has(input[type=checkbox]){display:flex;align-items:center;gap:10px;min-height:44px}
+.relystra-build-card .relystra-build-selection{display:flex;align-items:flex-start;gap:12px;cursor:pointer;min-height:44px;margin-top:0}
+.relystra-build-selection span{display:grid;gap:10px;flex:1}.relystra-build-selection b{font-size:18px}.relystra-build-selection strong{font-size:22px;color:#d9ff72}
+.relystra-build-buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.relystra-build-buttons .btn{min-height:44px;white-space:normal}
+.relystra-build-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.relystra-build-selection-total{padding:12px 0;font-size:18px;font-weight:700}
+@media(max-width:600px){.relystra-build-card{padding:16px}.relystra-build-fields{grid-template-columns:1fr}.relystra-build-buttons .btn{width:100%}}
