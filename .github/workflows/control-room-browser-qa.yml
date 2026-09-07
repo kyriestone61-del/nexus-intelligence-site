@@ -154,6 +154,8 @@ jobs:
         run: |
           if [ "${NEXUS_QA_QAQC_FULL:-0}" = '1' ]; then
             npx playwright test tests/public-smoke.spec.mjs tests/sitewide-public-mobile.spec.mjs tests/public-interactive-tools.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
+          else
+            npx playwright test tests/public-smoke.spec.mjs --grep 'password recovery opens' --config=control-room.config.mjs --project=desktop-chrome --retries=0
           fi
           # Legacy pilot specs remain in source as historical tests. Current delivery has
           # no unpaid Project: exercise real authenticated pre-build work in all browsers.

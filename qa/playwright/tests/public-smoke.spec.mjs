@@ -34,9 +34,14 @@ test('portal is private from search indexing and has security boundary copy',asy
   await expect(page.getByText('Security boundary:',{exact:false})).toBeVisible();
 });
 
-test('reset acceptance requires password recovery when enforcement is enabled',async({page})=>{
-  test.skip(process.env.NEXUS_QA_ENFORCE_RESET!=='1','Enable after the reset is ready for acceptance testing.');
+test('password recovery opens and cancels without sending email',async({page})=>{
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
   const recovery=page.getByRole('button',{name:/forgot|reset password/i}).or(page.getByRole('link',{name:/forgot|reset password/i}));
   await expect(recovery).toBeVisible();
+  await recovery.click();
+  await expect(page.locator('#portalRecoveryRequestForm')).toBeVisible();
+  await expect(page.locator('#portalRecoveryEmail')).toBeEditable();
+  await page.locator('#portalRecoveryCancel').click();
+  await expect(page.locator('#portalRecoveryOverlay')).toHaveCount(0);
+  await expect(page.locator('#signInForm')).toBeVisible();
 });
