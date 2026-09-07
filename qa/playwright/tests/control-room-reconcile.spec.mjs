@@ -90,16 +90,14 @@ test.describe('authenticated client control room',()=>{
     await expect(nav).toHaveCount(7);
     expect(await nav.allTextContents()).toEqual(['Overview','Diagnosis','Actions','Builds','Progress','Final Package','Support']);
     await expect(page.locator('#nexus-client-today')).toBeVisible();
-    await expect(page.locator('[data-client-view="progress"]')).toHaveAttribute('hidden','');
-    await expect(page.locator('[data-client-view="final-package"]')).toHaveAttribute('hidden','');
-    await expect(page.locator('[data-client-view="support"]')).toHaveAttribute('hidden','');
+    for(const view of ['progress','final-package','support'])await expect(page.locator(`#nexusClientPrimaryNav [data-client-view="${view}"]`)).toHaveAttribute('hidden','');
     await page.locator('#nexusClientReportsButton').click();await expect(page.locator('#nexus-client-files')).toBeVisible();await expect(page.locator('#uploadForm')).toBeVisible();
-    await openMobileMenu(page);await page.locator('[data-client-view="reports"]').click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
+    await openMobileMenu(page);await page.locator('#nexusClientPrimaryNav [data-client-view="reports"]').click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
     await page.locator('#nexusClientInboxButton').click();await expect(page.locator('#nexusClientInboxDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientInboxDrawer')).not.toHaveClass(/show/);
     await page.locator('#nexusClientHelpButton').click();await expect(page.locator('#nexusClientGuideDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientGuideDrawer')).not.toHaveClass(/show/);
     await page.evaluate(()=>window.NexusClientShell.refresh({force:true}));
     await expect(page.locator('#nexus-client-reports')).toBeVisible();
-    await expect(page.locator('[data-client-view="reports"]')).toHaveAttribute('aria-current','page');
+    await expect(page.locator('#nexusClientPrimaryNav [data-client-view="reports"]')).toHaveAttribute('aria-current','page');
     await assertNoOverflow(page);expect(meaningfulConsoleErrors(errors)).toEqual([]);
     await page.locator('#signOutBtn').click();await expect(page.locator('#signInForm')).toBeVisible({timeout:20_000});
   });
@@ -187,6 +185,8 @@ test.describe('administrator and client-preview boundaries',()=>{
     await expect(switcher).toHaveAttribute('open','');
     await expect(switcher.locator('[data-perspective="client"]')).toBeVisible();
     await switcher.locator('[data-perspective="client"]').click();
+    await page.waitForURL(url=>url.searchParams.get('view_mode')==='client');
+    await waitForSettledPortal(page);
     await expect(page.locator('#nexusClientPrimaryNav')).toBeAttached({timeout:40_000});await openMobileMenu(page);await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible();
     await expect(page.getByText('Relystra could not finish loading.',{exact:true})).toHaveCount(0);
     await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(7);
