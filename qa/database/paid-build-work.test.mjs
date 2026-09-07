@@ -5,7 +5,7 @@ import {database,asUser} from './fixture.mjs';
 const admin='00000000-0000-4000-8000-000000000001',client='00000000-0000-4000-8000-000000000002',company='00000000-0000-4000-8000-000000000003';
 
 test('only an approved paid brief creates internal Build Tasks and client progress excludes internal work',async()=>{
-  const db=await database(['20260907000300_relystra_build_planning.sql','20260907000400_relystra_paid_activation.sql','20260907000500_relystra_build_recommendations.sql','20260907000600_relystra_paid_build_work.sql','20260907000700_relystra_review_delivery.sql','20260907000800_relystra_grounded_support.sql','20260907045453_relystra_delivery_notifications.sql','20260907045552_relystra_workspace_lifecycle.sql']);
+  const db=await database(['20260907000300_relystra_build_planning.sql','20260907000400_relystra_paid_activation.sql','20260907000500_relystra_build_recommendations.sql','20260907000600_relystra_paid_build_work.sql','20260907000700_relystra_review_delivery.sql','20260907000800_relystra_grounded_support.sql','20260907045453_relystra_delivery_notifications.sql','20260907045552_relystra_workspace_lifecycle.sql','20260907145329_relystra_support_published_limits.sql']);
   try{
     await db.exec(`insert into auth.users values ('${admin}'),('${client}');
       insert into nexus_platform_admins(user_id) values ('${admin}');
@@ -82,7 +82,7 @@ test('only an approved paid brief creates internal Build Tasks and client progre
     assert.ok(events.every(e=>e.actor_id===admin&&e.detail.object_version&&e.detail.snapshot.work_kind==='build_task'));
     const checks=Object.fromEntries(['functionality','outputs','permissions','integrations','links','error_states','input_validation','data_behavior','mobile_usability','client_usability','documentation','faq','support_grounding']
       .map(key=>[key,{status:'pass',evidence:'Fixture evidence for '+key}]));
-    const content={description:'Bid intake and routing',preview_url:'https://example.test/bid-intake',what_to_test:['Submit the approved sample bid'],
+    const content={known_limitations:['One browser only; maximum 1,000 requests.'],description:'Bid intake and routing',preview_url:'https://example.test/bid-intake',what_to_test:['Submit the approved sample bid'],
       tutorial:{what:'Routes an incoming bid',steps:['Open the intake form','Enter the sample bid','Confirm the assigned estimator'],when:'When a bid arrives',troubleshooting:'Check the required fields, then contact Relystra'},
       faq:[{question:'Does it submit bids automatically?',answer:'No. Bid submission remains outside this Build.'}]};
     let draft;
@@ -131,6 +131,10 @@ test('only an approved paid brief creates internal Build Tasks and client progre
     await assert.rejects(db.query("update nexus_projects set final_package='{}' where id=$1",[project]),/final QA|immutable/);
     const sources=await asUser(db,client,()=>db.query('select relystra_support_sources($1) sources',[project]).then(r=>r.rows[0].sources));
     assert.ok(sources.some(s=>s.title.includes('Usage guide')));
+    const limitsSource=sources.find(s=>s.id.endsWith(':limitations'));
+    assert.equal(limitsSource.body,'One browser only; maximum 1,000 requests.');
+    assert.ok(limitsSource.title.includes('Known limitations'));
+    assert.equal(sources.filter(s=>s.id===limitsSource.id).length,1);
     assert.ok(sources.every(s=>!s.body.includes('Fixture evidence for')),'internal QA notes are not support material');
     await asUser(db,client,async()=>{
       await assert.rejects(db.query('select relystra_support_sources($1)',[company]),/Delivered package access/);
