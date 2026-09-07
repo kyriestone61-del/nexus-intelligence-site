@@ -93,6 +93,18 @@ jobs:
             exit 1
           fi
 
+      - name: Verify deployed Build recommendation authentication boundary
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$(mktemp)"
+          trap 'rm -f "$result"' EXIT
+          status="$(curl --silent --show-error --max-time 20 --output "$result" --write-out '%{http_code}' --request POST "$NEXUS_QA_BASE_URL/api/build-recommendations" --header 'content-type: application/json' --header 'Authorization: Bearer deliberately-invalid-qa-token' --data '{"company_id":"00000000-0000-4000-8000-000000000001","run_id":"00000000-0000-4000-8000-000000000002"}')"
+          test "$status" = '401'
+          jq -e '.ok == false and .error == "AUTH_REQUIRED" and (.request_id | type == "string")' "$result"
+          echo 'BUILD_RECOMMENDATION_EDGE_AUTH_BOUNDARY=VERIFIED'
+
       - name: Provision disposable authenticated QA identities
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash
