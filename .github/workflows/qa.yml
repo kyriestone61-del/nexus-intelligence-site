@@ -97,7 +97,8 @@ jobs:
           grep -q 'nexus_project_data_requirements' portal-client.js
           grep -q 'nexus_data_requirement_catalog' portal-client.js
           grep -q 'createSignedUrl' portal-client.js
-          grep -q "source_role:state.admin?'nexus':'client'" portal-client.js
+          grep -q "sourceRole:state.admin?'nexus':'client'" portal-client.js
+          grep -q 'source_role:sourceRole' portal-evidence-upload.js
           grep -q 'emailRedirectTo:`${location.origin}/portal`' portal-client.js
           grep -q 'initAuthUX' portal-client.js
           grep -q 'Email delivery provider connection pending' portal-client.js
