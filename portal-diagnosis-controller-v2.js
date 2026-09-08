@@ -1,5 +1,5 @@
 import {currentTranscript,transcriptSelectionKey} from './portal-journey-steps.js';
-import {companyPreparationQuery} from './portal-workspace-context.js';
+import {companyPreparationQuery,preparationDocuments,workspaceSourceDiagnosisId} from './portal-workspace-context.js';
 import {buildDiscoveryPacket} from './portal-discovery-capture.js';
 
 const portal=window.NexusPortal;
@@ -14,7 +14,7 @@ const CACHE_MS=1800;
 
 const company=()=>state.companies?.find(c=>c.id===state.companyId)||null;
 const project=()=>{const id=new URL(location.href).searchParams.get('project');return id?(state.projects||[]).find(p=>p.id===id&&p.company_id===state.companyId)||null:portal.activeProject?.()||null};
-const evidenceDocs=()=>[...(state.docs||[])].filter(d=>d.company_id===state.companyId&&(!d.project_id||d.project_id===project()?.id)).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+const evidenceDocs=()=>preparationDocuments(state,project()?.id||null,latestCache.run).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
 const transcriptDocs=()=>evidenceDocs().filter(d=>d.category==='Discovery Transcript'||/\.(srt|vtt)$/i.test(d.file_name||''));
 const hasClientDiscoveryResponse=()=>[...(state.tasks||[])].some(t=>t.task_type==='discovery_information_request'&&t.response_data&&Object.keys(t.response_data||{}).some(k=>k!=='client_note'&&String(t.response_data[k]??'').trim()));
 const hasResult=run=>{const r=run?.analysis_result;return !!r&&(typeof r==='string'?!!r.trim():Object.keys(r||{}).length>0)};
@@ -25,7 +25,10 @@ async function latestRun({force=false}={}){
   if(!state.admin||!state.companyId)return null;
   const companyId=state.companyId,projectId=project()?.id||null;
   if(!force&&latestCache.companyId===companyId&&latestCache.projectId===projectId&&Date.now()-latestCache.at<CACHE_MS)return latestCache.run;
-  const {data,error}=await companyPreparationQuery(sb.from('nexus_diagnosis_runs').select('id,company_id,status,analysis_result,execution_error,analysis_completed_at,queued_at,updated_at,created_at,project_id').eq('company_id',companyId),projectId).neq('status','archived').neq('status','draft').order('created_at',{ascending:false}).limit(1);
+  const sourceDiagnosisId=workspaceSourceDiagnosisId(state,projectId)||window.NexusAdminJourney?.snapshot?.diagnosis?.id||null;
+  let query=sb.from('nexus_diagnosis_runs').select('id,company_id,status,analysis_result,analysis_packet,execution_error,analysis_completed_at,queued_at,updated_at,created_at,project_id,transcript_document_id,supporting_document_ids').eq('company_id',companyId).neq('status','archived').neq('status','draft').order('created_at',{ascending:false}).limit(1);
+  query=sourceDiagnosisId?query.eq('id',sourceDiagnosisId):companyPreparationQuery(query,projectId);
+  const {data,error}=await query;
   if(error)throw error;
   if(state.companyId!==companyId||(project()?.id||null)!==projectId)return null;
   const run=data?.[0]||null;latestCache={companyId,projectId,run,at:Date.now()};return run;
@@ -40,7 +43,7 @@ async function ensureCurrentAdminContext(){
 }
 async function createQueuedRun(){
   const c=company(),p=project();if(!c?.id)throw new Error('Select a client company first.');
-  const docs=evidenceDocs(),responses=hasClientDiscoveryResponse(),transcript=currentTranscript(state,p?.id||null,portal.runtime.storage.get(transcriptSelectionKey(c.id,p?.id))),adminContext=await ensureCurrentAdminContext();
+  const docs=evidenceDocs(),responses=hasClientDiscoveryResponse(),transcript=currentTranscript(state,p?.id||null,portal.runtime.storage.get(transcriptSelectionKey(c.id,p?.id)),latestCache.run),adminContext=await ensureCurrentAdminContext();
   if(state.companyId!==c.id||(project()?.id||null)!==(p?.id||null))throw new Error('The workspace changed. Start diagnosis from the selected client.');
   if(!docs.length&&!adminContext?.content&&!responses)throw new Error('Add evidence, admin context, or a completed client discovery response before running diagnosis.');
   const now=new Date().toISOString();

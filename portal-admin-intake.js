@@ -1,4 +1,4 @@
-import {companyPreparationQuery} from './portal-workspace-context.js';
+import {companyPreparationQuery,diagnosisPreparationProjectIds,preparationDocuments,workspaceSourceDiagnosisId} from './portal-workspace-context.js';
 import {buildDiscoveryPacket} from './portal-discovery-capture.js';
 
 const portal=window.NexusPortal;
@@ -20,7 +20,7 @@ let loadSequence=0;
 
 const company=()=>state.companies?.find(c=>c.id===state.companyId)||null;
 const project=()=>{const id=new URL(location.href).searchParams.get('project');return id?(state.projects||[]).find(p=>p.id===id&&p.company_id===state.companyId)||null:portal.activeProject?.()||null};
-const evidenceDocs=()=>[...(state.docs||[])].filter(d=>d.company_id===state.companyId&&(!d.project_id||d.project_id===project()?.id)).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+const evidenceDocs=()=>preparationDocuments(state,project()?.id||null,latestRun()).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
 const latestContext=()=>contextEntries.find(x=>x.is_current)||contextEntries[0]||null;
 const latestGap=()=>gapAnalyses[0]||null;
 const latestRun=()=>diagnosisRuns.find(r=>!['draft','archived'].includes(r.status))||null;
@@ -55,15 +55,21 @@ async function loadStep2Data(){
   if(!state.admin||!state.companyId)return;
   const sequence=++loadSequence,companyId=state.companyId,projectId=project()?.id||null;
   try{
-    const queries=[['nexus_discovery_context_entries',30],['nexus_discovery_gap_analyses',10],['nexus_diagnosis_runs',30],['nexus_tasks',30]].map(([table,limit])=>{
+    const sourceDiagnosisId=workspaceSourceDiagnosisId(state,projectId)||window.NexusAdminJourney?.snapshot?.diagnosis?.id||null;
+    let runQuery=sb.from('nexus_diagnosis_runs').select('*').eq('company_id',companyId).neq('status','archived').neq('status','draft').order('created_at',{ascending:false}).limit(sourceDiagnosisId?1:30);
+    runQuery=sourceDiagnosisId?runQuery.eq('id',sourceDiagnosisId):companyPreparationQuery(runQuery,projectId);
+    const runResult=await runQuery;
+    if(runResult.error)throw runResult.error;
+    const sourceRun=runResult.data?.[0]||null,relatedProjectIds=diagnosisPreparationProjectIds(sourceRun,projectId);
+    const queries=[['nexus_discovery_context_entries',30],['nexus_discovery_gap_analyses',10],['nexus_tasks',30]].map(([table,limit])=>{
       let query=sb.from(table).select('*').eq('company_id',companyId).order('created_at',{ascending:false}).limit(limit);
       if(table==='nexus_tasks')query=query.eq('task_type','discovery_information_request');
-      return companyPreparationQuery(query,projectId);
+      return companyPreparationQuery(query,projectId,relatedProjectIds);
     });
     const results=await Promise.all(queries);
     if(sequence!==loadSequence||companyId!==state.companyId||projectId!==(project()?.id||null))return;
     for(const result of results)if(result.error)throw result.error;
-    [contextEntries,gapAnalyses,diagnosisRuns,discoveryTasks]=results.map(result=>result.data||[]);
+    [contextEntries,gapAnalyses,discoveryTasks]=results.map(result=>result.data||[]);diagnosisRuns=runResult.data||[];
   }catch(error){if(sequence!==loadSequence||companyId!==state.companyId)return;console.error('Step 2 data load failed',error);toast?.(error.message||'Discovery & Diagnosis data could not be loaded.')}
 }
 
@@ -145,12 +151,25 @@ function renderAdminIntake(){
   const c=company(),p=project();
   root.innerHTML=`<div class="admin-intake-banner step2-hero"><div><div class="eyebrow">STEP 3 · DIAGNOSIS & APPROVAL</div><h1>Turn evidence into an approved diagnosis.</h1><p>Relystra handles the framework, provenance, gap detection, and agent orchestration behind the scenes. Your job is to review what is known, close material gaps, add context, run the diagnosis, and approve the result.</p></div><div class="step2-client"><span>Client</span><b>${esc(c?.name||'No company selected')}</b><small>${esc(p?.name||'No active engagement')}</small></div></div>
   <p><button type="button" class="btn secondary" data-delivery-nav="transcript">Back to meeting transcript</button></p>
+  <section class="box intake-card step2-module" data-module="access"><div class="step2-module-head"><div><div class="kicker">Client access</div><h2>Invite a client to this workspace</h2><p class="small">Relystra creates or reconnects the account, grants access only to ${esc(c?.name||'the selected client')}, and sends a one-time sign-in link through the transactional email queue.</p></div></div><form id="clientInviteForm"><div class="form-grid"><div class="field"><label for="clientInviteName">Client name</label><input id="clientInviteName" autocomplete="name" maxlength="120"></div><div class="field"><label for="clientInviteEmail">Client email</label><input id="clientInviteEmail" type="email" autocomplete="email" maxlength="254" required></div></div><button class="btn primary" type="submit" ${c?'':'disabled'}>Send secure access email</button><p id="clientInviteStatus" class="small" role="status" aria-live="polite"></p></form></section>
   <section class="box intake-card step2-module" data-module="evidence"><div class="step2-module-head"><div><div class="kicker">Supporting evidence</div><h2>What Relystra already knows</h2><p class="small">Transcripts are optional. Upload any relevant current-state evidence that helps explain the company, workflow, systems, volume, performance, or constraints.</p></div><button id="toggleEvidenceUploadBtn" class="btn primary" type="button">+ Add Evidence</button></div><div id="evidenceUploadPanel" class="step2-upload-panel" hidden><form id="adminEvidenceForm"><div class="form-grid"><div class="field"><label>Evidence file</label><input id="adminEvidenceFile" type="file" required accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt,.md,.json,.xml,.srt,.vtt,.png,.jpg,.jpeg,.webp,.gif"></div><div class="field"><label>Type</label><select id="adminEvidenceCategory"><option>Client Source</option><option>Process Document</option><option>Measurement</option><option>Report</option><option>SOP</option><option>Screenshot</option><option>General</option></select></div></div><div class="field"><label>Context note <span class="small">(optional)</span></label><input id="adminEvidenceNote" placeholder="What is this, and what does it help Relystra understand?"></div><div class="step2-actions"><button class="btn primary" type="submit">Upload Evidence</button><button id="cancelEvidenceUploadBtn" class="btn secondary" type="button">Cancel</button></div><p class="small">PDF, DOCX, PPTX, spreadsheets, CSV, text, JSON/XML, transcripts, and common images · Maximum 25 MB.</p></form></div>${evidenceMarkup()}<details class="step2-history"><summary>Discovery history & audit trail</summary>${historyMarkup()}</details></section>
   <section class="box intake-card step2-module" data-module="gaps"><div class="step2-module-head"><div><div class="kicker">Information gaps & requests</div><h2>Ask only for what is still missing</h2><p class="small">The Master Discovery Framework stays in the backend. Relystra compares it against current evidence and client answers, then surfaces only material gaps.</p></div></div>${gapMarkup()}</section>
   <section class="box intake-card step2-module" data-module="context"><div class="step2-module-head"><div><div class="kicker">Admin context</div><h2>Add what the files may not show</h2><p class="small">Your observations directly influence the next diagnosis, but remain explicitly labeled as ADMIN CONTEXT until independently supported.</p></div></div>${contextMarkup()}</section>
   <section class="box intake-card step2-module" data-module="diagnosis"><div class="step2-module-head"><div><div class="kicker">Diagnosis status</div><h2>Run Diagnosis</h2><p class="small">Relystra analyzes all authorized evidence, current admin context, and completed client discovery answers. The transcript selected in Step 2 is included with supporting evidence.</p></div></div>${executionMarkup()}</section>
   <section class="box intake-card step2-module" data-module="review"><div class="step2-module-head"><div><div class="kicker"> Review & Approve</div><h2>Approve the diagnosis that drives the engagement</h2><p class="small">Approval makes this diagnosis the root record for downstream opportunities, action items, requests, measurements, and the recommended first intervention.</p></div></div>${reviewMarkup()}</section>`;
   bindStep2();
+}
+
+async function inviteClient(event){
+  event.preventDefault();const button=event.submitter,status=$('clientInviteStatus'),email=$('clientInviteEmail')?.value?.trim()||'',fullName=$('clientInviteName')?.value?.trim()||'';
+  if(!state.companyId||!email)return;if(button){button.disabled=true;button.textContent='Queuing…'}if(status)status.textContent='';
+  try{
+    const {data:{session}}=await sb.auth.getSession();if(!session?.access_token)throw new Error('Sign in again before sending an invitation.');
+    const response=await fetch('/api/invite-client',{method:'POST',headers:{'content-type':'application/json','authorization':`Bearer ${session.access_token}`},body:JSON.stringify({company_id:state.companyId,email,full_name:fullName})});
+    const payload=await response.json().catch(()=>({}));if(!response.ok||payload?.ok!==true)throw new Error(payload?.error||'The invitation could not be queued.');
+    if(status)status.textContent='Access email queued. The client will open a one-time link and arrive in this workspace.';event.target.reset();
+  }catch(error){if(status)status.textContent=error.message||'The invitation could not be queued.'}
+  finally{if(button?.isConnected){button.disabled=false;button.textContent='Send secure access email'}}
 }
 
 async function uploadEvidence(event){
@@ -219,6 +238,7 @@ async function runUpdatedDiagnosis(){
   try{const text=$('adminContextText')?.value?.trim();if(text&&text!==latestContext()?.content)await saveAdminContext({silent:true});await window.NexusDiagnosisController?.securedQueue?.({forceNew:true})}catch(error){toast?.(error.message||'Updated diagnosis could not be started.')}
 }
 function bindStep2(){
+  $('clientInviteForm')?.addEventListener('submit',inviteClient);
   $('toggleEvidenceUploadBtn')?.addEventListener('click',()=>{$('evidenceUploadPanel').hidden=false;$('adminEvidenceFile')?.focus()});
   $('cancelEvidenceUploadBtn')?.addEventListener('click',()=>{$('evidenceUploadPanel').hidden=true});
   $('adminEvidenceForm')?.addEventListener('submit',uploadEvidence);

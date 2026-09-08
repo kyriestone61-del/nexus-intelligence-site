@@ -2,6 +2,11 @@ const SITE_ORIGIN='https://nexusintelligence.live';
 const PRIVATE_PREFIXES=['/portal','/operations','/prospect-workspace','/booking-manage','/api/'];
 const PROTECTED_MARKETING_PATHS=new Set(['/privacy','/terms','/accessibility','/security']);
 const SERVICE_SLUGS=new Set(['ai-enablement-training','ai-opportunity-assessment','business-transformation','fractional-ai-director','implementation-sprint','managed-ai-operations']);
+const SECURITY_HEADERS={
+  'Content-Security-Policy':"default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://js.hs-scripts.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https://dmdgkjksouhhsuojthav.supabase.co wss://dmdgkjksouhhsuojthav.supabase.co https://*.hubspot.com https://*.hubapi.com https://cloudflareinsights.com; worker-src 'self' blob:; upgrade-insecure-requests",
+  'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY','Permissions-Policy':'camera=(), microphone=(), geolocation=()'
+};
+function secure(headers){for(const [name,value] of Object.entries(SECURITY_HEADERS))headers.set(name,value);return headers}
 
 const founderSchema={
   '@context':'https://schema.org',
@@ -84,14 +89,14 @@ export async function onRequest(context){
   if(path==='/case-studies'){
     const target=new URL('/methodology',url.origin);
     target.search=url.search;
-    return Response.redirect(target.toString(),301);
+    return new Response(null,{status:301,headers:secure(new Headers({location:target.toString()}))});
   }
 
   const response=await context.next();
   const isPrivate=PRIVATE_PREFIXES.some(prefix=>path===prefix||path.startsWith(prefix));
   const isProtectedMarketing=PROTECTED_MARKETING_PATHS.has(path);
   const isPreview=url.hostname.endsWith('.pages.dev');
-  const headers=new Headers(response.headers);
+  const headers=secure(new Headers(response.headers));
   // This downloadable QA artifact is self-contained; site navigation scripts
   // must not become dependencies of its offline copy.
   if(path==='/delivery/qa-estimate-intake-register'||path.startsWith('/delivery/qa-estimate-intake-register/')){
@@ -118,6 +123,8 @@ export async function onRequest(context){
     .on('link[rel="canonical"]',{element(el){el.remove();}})
     .on('meta[property="og:url"]',{element(el){el.remove();}})
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
+    .on('meta[name="robots"]',{element(el){if(!isPrivate)el.remove();}})
+    .on('meta[name="relystra-stage"]',{element(el){el.remove();}})
     .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
     .on('.navlinks a[href="/case-studies"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})

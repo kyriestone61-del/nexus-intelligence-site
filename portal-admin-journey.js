@@ -109,5 +109,5 @@ settingsRoot.addEventListener('submit',async event=>{
   catch(error){toast(error.message)}finally{button.disabled=false}
 });
 for(const event of ['nexus:workspace-ready','nexus:diagnosis-changed','nexus:diagnosis-updated','nexus:delivery-changed','relystra:delivery-changed'])window.addEventListener(event,refresh);
-window.NexusAdminJourney=Object.freeze({refresh,navigate});
+window.NexusAdminJourney=Object.freeze({refresh,navigate,get snapshot(){return store.value}});
 await refresh();await navigate(new URL(location.href).searchParams.get('section')||'overview');

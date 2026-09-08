@@ -1,4 +1,4 @@
 User-agent: *
-Disallow: /
+Allow: /
 
-# RELYSTRA preview build. Replace this file only during an approved production cutover.
+Sitemap: https://nexusintelligence.live/sitemap.xml

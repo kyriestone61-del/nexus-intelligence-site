@@ -34,20 +34,39 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
   const recoveryType=search.get('type')||hash.get('type');
   const recoveryTokenHash=search.get('token_hash')||hash.get('token_hash');
   const recoveryReturn=search.get('mode')==='recovery'||recoveryType==='recovery';
+  const inviteReturn=hash.get('mode')==='invite'&&recoveryType==='magiclink'&&Boolean(recoveryTokenHash);
   const looksLikeAuthReturn=search.has('code')||search.has('token_hash')||search.has('type')||hash.has('access_token')||hash.has('refresh_token')||hash.has('type');
 
   let session=null;
   try{const result=await sb.auth.getSession();session=result.data?.session||null;if(result.error)console.warn('Relystra auth session check failed',result.error)}catch(error){console.warn('Relystra auth session check failed',error)}
+
+  if(inviteReturn&&!session?.user){
+    storage.remove(pendingFlag);
+    try{
+      history.replaceState({},'',`${location.pathname}#mode=invite`);
+      const result=await sb.auth.verifyOtp({token_hash:recoveryTokenHash,type:'magiclink'});
+      if(result.error)throw result.error;
+      session=result.data?.session||null;
+      history.replaceState({},'',location.pathname);
+      if(!session?.user)throw new Error('Invitation session was not created.');
+      showVerificationOverlay(true,'Your Relystra client workspace is ready.');return;
+    }catch(error){
+      console.warn('Relystra invitation token verification failed',error);
+      history.replaceState({},'',location.pathname);
+      showVerificationOverlay(false,'That invitation link is invalid, expired, or has already been used. Ask Relystra to resend access.');return;
+    }
+  }
 
   if(recoveryReturn){
     storage.remove(pendingFlag);
     if(authError){showVerificationOverlay(false,'That password-recovery link is invalid or has expired. Request a new recovery email and try again.');return}
     if(!session?.user&&recoveryTokenHash&&recoveryType==='recovery'){
       try{
+        history.replaceState({},'',`${location.pathname}#mode=recovery`);
         const result=await sb.auth.verifyOtp({token_hash:recoveryTokenHash,type:'recovery'});
         if(result.error)throw result.error;
         session=result.data?.session||null;
-        history.replaceState({},'',`${location.pathname}?mode=recovery`);
+        history.replaceState({},'',`${location.pathname}#mode=recovery`);
       }catch(error){
         console.warn('Relystra password-recovery token verification failed',error);
         showVerificationOverlay(false,'That password-recovery link is invalid, expired, or has already been used. Request a new recovery email and try again.');return;

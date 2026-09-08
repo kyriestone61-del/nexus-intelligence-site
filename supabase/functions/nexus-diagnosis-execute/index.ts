@@ -16,6 +16,11 @@ const MODEL="openai/gpt-5.6-sol";
 const RETRY_BUDGET=3;
 const FRAMEWORK_VERSION="2026-09-02";
 const MODEL_TIMEOUT_MS=105000;
+const MAX_SOURCE_BYTES=25*1024*1024;
+const MAX_ARCHIVE_ENTRIES=1000;
+const MAX_ARCHIVE_EXPANDED_BYTES=64*1024*1024;
+const MAX_ARCHIVE_RATIO=100;
+const MAX_WORKBOOK_CELLS=200000;
 const safe=(v:any,n=12000)=>String(v??"").slice(0,n);
 const arr=(v:any)=>Array.isArray(v)?v:[];
 
@@ -44,23 +49,44 @@ async function auth(req:Request,allowClient=false){
 async function patch(id:string,p:any){const {error}=await db.from("nexus_diagnosis_runs").update({...p,updated_at:new Date().toISOString()}).eq("id",id);if(error)throw error}
 
 function stripXml(v:string){return v.replace(/<w:tab\/?[^>]*>/gi,"\t").replace(/<w:br\/?[^>]*>/gi,"\n").replace(/<a:br\/?[^>]*>/gi,"\n").replace(/<\/w:p>/gi,"\n").replace(/<\/a:p>/gi,"\n").replace(/<[^>]+>/g," ").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim()}
-async function docxText(bytes:Uint8Array){
+async function safeOfficeZip(bytes:Uint8Array){
   const JSZip=(await import("npm:jszip@3.10.1")).default;
   const zip=await JSZip.loadAsync(bytes);
+  const entries=Object.values(zip.files).filter((entry:any)=>!entry.dir) as any[];
+  if(entries.length>MAX_ARCHIVE_ENTRIES)throw new Error("OFFICE_ARCHIVE_ENTRY_LIMIT");
+  let expanded=0,compressed=0;
+  for(const entry of entries){
+    const unpacked=Number(entry?._data?.uncompressedSize||0),packed=Number(entry?._data?.compressedSize||0);
+    expanded+=unpacked;compressed+=packed;
+    if(unpacked>32*1024*1024)throw new Error("OFFICE_ARCHIVE_ENTRY_TOO_LARGE");
+  }
+  if(expanded>MAX_ARCHIVE_EXPANDED_BYTES)throw new Error("OFFICE_ARCHIVE_EXPANSION_LIMIT");
+  if(compressed>0&&expanded/compressed>MAX_ARCHIVE_RATIO)throw new Error("OFFICE_ARCHIVE_RATIO_LIMIT");
+  return zip;
+}
+async function docxText(bytes:Uint8Array){
+  const zip=await safeOfficeZip(bytes);
   const xml=await zip.file("word/document.xml")?.async("string");
+  if(xml&&xml.length>16*1024*1024)throw new Error("OFFICE_DOCUMENT_XML_LIMIT");
   return xml?stripXml(xml):"";
 }
 async function pptxText(bytes:Uint8Array){
-  const JSZip=(await import("npm:jszip@3.10.1")).default;
-  const zip=await JSZip.loadAsync(bytes);
+  const zip=await safeOfficeZip(bytes);
   const names=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/i.test(n)).sort((a,b)=>Number(a.match(/slide(\d+)/i)?.[1]||0)-Number(b.match(/slide(\d+)/i)?.[1]||0));
   const out:string[]=[];
-  for(const name of names.slice(0,80)){const xml=await zip.file(name)?.async("string");if(xml)out.push(`\n--- ${name.split('/').pop()} ---\n${stripXml(xml)}`)}
+  for(const name of names.slice(0,80)){const xml=await zip.file(name)?.async("string");if(xml){if(xml.length>4*1024*1024)throw new Error("OFFICE_SLIDE_XML_LIMIT");out.push(`\n--- ${name.split('/').pop()} ---\n${stripXml(xml)}`)}}
   return out.join("\n").slice(0,180000);
 }
 async function xlsxText(bytes:Uint8Array){
+  await safeOfficeZip(bytes);
   const XLSX=await import("npm:xlsx@0.18.5");
   const book=XLSX.read(bytes,{type:"array",cellDates:true});
+  let cells=0;
+  for(const name of book.SheetNames.slice(0,30)){
+    const ref=book.Sheets[name]?.['!ref'];if(!ref)continue;
+    const range=XLSX.utils.decode_range(ref);cells+=(range.e.r-range.s.r+1)*(range.e.c-range.s.c+1);
+    if(cells>MAX_WORKBOOK_CELLS)throw new Error("WORKBOOK_CELL_LIMIT");
+  }
   return book.SheetNames.slice(0,30).map(name=>`\n--- WORKSHEET: ${name} ---\n${XLSX.utils.sheet_to_csv(book.Sheets[name],{blankrows:false})}`).join("\n").slice(0,180000);
 }
 function toBase64(bytes:Uint8Array){let s="";const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)s+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));return btoa(s)}
@@ -105,6 +131,7 @@ async function evidence(doc:any,cfg:any){
   const {data,error}=await db.storage.from("nexus-client-documents").download(doc.storage_path);
   if(error||!data)throw new Error(`DOWNLOAD:${doc.file_name}`);
   const bytes=new Uint8Array(await data.arrayBuffer());
+  if(bytes.length>MAX_SOURCE_BYTES||Number(doc.size_bytes||0)>MAX_SOURCE_BYTES)throw new Error(`FILE_SIZE_LIMIT:${doc.file_name}`);
   const mime=String(doc.mime_type||"").toLowerCase(), name=String(doc.file_name||"").toLowerCase();
   let text="", parsed=true, parser="text";
   if(mime.includes("pdf")||name.endsWith(".pdf")){
@@ -148,7 +175,9 @@ async function documentRows(companyId:string,projectId:string|null,ids:string[]|
   let q=db.from("nexus_documents").select("id,company_id,project_id,storage_path,file_name,mime_type,category,note,size_bytes,evidence_summary,evidence_claims,evidence_classification,evidence_ingested_at").eq("company_id",companyId).order("created_at",{ascending:true});
   if(ids?.length)q=q.in("id",ids);
   const {data,error}=await q;if(error)throw error;
-  return (data||[]).filter((d:any)=>!projectId||!d.project_id||d.project_id===projectId);
+  // A run's recorded evidence IDs are the authoritative, immutable lineage.
+  // Project reassignment after approval must not make those files disappear.
+  return (data||[]).filter((d:any)=>ids?.length||!projectId||!d.project_id||d.project_id===projectId);
 }
 async function buildEvidenceBundle(cfg:any,companyId:string,projectId:string|null,ids:string[]|null=null){
   const docs=await documentRows(companyId,projectId,ids);
@@ -269,8 +298,17 @@ async function askSupport(req:Request,body:any,userId:string){
   const projectId=safe(body.project_id,80),turnId=safe(body.turn_id,80),question=String(body.question||'').trim();
   if(!projectId||!turnId||!question||question.length>2000)throw new Error('SUPPORT_QUESTION_REQUIRED');
   const actor=createClient(url,anon,{global:{headers:{Authorization:req.headers.get('authorization')||''}},auth:{persistSession:false,autoRefreshToken:false}});
+  const claim=await db.rpc('relystra_claim_support_turn',{p_turn_id:turnId,p_project_id:projectId,p_user_id:userId,p_question:question});
+  if(claim.error)throw new Error(claim.error.message||'SUPPORT_REQUEST_REJECTED');
+  if(claim.data?.state==='complete'){
+    const saved=await actor.from('nexus_client_requests').select('id,status,support_answer,support_context').eq('id',turnId).single();
+    if(saved.error)throw new Error('SUPPORT_RESPONSE_LOAD_FAILED');
+    return {ok:true,...saved.data,replayed:true};
+  }
+  if(claim.data?.state!=='claimed'||!claim.data?.lease_id)throw new Error('SUPPORT_REQUEST_IN_PROGRESS');
+  const leaseId=String(claim.data.lease_id);
   const sourceResult=await actor.rpc('relystra_support_sources',{p_project_id:projectId});
-  if(sourceResult.error)throw new Error('DELIVERED_PACKAGE_ACCESS_REQUIRED');
+  if(sourceResult.error){await db.rpc('relystra_finish_support_turn',{p_turn_id:turnId,p_lease_id:leaseId,p_status:'failed'});throw new Error('DELIVERED_PACKAGE_ACCESS_REQUIRED')}
   const sources=arr(sourceResult.data);
   let citations:Array<{source_id:string;quote:string}>=[];
   try{
@@ -280,7 +318,8 @@ async function askSupport(req:Request,body:any,userId:string){
     citations=verifiedSupportPassages(result,sources);
   }catch{ /* A provider failure creates the same explicit human escalation as unsupported evidence. */ }
   const recorded=await db.rpc('relystra_record_support_turn',{p_turn_id:turnId,p_project_id:projectId,p_user_id:userId,p_question:question,p_citations:citations,p_escalate:!citations.length});
-  if(recorded.error)throw new Error('SUPPORT_REQUEST_SAVE_FAILED');
+  if(recorded.error){await db.rpc('relystra_finish_support_turn',{p_turn_id:turnId,p_lease_id:leaseId,p_status:'failed'});throw new Error('SUPPORT_REQUEST_SAVE_FAILED')}
+  await db.rpc('relystra_finish_support_turn',{p_turn_id:turnId,p_lease_id:leaseId,p_status:'complete'});
   const saved=await actor.from('nexus_client_requests').select('id,status,support_answer,support_context').eq('id',recorded.data).single();
   if(saved.error)throw new Error('SUPPORT_RESPONSE_LOAD_FAILED');
   return {ok:true,...saved.data};
@@ -307,7 +346,7 @@ Deno.serve(async(req:Request)=>{
   if(handler)return new Response('Unknown handler',{status:404});
   if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
   if(req.method!=="POST")return new Response(JSON.stringify({ok:false,error:"Method not allowed"}),{status:405,headers:jh});
-  let runId="";let authState:{mode:"worker"|"admin"|"client",userId:string|null}={mode:"admin",userId:null};
+  let runId="",leaseId="";let authState:{mode:"worker"|"admin"|"client",userId:string|null}={mode:"admin",userId:null};
   try{
     const body=await req.json().catch(()=>({}));
     const operation=safe(body?.operation,60)||"diagnosis";
@@ -349,34 +388,33 @@ Deno.serve(async(req:Request)=>{
     }
     if(!runId)return new Response(JSON.stringify({ok:true,status:"idle"}),{headers:jh});
 
-    const {data:run,error}=await db.from("nexus_diagnosis_runs").select("*").eq("id",runId).single();
-    if(error||!run)throw new Error("RUN_NOT_FOUND");
-    if(!["queued","revision_requested","failed","blocked"].includes(run.status))return new Response(JSON.stringify({ok:false,error:`Diagnosis is ${run.status}; it cannot be executed from this state.`}),{status:409,headers:jh});
-    if(authState.mode==="worker"&&Number(run.execution_attempts||0)>=RETRY_BUDGET){
-      await patch(runId,{status:"blocked",blocked_reason:"RETRY_BUDGET_EXCEEDED",execution_error:"RETRY_BUDGET_EXCEEDED"});
-      await health("degraded","Diagnosis worker stopped automatic retries after the retry budget.",{run_id:runId,error_code:"RETRY_BUDGET_EXCEEDED",execution_attempts:run.execution_attempts});
-      return new Response(JSON.stringify({ok:false,error:"RETRY_BUDGET_EXCEEDED"}),{status:409,headers:jh});
-    }
+    const initial=await db.from("nexus_diagnosis_runs").select("*").eq("id",runId).single();
+    if(initial.error||!initial.data)throw new Error("RUN_NOT_FOUND");
+    let run:any=initial.data;
+    if(!["queued","revision_requested","failed","blocked","analyzing"].includes(run.status))return new Response(JSON.stringify({ok:false,error:`Diagnosis is ${run.status}; it cannot be executed from this state.`}),{status:409,headers:jh});
 
     const access=await db.rpc('relystra_diagnosis_access',{p_company_id:run.company_id,p_run_id:run.id});
     if(access.error||access.data!==true)throw new Error('DIAGNOSIS_PAYMENT_REQUIRED');
+    const claimed=await db.rpc('relystra_claim_diagnosis_execution',{p_run_id:run.id,p_retry_budget:RETRY_BUDGET});
+    if(claimed.error||claimed.data?.ok!==true)throw new Error(claimed.data?.error||claimed.error?.message||'DIAGNOSIS_CLAIM_FAILED');
+    leaseId=String(claimed.data.lease_id||'');run=claimed.data.run;
     const cfg=await providerConfig();
     const ids=[...new Set([...(run.supporting_document_ids||[]),...(run.transcript_document_id?[run.transcript_document_id]:[])])];
-    const packet=run.analysis_packet||{};const projectId=run.project_id||packet.project?.id||null;
+    const packet=run.analysis_packet||{};const projectId=packet.project?.id||run.project_id||null;
     const bundle=await buildEvidenceBundle(cfg,run.company_id,projectId,ids.length?ids:null);
     const parts=[...bundle.parts];
     if(packet?.transcript_text)parts.unshift(`\n=== PASTED_TRANSCRIPT ===\nEvidence Ref: PASTED_TRANSCRIPT\n${safe(packet.transcript_text,180000)}\n=== END PASTED_TRANSCRIPT ===\n`);
     if(run.discovery_notes&&!bundle.adminContext?.content)parts.push(`\n=== ADMIN CONTEXT ===\nEvidence Ref: ADMIN_NOTES\n${safe(run.discovery_notes,40000)}\n=== END ADMIN CONTEXT ===\n`);
     if(!parts.length)throw new Error("NO_ANALYZABLE_EVIDENCE");
 
-    const attempt=Number(run.execution_attempts||0)+1;
-    await patch(runId,{status:"analyzing",analysis_started_at:new Date().toISOString(),execution_error:null,blocked_reason:null,execution_attempts:attempt});
+    const attempt=Number(run.execution_attempts||0);
     const templates=await actionTemplateCatalog();
     const context={company:packet.company||{},project:packet.project||{},meeting:packet.meeting||{},evidence_manifest:bundle.docs.map((d:any)=>({id:d.id,file_name:d.file_name,category:d.category,note:d.note})),action_template_catalog:templates,discovery_framework_version:FRAMEWORK_VERSION};
     const result=await runDiagnosis(cfg,context,parts.join("\n"),safe(run.review_notes,12000));
     result.execution={agent:"client_diagnosis",pipeline_version:4,stages:["Evidence Analyst","Process & Opportunity Analyst","Independent QA / Governance Verifier","Final Diagnosis Composer"],qa_score:Number(result.quality_assurance?.quality_score||0),qa_pass:result.quality_assurance?.pass===true,release_blockers:[],evidence_document_ids:bundle.docs.map((d:any)=>d.id),evidence_files:bundle.docs.map((d:any)=>d.file_name),evidence_parsers:bundle.parsers,admin_context_id:bundle.adminContext?.id||null,client_response_refs:bundle.clientResponses,action_template_catalog_size:templates.length,completed_at:new Date().toISOString(),model:MODEL,human_review_required:true,trigger:authState.mode};
 
-    await patch(runId,{status:"ready_for_review",analysis_result:result,analysis_completed_at:new Date().toISOString(),execution_error:null,blocked_reason:null});
+    const completed=await db.rpc('relystra_complete_diagnosis_execution',{p_run_id:runId,p_lease_id:leaseId,p_result:result});
+    if(completed.error||completed.data!==true)throw new Error('DIAGNOSIS_LEASE_LOST');
     await notifyAdminsReady({...run,id:runId});
     await health("healthy","Governed evidence-backed Client Diagnosis pipeline completed successfully.",{run_id:runId,pipeline_version:4,qa_score:result.execution.qa_score,qa_pass:result.execution.qa_pass,evidence_count:bundle.docs.length,attempt});
     return new Response(JSON.stringify({ok:true,run_id:runId,status:"ready_for_review",evidence_count:bundle.docs.length,pipeline_version:4,qa_score:result.execution.qa_score}),{headers:jh});
@@ -386,8 +424,8 @@ Deno.serve(async(req:Request)=>{
     if(msg.includes("AI_PROVIDER_BILLING_REQUIRED"))await health("failed","Client Diagnosis provider requires billing activation.",{required_action:"activate_vercel_ai_gateway_billing",error_code:"AI_PROVIDER_BILLING_REQUIRED",run_id:runId,trigger:authState.mode,transient:false});
     else if(msg.includes("MODEL_PROXY_AUTH_NOT_CONFIGURED"))await health("failed","Client Diagnosis model provider is not configured.",{error_code:"MODEL_PROXY_AUTH_NOT_CONFIGURED",run_id:runId,trigger:authState.mode,transient:false});
     else if(msg.startsWith("MODEL_"))await health(nonTransient?"failed":"degraded","Client Diagnosis model provider request failed.",{error:safe(msg,500),run_id:runId,trigger:authState.mode,transient:!nonTransient});
-    if(runId){try{const blocked=nonTransient||/MISSING_EVIDENCE|EMPTY_EVIDENCE|NO_ANALYZABLE_EVIDENCE|EVIDENCE_COMPANY_MISMATCH/.test(msg);await patch(runId,{status:blocked?"blocked":"failed",execution_error:msg,blocked_reason:blocked?msg:null,analysis_completed_at:new Date().toISOString()})}catch{}}
-    const status=msg.includes("AUTH_REQUIRED")?401:msg.includes("ADMIN_REQUIRED")||msg.includes("WORKER_AUTH_FAILED")?403:msg.includes("AI_PROVIDER_BILLING_REQUIRED")?402:500;
+    if(runId&&leaseId){try{const blocked=nonTransient||/MISSING_EVIDENCE|EMPTY_EVIDENCE|NO_ANALYZABLE_EVIDENCE|EVIDENCE_COMPANY_MISMATCH/.test(msg);await db.rpc('relystra_fail_diagnosis_execution',{p_run_id:runId,p_lease_id:leaseId,p_error:msg,p_blocked:blocked})}catch{}}
+    const status=msg.includes("AUTH_REQUIRED")?401:msg.includes("ADMIN_REQUIRED")||msg.includes("WORKER_AUTH_FAILED")?403:msg.includes("AI_PROVIDER_BILLING_REQUIRED")?402:/request limit|rate limit/i.test(msg)?429:/RETRY_BUDGET|ALREADY_RUNNING|STATE_CONFLICT|IN_PROGRESS|support period has ended/i.test(msg)?409:500;
     return new Response(JSON.stringify({ok:false,error:msg}),{status,headers:jh});
   }
 });

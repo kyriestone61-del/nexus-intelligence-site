@@ -49,9 +49,16 @@ test('every active HTML document carries brand and preview safeguards', async ()
   }
 });
 
-test('robots and response headers block preview indexing', async () => {
-  assert.match(await readFile(join(root, 'robots.txt'), 'utf8'), /User-agent: \*\s+Disallow: \//);
-  assert.match(await readFile(join(root, '_headers'), 'utf8'), /\/\*\s+X-Robots-Tag: noindex, nofollow/);
+test('public production pages are indexable while private and preview routes remain blocked', async () => {
+  const robots=await readFile(join(root, 'robots.txt'), 'utf8');
+  const headers=await readFile(join(root, '_headers'), 'utf8');
+  const middleware=await readFile(join(root, 'functions/_middleware.js'), 'utf8');
+  assert.match(robots, /User-agent: \*\s+Allow: \//);
+  assert.match(robots, /Sitemap: https:\/\/nexusintelligence\.live\/sitemap\.xml/);
+  assert.doesNotMatch(headers, /\/\*\s+X-Robots-Tag: noindex, nofollow/);
+  assert.match(headers, /\/portal\*\s+[\s\S]*X-Robots-Tag: noindex, nofollow/);
+  assert.match(middleware, /const isPreview=url\.hostname\.endsWith\('\.pages\.dev'\)/);
+  assert.match(middleware, /if\(isPrivate\)headers\.set\('X-Robots-Tag','noindex, nofollow, noarchive'\)/);
 });
 
 test('canonical brand avoids prohibited compound names', async () => {

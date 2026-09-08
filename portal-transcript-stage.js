@@ -1,13 +1,13 @@
 import {persistEvidence} from './portal-evidence-upload.js';
 import {currentTranscript,transcriptDocuments,transcriptSelectionKey} from './portal-journey-steps.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function selectedTranscript(portal,snapshot){return currentTranscript(portal.state,snapshot?.project_id,portal.runtime.storage.get(transcriptSelectionKey(portal.state.companyId,snapshot?.project_id),null));}
+export function selectedTranscript(portal,snapshot){return currentTranscript(portal.state,snapshot?.project_id,portal.runtime.storage.get(transcriptSelectionKey(portal.state.companyId,snapshot?.project_id),null),snapshot?.diagnosis);}
 export function mountTranscriptStage(root,portal,{navigate,onChange=async()=>{}}){
   let snapshot=null,company=null,busy=false,message='',failed=false;
   const selected=()=>selectedTranscript(portal,snapshot);
   function render(){
     if(!snapshot)return;
-    const transcript=selected(),docs=transcriptDocuments(portal.state,snapshot.project_id).filter(d=>/\.(pdf|docx|txt|md|srt|vtt)$/i.test(d.file_name||'')),admin=portal.state.admin,readOnly=portal.state.previewReadOnly;
+    const transcript=selected(),docs=transcriptDocuments(portal.state,snapshot.project_id,snapshot.diagnosis).filter(d=>/\.(pdf|docx|txt|md|srt|vtt)$/i.test(d.file_name||'')),admin=portal.state.admin,readOnly=portal.state.previewReadOnly;
     const run=snapshot.diagnosis||{},access=!!run.access,processing=['queued','analyzing','processing'].includes(run.status),hasResult=['approved','ready_for_review','in_review','review_required'].includes(run.status);
     root.innerHTML=`<div class="relystra-transcript-stage"><header><div class="eyebrow">Step 2 · Meeting transcript</div><h1>Add the meeting transcript.</h1><p>Upload the transcript from this client's meeting, or select one already saved. You can start diagnosis here after it is saved and diagnosis access is confirmed.</p></header>
     <section class="relystra-build-card"><form data-transcript-upload><label>Meeting transcript<input type="file" name="transcript" accept=".pdf,.docx,.txt,.md,.srt,.vtt" required ${readOnly?'disabled':''}></label><p>PDF, DOCX, TXT, Markdown, SRT or VTT · up to 25 MB.</p><button class="btn ${transcript?'secondary':'primary'}" type="submit" ${readOnly?'disabled':''}>Upload meeting transcript</button></form>

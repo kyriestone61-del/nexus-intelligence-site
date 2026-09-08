@@ -1,7 +1,8 @@
 import {lifecycle,clientLifecycle} from './portal-delivery-lifecycle.js';
+import {preparationDocuments} from './portal-workspace-context.js';
 export const journeySteps=[['overview','Setup & access'],['transcript','Meeting transcript'],['diagnosis','Diagnosis & approval'],['actions','Required inputs'],['builds','Recommended Builds'],['scope','Agree scope & payment'],['progress','Build & quality checks'],['review','Client review'],['final-package','Final handoff'],['support','Completion & support']];
-export function transcriptDocuments(state,projectId=null){return (state.docs||[]).filter(d=>d.company_id===state.companyId&&(!d.project_id||d.project_id===projectId));}
-export function currentTranscript(state,projectId=null,selectedId=null){const docs=transcriptDocuments(state,projectId);return docs.find(d=>d.id===selectedId)||docs.find(d=>d.category==='Discovery Transcript'||/transcript|\.(srt|vtt)$/i.test(d.file_name||''))||null;}
+export function transcriptDocuments(state,projectId=null,diagnosis=null){return preparationDocuments(state,projectId,diagnosis);}
+export function currentTranscript(state,projectId=null,selectedId=null,diagnosis=null){const docs=transcriptDocuments(state,projectId,diagnosis);return docs.find(d=>d.id===selectedId)||docs.find(d=>d.id===diagnosis?.transcript_document_id)||docs.find(d=>d.category==='Discovery Transcript'||/transcript|\.(srt|vtt)$/i.test(d.file_name||''))||null;}
 export function journeyProgress(snapshot,hasTranscript=false){
   const s=snapshot||{},d=s.diagnosis||{},next=lifecycle(s),p=s.package;
   let current=0;

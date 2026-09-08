@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { prepareAuthRecovery, markAuthRecoveryProviderFailure, markAuthRecoveryAccepted, isAuthRecovery } from "./auth-recovery.ts";
-import { maybeHandleAuthRecoveryRequest } from "./auth-recovery-request.ts";
+import { prepareAuthRecovery, prepareAuthInvite, markAuthRecoveryProviderFailure, markAuthRecoveryAccepted, isAuthRecovery, isAuthInvite } from "./auth-recovery.ts";
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"content-type,x-nexus-worker-token","Access-Control-Allow-Methods":"POST,OPTIONS"};
 const base=()=>Deno.env.get('SUPABASE_URL')||'https://dmdgkjksouhhsuojthav.supabase.co';
@@ -32,10 +31,10 @@ async function processEmail(){
   for(const row of rows){try{
     const action=row.action_url?`${Deno.env.get('NEXUS_PUBLIC_ORIGIN')||'https://nexusintelligence.live'}${row.action_url}`:null;
     let body=clean(row.body_text,12000)+(action?`\n\nOpen Relystra: ${action}`:'');
-    const recoveryBody=await prepareAuthRecovery(row,base(),h());
-    if(recoveryBody)body=recoveryBody;
+    const authBody=await prepareAuthRecovery(row,base(),h())||await prepareAuthInvite(row,base(),h());
+    if(authBody)body=authBody;
     const providerHeaders:any={authorization:`Bearer ${resend}`,'content-type':'application/json'};
-    if(isAuthRecovery(row))providerHeaders['Idempotency-Key']=`relystra-auth-${row.id}`;
+    if(isAuthRecovery(row)||isAuthInvite(row))providerHeaders['Idempotency-Key']=`relystra-auth-${row.id}`;
     const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:providerHeaders,body:JSON.stringify({from,to:[row.recipient_email],subject:clean(row.subject,250),text:body,headers:{'X-Entity-Ref-ID':row.id}})});
     const p=await r.json().catch(()=>({}));
     if(!r.ok){const permanent=[400,401,403,404,422].includes(r.status);await markAuthRecoveryProviderFailure(row,base(),h(),r.status,clean(p?.message||`Provider ${r.status}`,160));await patchEmail(row.id,{status:permanent||Number(row.attempts)>=4?'failed':'queued',available_at:new Date(Date.now()+(permanent?0:Math.min(60,15*Math.max(1,Number(row.attempts))))*60000).toISOString(),last_attempt_at:now(),failure_class:permanent?'permanent':'transient',last_error:clean(p?.message||`Provider ${r.status}`,1000),provider_status:String(r.status)});permanent||Number(row.attempts)>=4?failed++:retried++;continue}
@@ -137,8 +136,6 @@ async function closeExpiredSupport(){
 Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   if(req.method!=='POST')return new Response('method not allowed',{status:405,headers:cors});
-  const recoveryResponse=await maybeHandleAuthRecoveryRequest(req,base(),h(),service());
-  if(recoveryResponse)return recoveryResponse;
   try{
     const cfg=await config();const workerToken=req.headers.get('x-nexus-worker-token')||'';
     if(!cfg?.enabled||!workerToken||await digest(workerToken)!==cfg.secret_hash)return new Response(JSON.stringify({ok:false,error:'Unauthorized'}),{status:401,headers:{...cors,'content-type':'application/json'}});

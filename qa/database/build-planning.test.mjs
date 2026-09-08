@@ -5,7 +5,7 @@ import {database,asUser} from './fixture.mjs';
 const admin='00000000-0000-4000-8000-000000000001',client='00000000-0000-4000-8000-000000000002',company='00000000-0000-4000-8000-000000000003',foreign='00000000-0000-4000-8000-000000000004';
 
 test('only approved client-scoped builds become immutable-priced plans with dependency-aware duration',async()=>{
-  const migrations=(await fs.readdir(new URL('../../supabase/migrations/',import.meta.url))).filter(n=>n.startsWith('20260907')&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('diagnosis_purchase_gate')).sort();
+  const migrations=(await fs.readdir(new URL('../../supabase/migrations/',import.meta.url))).filter(n=>(n.startsWith('20260907')&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('diagnosis_purchase_gate'))||n==='20260908013000_relystra_canonical_diagnosis_lineage.sql').sort();
   const db=await database(migrations);
   try{
     await db.exec(`insert into auth.users values ('${admin}'),('${client}');
@@ -32,6 +32,10 @@ test('only approved client-scoped builds become immutable-priced plans with depe
       assert.equal((await db.query("update nexus_opportunities set build_spec=$1 where id=$2 returning id",[{...spec,price_cents:1},first])).rows.length,0,'approved terms cannot bypass their review RPC');
     });
     const second=await asUser(db,admin,()=>db.query("select relystra_save_build($1,null,$2,'approve') id",[company,{...spec,name:'Follow up',source_path:'opportunity_backlog/1',template_code:'build_lead_follow_up',duration_min:3,duration_max:5,price_cents:250000,dependencies:[first]}]).then(r=>r.rows[0].id));
+    const otherRun=(await db.query("insert into nexus_diagnosis_runs(company_id,status,analysis_result,created_by) values ($1,'approved',$2,$3) returning id",[company,analysis,admin])).rows[0].id;
+    const otherBuild=await asUser(db,admin,()=>db.query("select relystra_save_build($1,null,$2,'approve') id",[company,{...spec,diagnosis_run_id:otherRun,name:'Different diagnosis',source_path:'opportunity_backlog/0'}]).then(r=>r.rows[0].id));
+    await asUser(db,client,()=>assert.rejects(db.query('select relystra_create_build_plan($1,$2)',[company,[first,otherBuild]]),/same approved diagnosis/));
+    await asUser(db,admin,()=>db.query("select relystra_save_build($1,$2,'{}','reject')",[company,otherBuild]));
     await asUser(db,admin,async()=>{
       await assert.rejects(db.query("select relystra_save_build($1,$2,$3,'approve')",[company,first,{dependencies:[second]}]),/cannot form a cycle/);
       await assert.rejects(db.query("select relystra_save_build($1,$2,'{}','postpone')",[company,first]),/dependent Builds/);
@@ -87,6 +91,7 @@ test('only approved client-scoped builds become immutable-priced plans with depe
     assert.equal(project.project_type,'build_package');
     assert.equal(project.package_stage,'briefs');
     assert.equal(project.payment_livemode,false);
+    assert.equal(project.context_diagnosis_run_id,run);
     assert.equal(project.scope_snapshot.total_cents,425000);
     await assert.rejects(db.query("update nexus_projects set scope_snapshot='{}' where id=$1",[paidProject]),/immutable/);
     await assert.rejects(db.query('update nexus_build_plans set total_cents=1 where id=$1',[plan.id]),/immutable/);

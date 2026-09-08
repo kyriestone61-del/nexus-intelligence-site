@@ -1,5 +1,4 @@
 const SUPABASE_URL='https://dmdgkjksouhhsuojthav.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY='sb_publishable_-bZLK1vmL0eUMz65A6EUsw_I20LBq2B';
 const jsonHeaders={'content-type':'application/json','cache-control':'no-store'};
 const clean=(value,max)=>String(value??'').trim().slice(0,max);
 const allowed={
@@ -17,9 +16,23 @@ const boundedObject=(value,max=6000)=>{
   if(!value||typeof value!=='object'||Array.isArray(value))return {};
   try{return JSON.stringify(value).length<=max?value:{}}catch{return {}}
 };
+const allowedOrigin=origin=>{
+  if(!origin)return true;
+  try{const host=new URL(origin).hostname;return host==='nexusintelligence.live'||host==='www.nexusintelligence.live'||host==='nexus-intelligence-site.pages.dev'||host.endsWith('.nexus-intelligence-site.pages.dev')}catch{return false}
+};
+const sourceIp=request=>(request.headers.get('cf-connecting-ip')||request.headers.get('x-forwarded-for')||'unknown').split(',')[0].trim().slice(0,80);
+async function digest(secret,value){
+  const bytes=new TextEncoder().encode(`${secret}:${value}`);
+  const hash=await crypto.subtle.digest('SHA-256',bytes);
+  return [...new Uint8Array(hash)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+}
 
 export async function onRequestPost(context){
   try{
+    const origin=context.request.headers.get('origin');
+    if(!allowedOrigin(origin))return new Response(JSON.stringify({ok:false,error:'origin_not_allowed'}),{status:403,headers:jsonHeaders});
+    const serviceKey=context.env?.SUPABASE_SERVICE_ROLE_KEY||'';
+    if(!serviceKey)return new Response(JSON.stringify({ok:false,error:'Snapshot submission is temporarily unavailable.'}),{status:503,headers:jsonHeaders});
     const body=await context.request.json();
     if(body.website_field) return new Response(JSON.stringify({ok:true}),{status:200,headers:jsonHeaders});
 
@@ -55,11 +68,17 @@ export async function onRequestPost(context){
     const first_touch=boundedObject(body.first_touch);
     const last_touch=boundedObject(body.last_touch);
     const payload={first_name,email,phone,sms_opt_in,marketing_opt_in,company_name,business_type,team_size,priority_goal,opportunity_areas,frequency,burden,systems,authority,timeline,opportunity_score,primary_opportunity,top_opportunities,snapshot_data,first_touch,last_touch};
+    const canonical=JSON.stringify(payload);
+    const [ipHash,emailHash,dedupeKey]=await Promise.all([
+      digest(serviceKey,`snapshot-ip:${sourceIp(context.request)}`),
+      digest(serviceKey,`snapshot-email:${email}`),
+      digest(serviceKey,`snapshot:${email}:${canonical}`)
+    ]);
 
-    const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_nexus_opportunity_snapshot`,{
+    const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_relystra_opportunity_snapshot`,{
       method:'POST',
-      headers:{'content-type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'cache-control':'no-store'},
-      body:JSON.stringify({payload})
+      headers:{'content-type':'application/json','apikey':serviceKey,'authorization':`Bearer ${serviceKey}`,'cache-control':'no-store'},
+      body:JSON.stringify({payload,p_ip_hash:ipHash,p_email_hash:emailHash,p_dedupe_key:dedupeKey})
     });
     if(!response.ok){
       const detail=await response.text();
