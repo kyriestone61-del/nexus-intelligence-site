@@ -12,7 +12,7 @@ const lifecycle=readFileSync(new URL('../../portal-phase-zero-lifecycle.js',impo
 const redirects=readFileSync(new URL('../../_redirects',import.meta.url),'utf8');
 
 test('delivery boot uses the canonical owners and does not load the retired Phase Zero overlay',()=>{
-  assert.match(portalApp,/const BUILD='20260907-relystra-[a-z0-9-]+'/);
+  assert.match(portalApp,/const BUILD='20260908-continuous-journey1'/);
   assert.match(portalApp,/portal-delivery\.css/);
   assert.doesNotMatch(portalApp,/portal-phase-zero-lifecycle\.js/);
   assert.match(portalApp,/portal-admin-journey\.js/);
@@ -22,10 +22,10 @@ test('delivery boot uses the canonical owners and does not load the retired Phas
   assert.match(portalApp,/window\.NexusAdminJourney\?\.navigate/);
 });
 
-test('client delivery sections are progressively revealed from the canonical lifecycle',()=>{
+test('client journey keeps future stages visible with canonical gates',()=>{
   for(const label of ['Overview','Diagnosis','Actions','Builds','Progress','Final Package','Support'])assert.ok(clientShell.includes(label));
-  assert.match(clientShell,/visibleDeliverySections/);
-  assert.match(clientShell,/lifecycle\(lifecycleStore\.value\)/);
+  assert.match(clientShell,/journeyGate/);
+  assert.match(clientShell,/journeyNext\(lifecycleStore\.value/);
   assert.match(clientShell,/mountPackageDelivery/);
 });
 

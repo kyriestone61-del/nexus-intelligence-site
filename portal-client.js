@@ -1,3 +1,4 @@
+import {persistEvidence} from './portal-evidence-upload.js';
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/+esm';
 import {initAuthUX} from '/portal-auth.js';
 import {createPortalRuntime} from '/portal-runtime-core.js';
@@ -11,7 +12,7 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=v=>v?new Date(`${v}T00:00:00`).toLocaleDateString():'—';
 const dt=v=>v?new Date(v).toLocaleString():'—';
-const initialState={user:null,admin:false,companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[],notificationPrefs:null,emailConfigured:false};
+const initialState={user:null,admin:false,authorizationStatus:'signed_out',companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[],notificationPrefs:null,emailConfigured:false};
 
 function toast(message){const el=$('toast');if(!el)return;el.textContent=String(message||'');el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3600)}
 const runtime=createPortalRuntime(initialState,{notify:toast,getById:$});
@@ -110,17 +111,20 @@ async function resolveAdmin(){
 
 async function identity(userOverride=null){
   const user=userOverride||(await sb.auth.getUser()).data.user;
-  if(!user){stateController.patch({user:null,admin:false,companies:[],companyId:null},'auth:signed-out');show('auth');return}
+  if(!user){stateController.patch({user:null,admin:false,authorizationStatus:'signed_out',companies:[],companyId:null},'auth:signed-out');show('auth');return}
   if(identityInFlight&&identityUserId===user.id)return identityInFlight;
+  // Token refresh must not overwrite the effective role of an administrator's client preview.
+  if(identityUserId===user.id&&state.authorizationStatus==='verified'){stateController.patch({user},'auth:session-refreshed');return}
   identityUserId=user.id;
   identityInFlight=(async()=>{
-    stateController.patch({user},'auth:user');
+    stateController.patch({user,authorizationStatus:'resolving'},'auth:user');
     await ensureProfile();
     const admin=await resolveAdmin();
-    stateController.patch({admin},'auth:authorization');
+    stateController.patch({admin,platformAdmin:admin},'auth:authorization');
     await companies();
+    stateController.patch({authorizationStatus:'verified'},'auth:ready');
   })();
-  try{await identityInFlight}finally{identityInFlight=null}
+  try{await identityInFlight}catch(error){stateController.patch({authorizationStatus:'error'},'auth:failed');throw error}finally{identityInFlight=null}
 }
 
 async function companies(){
@@ -274,7 +278,12 @@ async function saveNotificationPrefs(){const row={company_id:state.companyId,use
 
 async function downloadDocument(id){const doc=state.docs.find(item=>item.id===id);if(!doc){toast('Document record not found.');return}const buttons=[...document.querySelectorAll(`.download[data-id="${CSS.escape(id)}"]`)];buttons.forEach(button=>{button.disabled=true;button.textContent='Preparing…'});try{const signed=await sb.storage.from(BUCKET).createSignedUrl(doc.storage_path,120,{download:doc.file_name});if(!signed.error&&signed.data?.signedUrl){const anchor=document.createElement('a');anchor.href=signed.data.signedUrl;anchor.download=doc.file_name;anchor.rel='noopener';document.body.appendChild(anchor);anchor.click();anchor.remove();return}const fallback=await sb.storage.from(BUCKET).download(doc.storage_path);if(fallback.error)throw fallback.error;const url=URL.createObjectURL(fallback.data),anchor=document.createElement('a');anchor.href=url;anchor.download=doc.file_name;document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),2500)}catch(error){console.error('Document download failed',error);toast(`Download failed: ${error.message||'access could not be verified'}`)}finally{buttons.forEach(button=>{button.disabled=false;button.textContent='Download ↓'})}}
 
-async function handleUpload(event){event.preventDefault();const form=event.currentTarget,file=$('docFile')?.files?.[0];if(!file)return;if(file.size>26214400){toast('File exceeds the 25 MB limit.');return}const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=`${state.companyId}/${Date.now()}-${crypto.randomUUID()}-${safe}`;const requirement=state.dataRequirements.find(row=>row.id===currentRequirementId),request=state.docRequests.find(row=>row.id===currentRequestId),sensitivity=requirement?.catalog?.sensitivity||request?.sensitivity||'standard';const upload=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||undefined});if(upload.error)throw upload.error;try{const row={company_id:state.companyId,project_id:selectActiveProject(state.projects,state.companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,storage_path:path,file_name:file.name,mime_type:file.type||null,size_bytes:file.size,category:$('docCategory')?.value||'General',status:'shared',note:$('docNote')?.value.trim()||null,uploaded_by:state.user.id,sensitivity,request_id:currentRequestId||null,data_requirement_id:currentRequirementId||null,document_area:state.admin?'nexus_shared':'client_submission',source_role:state.admin?'nexus':'client'};const insert=await sb.from('nexus_documents').insert(row).select().single();if(insert.error)throw insert.error;await log('document_uploaded','document',insert.data.id,`${state.admin?'Relystra':'Client'} uploaded ${file.name}`);form.reset();clearUploadContext();toast('Document uploaded securely.');await workspace()}catch(error){await sb.storage.from(BUCKET).remove([path]).catch(()=>{});throw error}}
+async function handleUpload(event){event.preventDefault();const form=event.currentTarget,file=$('docFile')?.files?.[0];if(!file)return;
+  const companyId=state.companyId,requirement=state.dataRequirements.find(row=>row.id===currentRequirementId),request=state.docRequests.find(row=>row.id===currentRequestId);
+  const document=await persistEvidence(sb,{file,companyId,userId:state.user.id,projectId:request?request.project_id||null:selectActiveProject(state.projects,companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,category:$('docCategory')?.value||'General',note:$('docNote')?.value.trim()||null,sensitivity:requirement?.catalog?.sensitivity||request?.sensitivity||'standard',requestId:request?.id||null,requirementId:requirement?.id||null,documentArea:state.admin?'nexus_shared':'client_submission',sourceRole:state.admin?'nexus':'client'});
+  try{await log('document_uploaded','document',document.id,`Document uploaded: ${file.name}`)}catch{toast('File saved. Activity log could not refresh.')}
+  if(state.companyId!==companyId)return;form.reset();clearUploadContext();toast('Document uploaded securely.');await workspace();
+}
 async function handleTaskCreate(event){event.preventDefault();const row={company_id:state.companyId,project_id:selectActiveProject(state.projects,state.companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,title:$('taskTitle')?.value.trim()||'',description:$('taskDescription')?.value.trim()||null,assignee:$('taskAssignee')?.value||'client',status:'open',priority:$('taskPriority')?.value||'normal',due_date:$('taskDue')?.value||null,created_by:state.user.id};const result=await sb.from('nexus_tasks').insert(row).select().single();if(result.error)throw result.error;await log('task_created','task',result.data.id,`Task created: ${row.title}`);modals.close('taskModal');event.currentTarget.reset();await workspace()}
 async function handleMetricCreate(event){event.preventDefault();const num=value=>value===''?null:Number(value),row={company_id:state.companyId,project_id:selectActiveProject(state.projects,state.companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,name:$('metricName')?.value.trim()||'',unit:$('metricUnit')?.value.trim()||null,baseline_value:num($('metricBaseline')?.value||''),current_value:num($('metricCurrent')?.value||''),target_value:num($('metricTarget')?.value||''),measurement_method:$('metricMethod')?.value.trim()||null,measured_at:new Date().toISOString(),created_by:state.user.id};const result=await sb.from('nexus_metrics').insert(row).select().single();if(result.error)throw result.error;await log('measurement_added','metric',result.data.id,`Measurement added: ${row.name}`);modals.close('metricModal');event.currentTarget.reset();await workspace()}
 async function handleMilestoneCreate(event){event.preventDefault();if(!state.admin)return;const row={company_id:state.companyId,project_id:selectActiveProject(state.projects,state.companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,title:$('milestoneTitle')?.value.trim()||'',description:$('milestoneDescription')?.value.trim()||null,start_date:$('milestoneStart')?.value||null,due_date:$('milestoneDue')?.value||null,status:$('milestoneStatus')?.value||'planned',created_by:state.user.id};const result=await sb.from('nexus_milestones').insert(row).select().single();if(result.error)throw result.error;await log('milestone_created','milestone',result.data.id,`Milestone added: ${row.title}`);modals.close('milestoneModal');event.currentTarget.reset();await workspace()}
@@ -289,7 +298,7 @@ await initAuthUX({sb,$,pane,show,runtime});
 
 async function handleAuthSession(session){
   if(session?.user){await identity(session.user);return}
-  workspaceRequests.invalidate();identityUserId=null;stateController.patch({user:null,admin:false,companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[]},'auth:signed-out');show('auth');
+  workspaceRequests.invalidate();identityUserId=null;stateController.patch({user:null,admin:false,authorizationStatus:'signed_out',companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[]},'auth:signed-out');show('auth');
 }
 
 sb.auth.onAuthStateChange((_event,session)=>{queueMicrotask(()=>boundary.run('authentication state change',()=>handleAuthSession(session),{silent:true}))});

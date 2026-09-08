@@ -56,8 +56,9 @@ async function runtimeError(error,data){
 
 export function mountBuilds(root,portal){
   const {sb,state,toast}=portal;
-  let sequence=0,selected=new Set(),companyId=null,menu=[],plans=[],opportunities=[],settings=null,diagnosis=null,acceptedActions=[],loading=false;
-  async function refresh(){
+  let stage='builds',sequence=0,selected=new Set(),companyId=null,menu=[],plans=[],opportunities=[],settings=null,diagnosis=null,acceptedActions=[],loading=false;
+  async function refresh(options={}){
+    if(options.stage)stage=options.stage;
     const company=state.companyId,version=++sequence;
     if(company!==companyId){selected=new Set();companyId=company;menu=[];plans=[];opportunities=[];diagnosis=null;acceptedActions=[]}
     if(!company){root.innerHTML='<p>Open a client workspace to review Builds.</p>';return}
@@ -83,12 +84,16 @@ export function mountBuilds(root,portal){
   function render(){
     const reserved=new Set(plans.filter(p=>p.status==='awaiting_payment').flatMap(p=>list(p.items).map(i=>i.id)));
     const available=menu.filter(b=>!reserved.has(b.id));
-    root.innerHTML=`<header class="nexus-client-page-head"><div><div class="eyebrow">Builds</div><h1>Choose what we build next.</h1><p>Review the scope, fixed price and expected outcome. Your selected Builds become one paid package.</p></div><button class="btn secondary" data-build-refresh type="button">Refresh</button></header>
-      ${state.admin?`<section><h2>Review recommendations</h2><p>Confirm the scope, complexity, fixed price and duration before a Build reaches the client.</p><button class="btn primary" data-generate-builds type="button" ${diagnosis?'':'disabled'}>Generate from accepted evidence</button>${!diagnosis?'<p class="small">Approve the diagnosis and finish the required pre-build Actions first.</p>':''}<div class="relystra-build-grid">${opportunities.filter(o=>!plans.some(p=>p.status==='paid'&&p.items.some(i=>i.id===o.id))).map(o=>reviewCard(o,settings,opportunities,acceptedActions)).join('')}</div></section>`:''}
+    root.innerHTML=`<header class="nexus-client-page-head"><div><div class="eyebrow">${stage==='scope'?'Step 6 · Agree scope & payment':'Step 5 · Recommended Builds'}</div><h1>${stage==='scope'?'Review your saved scope and payment.':'Choose what we build next.'}</h1><p>Review the scope, fixed price and expected outcome. Your selected Builds become one paid package.</p></div><button class="btn secondary" data-build-refresh type="button">Refresh</button></header>
+      ${state.admin&&stage!=='scope'?`<section><h2>Review recommendations</h2><p>Confirm the scope, complexity, fixed price and duration before a Build reaches the client.</p><button class="btn primary" data-generate-builds type="button" ${diagnosis?'':'disabled'}>Generate from accepted evidence</button>${!diagnosis?'<p class="small">Approve the diagnosis and finish the required pre-build Actions first.</p>':''}<div class="relystra-build-grid">${opportunities.filter(o=>!plans.some(p=>p.status==='paid'&&p.items.some(i=>i.id===o.id))).map(o=>reviewCard(o,settings,opportunities,acceptedActions)).join('')}</div></section>`:''}
       <p data-build-message role="alert" hidden></p>
-      ${plans.length?`<section><h2>Saved Build Plans</h2><div class="relystra-build-grid">${plans.map(planCard).join('')}</div></section>`:''}
-      <section><h2>${state.admin?'Client Build Menu':'Recommended Builds'}</h2><div class="relystra-build-grid">${available.map(b=>menuCard(b,selected,menu)).join('')||'<p>Your approved recommendations will appear here. Relystra will let you know when they are ready.</p>'}</div>
+      ${plans.length?`<section data-saved-plans><h2>Saved Build Plans</h2><div class="relystra-build-grid">${plans.map(planCard).join('')}</div></section>`:''}
+      <section data-build-menu><h2>${state.admin?'Client Build Menu':'Recommended Builds'}</h2><div class="relystra-build-grid">${available.map(b=>menuCard(b,selected,menu)).join('')||'<p>Your approved recommendations will appear here. Relystra will let you know when they are ready.</p>'}</div>
       ${available.length?'<div class="relystra-build-selection-total" role="status" aria-live="polite"></div><button class="btn primary" type="button" data-create-build-plan>Review selected Build Plan</button>':''}</section>`;
+    if(stage==='scope'){
+      root.querySelector('[data-build-menu]')?.remove();
+      if(!plans.length)root.insertAdjacentHTML('beforeend','<p>No Build Plan is saved yet. Select approved recommendations in Step 5 to prepare your fixed scope and price.</p>');
+    }
     updateSelection();root.querySelectorAll('[data-build-review]').forEach(form=>updateComplexity(form));
   }
   function updateSelection(){
@@ -120,7 +125,7 @@ export function mountBuilds(root,portal){
     try{
       const {error}=await sb.rpc('relystra_save_build',{p_company_id:company,p_id:form.dataset.buildReview,p_spec:patch,p_decision:button?.value||'propose'});
       if(error)throw error;
-      if(state.companyId===company){toast('Build review saved.');await refresh();window.dispatchEvent(new CustomEvent('nexus:delivery-changed',{detail:{companyId:company}}))}
+      if(state.companyId===company){toast('Build review saved.');await refresh();window.dispatchEvent(new CustomEvent('nexus:delivery-changed',{detail:{companyId:company}}));if(button.hasAttribute('data-create-build-plan')){if(state.admin)await window.NexusAdminJourney?.navigate('scope');else await window.NexusClientShell?.activateView('scope')}}
     }catch(error){toast(error.message||'The Build could not be saved.')}finally{controls.filter(n=>n.isConnected).forEach(n=>n.disabled=false)}
   });
   root.addEventListener('click',async event=>{
@@ -134,7 +139,7 @@ export function mountBuilds(root,portal){
         const data=await requestBuildRecommendations(sb,company,diagnosis?.id);
         if(state.companyId===company)toast(`${data.build_ids?.length||0} recommendations ready for review.`);
       }else if(button.hasAttribute('data-create-build-plan')){
-        const {error}=await sb.rpc('relystra_create_build_plan',{p_company_id:company,p_build_ids:[...selected],p_name:'Build Package'});if(error)throw error;selected.clear();
+        const {error}=await sb.rpc('relystra_create_build_plan',{p_company_id:company,p_build_ids:[...selected],p_name:'Build Package'});if(error)throw error;selected.clear();stage='scope';
       }else if(button.dataset.planCheckout||button.dataset.planCancel){
         const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute?handler=checkout',{body:{plan_id:button.dataset.planCheckout||button.dataset.planCancel,operation:button.dataset.planCancel?'cancel':'checkout'}});
         if(error||data?.error)throw await runtimeError(error,data);
@@ -142,7 +147,7 @@ export function mountBuilds(root,portal){
         if(data.url){const destination=new URL(data.url);if(destination.protocol!=='https:'||destination.hostname!=='checkout.stripe.com')throw new Error('Unexpected checkout destination.');location.assign(destination.href);return}
         toast(data.status==='processing'?'Payment is being verified. Refresh this plan shortly.':data.status==='paid'?'Payment confirmed.':'Plan updated.');
       }else return;
-      if(state.companyId===company){await refresh();window.dispatchEvent(new CustomEvent('nexus:delivery-changed',{detail:{companyId:company}}))}
+      if(state.companyId===company){await refresh();window.dispatchEvent(new CustomEvent('nexus:delivery-changed',{detail:{companyId:company}}));if(button.hasAttribute('data-create-build-plan')){if(state.admin)await window.NexusAdminJourney?.navigate('scope');else await window.NexusClientShell?.activateView('scope')}}
     }catch(error){const text=error.message||'Builds could not be updated.';toast(text);if(company===state.companyId&&message?.isConnected){message.textContent=text;message.hidden=false}}finally{if(button.isConnected){button.disabled=false;button.textContent=originalLabel}}
   });
   return {refresh,destroy(){sequence++;root.replaceChildren()}};

@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260907-relystra-delivery1';
+const BUILD='20260908-continuous-journey1';
 window.__relystraDeliveryLifecycle=true;
 
 window.__nexusPortalBooting=true;
@@ -53,6 +53,12 @@ await loadStyles(['portal-runtime-hardening.css','portal-delivery.css']);
 try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180])}catch(error){showCoreLoadFailure(error);throw error}
 await optionalImport(asset(`portal-client-plain-language.js?v=${BUILD}`));
 const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Relystra portal context is unavailable.'));throw new Error('Relystra portal context is unavailable.')}
+if(portal.state?.user&&portal.state.authorizationStatus!=='verified'){
+  setBootMessage('Workspace access could not be confirmed','Retry to confirm your account permissions and load the correct workspace.');
+  const retry=document.createElement('button');retry.type='button';retry.className='btn primary';retry.textContent='Retry workspace access';retry.onclick=()=>location.reload();bootOverlay.querySelector('.nexus-boot-card').append(retry);
+  bootOverlay.querySelector('.nexus-boot-line')?.remove();
+  throw new Error('Workspace authorization has not completed.');
+}
 const platformAdmin=!!portal.state?.admin;
 const isSignedIn=!!portal.state?.user;
 let perspectiveModule=null;

@@ -1,4 +1,6 @@
-import {createLifecycleStore,lifecycle,visibleDeliverySections,mountMobileMenu} from './portal-delivery-lifecycle.js';
+import {journeyMarkup,journeyGate,gateMarkup,journeyNext} from './portal-journey-steps.js';
+import {mountTranscriptStage,selectedTranscript} from './portal-transcript-stage.js';
+import {createLifecycleStore,lifecycle,mountMobileMenu} from './portal-delivery-lifecycle.js';
 import {mountBuilds} from './portal-builds.js';
 import {mountPackageDelivery} from './portal-package-delivery.js';
 import {mountDiagnosisOffer} from './portal-diagnosis-offer.js';
@@ -14,8 +16,10 @@ const main=document.querySelector('.main'),nav=document.querySelector('.side-nav
 function section(id){let el=$('section-'+id);if(!el){el=document.createElement('section');el.id='section-'+id;el.className='section';main.append(el)}return el}
 const overview=section('journey'),buildRoot=section('relystra-builds'),deliveryRoot=section('relystra-delivery'),projectsRoot=section('relystra-projects'),templatesRoot=section('relystra-templates'),settingsRoot=section('relystra-settings');
 overview.innerHTML='<div id="adminJourneyRoot"></div>';
+const transcriptRoot=section('transcript'),gateRoot=section('journey-gate');
+const transcript=mountTranscriptStage(transcriptRoot,portal,{navigate,onChange:refresh});
 const header=document.createElement('div');header.id='relystraWorkspaceHeader';main.prepend(header);
-const offerRoot=document.createElement('div');offerRoot.id='relystraDiagnosisOffer';section('intake').prepend(offerRoot);
+const offerRoot=document.createElement('div');offerRoot.id='relystraDiagnosisOffer';overview.append(offerRoot);
 const builds=mountBuilds(buildRoot,portal),delivery=mountPackageDelivery(deliveryRoot,portal),offer=mountDiagnosisOffer(offerRoot,portal);
 
 // Keep supporting tool buttons and their handlers, with navigation owned here.
@@ -34,18 +38,18 @@ function activate(id){document.querySelectorAll('.main > .section').forEach(el=>
 function renderHeader(){
   const s=store.value;if(!s){header.innerHTML='';return}
   const name=state.companies?.find(c=>c.id===state.companyId)?.name||'Client workspace';
-  header.innerHTML=`<div class="relystra-workspace-context"><div><small>Client workspace</small><h2>${esc(name)}</h2></div><label>Build Package<select data-package-picker><option value="">Current package</option>${s.projects.map(p=>`<option value="${esc(p.id)}" ${viewedProject===p.id?'selected':''}>${esc(p.name)}${p.status==='complete'?' · Completed':''}${!p.paid?' · Historical':''}</option>`).join('')}</select></label></div><nav class="relystra-workspace-tabs" aria-label="Client delivery">${visibleDeliverySections(s).map(([key,title])=>`<button type="button" class="btn secondary ${active===key?'active':''}" data-delivery-nav="${key}" aria-current="${active===key?'page':'false'}">${title}</button>`).join('')}</nav>`;
+  header.innerHTML=`<div class="relystra-workspace-context"><div><small>Client workspace</small><h2>${esc(name)}</h2></div><label>Build Package<select data-package-picker><option value="">Current package</option>${s.projects.map(p=>`<option value="${esc(p.id)}" ${viewedProject===p.id?'selected':''}>${esc(p.name)}${p.status==='complete'?' · Completed':''}${!p.paid?' · Historical':''}</option>`).join('')}</select></label></div>${journeyMarkup(s,{active,hasTranscript:!!selectedTranscript(portal,s)})}`;
 }
 function renderOverview(){
   if(loadError){$('adminJourneyRoot').innerHTML=`<p role="alert">${esc(loadError.message)}</p><button class="btn secondary" data-workspace-retry>Retry</button>`;return}
-  const next=lifecycle(store.value),actor={ADMIN:'Relystra',CLIENT:'Client',AI_SYSTEM:'AI / system',NO_ACTION_COMPLETE:'No action required'}[next.actor];
-  $('adminJourneyRoot').innerHTML=`<header><div class="eyebrow">Overview</div><h1>${esc(next.title)}</h1><p>${esc(next.detail)}</p></header><section class="relystra-build-card"><p><b>Who moves next:</b> ${actor}</p>${next.blocker?`<p role="status">${esc(next.blocker)}</p>`:''}${next.percent!==null?`<label>Build Package progress <progress max="100" value="${next.percent}">${next.percent}%</progress> ${next.percent}%</label>`:''}<button type="button" class="btn primary" data-delivery-nav="${esc(next.section)}">${esc(next.label)}</button></section><p>Current stage: ${esc(next.stage.replaceAll('_',' '))}</p>`;
+  const next=journeyNext(store.value,!!selectedTranscript(portal,store.value)),actor={ADMIN:'Relystra',CLIENT:'Client',AI_SYSTEM:'AI / system',NO_ACTION_COMPLETE:'No action required'}[next.actor];
+  $('adminJourneyRoot').innerHTML=`<header><div class="eyebrow">Overview</div><h1>${esc(next.title)}</h1><p>${esc(next.detail)}</p></header><section class="relystra-build-card"><p><b>Who moves next:</b> ${actor}</p>${next.blocker?`<p role="status">${esc(next.blocker)}</p>`:''}${next.percent!==null?`<label>Build Package progress <progress max="100" value="${next.percent}">${next.percent}%</progress> ${next.percent}%</label>`:''}${next.stage==='diagnosis_purchase'?'':`<button type="button" class="btn primary" data-delivery-nav="${esc(next.section)}">${esc(next.label)}</button>`}</section><p>Current stage: ${esc(next.stage.replaceAll('_',' '))}</p>`;
 }
 async function refresh(){
   const version=++refreshSequence;
   if(company!==state.companyId){company=state.companyId;viewedProject=null;active='overview';navigationSequence++;header.hidden=false;activate('journey');store.invalidate();buildRoot.replaceChildren();deliveryRoot.replaceChildren()}
-  try{const s=await store.refresh(viewedProject);if(!s||version!==refreshSequence)return;loadError=null;renderHeader();renderOverview();await offer.refresh(s);
-    if(active==='builds')await builds.refresh();else if(['progress','final-package','support'].includes(active))await delivery.refresh({projectId:s.project_id,section:active});
+  try{const s=await store.refresh(viewedProject);if(!s||version!==refreshSequence)return;loadError=null;renderHeader();renderOverview();transcript.refresh(s);await offer.refresh(s);
+    if(['builds','scope'].includes(active))await builds.refresh({stage:active});else if(['progress','review','final-package','support'].includes(active)&&!journeyGate(active,s))await delivery.refresh({projectId:s.project_id,section:active==='review'?'progress':active});
   }catch(error){if(version===refreshSequence){loadError=error;header.innerHTML='<p role="alert">Workspace status could not be loaded.</p>';$('adminJourneyRoot').innerHTML=`<p role="alert">${esc(error.message)}</p><button class="btn secondary" data-workspace-retry>Retry</button>`}}
 }
 async function navigate(target){
@@ -53,15 +57,18 @@ async function navigate(target){
   active=target;header.hidden=['clients','sales','projects','templates','settings'].includes(target);
   document.querySelectorAll('[data-relystra-nav]').forEach(b=>b.classList.toggle('active',b.dataset.relystraNav===target));
   const aliases={diagnosis:'intake',actions:'tasks',files:'documents',sales:'revenue'};
-  if(target==='overview'){activate('journey');renderOverview()}
-  else if(target==='builds'){activate('relystra-builds');await builds.refresh()}
-  else if(['progress','final-package','support'].includes(target)){
+  const gate=journeyGate(target,store.value);
+  if(gate){activate('journey-gate');gateRoot.innerHTML=gateMarkup(gate)}
+  else if(target==='transcript'){activate('transcript');transcript.refresh(store.value)}
+  else if(target==='overview'){activate('journey');renderOverview()}
+  else if(['builds','scope'].includes(target)){activate('relystra-builds');await builds.refresh({stage:target})}
+  else if(['progress','review','final-package','support'].includes(target)){
     if(store.value?.project_type&&store.value.project_type!=='build_package'){tools.get('timeline')?.click();activate('timeline')}
-    else{activate('relystra-delivery');await delivery.refresh({projectId:store.value?.project_id,section:target})}
+    else{activate('relystra-delivery');await delivery.refresh({projectId:store.value?.project_id,section:target==='review'?'progress':target})}
   }else if(target==='projects'){activate('relystra-projects');await renderProjects()}
   else if(target==='templates'){activate('relystra-templates');await renderTemplates()}
   else if(target==='settings'){activate('relystra-settings');await renderSettings()}
-  else{const key=aliases[target]||target;tools.get(key)?.click();activate(key);if(target==='diagnosis')await offer.refresh(store.value)}
+  else{const key=aliases[target]||target;tools.get(key)?.click();activate(key)}
   if(version!==navigationSequence)return;
   renderHeader();const url=new URL(workspaceUrl(location.href,state.companyId,viewedProject),location.origin);url.searchParams.set('section',target);history.replaceState(null,'',url.pathname+url.search+url.hash);window.scrollTo({top:0,left:0,behavior:'auto'});
 }
