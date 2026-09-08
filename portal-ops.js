@@ -157,7 +157,12 @@ export async function initOps({sb,state,$,toast,workspace,log}){
     root.querySelectorAll('.open-client').forEach(b=>b.onclick=()=>openCompany(b.dataset.company,'overview'));
   }
   async function openCompany(cid,section='overview'){
-    const loaded=await workspace(cid,{reason:'open-client'});if(!loaded||state.companyId!==cid)return;await loadLocal();if(state.companyId!==cid)return;renderAll();const b=section==='overview'&&state.admin?document.querySelector('.journey-primary'):document.querySelector(`.side-nav button[data-section="${section}"]`);b?.click();
+    const loaded=await workspace(cid,{reason:'open-client'});if(!loaded||state.companyId!==cid)return;await loadLocal();if(state.companyId!==cid)return;renderAll();
+    if(state.admin&&window.NexusAdminJourney?.navigate){
+      await window.NexusAdminJourney.refresh?.();if(state.companyId!==cid)return;
+      await window.NexusAdminJourney.navigate(section);return;
+    }
+    document.querySelector(`.side-nav button[data-section="${section}"]`)?.click();
   }
   function secureLabels(){
     const sec=$('section-documents');if(!sec)return;const h=sec.querySelector('h1');if(h)h.textContent='Secure Files';const headings=[...sec.querySelectorAll('.secure-doc-section h2')];if(headings[0])headings[0].textContent=state.admin?'Requested from Client':'Requested from You';if(headings[1])headings[1].textContent=state.admin?'Files Shared with Client':'Shared with You';const sub=sec.querySelector('.secure-subhead');if(sub)sub.textContent=state.admin?'Client Submissions':'Your Recent Submissions';
