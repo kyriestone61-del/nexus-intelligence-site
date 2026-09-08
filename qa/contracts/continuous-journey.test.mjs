@@ -38,6 +38,12 @@ test('verified session refresh preserves preview role and workspace selection',a
  const ctx={state,stateController:{patch:p=>Object.assign(state,p)},ensureProfile:async()=>{},resolveAdmin:async()=>true,companies:async()=>{loads++},show(){}};
  const run=vm.runInNewContext(`let identityInFlight=null,identityUserId='admin';${fn};identity`,ctx);await run({id:'admin'});assert.equal(loads,0);assert.equal(state.admin,false);assert.equal(state.companyId,'moon');
 });
+test('async company switching retains its select element after the DOM event dispatch ends',()=>{
+ const src=readFileSync('portal-client.js','utf8');
+ assert.match(src,/const select=event\.currentTarget,nextId=select\?\.value/);
+ assert.match(src,/finally\{if\(select\.isConnected\)select\.disabled=false\}/);
+ assert.doesNotMatch(src,/finally\{event\.currentTarget\.disabled=false\}/);
+});
 test('failed authorization is explicit and cannot select a client shell',async()=>{
  const src=readFileSync('portal-client.js','utf8'),fn='async function identity(userOverride=null){'+src.split('async function identity(userOverride=null){')[1].split('async function companies')[0];
  const state={};const run=vm.runInNewContext(`let identityInFlight=null,identityUserId=null;${fn};identity`,{state,stateController:{patch:p=>Object.assign(state,p)},ensureProfile:async()=>{},resolveAdmin:async()=>{throw Error('offline')},companies:async()=>{throw Error('must not load')},show(){}});
