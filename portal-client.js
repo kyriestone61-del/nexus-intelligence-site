@@ -281,6 +281,7 @@ async function downloadDocument(id){const doc=state.docs.find(item=>item.id===id
 async function handleUpload(event){event.preventDefault();const form=event.currentTarget,file=$('docFile')?.files?.[0];if(!file)return;
   const companyId=state.companyId,requirement=state.dataRequirements.find(row=>row.id===currentRequirementId),request=state.docRequests.find(row=>row.id===currentRequestId);
   const document=await persistEvidence(sb,{file,companyId,userId:state.user.id,projectId:request?request.project_id||null:selectActiveProject(state.projects,companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,category:$('docCategory')?.value||'General',note:$('docNote')?.value.trim()||null,sensitivity:requirement?.catalog?.sensitivity||request?.sensitivity||'standard',requestId:request?.id||null,requirementId:requirement?.id||null,documentArea:state.admin?'nexus_shared':'client_submission',sourceRole:state.admin?'nexus':'client'});
+  if(state.companyId!==companyId)return;
   try{await log('document_uploaded','document',document.id,`Document uploaded: ${file.name}`)}catch{toast('File saved. Activity log could not refresh.')}
   if(state.companyId!==companyId)return;form.reset();clearUploadContext();toast('Document uploaded securely.');await workspace();
 }

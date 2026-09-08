@@ -12,7 +12,7 @@ const lifecycle=readFileSync(new URL('../../portal-phase-zero-lifecycle.js',impo
 const redirects=readFileSync(new URL('../../_redirects',import.meta.url),'utf8');
 
 test('delivery boot uses the canonical owners and does not load the retired Phase Zero overlay',()=>{
-  assert.match(portalApp,/const BUILD='20260908-continuous-journey1'/);
+  assert.match(portalApp,/const BUILD='20260908-relystra-continuous-journey1'/);
   assert.match(portalApp,/portal-delivery\.css/);
   assert.doesNotMatch(portalApp,/portal-phase-zero-lifecycle\.js/);
   assert.match(portalApp,/portal-admin-journey\.js/);

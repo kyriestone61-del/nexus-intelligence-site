@@ -51,6 +51,7 @@ async function uploadFile({file,requestId=null,requirementId=null,taskId=null,ti
   const projectId=request?request.project_id||null:task?.work_kind==='prebuild_action'?null:(task?.project_id||state.activeProjectId||state.activeEngagement?.project_id||null);
   const document=await persistEvidence(sb,{file,companyId,userId:state.user.id,projectId,taskId:task?.id||null,requestId,requirementId,category,note:(note||title)?String(note||`File for ${title}`):null,sensitivity});
   if(state.companyId===companyId)cacheUploadedDocument(document);
+  if(state.companyId!==companyId)return document;
   try{await portal.log?.('document_uploaded','document',document.id,task?`Client uploaded ${file.name} for action: ${task.title}`:`Client uploaded ${file.name}`)}catch{toast('File saved. The activity log could not be refreshed.')}
   if(refresh&&state.companyId===companyId)try{await portal.workspace?.()}catch{toast('File saved. Refresh the workspace to see its latest status.')}
   return document;
