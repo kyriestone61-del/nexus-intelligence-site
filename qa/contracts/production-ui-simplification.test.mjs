@@ -9,6 +9,7 @@ const companies=readFileSync(new URL('../../portal-buildingblok-cohesion.js',imp
 const inbox=readFileSync(new URL('../../portal-approval-inbox.js',import.meta.url),'utf8');
 const resolution=readFileSync(new URL('../../portal-resolution-plan.js',import.meta.url),'utf8');
 const lifecycle=readFileSync(new URL('../../portal-phase-zero-lifecycle.js',import.meta.url),'utf8');
+const operations=readFileSync(new URL('../../portal-ops.js',import.meta.url),'utf8');
 const redirects=readFileSync(new URL('../../_redirects',import.meta.url),'utf8');
 
 test('delivery boot uses the canonical owners and does not load the retired Phase Zero overlay',()=>{
@@ -36,6 +37,12 @@ test('admin portfolio and Decisions surfaces remain role-specific',()=>{
   assert.match(inbox,/function founderDecisionsMode\(\)/);
   assert.match(inbox,/label=founderMode\?'Decisions':'Inbox'/);
   assert.match(inbox,/Approval & action routing/);
+});
+
+test('opening a client workspace awaits canonical journey navigation instead of simulating a stale button click',()=>{
+  assert.match(operations,/await window\.NexusAdminJourney\.refresh\?\.\(\)/);
+  assert.match(operations,/await window\.NexusAdminJourney\.navigate\(section\)/);
+  assert.doesNotMatch(operations,/section==='overview'.*\.journey-primary/);
 });
 
 test('diagnosis approval routes into curated Actions and retains the old plan only outside the new lifecycle',()=>{
