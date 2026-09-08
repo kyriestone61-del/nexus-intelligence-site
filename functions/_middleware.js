@@ -7,10 +7,10 @@ const founderSchema={
   '@context':'https://schema.org',
   '@type':'Person',
   '@id':`${SITE_ORIGIN}/about#founder`,
-  name:'Kyrie Stone',
+  name:'Kyrie',
   jobTitle:'Founder',
   url:`${SITE_ORIGIN}/about`,
-  image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`,
+  image:`${SITE_ORIGIN}/assets/kyrie-founder-primary.webp`,
   worksFor:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`},
   description:'Delaware-based founder of Relystra with 4+ years of commercial construction project-engineering and operations experience.'
 };
@@ -25,7 +25,7 @@ const organizationSchema={
   image:`${SITE_ORIGIN}/assets/relystra-og.png`,
   description:'Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.',
   areaServed:{'@type':'Country',name:'United States'},
-  founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie Stone',url:`${SITE_ORIGIN}/about`,image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`}
+  founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie',url:`${SITE_ORIGIN}/about`,image:`${SITE_ORIGIN}/assets/kyrie-founder-primary.webp`}
 };
 
 const servicesSchema={
@@ -55,7 +55,7 @@ const servicesSchema={
   }
 };
 
-const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-stone-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie Stone, founder of Relystra" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie Stone is the Delaware-based founder of Relystra and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach to AI: understand the work, establish the baseline, identify the friction, preserve human ownership, and automate only what is justified.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie Stone</a></div></div></div></div></section>`;
+const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie, founder of Relystra" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie is the Delaware-based founder of Relystra and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach to AI: understand the work, establish the baseline, identify the friction, preserve human ownership, and automate only what is justified.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie</a></div></div></div></div></section>`;
 
 const pricingSignal=`<p class="note" data-phase-five-pricing style="margin-top:18px"><b>Investment guidance is published below.</b> Each service shows a current starting point and typical planning window so you can assess fit before a call. Final fees and scope are defined in writing based on the actual engagement.</p>`;
 

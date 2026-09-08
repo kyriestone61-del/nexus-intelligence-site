@@ -24,7 +24,7 @@ function phone(v:string){return String(v||'').replace(/[\s().-]/g,'')}
 
 async function processEmail(){
   const resend=Deno.env.get('RESEND_API_KEY')||'';
-  const from=Deno.env.get('NEXUS_EMAIL_FROM')||'Relystra (formerly Nexus Intelligence) <contact@nexusintelligence.live>';
+  const from=Deno.env.get('NEXUS_EMAIL_FROM')||'Relystra <contact@nexusintelligence.live>';
   if(!resend){await health('email_delivery','failed','Transactional email provider is not configured.',{missing:['RESEND_API_KEY'],sender:from});return {configured:false,claimed:0,sent:0,retried:0,failed:0}}
   const claim=await fetch(`${base()}/rest/v1/rpc/nexus_claim_email_batch`,{method:'POST',headers:h(),body:JSON.stringify({p_limit:25})});
   if(!claim.ok)throw new Error(`EMAIL_CLAIM_${claim.status}`);
