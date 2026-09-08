@@ -70,12 +70,12 @@ function bindStaticEvents(){
   }));
 
   events.bind($('companySelect'),'change','workspace:company-select',boundary.wrap('company selection',async event=>{
-    const nextId=event.currentTarget?.value;if(!nextId||nextId===state.companyId)return;
-    event.currentTarget.disabled=true;
+    const select=event.currentTarget,nextId=select?.value;if(!nextId||nextId===state.companyId)return;
+    select.disabled=true;
     const previous=state.companyId;
     try{await workspace(nextId,{reason:'company-selector'})}
-    catch(error){event.currentTarget.value=previous||'';throw error}
-    finally{event.currentTarget.disabled=false}
+    catch(error){if(select.isConnected)select.value=previous||'';throw error}
+    finally{if(select.isConnected)select.disabled=false}
   },{rethrow:false}));
 
   events.bind($('uploadForm'),'submit','documents:upload',boundary.wrap('secure upload',handleUpload));
