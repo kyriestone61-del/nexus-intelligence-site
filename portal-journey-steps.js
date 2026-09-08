@@ -17,6 +17,7 @@ export function journeyGate(key,snapshot){
   if(key==='progress'&&s.project_id&&s.project_type!=='build_package')return null;
   if(['progress','review','final-package','support'].includes(key)&&!p)return {title:'This step begins after scope and payment',detail:'A verified paid Build Package starts implementation. Existing records remain available in the library.',section:'scope',label:'Go to scope & payment'};
   if(key==='review'&&!['client_review','revisions','final_qa','support','completed'].includes(p?.stage))return {title:'Relystra is preparing your draft',detail:'Build work and internal quality checks must finish before client review.',section:'progress',label:'View Build progress'};
+  if(['final-package','support'].includes(key)&&p?.stage==='final_qa')return {title:'Final quality checks are in progress',detail:'Relystra is checking the approved Builds and delivery materials before publishing your Final Package.',section:'progress',label:'View final quality checks'};
   if(['final-package','support'].includes(key)&&!['support','completed'].includes(p?.stage))return {title:'Final handoff is not ready yet',detail:'Client approval and final quality checks come before the Final Package and seven-day support period.',section:'review',label:'Go to client review'};
   return null;
 }

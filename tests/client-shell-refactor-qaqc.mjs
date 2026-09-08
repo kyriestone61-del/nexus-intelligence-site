@@ -42,6 +42,7 @@ const client=fs.readFileSync('portal-client.js','utf8');
 const runtime=fs.readFileSync('portal-runtime-core.js','utf8');
 const shell=fs.readFileSync('portal-client-shell-v2.js','utf8');
 const css=fs.readFileSync('portal-client-shell-v2.css','utf8');
+const persistence=fs.readFileSync('portal-evidence-upload.js','utf8');
 const upload=fs.readFileSync('portal-client-upload-service.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260901_nexus_atomic_client_workspace_activation.sql','utf8');
 
@@ -64,10 +65,10 @@ assert.equal(shell.includes('new MutationObserver'),false);assert.equal(/\.oncli
 assert.match(shell,/runtime/);assert.match(shell,/events\.bind/);assert.match(shell,/boundary\.run|boundary\.wrap/);assert.match(shell,/modals\.open/);
 assert.match(shell,/portal\.prepareUpload\?\.\(\{requestId,title\}\)/,'V2 shell must use the explicit upload facade');
 assert.match(upload,/event\.stopImmediatePropagation\(\)/);
-assert.match(upload,/request_id:requestId\|\|null/,'upload service must preserve document-request lineage supplied by the current upload context');
-assert.match(upload,/data_requirement_id:requirementId\|\|null/,'upload service must preserve preparation-item lineage supplied by the current upload context');
-assert.match(upload,/task_id:task\?\.id\|\|null/,'upload service must preserve direct client-action lineage when files are uploaded from an action');
-assert.match(upload,/remove\(\[path\]\)/);
+assert.match(persistence,/request_id:requestId/,'upload service must preserve document-request lineage supplied by the current upload context');
+assert.match(persistence,/data_requirement_id:requirementId/,'upload service must preserve preparation-item lineage supplied by the current upload context');
+assert.match(upload,/taskId:task\?\.id\|\|null/,'upload service must preserve direct client-action lineage when files are uploaded from an action');
+assert.match(persistence,/remove\(\[path\]\)/);
 assert.match(upload,/portal\.services\.clientUpload=service/,'upload service must remain the single upload owner');
 assert.match(upload,/Object\.defineProperty\(portal,'prepareUpload',\{value:prepare/,'upload facade must delegate to the upload owner');
 assert.match(css,/min-height:44px/);assert.match(css,/env\(safe-area-inset-bottom\)/);assert.match(css,/overflow-x:hidden/);assert.match(css,/@media\(max-width:760px\)/);assert.match(css,/@media\(max-width:390px\)/);
