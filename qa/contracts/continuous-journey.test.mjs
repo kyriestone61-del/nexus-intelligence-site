@@ -43,3 +43,9 @@ test('failed authorization is explicit and cannot select a client shell',async()
  const state={};const run=vm.runInNewContext(`let identityInFlight=null,identityUserId=null;${fn};identity`,{state,stateController:{patch:p=>Object.assign(state,p)},ensureProfile:async()=>{},resolveAdmin:async()=>{throw Error('offline')},companies:async()=>{throw Error('must not load')},show(){}});
  await assert.rejects(run({id:'admin'}),/offline/);assert.equal(state.authorizationStatus,'error');assert.match(readFileSync('portal-app.js','utf8'),/authorizationStatus!=='verified'/);
 });
+test('post-commit refresh failure returns the saved upload and never removes its private file',async()=>{
+ const src=readFileSync('portal-client-upload-service.js','utf8'),fn='async function uploadFile('+src.split('async function uploadFile(')[1].split('async function uploadFilesForTask')[0];
+ const h=uploadHarness(),state={companyId:'co',user:{id:'user'}},messages=[];
+ const run=vm.runInNewContext(`${fn};uploadFile`,{state,sb:h.sb,MAX_BYTES:26214400,persistEvidence,assertTaskBoundary:()=>null,requestFor:()=>null,requirementFor:()=>null,cacheUploadedDocument(){},toast:m=>messages.push(m),portal:{workspace:async()=>{throw Error('refresh offline')}}});
+ const doc=await run({file});assert.equal(doc.company_id,'co');assert.equal(h.removed,0);assert.match(messages[0],/File saved/);
+});
