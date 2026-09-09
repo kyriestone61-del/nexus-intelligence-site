@@ -156,7 +156,8 @@ jobs:
           probe_get 'pages-upload-isolation' "$pages/portal-client-upload-service.js" 'stopImmediatePropagation'
           probe_get 'pages-upload-owner' "$pages/portal-client-upload-service.js" 'portal.services.clientUpload=service'
           probe_get 'pages-upload-facade-owner' "$pages/portal-client-upload-service.js" "Object.defineProperty(portal,'prepareUpload'"
-          probe_get 'pages-upload-request-linkage' "$pages/portal-client-upload-service.js" 'request_id:requestId||null'
+          probe_get 'pages-upload-persistence-boundary' "$pages/portal-client-upload-service.js" 'await persistEvidence'
+          probe_get 'pages-upload-request-linkage' "$pages/portal-client-upload-service.js" 'requestId,requirementId'
 
           probe_get 'pages-inbox-refresh-guard' "$pages/portal-approval-inbox.js" 'queueInboxRefresh'
           probe_absent 'pages-inbox-no-self-observer' "$pages/portal-approval-inbox.js" 'new MutationObserver'

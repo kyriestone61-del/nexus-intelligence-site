@@ -17,6 +17,7 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
 </style>
 <link rel="stylesheet" href="/relystra-brand.css"><link rel="manifest" href="/site.webmanifest"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><link rel="icon" href="/assets/relystra-mark.svg" type="image/svg+xml"><meta name="robots" content="noindex,nofollow"><meta name="relystra-stage" content="provisional-owner-risk-accepted"></head>
 <body class="portal-body">
+<a id="nexusSkipLink" class="nexus-skip-link" href="#nexusMainContent">Skip to main content</a>
 
 <div id="authView" class="auth-shell">
   <div class="auth-grid">
@@ -38,8 +39,8 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
       <div id="signInPane" class="auth-pane active">
         <div class="kicker">Authenticated workspace</div><h2>Welcome back.</h2>
         <form id="signInForm">
-          <div class="field"><label>Email</label><input id="signInEmail" type="email" autocomplete="email" required></div>
-          <div class="field"><label>Password</label><input id="signInPassword" type="password" autocomplete="current-password" required></div>
+          <div class="field"><label for="signInEmail">Email</label><input id="signInEmail" type="email" autocomplete="email" required></div>
+          <div class="field"><label for="signInPassword">Password</label><input id="signInPassword" type="password" autocomplete="current-password" required></div>
           <div class="actions"><button id="signInBtn" class="btn primary" type="submit">Sign in →</button></div>
         </form>
       </div>
@@ -47,11 +48,11 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
         <div class="kicker">Create your Relystra workspace</div><h2>Set up your company account.</h2>
         <p class="small">Creating an account opens a coordination workspace. It does not by itself create a consulting engagement, fee, deadline, or service level.</p>
         <form id="createForm">
-          <div class="field"><label>Your name</label><input id="createName" autocomplete="name" required></div>
-          <div class="field"><label>Company name</label><input id="createCompany" autocomplete="organization" required></div>
-          <div class="field"><label>Company website <span class="small">(optional)</span></label><input id="createWebsite" type="url" placeholder="https://"></div>
-          <div class="field"><label>Email</label><input id="createEmail" type="email" autocomplete="email" required></div>
-          <div class="field"><label>Password</label><input id="createPassword" type="password" minlength="12" autocomplete="new-password" required></div>
+          <div class="field"><label for="createName">Your name</label><input id="createName" autocomplete="name" required></div>
+          <div class="field"><label for="createCompany">Company name</label><input id="createCompany" autocomplete="organization" required></div>
+          <div class="field"><label for="createWebsite">Company website <span class="small">(optional)</span></label><input id="createWebsite" type="url" placeholder="https://"></div>
+          <div class="field"><label for="createEmail">Email</label><input id="createEmail" type="email" autocomplete="email" required></div>
+          <div class="field"><label for="createPassword">Password</label><input id="createPassword" type="password" minlength="12" autocomplete="new-password" required></div>
           <div class="actions"><button id="createBtn" class="btn primary" type="submit">Create account →</button></div>
         </form>
       </div>
@@ -70,9 +71,9 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
     <div class="eyebrow">Workspace activation</div><h1 style="font-size:44px;line-height:1.02">Tell Relystra which company this workspace belongs to.</h1>
     <p class="muted">Once you continue, Relystra will create your initial opportunity-assessment preparation checklist and next actions automatically.</p>
     <form id="onboardForm">
-      <div class="field"><label>Company name</label><input id="onboardCompany" required></div>
-      <div class="field"><label>Website <span class="small">(optional)</span></label><input id="onboardWebsite" type="url"></div>
-      <div class="field"><label>Industry / business type <span class="small">(optional)</span></label><input id="onboardIndustry"></div>
+      <div class="field"><label for="onboardCompany">Company name</label><input id="onboardCompany" required></div>
+      <div class="field"><label for="onboardWebsite">Website <span class="small">(optional)</span></label><input id="onboardWebsite" type="url"></div>
+      <div class="field"><label for="onboardIndustry">Industry / business type <span class="small">(optional)</span></label><input id="onboardIndustry"></div>
       <div class="actions"><button class="btn primary" type="submit">Activate workspace →</button></div>
     </form>
   </section>
@@ -102,7 +103,7 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
       <div class="note" style="margin-top:18px"><b>Control boundary:</b> Portal tasks, comments, uploads, planning dates, and status labels do not amend a contract, SOW, fee, acceptance criterion, or service level.</div>
     </aside>
 
-    <main class="main">
+    <main id="nexusMainContent" class="main" tabindex="-1">
       <section id="section-overview" class="section active">
         <div class="toolbar"><div><div class="eyebrow">Client workspace</div><h1 id="workspaceTitle" style="font-size:36px;margin:6px 0">Company workspace</h1></div><span id="roleLabel" class="small"></span></div>
         <div class="stats"><div class="stat"><b id="sTasks">0</b><span>Open actions</span></div><div class="stat"><b id="sDocs">0</b><span>Secure files</span></div><div class="stat"><b id="sMiles">0</b><span>Active milestones</span></div><div class="stat"><b id="sNotes">0</b><span>Unread alerts</span></div></div>
@@ -130,10 +131,10 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
             <div id="uploadContext" class="upload-context"></div>
             <form id="uploadForm">
               <div class="form-grid">
-                <div class="field"><label>File</label><input id="docFile" type="file" required accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg"></div>
-                <div class="field"><label>Category</label><select id="docCategory"><option>Client Source</option><option>Process Document</option><option>Measurement</option><option>Report</option><option>General</option><option>Relystra Deliverable</option></select></div>
+                <div class="field"><label for="docFile">File</label><input id="docFile" type="file" required accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg"></div>
+                <div class="field"><label for="docCategory">Category</label><select id="docCategory"><option>Client Source</option><option>Process Document</option><option>Measurement</option><option>Report</option><option>General</option><option>Relystra Deliverable</option></select></div>
               </div>
-              <div class="field"><label>Context note <span class="small">(recommended)</span></label><textarea id="docNote" placeholder="What is this file? What workflow, period, or question does it help Relystra understand?"></textarea></div>
+              <div class="field"><label for="docNote">Context note <span class="small">(recommended)</span></label><textarea id="docNote" placeholder="What is this file? What workflow, period, or question does it help Relystra understand?"></textarea></div>
               <div class="actions"><button class="btn primary" type="submit">Upload securely →</button></div>
               <p class="small">Accepted: PDF, DOCX, XLSX, CSV, TXT, PNG, JPG · Maximum 25 MB · Private company-level storage.</p>
             </form>
@@ -155,16 +156,16 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
   </div>
 </div>
 
-<div id="taskModal" class="modal"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add action item</h2><button class="btn secondary close" type="button">Close</button></div><form id="taskForm"><div class="field"><label>Action</label><input id="taskTitle" required></div><div class="form-grid"><div class="field"><label>Owner</label><select id="taskAssignee"><option value="client">Client</option><option value="nexus">Relystra</option></select></div><div class="field"><label>Priority</label><select id="taskPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div><div class="field"><label>Due date</label><input id="taskDue" type="date"></div></div><div class="field"><label>Completion context</label><textarea id="taskDescription" placeholder="What needs to happen, and what should be true when this is done?"></textarea></div><div class="actions"><button class="btn primary" type="submit">Create action</button></div></form></div></div>
+<div id="taskModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add action item</h2><button class="btn secondary close" type="button">Close</button></div><form id="taskForm"><div class="field"><label for="taskTitle">Action</label><input id="taskTitle" required></div><div class="form-grid"><div class="field"><label for="taskAssignee">Owner</label><select id="taskAssignee"><option value="client">Client</option><option value="nexus">Relystra</option></select></div><div class="field"><label for="taskPriority">Priority</label><select id="taskPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div><div class="field"><label for="taskDue">Due date</label><input id="taskDue" type="date"></div></div><div class="field"><label for="taskDescription">Completion context</label><textarea id="taskDescription" placeholder="What needs to happen, and what should be true when this is done?"></textarea></div><div class="actions"><button class="btn primary" type="submit">Create action</button></div></form></div></div>
 
-<div id="metricModal" class="modal"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add measurement</h2><button class="btn secondary close" type="button">Close</button></div><form id="metricForm"><div class="field"><label>Metric</label><input id="metricName" required placeholder="Example: Weekly reporting time"></div><div class="form-grid"><div class="field"><label>Unit</label><input id="metricUnit" placeholder="hours, %, days, count"></div><div class="field"><label>Baseline</label><input id="metricBaseline" type="number" step="any"></div><div class="field"><label>Current</label><input id="metricCurrent" type="number" step="any"></div><div class="field"><label>Target</label><input id="metricTarget" type="number" step="any"></div></div><div class="field"><label>Measurement method</label><textarea id="metricMethod"></textarea></div><div class="actions"><button class="btn primary" type="submit">Save measurement</button></div></form></div></div>
+<div id="metricModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add measurement</h2><button class="btn secondary close" type="button">Close</button></div><form id="metricForm"><div class="field"><label for="metricName">Metric</label><input id="metricName" required placeholder="Example: Weekly reporting time"></div><div class="form-grid"><div class="field"><label for="metricUnit">Unit</label><input id="metricUnit" placeholder="hours, %, days, count"></div><div class="field"><label for="metricBaseline">Baseline</label><input id="metricBaseline" type="number" step="any"></div><div class="field"><label for="metricCurrent">Current</label><input id="metricCurrent" type="number" step="any"></div><div class="field"><label for="metricTarget">Target</label><input id="metricTarget" type="number" step="any"></div></div><div class="field"><label for="metricMethod">Measurement method</label><textarea id="metricMethod"></textarea></div><div class="actions"><button class="btn primary" type="submit">Save measurement</button></div></form></div></div>
 
-<div id="milestoneModal" class="modal"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add milestone</h2><button class="btn secondary close" type="button">Close</button></div><form id="milestoneForm"><div class="field"><label>Milestone</label><input id="milestoneTitle" required></div><div class="form-grid"><div class="field"><label>Start</label><input id="milestoneStart" type="date"></div><div class="field"><label>Due</label><input id="milestoneDue" type="date"></div><div class="field"><label>Status</label><select id="milestoneStatus"><option value="planned">Planned</option><option value="active">Active</option><option value="complete">Complete</option><option value="delayed">Delayed</option></select></div></div><div class="field"><label>Description</label><textarea id="milestoneDescription"></textarea></div><div class="actions"><button class="btn primary" type="submit">Save milestone</button></div></form></div></div>
+<div id="milestoneModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add milestone</h2><button class="btn secondary close" type="button">Close</button></div><form id="milestoneForm"><div class="field"><label for="milestoneTitle">Milestone</label><input id="milestoneTitle" required></div><div class="form-grid"><div class="field"><label for="milestoneStart">Start</label><input id="milestoneStart" type="date"></div><div class="field"><label for="milestoneDue">Due</label><input id="milestoneDue" type="date"></div><div class="field"><label for="milestoneStatus">Status</label><select id="milestoneStatus"><option value="planned">Planned</option><option value="active">Active</option><option value="complete">Complete</option><option value="delayed">Delayed</option></select></div></div><div class="field"><label for="milestoneDescription">Description</label><textarea id="milestoneDescription"></textarea></div><div class="actions"><button class="btn primary" type="submit">Save milestone</button></div></form></div></div>
 
-<div id="documentRequestModal" class="modal"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Request a client item</h2><button class="btn secondary close" type="button">Close</button></div><form id="documentRequestForm"><div class="field"><label>What do you need?</label><input id="requestDocTitle" required></div><div class="field"><label>Why is it needed?</label><textarea id="requestDocPurpose" placeholder="Explain the decision, workflow, or measurement this will support."></textarea></div><div class="field"><label>Good examples</label><textarea id="requestDocExamples" placeholder="Give the client examples of acceptable evidence."></textarea></div><div class="field"><label>Privacy / redaction guidance</label><textarea id="requestDocPrivacy" placeholder="What should the client remove or avoid sharing?"></textarea></div><div class="form-grid"><div class="field"><label>Sensitivity</label><select id="requestDocSensitivity"><option value="standard">Standard</option><option value="confidential">Confidential</option></select></div><div class="field"><label>Requested by</label><input id="requestDocDue" type="date"></div></div><div class="actions"><button class="btn primary" type="submit">Send request →</button></div></form></div></div>
+<div id="documentRequestModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Request a client item</h2><button class="btn secondary close" type="button">Close</button></div><form id="documentRequestForm"><div class="field"><label for="requestDocTitle">What do you need?</label><input id="requestDocTitle" required></div><div class="field"><label for="requestDocPurpose">Why is it needed?</label><textarea id="requestDocPurpose" placeholder="Explain the decision, workflow, or measurement this will support."></textarea></div><div class="field"><label for="requestDocExamples">Good examples</label><textarea id="requestDocExamples" placeholder="Give the client examples of acceptable evidence."></textarea></div><div class="field"><label for="requestDocPrivacy">Privacy / redaction guidance</label><textarea id="requestDocPrivacy" placeholder="What should the client remove or avoid sharing?"></textarea></div><div class="form-grid"><div class="field"><label for="requestDocSensitivity">Sensitivity</label><select id="requestDocSensitivity"><option value="standard">Standard</option><option value="confidential">Confidential</option></select></div><div class="field"><label for="requestDocDue">Requested by</label><input id="requestDocDue" type="date"></div></div><div class="actions"><button class="btn primary" type="submit">Send request →</button></div></form></div></div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="/portal-security-hardening.js?v=20260831-discovery-capture1"></script>
-<script type="module" src="/portal-app.js?v=20260831-discovery-capture1"></script>
+<script type="module" src="/portal-app.js?v=20260908-relystra-post-release-qaqc1"></script>
 </body>
 </html>

@@ -13,6 +13,27 @@ test('all ten stages stay visible while gates prevent premature delivery',()=>{
   assert.ok(journeyGate('builds',base));assert.ok(journeyGate('progress',base));assert.ok(journeyGate('support',{...base,package:{stage:'client_review'}}));assert.equal(journeyGate('transcript',base),null);
   assert.equal(journeyGate('progress',{...base,project_id:'legacy',project_type:'legacy'}),null);
 });
+test('the numbered journey owns its layout instead of inheriting the global site nav flex rule',()=>{
+  const css=readFileSync('portal-delivery.css','utf8');
+  assert.match(css,/\.relystra-numbered-journey\{display:block/);
+  assert.match(css,/@media\(max-width:760px\).*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/s);
+});
+test('the client action surface excludes historical and delivery work once diagnosis-led Actions exist',()=>{
+  const engine=readFileSync('portal-action-processing-engine.js','utf8');
+  assert.match(engine,/function clientActionTasks\(\)/);
+  assert.match(engine,/rows\.some\(task=>task\.work_kind==='prebuild_action'\)/);
+  assert.match(engine,/task\.work_kind==='prebuild_action'&&task\.action_review_state==='approved'/);
+  assert.match(engine,/!\['build_task','legacy'\]\.includes\(task\.work_kind\)/);
+  assert.match(engine,/const tasks=clientActionTasks\(\)/);
+});
+test('the portal ships labelled controls, a keyboard skip target, and labelled modal registration',()=>{
+  const html=readFileSync('portal.html','utf8'),runtime=readFileSync('portal-runtime-core.js','utf8');
+  assert.match(html,/id="nexusSkipLink"[^>]+href="#nexusMainContent"/);
+  assert.match(html,/id="nexusMainContent"[^>]+tabindex="-1"/);
+  assert.match(html,/label for="signInEmail"/);
+  assert.match(html,/class="modal" role="dialog" aria-modal="true" aria-hidden="true"/);
+  assert.match(runtime,/modal\.setAttribute\('aria-labelledby', heading\.id\)/);
+});
 test('transcript next step respects access, saved evidence, and existing diagnosis',()=>{
   assert.equal(journeyNext(base).section,'overview');
   assert.equal(journeyNext({...base,diagnosis:{access:true}}).section,'transcript');

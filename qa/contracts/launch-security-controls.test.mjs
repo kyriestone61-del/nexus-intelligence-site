@@ -71,6 +71,8 @@ test('Pages middleware applies response security headers and public indexing is 
   assert.match(robots,/Allow: \//);
   assert.match(robots,/Sitemap:/);
   assert.match(middleware,/meta\[name="robots"\]/);
+  assert.match(middleware,/if\(isPrivate\|\|isProtectedMarketing\)headers\.set\('X-Robots-Tag','noindex, nofollow, noarchive'\)/);
+  assert.match(middleware,/const headHtml=isPrivate\|\|isProtectedMarketing/);
 });
 
 test('administrator client invitation grants one-company membership and queues a tokenless email',()=>{

@@ -38,7 +38,7 @@
 #relystraCreateAction::backdrop{background:rgba(0,0,0,.6)}
 
 /* Persistent progression shared by the existing administrator and client shells. */
-.relystra-numbered-journey{margin:12px 0 24px;padding:16px;border:1px solid var(--line,#373142);border-radius:14px;background:var(--panel,#17131e)}
+.relystra-numbered-journey{display:block;margin:12px 0 24px;padding:16px;border:1px solid var(--line,#373142);border-radius:14px;background:var(--panel,#17131e)}
 .relystra-numbered-journey p{margin:0 0 12px}.relystra-numbered-journey ol{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;list-style:none;padding:0;margin:0}
 .relystra-numbered-journey button{display:flex;gap:9px;align-items:flex-start;width:100%;min-height:64px;padding:10px;text-align:left;border:1px solid var(--line,#373142);border-radius:9px;background:transparent;color:inherit;font:inherit;cursor:pointer}
 .relystra-numbered-journey button[aria-current=step]{outline:2px solid var(--accent,#c4a7ff);outline-offset:1px}.relystra-numbered-journey .is-current button{background:#392d4b}.relystra-numbered-journey small{display:block;font-size:11px;opacity:.75;margin-top:4px}.journey-number{flex-shrink:0;display:grid;place-items:center;width:23px;height:23px;border:1px solid currentColor;border-radius:50%}.is-completed .journey-number{color:#c5e994}

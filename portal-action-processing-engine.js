@@ -115,6 +115,13 @@ function clientTaskGroup(task){
   if(dependencyBlocked(task))return 'upcoming';
   return 'needs_you';
 }
+function clientActionTasks(){
+  const rows=(state.tasks||[]).filter(task=>!task.archived_at);
+  if(rows.some(task=>task.work_kind==='prebuild_action')){
+    return rows.filter(task=>task.work_kind==='prebuild_action'&&task.action_review_state==='approved');
+  }
+  return rows.filter(task=>!['build_task','legacy'].includes(task.work_kind));
+}
 function clientTaskCard(task){
   const group=clientTaskGroup(task),actionable=group==='needs_you'&&norm(task.assignee)==='client'&&clientActionable.has(norm(task.status));
   const dep=dependency(task),files=docsForTask(task.id),readOnly=!actionable;
@@ -162,7 +169,7 @@ function openClientActions(){
 }
 function renderClientActions(){
   const root=ensureClientActionSurface();if(!root)return;
-  const tasks=(state.tasks||[]).filter(task=>!task.archived_at);
+  const tasks=clientActionTasks();
   const counts={needs_you:0,with_nexus:0,upcoming:0,completed:0};tasks.forEach(task=>{const group=clientTaskGroup(task);if(counts[group]!==undefined)counts[group]+=1});
   const labels={needs_you:'Needs You',with_nexus:'With Relystra',upcoming:'Upcoming',completed:'Completed'};
   if(!Object.hasOwn(counts,clientFilter))clientFilter='needs_you';

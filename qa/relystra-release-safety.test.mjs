@@ -58,7 +58,7 @@ test('public production pages are indexable while private and preview routes rem
   assert.doesNotMatch(headers, /\/\*\s+X-Robots-Tag: noindex, nofollow/);
   assert.match(headers, /\/portal\*\s+[\s\S]*X-Robots-Tag: noindex, nofollow/);
   assert.match(middleware, /const isPreview=url\.hostname\.endsWith\('\.pages\.dev'\)/);
-  assert.match(middleware, /if\(isPrivate\)headers\.set\('X-Robots-Tag','noindex, nofollow, noarchive'\)/);
+  assert.match(middleware, /if\(isPrivate\|\|isProtectedMarketing\)headers\.set\('X-Robots-Tag','noindex, nofollow, noarchive'\)/);
 });
 
 test('canonical brand avoids prohibited compound names', async () => {
