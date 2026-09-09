@@ -52,7 +52,7 @@ test('deployed Discovery, real Stripe test settlement, Full Diagnosis, expansion
   await prospect.getByRole('button',{name:'Accept this scope',exact:true}).click();await expect(prospect.getByRole('button',{name:'Continue to secure payment'})).toBeVisible();
   const access=async operation=>{const r=await request.post('/api/basic-report',{data:{token,operation}});const d=await r.json();expect(r.ok(),JSON.stringify(d)).toBe(true);return d};
   const accepted=(await access('view')).report;expect(accepted.plan_status).toBe('awaiting_payment');expect((await access('accept')).report.plan_id).toBe(accepted.plan_id);
-  const payment=await access('checkout');expect(payment.livemode).toBe(false);await payTest(paymentPage,payment.url);
+  const payment=await access('checkout');expect(payment.livemode).toBe(false);await payTest(prospect,payment.url);
   await expect.poll(async()=>(await access('view')).report.plan_status,{timeout:90000}).toBe('paid');
   const original=(await rows(page,'nexus_projects','id,context_diagnosis_run_id,build_plan_id',{company_id:company,build_plan_id:accepted.plan_id}))[0];expect(original).toBeTruthy();expect(original.context_diagnosis_run_id).toBeNull();
   await expect.poll(async()=>(await rows(page,'nexus_discovery_requests','invited_user_id',{id:reportId}))[0]?.invited_user_id,{timeout:60000}).toBeTruthy();
