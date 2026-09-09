@@ -163,7 +163,7 @@ begin
  select * into r from public.relystra_free_diagnoses where id=p_run_id and status='complete';
  select * into e from public.relystra_discovery_engagements where id=r.engagement_id and company_id=p_company_id;
  if e.id is null or e.revision<>r.evidence_revision then raise exception 'Generate and review the current evidence revision'; end if;
- if p_approve and not exists(select 1 from public.relystra_discovery_reviews where run_id=r.id and decision='verified') then raise exception 'Verify the Free Diagnosis before approving the first Build'; end if;
+ if p_approve and (select decision from public.relystra_discovery_reviews where run_id=r.id order by created_at desc,id desc limit 1) is distinct from 'verified' then raise exception 'Verify the Free Diagnosis before approving the first Build'; end if;
  select string_agg(source_text,E'\n' order by document_id,ordinal) into transcript from public.relystra_discovery_chunks where id=any(r.source_ids);
  if length(transcript)>500000 then transcript:='Complete original discovery evidence is retained in engagement '||e.id::text||'; reviewed Free Diagnosis '||r.id::text||'. All '||cardinality(r.source_ids)::text||' source segments are retained with exact provenance.'; end if;
  select jsonb_object_agg(key,value) into sections from jsonb_each(r.report) where key in ('business_context','current_processes','observed_problems','key_findings','opportunity_areas','missing_information','evidence_confidence','contradictions');

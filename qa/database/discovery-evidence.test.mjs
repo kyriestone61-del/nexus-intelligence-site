@@ -58,3 +58,21 @@ test('complete hierarchical state machine covers three documents plus > single-p
   s=await workspace();assert.equal(s.reports.length,2);assert.equal(s.reports[0].report.coverage.documents,5);assert.equal(s.reports[1].id,first.id);assert.deepEqual(s.reports[1].report,first.report);
  }finally{await db.close()}
 });
+
+test('two retained projects and preparation in one company keep separate evidence and active membership is enforced',async()=>{
+ const db=await database();try{
+  await db.exec(`insert into auth.users values('${admin}'),('${client}');insert into nexus_platform_admins(user_id) values('${admin}');insert into nexus_companies(id,name,created_by) values('${co}','Synthetic isolation','${admin}'),('${other}','Other company','${admin}');insert into nexus_company_members(company_id,user_id,member_role,active) values('${co}','${client}','owner',true);`);
+  const projects=[];for(const [name,company] of [['A',co],['B',co],['Foreign',other]])projects.push((await db.query('insert into nexus_projects(company_id,name,created_by) values($1,$2,$3) returning id',[company,name,admin])).rows[0].id);
+  const docs=[];for(const [i,project] of [null,...projects.slice(0,2)].entries())docs.push((await db.query("insert into nexus_documents(company_id,project_id,storage_path,file_name,category,uploaded_by) values($1,$2,$3,$4,'Discovery Transcript',$5) returning id",[co,project,co+'/doc'+i,'doc'+i+'.txt',client])).rows[0].id);
+  for(const m of migrations)await db.exec(await fs.readFile(new URL('../../supabase/migrations/'+m,import.meta.url),'utf8'));
+  const snap=async project=>(await db.query('select relystra_discovery_workspace($1,$2) s',[co,project])).rows[0].s;
+  await asUser(db,client,async()=>{
+   for(const [i,project] of [null,...projects.slice(0,2)].entries()){const s=await snap(project);assert.deepEqual(s.documents.map(d=>d.id),[docs[i]]);}
+   await assert.rejects(snap(projects[2]),/Engagement.company mismatch/);
+   await assert.rejects(db.query("select relystra_discovery_workspace($1,$2,'attach',$3)",[co,projects[0],docs[2]]),/Document.engagement mismatch/);
+  });
+  await assert.rejects(db.query('update nexus_documents set project_id=$1 where id=$2',[projects[1],docs[1]]),/context is immutable/);
+  await db.query('update nexus_company_members set active=false where company_id=$1 and user_id=$2',[co,client]);
+  await asUser(db,client,()=>assert.rejects(snap(null),/Company access required/));
+ }finally{await db.close()}
+});
