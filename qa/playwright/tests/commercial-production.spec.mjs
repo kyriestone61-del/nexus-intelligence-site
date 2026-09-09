@@ -22,6 +22,8 @@ async function payTest(checkoutPage,url){
  await field('cardNumber','4242424242424242');await field('cardExpiry','12/34');await field('cardCvc','123');
  for(const [name,value] of Object.entries({billingName:'Synthetic QA Owner',billingPostalCode:'19720'})){const el=checkoutPage.locator(`[name="${name}"]`);if(await el.count())await el.fill(value)}
  const country=checkoutPage.locator('[name=billingCountry]');if(await country.count())await country.selectOption('US');
+ const savePayment=checkoutPage.getByRole('checkbox',{name:/Save my information for faster checkout/i});
+ if(await savePayment.count())await savePayment.uncheck();
  await checkoutPage.locator('button[type=submit]').last().click();
  await checkoutPage.waitForURL(url=>url.hostname!=='checkout.stripe.com',{timeout:60000});
 }
