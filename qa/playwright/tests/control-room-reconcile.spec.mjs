@@ -87,8 +87,8 @@ test.describe('authenticated client control room',()=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
     await signIn(page,clientEmail,clientPassword);
     const nav=page.locator('#nexusClientPrimaryNav [data-client-view]');
-    await expect(nav).toHaveCount(7);
-    expect(await nav.allTextContents()).toEqual(['Overview','Diagnosis','Actions','Roadmap & Builds','Progress','Final Package','Support']);
+    await expect(nav).toHaveCount(8);
+    expect(await nav.allTextContents()).toEqual(['Overview','Discovery & Free Diagnosis','Full Diagnosis','Actions','Roadmap & Builds','Progress','Final Package','Support']);
     await expect(page.locator('#nexus-client-today')).toBeVisible();
     for(const view of ['progress','final-package','support'])await expect(page.locator(`#nexusClientPrimaryNav [data-client-view="${view}"]`)).toHaveAttribute('hidden','');
     await page.locator('#nexusClientReportsButton').click();await expect(page.locator('#nexus-client-files')).toBeVisible();await expect(page.locator('#uploadForm')).toBeVisible();
@@ -189,8 +189,8 @@ test.describe('administrator and client-preview boundaries',()=>{
     await waitForSettledPortal(page);
     await expect(page.locator('#nexusClientPrimaryNav')).toBeAttached({timeout:40_000});await openMobileMenu(page);await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible();
     await expect(page.getByText('Relystra could not finish loading.',{exact:true})).toHaveCount(0);
-    await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(7);
-    expect(await page.locator('#nexusClientPrimaryNav [data-client-view]').allTextContents()).toEqual(['Overview','Diagnosis','Actions','Roadmap & Builds','Progress','Final Package','Support']);
+    await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(8);
+    expect(await page.locator('#nexusClientPrimaryNav [data-client-view]').allTextContents()).toEqual(['Overview','Discovery & Free Diagnosis','Full Diagnosis','Actions','Roadmap & Builds','Progress','Final Package','Support']);
     expect(meaningfulConsoleErrors(errors)).toEqual([]);
   });
 
