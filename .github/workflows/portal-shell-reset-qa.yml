@@ -30,7 +30,7 @@ jobs:
           grep -Fq '/portal-ops.css?v=20260831-discovery-capture1' portal.html
           grep -Fq '/portal-v2.css?v=20260831-discovery-capture1' portal.html
           grep -Fq '/portal-security-hardening.js?v=20260831-discovery-capture1' portal.html
-          grep -Fq '/portal-app.js?v=20260908-relystra-post-release-qaqc1' portal.html
+          grep -Fq '/portal-app.js?v=20260908-relystra-post-release-qaqc2' portal.html
           grep -Eq "^const BUILD='[0-9]{8}-[A-Za-z0-9._-]+';" portal-app.js
           grep -Fq "portal-client-shell-v2.js?v=\${BUILD}" portal-app.js
           grep -Fq "portal-admin-journey.js?v=\${BUILD}" portal-app.js
