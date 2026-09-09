@@ -25,7 +25,7 @@ test('model recommendations are evidence-bounded and cannot provide approval or 
 });
 
 test('generated Build batches reject stale evidence, roll back partial failures and remain proposals on retry',async()=>{
-  const db=await database(['20260907000300_relystra_build_planning.sql','20260907000400_relystra_paid_activation.sql','20260907000500_relystra_build_recommendations.sql']);
+  const db=await database(['20260907000300_relystra_build_planning.sql','20260907000400_relystra_paid_activation.sql','20260907000500_relystra_build_recommendations.sql','20260909142000_relystra_build_identity_index.sql']);
   try{
     await db.exec(`insert into auth.users values ('${admin}'),('${client}');
       insert into nexus_platform_admins(user_id) values ('${admin}');
@@ -48,6 +48,14 @@ test('generated Build batches reject stale evidence, roll back partial failures 
       assert.equal(saved.build_spec.price_cents,undefined);
       assert.equal(saved.build_spec.duration_max,undefined);
       assert.equal(saved.build_spec.source_finding_refs[0].snapshot.problem,'Scattered bids');
+      const alternate=(await db.query("select code from nexus_resolution_catalog where code<>'build_bid_intake' and default_recipe->>'catalog_kind'='build_template' limit 1")).rows[0].code;
+      const sameTitleArgs=args.map((v,i)=>i===4?[draft,{...draft,template_code:alternate}]:v);
+      const pair=(await db.query(sql,sameTitleArgs)).rows[0].ids;
+      assert.equal(new Set(pair).size,2,'different capabilities can have the same editable display title');
+      assert.deepEqual((await db.query(sql,sameTitleArgs)).rows[0].ids,pair,'stable diagnosis/finding/template identity remains idempotent');
+      await db.query("insert into nexus_opportunities(company_id,title,source,status,created_by,source_diagnosis_run_id) values ($1,'Legacy finding','diagnosis','recommended',$2,$3)",[company,admin,run.id]);
+      await assert.rejects(db.query("insert into nexus_opportunities(company_id,title,source,status,created_by,source_diagnosis_run_id) values ($1,'Legacy finding','diagnosis','recommended',$2,$3)",[company,admin,run.id]),/nexus_opportunities_diagnosis_title_unique/);
+
     });
     await asUser(db,client,()=>db.query('select relystra_build_menu($1) menu',[company]).then(r=>assert.deepEqual(r.rows[0].menu,[])));
   }finally{await db.close()}

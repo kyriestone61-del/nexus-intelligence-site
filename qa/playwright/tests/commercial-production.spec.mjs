@@ -68,7 +68,7 @@ test('deployed Discovery, real Stripe test settlement, Full Diagnosis, expansion
   await page.goto(`/portal?view_mode=admin&company=${company}&project=${original.id}&section=transcript`);
   await expect(page.getByRole('button',{name:'Run Diagnosis',exact:true})).toBeVisible({timeout:45000});await page.getByRole('button',{name:'Run Diagnosis',exact:true}).click();
   let runs=[];await expect.poll(async()=>{runs=await rows(page,'nexus_diagnosis_runs','id,status,transcript_document_id,analysis_result',{company_id:company,project_id:original.id});return runs[0]?.status},{timeout:660000,intervals:[3000,5000]}).toBe('ready_for_review');
-  const run=runs[0];expect(run.transcript_document_id).toBeTruthy();expect(run.analysis_result).toBeTruthy();
+  const run=runs[0];expect(run.transcript_document_id).toBeTruthy();expect(run.analysis_result).toBeTruthy();expect(run.analysis_result.quality_assurance?.pass,JSON.stringify(run.analysis_result.quality_assurance)).toBe(true);
   await rpc(page,'nexus_approve_diagnosis',{p_run_id:run.id,p_note:'Synthetic release acceptance: reviewed actual generated findings against the retained labeled QA transcript.'});
   expect((await rows(page,'nexus_projects','context_diagnosis_run_id',{id:original.id}))[0].context_diagnosis_run_id).toBe(run.id);
   await page.goto(`/portal?view_mode=admin&company=${company}&project=${original.id}&section=builds`);await expect(page.locator('[data-generate-builds]')).toBeEnabled({timeout:45000});

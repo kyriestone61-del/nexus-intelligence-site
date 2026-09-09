@@ -6,7 +6,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {recommendationFindings,qualificationCatalog,validatedBuildRecommendations} from '../_shared/relystra-build-recommendations.ts';
 import {verifiedSupportPassages} from '../_shared/relystra-support.ts';
-import {diagnosisStages,diagnosisStageSchema,validateDiagnosisStage} from '../_shared/relystra-diagnosis-job.ts';
+import {diagnosisStages,diagnosisStageSchema,validateDiagnosisStage,applyDiagnosisCorrections} from '../_shared/relystra-diagnosis-job.ts';
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type, x-nexus-worker-token","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const jh={...cors,"Content-Type":"application/json","Cache-Control":"no-store"};
@@ -335,7 +335,10 @@ async function runDiagnosisStage(job:any){
   const result=await callJson(await providerConfig(),spec.name,
     `${spec.instruction} Use a template_code only when it exists in the supplied action_template_catalog and actually fits. Keep explanations concise and proportionate to the evidence. ${diagnosisStageSchema(diagnosisSchema,stage)}`,
     {...job.payload,prior_unapproved_analysis:job.partial_result},0.04,105000);
-  return validateDiagnosisStage(stage,result);
+  const validated=validateDiagnosisStage(stage,result);
+  if(stage!==2)return validated;
+  const corrected=applyDiagnosisCorrections(job.partial_result,result.corrections);
+  return {...corrected,...validated,quality_assurance:{...(validated.quality_assurance as Record<string,unknown>),corrections_applied:Array.isArray(result.corrections)?result.corrections.length:0}};
 }
 
 async function notifyAdminsReady(run:any){

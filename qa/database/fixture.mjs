@@ -26,6 +26,8 @@ export async function database(extraMigrations=[]){
   }
   for(const constraint of controls.constraints.filter(row=>!/FOREIGN KEY/.test(row.definition)))
     await db.exec(`alter table public.${quote(constraint.table)} add constraint ${quote(constraint.name)} ${constraint.definition};`);
+  // Retained production uniqueness must participate in commercial regression tests.
+  await db.exec('create unique index nexus_opportunities_diagnosis_title_unique on public.nexus_opportunities(source_diagnosis_run_id,title) where source_diagnosis_run_id is not null');
   await db.exec('alter table public.nexus_document_requests add primary key(id); alter table public.nexus_discovery_requests add primary key(id); alter table public.nexus_discovery_context_entries add primary key(id)');
   for(const constraint of controls.constraints.filter(row=>/FOREIGN KEY/.test(row.definition))){
     const target=constraint.definition.match(/REFERENCES (\w+(?:\.\w+)?)/)?.[1];
