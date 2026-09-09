@@ -110,7 +110,17 @@ test('Discovery report retains real input, limits free scope and activates exact
   assert.equal(extraPlan.duration_assumptions.items[1].start_min,3);
  });
  const parallel=(await db.query("select private.relystra_schedule($1,2,1,2) data",[[{id:'a',duration_min:5,duration_max:5},{id:'b',duration_min:5,duration_max:5},{id:'c',duration_min:5,duration_max:5}]])).rows[0].data;
- assert.equal(parallel.min_days,13,'three five-day Builds on two slots need ten days plus QA and review');
+  assert.equal(parallel.min_days,13,'three five-day Builds on two slots need ten days plus QA and review');
  await assert.rejects(db.query('select private.relystra_schedule($1,1,1,2)',[[{id:'a',duration_min:1,duration_max:1,dependencies:['b']},{id:'b',duration_min:1,duration_max:1,dependencies:['a']}]]),/cycle/);
+ await asUser(db,admin,()=>assert.rejects(db.query('select relystra_cleanup_qa_commerce($1)',['local-verified-bootstrap']),/permission denied/));
+ await assert.rejects(db.query('select relystra_cleanup_qa_commerce($1)',['local-verified-bootstrap']),/Registered QA/);
+ await db.query("update nexus_companies set name='Nexus QA local-verified-bootstrap' where id=$1",[company]);
+ await db.query("update nexus_delivery_payment_events set livemode=true where plan_id=$1",[planId]);
+ await assert.rejects(db.query('select relystra_cleanup_qa_commerce($1)',['local-verified-bootstrap']),/Live commercial records/);
+ assert.equal((await db.query('select count(*)::integer n from nexus_projects where company_id=$1',[company])).rows[0].n,1,'refused cleanup retains paid work');
+ await db.query("update nexus_delivery_payment_events set livemode=false where plan_id=$1",[planId]);
+ await db.query('select relystra_cleanup_qa_commerce($1)',['local-verified-bootstrap']);
+ for(const table of ['nexus_discovery_requests','nexus_build_plans','nexus_projects','nexus_opportunities'])assert.equal((await db.query(`select count(*)::integer n from ${table} where company_id=$1`,[company])).rows[0].n,0,'tenant deletion removes '+table+' including cyclic Discovery/plan links');
+ assert.equal((await db.query('select count(*)::integer n from nexus_companies where id=$1',[foreign])).rows[0].n,1,'unrelated tenant remains');
  }finally{await db.close()}
 });
