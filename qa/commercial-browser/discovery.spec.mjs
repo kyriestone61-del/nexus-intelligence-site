@@ -4,7 +4,7 @@ test('multi-document discovery, failed parsing, review, stale revision and persi
  test.setTimeout(120000);
  await page.goto('/qa/delivery-browser/?section=transcript');
  await expect(page.getByRole('heading',{name:'Upload Discovery Material',exact:true})).toBeVisible();
- const upload=async files=>{await page.locator('[data-discovery-upload] input').setInputFiles(files);await page.getByRole('button',{name:'Upload & process documents',exact:true}).click();};
+ const upload=async files=>{await page.locator('[data-discovery-upload] input').setInputFiles(files);await page.evaluate(()=>window.NexusAdminJourney.refresh());await expect.poll(()=>page.locator('[data-discovery-upload] input').evaluate(el=>el.files.length)).toBe(files.length);await page.getByRole('button',{name:'Upload & process documents',exact:true}).click();};
  await upload([file(`first-${info.project.name}.txt`,'Owner: Estimates arrive by email. Assign the estimator.'),file(`second-${info.project.name}.txt`,'Estimator: Phone requests sometimes bypass the intake sheet.'),file(`third-${info.project.name}.txt`,'Coordinator: Weekly review should reconcile missing request owners.')]);
  await expect(page.locator('[data-discovery-status]')).toHaveText(/Ready to generate|Outdated/,{timeout:60000});
  await page.locator('[data-free-generate]').click();await expect(page.locator('[data-discovery-status]')).toHaveText('Free Diagnosis complete',{timeout:60000});

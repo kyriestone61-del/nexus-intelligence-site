@@ -27,9 +27,14 @@ test('discovery evidence processes retained uploads, gates free diagnosis, prese
   await asUser(db,admin,async()=>{await assert.rejects(rpc('generate'),/process discovery/);assert.equal((await rpc()).documents[0].state,'removed');});
  }finally{await db.close()}
 });
+test('failed regeneration remains explicit while the older report is retained',()=>{
+ const old={id:'old',status:'complete',evidence_revision:1};
+ const s=discoveryState({revision:2,documents:[],reports:[{status:'failed',evidence_revision:2},old]});
+ assert.equal(s.state,'failed');assert.equal(s.complete,old);
+});
 test('large evidence is fully segmented without truncation and report provenance rejects invented sources',()=>{
  const text=('Owner describes intake and scheduling.\n').repeat(18000)+'TAIL EVIDENCE';const chunks=chunkDiscoveryText(text,doc);
- assert.ok(chunks.length>50);assert.equal(chunks.map(c=>c.text).join(''),text);assert.match(chunks.at(-1).text,/TAIL EVIDENCE$/);assert.ok(chunks.every(c=>c.text.length<=12000));
+ assert.ok(chunks.length>50);assert.equal(chunks.map(c=>c.text).join(''),text);assert.match(chunks.at(-1).text,/TAIL EVIDENCE$/);assert.ok(chunks.every(c=>c.text.length<=6000));
  assert.throws(()=>chunkDiscoveryText('x'.repeat(4*1024*1024+1),doc),/No text was discarded/);
  assert.throws(()=>validateExtraction({observations:[{statement:'Invented',excerpt:'not in text',kind:'documented_fact'}],missing_information:[],contradictions:[]},{id:'s',text:'Actual source'}),/UNSUPPORTED/);
  const report={...Object.fromEntries(discoverySections.map(k=>[k,[{text:'Unknown',confidence:'insufficient_information',source_refs:[]}]])),contradictions:[]};assert.equal(validateFreeDiagnosis(report,['s']).source_ids[0],'s');
