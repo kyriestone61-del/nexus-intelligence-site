@@ -78,7 +78,7 @@ jobs:
           grep -Fq 'supporting_document_ids:docs.map' portal-diagnosis-controller-v2.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
           grep -Fq 'nexus_release_client_task' portal-diagnosis-release-queue.js
-          grep -Fq 'Finish Step 2 with ChatGPT' portal-diagnosis-manual-fallback.js
+          grep -Fq 'Finish Full Diagnosis with ChatGPT' portal-diagnosis-manual-fallback.js
       - name: Client selection and Step 2 routing assertions
         run: |
           set -euo pipefail

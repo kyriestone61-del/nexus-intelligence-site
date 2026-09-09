@@ -83,7 +83,7 @@ jobs:
           grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-request.js
           grep -Fq 'ready_for_review' portal-diagnosis-v2.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
-          grep -Fq 'Finish Step 2 with ChatGPT' portal-diagnosis-manual-fallback.js
+          grep -Fq 'Finish Full Diagnosis with ChatGPT' portal-diagnosis-manual-fallback.js
           grep -Fq 'Save diagnosis for review' portal-diagnosis-manual-fallback.js
           grep -Fq 'FACT, CLIENT STATEMENT, ADMIN CONTEXT, INFERENCE, ESTIMATE, and UNKNOWN' supabase/functions/nexus-diagnosis-execute/index.ts
           grep -Fq 'nexus_discovery_framework_requirements' supabase/functions/nexus-diagnosis-execute/index.ts
