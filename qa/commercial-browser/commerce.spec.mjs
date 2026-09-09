@@ -50,3 +50,14 @@ test('administrator requests a private input for its paid Build before implement
  await expect(page.getByText('Bid intake: Authorized sample rows',{exact:true})).toBeVisible();
  await expect(page.locator('[role="alert"]')).toHaveCount(0);
 });
+
+test('rendered Services keeps the construction Offer path and retires legacy injected recommendations',async({page})=>{
+ await page.goto('/services');
+ await expect(page.getByRole('heading',{name:'One clear first Build. A practical path forward.'})).toBeVisible();
+ await expect(page.locator('body')).not.toContainText('AI Opportunity Assessment');
+ await expect(page.locator('body')).not.toContainText('Free AI Snapshot');
+ await expect(page.locator('#nxServiceGuide')).toHaveCount(0);
+ await expect(page.locator('footer')).toContainText('owner-led construction businesses');
+ await expect(page.getByRole('heading',{name:'Cleanup Sprint',exact:true})).toBeVisible();
+ await fits(page);
+});

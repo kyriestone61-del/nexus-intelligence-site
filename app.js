@@ -94,12 +94,7 @@
       const code=encodeJourney(journey);
       return `${location.origin}${target}${code?`#journey=${code}`:''}`;
     },
-    next(){
-      const j=this.get();
-      if(!j.quickScan?.completedAt&&!j.assessment?.completedAt)return {href:'/quick-scan',label:'Get My Free AI Snapshot'};
-      if(!j.booking?.status)return {href:'/book',label:'Request My Fit Call'};
-      return {href:'/prospect-workspace',label:'Continue My Relystra Journey'};
-    }
+    next(){return {href:'/book',label:'Book Free Discovery'};}
   };
 
   // Keep generated report/review HTML safe from angle-bracket input.
@@ -151,18 +146,8 @@
 
   function renderJourneyUI(){
     if(isPortal)return;
-    const j=window.NexusJourney.get();
-    const existing=document.getElementById('nexusJourneyBar');
-    if(j.stage==='new'){existing?.remove();renderMobileStart();return;}
-    const next=window.NexusJourney.next();
-    const labels={scan:'Free AI Snapshot complete',assessment:'Deeper diagnostic complete',booking:j.booking?.status==='confirmed'?'Fit Call confirmed':'Fit Call requested'};
-    existing?.remove();
-    document.querySelector('.nx-mobile-start')?.remove();
-    document.body.classList.remove('nx-has-mobile-start');
-    const bar=document.createElement('div');bar.id='nexusJourneyBar';bar.className='journey-bar';
-    const rec=j.recommendation?.service?` · ${escapeHtml(j.recommendation.service)}`:'';
-    bar.innerHTML=`<div class="journey-inner"><div class="journey-copy"><span class="journey-check">✓</span><div><b>${labels[j.stage]||'Relystra journey in progress'}</b><small>Your previous answers will follow you${rec}.</small></div></div><a class="btn primary journey-action" href="${next.href}">${next.label} →</a></div>`;
-    document.body.appendChild(bar);
+    document.getElementById('nexusJourneyBar')?.remove();
+    renderMobileStart();
   }
 
   function renderMobileStart(){
@@ -170,7 +155,7 @@
     const excluded=['/quick-scan','/assessment','/book','/prospect-workspace'];
     document.querySelector('.nx-mobile-start')?.remove();
     document.body.classList.remove('nx-has-mobile-start');
-    if(window.NexusJourney.get().stage!=='new'||excluded.includes(path))return;
+    if(excluded.includes(path))return;
     const bar=document.createElement('div');bar.className='nx-mobile-start';
     bar.innerHTML='<a class="btn primary" href="/book">Book Free Discovery →</a>';
     document.body.appendChild(bar);document.body.classList.add('nx-has-mobile-start');
@@ -361,22 +346,10 @@
 
   // Improvement 10: informational pages always end with a context-aware next action.
   function injectNextStep(){
-    if(isPortal||document.getElementById('nxNextStep'))return;
-    const eligible=['/services','/case-studies','/security','/methodology','/about','/industries','/capabilities','/problems','/delivery-standard','/faq'];
-    if(!eligible.includes(path))return;
+    if(isPortal||document.getElementById('nxNextStep')||!['/services','/methodology','/about','/industries','/capabilities','/problems','/delivery-standard','/faq'].includes(path))return;
     const footer=document.querySelector('footer.footer');if(!footer)return;
-    const j=window.NexusJourney.get(),next=window.NexusJourney.next();
-    const copy={
-      '/services':['Not sure which service is actually justified?','Use the opportunity flow to identify the smallest responsible starting point.'],
-      '/case-studies':['Want a result Relystra can measure responsibly?','Start by identifying the workflow and establishing the baseline before anyone promises an outcome.'],
-      '/security':['Have a workflow that needs controlled implementation?','Relystra can assess the business value and the human, data, access, and fallback boundaries together.'],
-      '/methodology':['Turn the method into a business decision.','Apply the Relystra process to one real workflow and carry the context into the next step.'],
-      '/about':['See whether Relystra fits your business problem.','Start with the workflow—not an AI product or a sales package.']
-    };
-    const [headline,body]=copy[path]||['Turn the information into a next step.','Use the Relystra opportunity flow to move from browsing into a structured business decision.'];
-    const rec=j.recommendation?.service?` Your diagnostic currently points to ${escapeHtml(j.recommendation.service)}.`:'';
     const section=document.createElement('section');section.id='nxNextStep';
-    section.innerHTML=`<div class="wrap"><div class="nx-next-step"><div><div class="kicker">Next best action</div><h3>${headline}</h3><p>${body}${rec}</p></div><div class="actions"><a class="btn primary" href="${next.href}">${next.label} →</a>${j.stage==='new'?'<a class="btn secondary" href="/book">Request a Fit Call</a>':''}</div></div></div>`;
+    section.innerHTML='<div class="wrap"><div class="nx-next-step"><div><div class="kicker">Start with one workflow</div><h3>Find the first improvement worth building.</h3><p>Free Discovery leads to a Basic Report with one recommended Build. You review the scope and price before implementation.</p></div><div class="actions"><a class="btn primary" href="/book">Book Free Discovery →</a></div></div></div>';
     footer.insertAdjacentElement('beforebegin',section);
   }
 
@@ -428,13 +401,13 @@
 
   function simplifyFitCallExperience(){
     if(path!=='/book'||document.getElementById('nxFitCallGuide'))return;
-    document.title='Request a Relystra Fit Call | Relystra';
+    document.title='Book Free Discovery | Relystra';
     const hero=document.querySelector('main .wrap.hero');if(!hero)return;
-    const eyebrow=hero.querySelector('.eyebrow');if(eyebrow)eyebrow.textContent='20-minute Relystra Fit Call';
-    const h1=hero.querySelector('h1');if(h1)h1.innerHTML='Request a conversation.<br><span class="grad">Keep the process simple.</span>';
+    const eyebrow=hero.querySelector('.eyebrow');if(eyebrow)eyebrow.textContent='Free Discovery';
+    const h1=hero.querySelector('h1');if(h1)h1.innerHTML='Start with a conversation.<br><span class="grad">Find your first Build.</span>';
     const p=hero.querySelector('p');if(p)p.textContent='Tell Relystra what you want to improve, choose a preferred time, and submit the request. Your time is not considered confirmed until the calendar invitation is sent.';
     const guide=document.createElement('div');guide.id='nxFitCallGuide';guide.className='nx-fit-call-guide';
-    guide.innerHTML='<div><span>1</span><b>Confirm your details</b><small>We carry forward your Snapshot when available.</small></div><div><span>2</span><b>Choose a preferred time</b><small>This is a request, not a false confirmation.</small></div><div><span>3</span><b>Receive the invitation</b><small>The meeting becomes confirmed when Relystra sends the calendar invite.</small></div>';
+    guide.innerHTML='<div><span>1</span><b>Confirm your details</b><small>Share the workflow you want to improve.</small></div><div><span>2</span><b>Choose a preferred time</b><small>This is a request, not a false confirmation.</small></div><div><span>3</span><b>Receive the invitation</b><small>The meeting becomes confirmed when Relystra sends the calendar invite.</small></div>';
     hero.appendChild(guide);
   }
 
@@ -461,14 +434,14 @@
   document.getElementById('declineCookies')?.addEventListener('click',()=>{safeStore('nexus_cookie_consent','declined');banner?.classList.remove('show');});
   document.querySelectorAll('[data-track]').forEach(el=>el.addEventListener('click',()=>window.nexusTrack(el.dataset.track)));
 
-  injectSimpleCustomerJourney();
+  // Historical recommendation injectors are retired from the current commercial journey.
   simplifyQuickScanHandoff();
   simplifyAssessmentPositioning();
   simplifyFitCallExperience();
   simplifySecurityPortalLanguage();
   markActiveNavigation();
-  injectServiceGuide();
-  injectDetailRecommendation();
+  // Historical recommendation injectors are retired from the current commercial journey.
+  // Historical recommendation injectors are retired from the current commercial journey.
   injectProofExplorer();
   injectTrustCenter();
   enhancePortalSignup();
