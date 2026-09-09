@@ -65,6 +65,13 @@ async function serialized(fn){let resolve;const result=new Promise(r=>resolve=r)
 const server=http.createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,'http://localhost');
+    if(url.pathname==='/qa-reset-commercial'&&req.method==='POST'){
+      const result=await serialized(async()=>{
+        await db.query("update nexus_build_plans set status='cancelled' where company_id=$1 and status='awaiting_payment'",[company]);
+        await db.query("update nexus_discovery_requests set initial_plan_id=null,report_state='approved' where id=$1",[reportId]);
+        return true;
+      });res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(result));
+    }
     if(url.pathname==='/qa-fixture-info'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({company,project,admin,client,reportToken,reportId,additionalIds}))}
     if(url.pathname==='/api/offers'){const r=await serialized(async()=>(await db.query('select relystra_offer_ladder() data')).rows[0].data);res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(r.data));}
     if(url.pathname==='/api/basic-report'&&req.method==='POST'){

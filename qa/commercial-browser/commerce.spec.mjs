@@ -1,11 +1,11 @@
 import {test,expect} from '../playwright/node_modules/@playwright/test/index.mjs';
-const sizes=[{width:1440,height:1000},{width:390,height:844},{width:412,height:915}];
+test.beforeEach(async({request})=>{const r=await request.post('/qa-reset-commercial');expect((await r.json()).error).toBeNull()});
 async function fits(page){const d=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));expect(d.scroll).toBeLessThanOrEqual(d.width+1)}
-test('account-free Basic Report keeps one primary scope, records decisions, and retains acceptance on refresh',async({page,request})=>{
+test('account-free Basic Report keeps one primary scope, records decisions, and retains acceptance on refresh',async({page,request},testInfo)=>{
  const info=await (await request.get('/qa-fixture-info')).json();
  await page.goto('/basic-report#report='+info.reportToken);
  await expect(page.getByRole('heading',{name:'One practical place to start.'})).toBeVisible();
- for(const size of sizes){await page.setViewportSize(size);await fits(page);await expect(page.getByRole('button',{name:'Accept this scope',exact:true})).toBeVisible();await page.screenshot({path:`test-results/basic-report-${size.width}.png`,fullPage:true})}
+ for(const size of [page.viewportSize()]){await page.setViewportSize(size);await fits(page);await expect(page.getByRole('button',{name:'Accept this scope',exact:true})).toBeVisible();await page.screenshot({path:`test-results/basic-report-${testInfo.project.name}.png`,fullPage:true})}
  await expect(page.locator('.report-panel.primary')).toHaveCount(1);await expect(page.locator('.report-later article')).toHaveCount(1);
  await expect(page.locator('.report-price')).toHaveText('$1,000.00');await expect(page.locator('.report-panel.primary')).toContainText('$500.00 required deposit');
  await page.getByRole('button',{name:'Discuss another recommendation'}).click();await expect(page.getByRole('status')).toContainText('request to discuss');
@@ -15,12 +15,12 @@ test('account-free Basic Report keeps one primary scope, records decisions, and 
  expect(data.report.plan_status).toBe('awaiting_payment');expect(data.report.actor_id).toBeUndefined();expect(data.report.company_id).toBeUndefined();expect(JSON.stringify(data)).not.toContain('transcript');
  const bad=await request.post('/api/basic-report',{data:{token:'0'.repeat(64),operation:'view'}});expect(bad.status()).toBe(404);
 });
-test('client Roadmap preserves original scope, supports one or multiple additions, and discussion never activates work',async({page,request})=>{
+test('client Roadmap preserves original scope, supports one or multiple additions, and discussion never activates work',async({page,request},testInfo)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/qa/delivery-browser/?role=client&shell&section=builds');
  await expect(page.getByRole('heading',{name:'Included Now',exact:true})).toBeVisible();
  const checkboxes=page.locator('[data-build-select]');await expect(checkboxes).toHaveCount(2);
- for(const size of sizes){await page.setViewportSize(size);await fits(page);await expect(page.getByRole('button',{name:'Review additional scope and payment',exact:true})).toBeVisible();await page.screenshot({path:`test-results/roadmap-${size.width}.png`,fullPage:true})}
+ for(const size of [page.viewportSize()]){await page.setViewportSize(size);await fits(page);await expect(page.getByRole('button',{name:'Review additional scope and payment',exact:true})).toBeVisible();await page.screenshot({path:`test-results/roadmap-${testInfo.project.name}.png`,fullPage:true})}
  await checkboxes.nth(0).check();await expect(page.locator('.relystra-build-selection-total')).toContainText('1 selected');
  await checkboxes.nth(1).check();await expect(page.locator('.relystra-build-selection-total')).toContainText('2 selected');await expect(page.locator('.relystra-build-selection-total')).toContainText('$2,000.00 additional scope');
  await page.getByText('Later · 1 other qualified opportunities',{exact:true}).click();

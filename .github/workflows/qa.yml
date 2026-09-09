@@ -177,23 +177,16 @@ jobs:
             echo 'Operational action workflow must not use a self-observing DOM mutation loop.' >&2
             exit 1
           fi
-      - name: SMB customer journey assertions
+      - name: Construction customer journey assertions
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "href:'/book',label:'Request My Fit Call'" app.js
-          grep -q "!j.quickScan?.completedAt&&!j.assessment?.completedAt" app.js
-          grep -q "shareUrl(target='/book')" app.js
-          grep -q 'injectSimpleCustomerJourney' app.js
-          grep -q 'Free AI Snapshot' app.js
-          grep -q 'Paid Opportunity Assessment' app.js
-          grep -q 'simplifyQuickScanHandoff' app.js
-          grep -q "observer.observe(root,{childList:true,subtree:true})" app.js
-          grep -q 'simplifyFitCallExperience' app.js
-          grep -q 'Request a Relystra Fit Call' app.js
-          grep -q 'appointment-driven service business' industries.html
+          node --test qa/contracts/commercial-public.test.mjs
+          grep -q 'Book Free Discovery' index.html
+          grep -q 'Full Diagnosis' services.html
+          grep -q 'Included Now' portal-builds.js
           if grep -qi 'Moon Wax' industries.html; then
-            echo 'Client-adjacent Moon Wax reference must not appear on the public industries page.' >&2
+            echo 'Private client references must not appear in public marketing.' >&2
             exit 1
           fi
           grep -q 'The Relystra Client Portal is an authenticated business workspace' security.html
