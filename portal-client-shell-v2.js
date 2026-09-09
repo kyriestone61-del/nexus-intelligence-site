@@ -1,6 +1,6 @@
 import {journeyMarkup,journeyGate,gateMarkup,journeyNext} from './portal-journey-steps.js';
 import {mountTranscriptStage,selectedTranscript} from './portal-transcript-stage.js';
-import {createLifecycleStore,clientLifecycle as lifecycle,mountMobileMenu} from './portal-delivery-lifecycle.js';
+import {createLifecycleStore,clientLifecycle as lifecycle,mountMobileMenu,visibleDeliverySections} from './portal-delivery-lifecycle.js';
 import {mountBuilds} from './portal-builds.js';
 import {mountPackageDelivery} from './portal-package-delivery.js';
 import {mountDiagnosisOffer} from './portal-diagnosis-offer.js';
@@ -66,6 +66,10 @@ function updateMiniContext(){
     const picker=$('relystraClientPackage');if(picker)events.bind(picker,'change','client-package-picker',async()=>{viewedPackage=picker.value||null;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,viewedPackage));await refreshClientShell({force:true})});
   }
   renderJourney();
+}
+function updatePrimaryNavigation(){
+  const visible=new Set(visibleDeliverySections(lifecycleStore.value).map(([key])=>({overview:'today',diagnosis:'reports'}[key]||key)));
+  document.querySelectorAll('#nexusClientPrimaryNav [data-client-view]').forEach(button=>button.toggleAttribute('hidden',!visible.has(button.dataset.clientView)));
 }
 function renderJourney(){const host=$('relystraClientJourney');if(!host)return;host.innerHTML=journeyMarkup(lifecycleStore.value,{active:({today:'overview',reports:'diagnosis'}[activeView]||activeView),hasTranscript:!!selectedTranscript(portal,lifecycleStore.value),attribute:'data-client-go'});bindCommon(host)}
 async function activateView(view){
@@ -159,7 +163,7 @@ function mountNotificationPreferences(){const host=$('nexusClientPreferencesHost
 function bindCommon(root){root.querySelectorAll('[data-client-go]').forEach(button=>events.bind(button,'click',`client-go:${button.dataset.clientGo}:${activeView}`,()=>activateView(button.dataset.clientGo)));root.querySelectorAll('[data-complete-task]').forEach(button=>events.bind(button,'click',`client-task-open:${button.dataset.completeTask}`,()=>openTask(button.dataset.completeTask)));root.querySelectorAll('[data-open-guide-question]').forEach(button=>events.bind(button,'click',`client-guide-question:${button.dataset.openGuideQuestion}`,()=>openGuide(button.dataset.openGuideQuestion)))}
 
 async function loadShellData(companyId){const [context,inbox,requests,releaseRows]=await Promise.all([getWorkspaceCurrentActionContext(companyId,{sb,tasks:state.tasks}),sb.rpc('nexus_get_inbox',{p_company_id:companyId}),sb.from('nexus_document_requests').select('id,title,purpose,examples,redaction_guidance,sensitivity,status,due_date,fulfilled_document_id,created_at,updated_at,owner_scope,source_diagnosis_run_id').eq('company_id',companyId).order('created_at',{ascending:false}),sb.from('nexus_diagnosis_report_releases').select('id,company_id,project_id,diagnosis_run_id,client_report,status,report_version,released_at,revoked_at,created_at,updated_at').eq('company_id',companyId).eq('status','released').is('revoked_at',null).order('released_at',{ascending:false})]);if(inbox.error)throw inbox.error;if(requests.error)throw requests.error;if(releaseRows.error)throw releaseRows.error;return{context,inbox:inbox.data||[],requests:requests.data||[],releases:releaseRows.data||[]}}
-async function refreshClientShell({force=false}={}){const companyId=state.companyId;if(!companyId)return;const version=++refreshVersion;await boundary.run('client shell refresh',async()=>{if(lifecycleCompany!==companyId){lifecycleCompany=companyId;viewedPackage=null;activeView='today'}const [data]=await Promise.all([loadShellData(companyId),lifecycleStore.refresh(viewedPackage)]);if(version!==refreshVersion||companyId!==state.companyId)return;currentContext=data.context;inboxRows=data.inbox;documentRequests=data.requests;releases=data.releases;ensureShell();updateMiniContext();renderInbox();activateView(activeView);window.dispatchEvent(new CustomEvent('nexus:client-context-ready',{detail:{companyId,primaryTaskId:currentContext?.primaryAction?.taskId||null}}))},{silent:!force})}
+async function refreshClientShell({force=false}={}){const companyId=state.companyId;if(!companyId)return;const version=++refreshVersion;await boundary.run('client shell refresh',async()=>{if(lifecycleCompany!==companyId){lifecycleCompany=companyId;viewedPackage=null;activeView='today'}const [data]=await Promise.all([loadShellData(companyId),lifecycleStore.refresh(viewedPackage)]);if(version!==refreshVersion||companyId!==state.companyId)return;currentContext=data.context;inboxRows=data.inbox;documentRequests=data.requests;releases=data.releases;ensureShell();updateMiniContext();updatePrimaryNavigation();renderInbox();activateView(activeView);window.dispatchEvent(new CustomEvent('nexus:client-context-ready',{detail:{companyId,primaryTaskId:currentContext?.primaryAction?.taskId||null}}))},{silent:!force})}
 
 events.bind(window,'nexus:workspace-ready','client-shell:workspace-ready',event=>{if(event.detail?.companyId===state.companyId)refreshClientShell({force:true})});events.bind(window,'nexus:diagnosis-changed','client-shell:diagnosis',()=>refreshClientShell({force:true}));
 for(const name of ['nexus:delivery-changed','relystra:delivery-changed'])events.bind(window,name,'client-shell:'+name,()=>refreshClientShell({force:true}));

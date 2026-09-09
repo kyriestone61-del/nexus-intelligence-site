@@ -18,6 +18,13 @@ test('the numbered journey owns its layout instead of inheriting the global site
   assert.match(css,/\.relystra-numbered-journey\{display:block/);
   assert.match(css,/@media\(max-width:760px\).*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/s);
 });
+test('the client shell applies lifecycle visibility to its compact navigation',()=>{
+  const shell=readFileSync('portal-client-shell-v2.js','utf8');
+  assert.match(shell,/visibleDeliverySections/);
+  assert.match(shell,/function updatePrimaryNavigation\(\)/);
+  assert.match(shell,/button\.toggleAttribute\('hidden',!visible\.has\(button\.dataset\.clientView\)\)/);
+  assert.match(shell,/updateMiniContext\(\);updatePrimaryNavigation\(\);renderInbox\(\)/);
+});
 test('the client action surface excludes historical and delivery work once diagnosis-led Actions exist',()=>{
   const engine=readFileSync('portal-action-processing-engine.js','utf8');
   assert.match(engine,/function clientActionTasks\(\)/);

@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260908-relystra-post-release-qaqc1';
+const BUILD='20260908-relystra-post-release-qaqc2';
 window.__relystraDeliveryLifecycle=true;
 
 window.__nexusPortalBooting=true;
