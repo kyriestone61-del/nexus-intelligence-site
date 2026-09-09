@@ -72,7 +72,9 @@ export async function onRequestPost(context){
     if(!serviceKey){
       const upstream=await fetch(PUBLIC_GATEWAY,{method:'POST',headers:{'content-type':'application/json','origin':origin||'https://nexusintelligence.live'},body:JSON.stringify({mode:'opportunity_snapshot',payload})});
       const result=await upstream.json().catch(()=>({}));
-      return new Response(JSON.stringify(upstream.ok?result:{ok:false,error:upstream.status===429?'Too many Snapshot requests. Please try again later.':'Your Snapshot could not be saved. Please try again.'}),{status:upstream.ok?200:upstream.status===429?429:500,headers:jsonHeaders});
+      const failureStatus=upstream.status===429?429:upstream.status===400?400:500;
+      const failureMessage=failureStatus===429?'Too many Snapshot requests. Please try again later.':failureStatus===400?'One or more Snapshot answers are invalid. Please refresh and try again.':'Your Snapshot could not be saved. Please try again.';
+      return new Response(JSON.stringify(upstream.ok?result:{ok:false,error:failureMessage}),{status:upstream.ok?200:failureStatus,headers:jsonHeaders});
     }
     const [ipHash,emailHash,dedupeKey]=await Promise.all([
       digest(serviceKey,`snapshot-ip:${sourceIp(context.request)}`),

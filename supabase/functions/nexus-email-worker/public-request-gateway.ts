@@ -63,7 +63,8 @@ async function snapshot(req:Request,body:any,baseUrl:string,headers:Record<strin
 async function invite(req:Request,body:any,baseUrl:string,headers:Record<string,string>,secret:string,origin:string){
   const bearer=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
   if(!bearer)return response({ok:false,error:'Sign in as a Relystra administrator.'},401,origin);
-  const actor=await jsonFetch(`${baseUrl}/auth/v1/user`,{headers:{apikey:secret,authorization:`Bearer ${bearer}`}});
+  const actorResponse=await fetch(`${baseUrl}/auth/v1/user`,{headers:{apikey:secret,authorization:`Bearer ${bearer}`}}),actor=await actorResponse.json().catch(()=>({}));
+  if(!actorResponse.ok||!uuid(actor?.id))return response({ok:false,error:'Sign in again as a Relystra administrator.'},401,origin);
   const admins=await jsonFetch(`${baseUrl}/rest/v1/nexus_platform_admins?user_id=eq.${encodeURIComponent(actor.id)}&select=user_id`,{headers});
   if(!Array.isArray(admins)||!admins.length)return response({ok:false,error:'Relystra administrator access required.'},403,origin);
   const companyId=clean(body?.company_id,80),email=clean(body?.email,254).toLowerCase(),fullName=clean(body?.full_name,120)||null;
