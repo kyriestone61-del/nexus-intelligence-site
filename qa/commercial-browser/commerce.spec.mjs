@@ -59,5 +59,6 @@ test('rendered Services keeps the construction Offer path and retires legacy inj
  await expect(page.locator('#nxServiceGuide')).toHaveCount(0);
  await expect(page.locator('footer')).toContainText('owner-led construction businesses');
  await expect(page.getByRole('heading',{name:'Cleanup Sprint',exact:true})).toBeVisible();
+ await expect(page.locator('[data-offer-ladder] article').filter({hasText:'Ongoing Support'})).toContainText('/month');
  await fits(page);
 });
