@@ -20,6 +20,8 @@ test('only an approved paid brief creates internal Build Tasks and client progre
       const build=(await db.query("select relystra_save_build($1,null,$2,'approve') id",[company,spec])).rows[0].id;
       planId=(await db.query('select relystra_create_build_plan($1,$2) id',[company,[build]])).rows[0].id;
     });
+    for(const migration of ['20260907051007_relystra_diagnosis_purchase_gate.sql','20260907115814_relystra_paid_diagnosis_context.sql','20260908013000_relystra_canonical_diagnosis_lineage.sql'])
+      await db.exec(await fs.readFile(new URL('../../supabase/migrations/'+migration,import.meta.url),'utf8'));
     assert.equal((await db.query('select count(*)::int n from nexus_tasks')).rows[0].n,0);
     await db.exec("update nexus_delivery_settings set checkout_enabled=true,stripe_account_id='acct_fixture'");
     await db.exec('set role service_role');
@@ -29,8 +31,6 @@ test('only an approved paid brief creates internal Build Tasks and client progre
     await db.exec('reset role');
     const historical=(await db.query("insert into nexus_projects(company_id,name,created_by,project_type) values ($1,'Retained historical diagnosis',$2,'historical') returning id",[company,admin])).rows[0].id;
     await db.query('update nexus_diagnosis_runs set project_id=$1 where id=$2',[historical,run]);
-    for(const migration of ['20260907051007_relystra_diagnosis_purchase_gate.sql','20260907115814_relystra_paid_diagnosis_context.sql'])
-      await db.exec(await fs.readFile(new URL('../../supabase/migrations/'+migration,import.meta.url),'utf8'));
     const initialNotifications=(await db.query('select count(*)::int n from nexus_notifications')).rows[0].n;
     let build=(await db.query('select * from nexus_system_cards where project_id=$1',[project])).rows[0];
     assert.equal((await db.query('select count(*)::int n from nexus_tasks')).rows[0].n,0,'payment creates briefs, not unreviewed execution tasks');
@@ -42,12 +42,14 @@ test('only an approved paid brief creates internal Build Tasks and client progre
       const snapshot=(await db.query('select relystra_workspace_snapshot($1) snapshot',[company])).rows[0].snapshot;
       assert.equal(snapshot.project_id,project);assert.equal(snapshot.package.stage,'briefs');
       assert.equal(snapshot.diagnosis.id,run,'paid package retains its purchased historical diagnosis');
+      assert.equal(snapshot.diagnosis.project_id,historical,'diagnosis history remains addressable after the package handoff');
       assert.equal(snapshot.diagnosis.access,true,'grandfathered diagnosis access survives paid activation');
       assert.equal(JSON.stringify(snapshot).includes('FORGED SCOPE'),false);
       await assert.rejects(db.query('select relystra_workspace_snapshot($1,$2)',[company,company]),/does not belong/);
       await assert.rejects(db.query('select relystra_workspace_snapshot($1)',[admin]),/access required/);
       assert.equal(progress.builds[0].build_brief,undefined);
     });
+    assert.equal((await db.query('select context_diagnosis_run_id from nexus_projects where id=$1',[project])).rows[0].context_diagnosis_run_id,run,'paid package stores canonical diagnosis lineage');
     await asUser(db,admin,async()=>{
       await assert.rejects(db.query('select relystra_save_brief($1,$2,true)',[build.id,{}]),/Confirm tools platforms/);
       await db.query('select relystra_save_brief($1,$2,true)',[build.id,{tools_platforms:['Approved CRM'],users_roles:['Estimator'],automation_requirements:['Route approved input'],integrations:['None'],assumptions:['One channel'],risks:['Incorrect routing'],test_inputs:['Approved sample bid'],approved_scope:['FORGED SCOPE']}]);

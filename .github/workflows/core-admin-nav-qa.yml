@@ -36,7 +36,7 @@ jobs:
           grep -Fq "intake.textContent='Discovery & Diagnosis'" portal-admin-journey-router.js
           grep -Fq "journey.insertAdjacentElement('afterend',intake)" portal-admin-journey-router.js
           grep -Fq "section.id='section-intake'" portal-admin-intake.js
-          grep -Fq 'Evidence Collected' portal-admin-intake.js
+          grep -Fq 'Supporting evidence' portal-admin-intake.js
           grep -Fq 'Analyze Missing Information' portal-admin-intake.js
           grep -Fq 'nexus_save_discovery_admin_context' portal-admin-intake.js
           grep -Fq 'Run Diagnosis' portal-admin-intake.js

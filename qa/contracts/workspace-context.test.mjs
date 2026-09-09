@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {selectActiveProject, workspaceUrl, companyPreparationQuery} from '../../portal-workspace-context.js';
+import {selectActiveProject, workspaceUrl, companyPreparationQuery, workspaceSourceDiagnosisId, diagnosisPreparationProjectIds, preparationDocuments} from '../../portal-workspace-context.js';
 import {createStateController, createLatestRequestController} from '../../portal-runtime-core.js';
 
 test('paid package default is latest activation, with an explicit open selection taking precedence',()=>{
@@ -30,7 +30,25 @@ test('preparation includes company evidence and the selected project, excluding 
   const query={is(...args){calls.push(['is',...args]);return this},or(...args){calls.push(['or',...args]);return this}};
   companyPreparationQuery(query);
   companyPreparationQuery(query,'paid');
-  assert.deepEqual(calls,[['is','project_id',null],['or','project_id.is.null,project_id.eq.paid']]);
+  companyPreparationQuery(query,'paid',['discovery','diagnosis','paid']);
+  assert.deepEqual(calls,[['is','project_id',null],['or','project_id.is.null,project_id.eq.paid'],['or','project_id.is.null,project_id.eq.paid,project_id.eq.discovery,project_id.eq.diagnosis']]);
+});
+
+test('paid workspace resolves its canonical diagnosis and exact retained evidence',()=>{
+  const state={companyId:'blue',activeProjectId:'paid',projects:[
+    {id:'paid',company_id:'blue',context_diagnosis_run_id:'run-1'},
+    {id:'pilot',company_id:'blue',source_diagnosis_run_id:'run-1'},
+  ],docs:[
+    {id:'transcript',company_id:'blue',project_id:'discovery'},
+    {id:'supporting',company_id:'blue',project_id:'discovery'},
+    {id:'package',company_id:'blue',project_id:'paid'},
+    {id:'unrelated',company_id:'blue',project_id:'other'},
+    {id:'foreign',company_id:'other',project_id:null},
+  ]};
+  const run={id:'run-1',project_id:'pilot',analysis_packet:{project:{id:'discovery'}},transcript_document_id:'transcript',supporting_document_ids:['supporting']};
+  assert.equal(workspaceSourceDiagnosisId(state,'paid'),'run-1');
+  assert.deepEqual(diagnosisPreparationProjectIds(run,'paid'),['paid','pilot','discovery']);
+  assert.deepEqual(preparationDocuments(state,'paid',run).map(row=>row.id),['transcript','supporting','package']);
 });
 
 const source=fs.readFileSync(new URL('../../portal-client.js',import.meta.url),'utf8');
@@ -64,7 +82,7 @@ test('a slow previous workspace never overwrites a newer company, pointer, URL o
 test('administrator startup resolves relative workspace links against the current origin',async()=>{
   const source=fs.readFileSync('portal-admin-journey.js','utf8');
   const navigate=source.match(/async function navigate\(target\)\{[\s\S]*?\n\}/)[0],urls=[];
-  const ctx=vm.createContext({URL,workspaceUrl,navigationSequence:0,active:null,header:{},state:{companyId:'moon'},viewedProject:null,
+  const ctx=vm.createContext({journeyGate:()=>null,store:{value:{}},URL,workspaceUrl,navigationSequence:0,active:null,header:{},state:{companyId:'moon'},viewedProject:null,
     location:new URL('https://example.test/portal?company=old&task=old-task'),document:{querySelectorAll:()=>[]},
     activate:()=>{},renderOverview:()=>{},renderHeader:()=>{},window:{scrollTo:()=>{}},history:{replaceState:(_a,_b,url)=>urls.push(url)}});
   await vm.runInContext(navigate+"\nnavigate('overview')",ctx);

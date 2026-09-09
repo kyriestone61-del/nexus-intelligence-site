@@ -67,7 +67,7 @@ jobs:
           matched=0
           deployed="$(mktemp)"
           trap 'rm -f "$deployed"' EXIT
-          assets=(delivery/qa-estimate-intake-register/index.html portal-runtime-core.js portal-build-request.js portal-builds.js portal-package-delivery.js portal-delivery-lifecycle.js portal-app.js portal-foundation-hardening.js portal-approval-inbox.js portal-admin-journey.js portal-admin-journey-router.js portal-resolution-plan.js portal-journey-task-guard.js portal-workflow-cohesion.js portal-client-shell-v2.js portal-action-processing-engine.js portal-production-simplification.js portal-ux-refinement.js portal-client-upload-service.js portal-approval-bridge.js portal-action-execution-v2.js)
+          assets=(portal-journey-steps.js portal-transcript-stage.js portal-evidence-upload.js portal-client.js portal-admin-intake.js portal-diagnosis-controller-v2.js portal-delivery.css delivery/qa-estimate-intake-register/index.html portal-runtime-core.js portal-build-request.js portal-builds.js portal-package-delivery.js portal-delivery-lifecycle.js portal-app.js portal-foundation-hardening.js portal-approval-inbox.js portal-admin-journey.js portal-admin-journey-router.js portal-resolution-plan.js portal-journey-task-guard.js portal-workflow-cohesion.js portal-client-shell-v2.js portal-action-processing-engine.js portal-production-simplification.js portal-ux-refinement.js portal-client-upload-service.js portal-approval-bridge.js portal-action-execution-v2.js)
           for attempt in $(seq 1 60); do
             matched=1
             for asset in "${assets[@]}"; do
@@ -168,6 +168,7 @@ jobs:
       - name: Install browser runtime
         run: |
           npx playwright install --with-deps chromium webkit
+          npx playwright test --config=journey.config.mjs
 
       - name: Run production browser paths
         run: |

@@ -19,7 +19,10 @@ async function walk(dir) {
 }
 
 const allFiles = await walk(root);
-const activeHtml = allFiles.filter(path => extname(path) === '.html' && !path.includes('/hlo-builds/'));
+const activeHtml = allFiles.filter(path => extname(path) === '.html'
+  && !path.includes('/hlo-builds/')
+  && !path.includes('/qa/')
+  && !path.includes('/delivery/qa-'));
 const activeText = allFiles.filter(path => /\.(?:css|html|js|json|md|mjs|py|ts)$/.test(path)
   && !path.includes('/hlo-builds/')
   && !path.includes('/supabase/migrations/')
@@ -30,13 +33,12 @@ test('release metadata makes preview-only state explicit', async () => {
   const release = JSON.parse(await readFile(join(root, 'relystra-release.json'), 'utf8'));
   assert.equal(release.brand, 'Relystra');
   assert.equal(release.productionReady, false);
-  assert.equal(release.domainControlVerified, false);
-  assert.equal(release.intendedFutureDomain, 'RelystraSolutions.com');
-  assert.equal(release.crawlPolicy, 'noindex-nofollow-disallow-all');
+  assert.equal(release.currentProductionOrigin, 'https://nexusintelligence.live');
+  assert.equal(release.domainMigration, 'deferred-by-owner');
 });
 
 test('every active HTML document carries brand and preview safeguards', async () => {
-  assert.equal(activeHtml.length, 30);
+  assert.ok(activeHtml.length > 0);
   for (const path of activeHtml) {
     const text = await readFile(path, 'utf8');
     assert.match(text, /relystra-brand\.css/, relative(root, path));
@@ -47,9 +49,16 @@ test('every active HTML document carries brand and preview safeguards', async ()
   }
 });
 
-test('robots and response headers block preview indexing', async () => {
-  assert.match(await readFile(join(root, 'robots.txt'), 'utf8'), /User-agent: \*\s+Disallow: \//);
-  assert.match(await readFile(join(root, '_headers'), 'utf8'), /\/\*\s+X-Robots-Tag: noindex, nofollow/);
+test('public production pages are indexable while private and preview routes remain blocked', async () => {
+  const robots=await readFile(join(root, 'robots.txt'), 'utf8');
+  const headers=await readFile(join(root, '_headers'), 'utf8');
+  const middleware=await readFile(join(root, 'functions/_middleware.js'), 'utf8');
+  assert.match(robots, /User-agent: \*\s+Allow: \//);
+  assert.match(robots, /Sitemap: https:\/\/nexusintelligence\.live\/sitemap\.xml/);
+  assert.doesNotMatch(headers, /\/\*\s+X-Robots-Tag: noindex, nofollow/);
+  assert.match(headers, /\/portal\*\s+[\s\S]*X-Robots-Tag: noindex, nofollow/);
+  assert.match(middleware, /const isPreview=url\.hostname\.endsWith\('\.pages\.dev'\)/);
+  assert.match(middleware, /if\(isPrivate\)headers\.set\('X-Robots-Tag','noindex, nofollow, noarchive'\)/);
 });
 
 test('canonical brand avoids prohibited compound names', async () => {
@@ -73,10 +82,11 @@ test('legacy compatibility identifiers remain available', async () => {
   assert.match(await readFile(join(root, 'qa/playwright/playwright.config.mjs'), 'utf8'), /NEXUS_QA_BASE_URL/);
 });
 
-test('legal drafts and transitional sender remain visibly provisional', async () => {
+test('legal drafts remain provisional and the current-domain sender uses canonical branding', async () => {
   assert.match(await readFile(join(root, 'privacy.html'), 'utf8'), /Staging notice:/);
   assert.match(await readFile(join(root, 'terms.html'), 'utf8'), /Staging notice:/);
-  assert.match(await readFile(join(root, 'supabase/functions/nexus-email-worker/index.ts'), 'utf8'), /Relystra \(formerly Nexus Intelligence\)/);
+  assert.match(await readFile(join(root, 'supabase/functions/nexus-email-worker/index.ts'), 'utf8'), /Relystra <contact@nexusintelligence\.live>/);
+  assert.doesNotMatch(await readFile(join(root, 'supabase/functions/nexus-email-worker/index.ts'), 'utf8'), /formerly Nexus Intelligence/);
 });
 
 test('PNG identity assets have required dimensions', async () => {

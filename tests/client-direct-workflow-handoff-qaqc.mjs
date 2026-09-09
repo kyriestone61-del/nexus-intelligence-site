@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const app=fs.readFileSync('portal-app.js','utf8');
 const execution=fs.readFileSync('portal-client-action-execution.js','utf8');
 const upload=fs.readFileSync('portal-client-upload-service.js','utf8');
+const persistence=fs.readFileSync('portal-evidence-upload.js','utf8');
 const base=fs.readFileSync('portal-client.js','utf8');
 
 assert.match(app,/portal-client-action-execution\.js/,'client execution controller must be loaded');
@@ -35,14 +36,15 @@ assert.match(execution,/Client View is read-only from the administrator account/
 assert.match(execution,/Client can submit to Relystra/,'admin preview must show the real client capability without enabling the mutation');
 assert.match(execution,/signed-in client can use the controls below, save progress, upload and download files, and submit completed work to Relystra/,'preview must explain what the actual client can do');
 
-assert.match(upload,/BUCKET='nexus-client-documents'/);
-assert.match(upload,/\.upload\(path,file/,'client upload service must write to private company storage');
-assert.match(upload,/request_id:requestId\|\|null/,'uploads must retain document-request lineage when supplied by the selected request');
-assert.match(upload,/data_requirement_id:requirementId\|\|null/,'uploads must retain preparation-item lineage when supplied by the selected requirement');
-assert.match(upload,/task_id:task\?\.id\|\|null/,'uploads from client actions must retain exact task lineage');
+assert.match(persistence,/from\('nexus-client-documents'\)/);
+assert.match(persistence,/\.upload\(path,file/,'client upload service must write to private company storage');
+assert.match(persistence,/request_id:requestId/,'uploads must retain document-request lineage when supplied by the selected request');
+assert.match(persistence,/data_requirement_id:requirementId/,'uploads must retain preparation-item lineage when supplied by the selected requirement');
+assert.match(upload,/taskId:task\?\.id\|\|null/,'uploads from client actions must retain exact task lineage');
+assert.match(upload,/persistEvidence\(sb,/);
 assert.match(upload,/uploadFilesForTask/,'client upload service must support one or more files directly on a client action');
-assert.match(upload,/document_area:'client_submission'/);
-assert.match(upload,/source_role:'client'/);
+assert.match(persistence,/documentArea='client_submission'/);
+assert.match(persistence,/sourceRole='client'/);
 assert.match(base,/createSignedUrl\(doc\.storage_path,120,\{download:doc\.file_name\}\)/,'client download must use a short-lived signed URL');
 assert.match(base,/storage\.from\(BUCKET\)\.download\(doc\.storage_path\)/,'download must retain the authenticated fallback path');
 

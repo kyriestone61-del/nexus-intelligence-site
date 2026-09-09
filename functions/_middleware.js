@@ -2,15 +2,20 @@ const SITE_ORIGIN='https://nexusintelligence.live';
 const PRIVATE_PREFIXES=['/portal','/operations','/prospect-workspace','/booking-manage','/api/'];
 const PROTECTED_MARKETING_PATHS=new Set(['/privacy','/terms','/accessibility','/security']);
 const SERVICE_SLUGS=new Set(['ai-enablement-training','ai-opportunity-assessment','business-transformation','fractional-ai-director','implementation-sprint','managed-ai-operations']);
+const SECURITY_HEADERS={
+  'Content-Security-Policy':"default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://js.hs-scripts.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https://dmdgkjksouhhsuojthav.supabase.co wss://dmdgkjksouhhsuojthav.supabase.co https://*.hubspot.com https://*.hubapi.com https://cloudflareinsights.com; worker-src 'self' blob:; upgrade-insecure-requests",
+  'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY','Permissions-Policy':'camera=(), microphone=(), geolocation=()'
+};
+function secure(headers){for(const [name,value] of Object.entries(SECURITY_HEADERS))headers.set(name,value);return headers}
 
 const founderSchema={
   '@context':'https://schema.org',
   '@type':'Person',
   '@id':`${SITE_ORIGIN}/about#founder`,
-  name:'Kyrie Stone',
+  name:'Kyrie',
   jobTitle:'Founder',
   url:`${SITE_ORIGIN}/about`,
-  image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`,
+  image:`${SITE_ORIGIN}/assets/kyrie-founder-primary.webp`,
   worksFor:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`},
   description:'Delaware-based founder of Relystra with 4+ years of commercial construction project-engineering and operations experience.'
 };
@@ -25,7 +30,7 @@ const organizationSchema={
   image:`${SITE_ORIGIN}/assets/relystra-og.png`,
   description:'Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.',
   areaServed:{'@type':'Country',name:'United States'},
-  founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie Stone',url:`${SITE_ORIGIN}/about`,image:`${SITE_ORIGIN}/assets/kyrie-stone-founder-primary.webp`}
+  founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie',url:`${SITE_ORIGIN}/about`,image:`${SITE_ORIGIN}/assets/kyrie-founder-primary.webp`}
 };
 
 const servicesSchema={
@@ -55,7 +60,7 @@ const servicesSchema={
   }
 };
 
-const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-stone-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie Stone, founder of Relystra" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie Stone is the Delaware-based founder of Relystra and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach to AI: understand the work, establish the baseline, identify the friction, preserve human ownership, and automate only what is justified.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie Stone</a></div></div></div></div></section>`;
+const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie, founder of Relystra" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie is the Delaware-based founder of Relystra and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach to AI: understand the work, establish the baseline, identify the friction, preserve human ownership, and automate only what is justified.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie</a></div></div></div></div></section>`;
 
 const pricingSignal=`<p class="note" data-phase-five-pricing style="margin-top:18px"><b>Investment guidance is published below.</b> Each service shows a current starting point and typical planning window so you can assess fit before a call. Final fees and scope are defined in writing based on the actual engagement.</p>`;
 
@@ -84,14 +89,14 @@ export async function onRequest(context){
   if(path==='/case-studies'){
     const target=new URL('/methodology',url.origin);
     target.search=url.search;
-    return Response.redirect(target.toString(),301);
+    return new Response(null,{status:301,headers:secure(new Headers({location:target.toString()}))});
   }
 
   const response=await context.next();
   const isPrivate=PRIVATE_PREFIXES.some(prefix=>path===prefix||path.startsWith(prefix));
   const isProtectedMarketing=PROTECTED_MARKETING_PATHS.has(path);
   const isPreview=url.hostname.endsWith('.pages.dev');
-  const headers=new Headers(response.headers);
+  const headers=secure(new Headers(response.headers));
   // This downloadable QA artifact is self-contained; site navigation scripts
   // must not become dependencies of its offline copy.
   if(path==='/delivery/qa-estimate-intake-register'||path.startsWith('/delivery/qa-estimate-intake-register/')){
@@ -118,6 +123,8 @@ export async function onRequest(context){
     .on('link[rel="canonical"]',{element(el){el.remove();}})
     .on('meta[property="og:url"]',{element(el){el.remove();}})
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
+    .on('meta[name="robots"]',{element(el){if(!isPrivate)el.remove();}})
+    .on('meta[name="relystra-stage"]',{element(el){el.remove();}})
     .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
     .on('.navlinks a[href="/case-studies"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})

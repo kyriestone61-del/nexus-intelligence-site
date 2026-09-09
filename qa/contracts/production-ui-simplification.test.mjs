@@ -9,10 +9,11 @@ const companies=readFileSync(new URL('../../portal-buildingblok-cohesion.js',imp
 const inbox=readFileSync(new URL('../../portal-approval-inbox.js',import.meta.url),'utf8');
 const resolution=readFileSync(new URL('../../portal-resolution-plan.js',import.meta.url),'utf8');
 const lifecycle=readFileSync(new URL('../../portal-phase-zero-lifecycle.js',import.meta.url),'utf8');
+const operations=readFileSync(new URL('../../portal-ops.js',import.meta.url),'utf8');
 const redirects=readFileSync(new URL('../../_redirects',import.meta.url),'utf8');
 
 test('delivery boot uses the canonical owners and does not load the retired Phase Zero overlay',()=>{
-  assert.match(portalApp,/const BUILD='20260907-relystra-[a-z0-9-]+'/);
+  assert.match(portalApp,/const BUILD='20260908-relystra-continuous-journey1'/);
   assert.match(portalApp,/portal-delivery\.css/);
   assert.doesNotMatch(portalApp,/portal-phase-zero-lifecycle\.js/);
   assert.match(portalApp,/portal-admin-journey\.js/);
@@ -22,10 +23,10 @@ test('delivery boot uses the canonical owners and does not load the retired Phas
   assert.match(portalApp,/window\.NexusAdminJourney\?\.navigate/);
 });
 
-test('client delivery sections are progressively revealed from the canonical lifecycle',()=>{
+test('client journey keeps future stages visible with canonical gates',()=>{
   for(const label of ['Overview','Diagnosis','Actions','Builds','Progress','Final Package','Support'])assert.ok(clientShell.includes(label));
-  assert.match(clientShell,/visibleDeliverySections/);
-  assert.match(clientShell,/lifecycle\(lifecycleStore\.value\)/);
+  assert.match(clientShell,/journeyGate/);
+  assert.match(clientShell,/journeyNext\(lifecycleStore\.value/);
   assert.match(clientShell,/mountPackageDelivery/);
 });
 
@@ -36,6 +37,12 @@ test('admin portfolio and Decisions surfaces remain role-specific',()=>{
   assert.match(inbox,/function founderDecisionsMode\(\)/);
   assert.match(inbox,/label=founderMode\?'Decisions':'Inbox'/);
   assert.match(inbox,/Approval & action routing/);
+});
+
+test('opening a client workspace awaits canonical journey navigation instead of simulating a stale button click',()=>{
+  assert.match(operations,/await window\.NexusAdminJourney\.refresh\?\.\(\)/);
+  assert.match(operations,/await window\.NexusAdminJourney\.navigate\(section\)/);
+  assert.doesNotMatch(operations,/section==='overview'.*\.journey-primary/);
 });
 
 test('diagnosis approval routes into curated Actions and retains the old plan only outside the new lifecycle',()=>{

@@ -12,6 +12,7 @@ const state={admin:role==='admin',companyId:info.company,companies:[{id:info.com
 window.NexusPortal={state,sb:{from,rpc:(rpc,args)=>send({rpc,args}),functions:{invoke:async()=>({error:{message:'External providers are intentionally unavailable in the local fixture.'}})}},toast:message=>document.getElementById('fixtureNotice').textContent=message,
   workspace:async()=>{window.dispatchEvent(new CustomEvent('nexus:workspace-ready'));return true}};
 for(const b of document.querySelectorAll('[data-section]')){const s=document.createElement('section');s.id='section-'+b.dataset.section;s.className='section';s.textContent=b.textContent+' uses the retained production component; this fixture verifies the new delivery components.';document.querySelector('.main').append(s);b.onclick=()=>document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x===s))}
+window.NexusPortal.runtime=(await import('/portal-runtime-core.js')).createPortalRuntime(state,{notify:window.NexusPortal.toast});
 if(role==='admin')await import('/portal-admin-journey.js');
 else if(new URL(location.href).searchParams.has('shell')){
   // Real client shell/runtime; legacy inbox/context RPC adapters below are fixture-only.

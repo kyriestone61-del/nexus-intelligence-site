@@ -37,7 +37,7 @@ assert.match(ux,/nexus-sms-worker/);
 assert.match(css,/vnext-reports-shell/);
 
 // Step 2 must expose a guided workflow, not backend machinery.
-for(const label of ['Evidence Collected','Information Gaps & Requests','Admin Context','Diagnosis Execution','Review & Approve'])assert.match(intake,new RegExp(label.replace('&','&')));
+for(const label of ['Supporting evidence','Information gaps & requests','Admin context','Diagnosis status','Review & Approve'])assert.match(intake,new RegExp(label.replace('&','&')));
 assert.doesNotMatch(intake,/General Discovery Questions/);
 assert.doesNotMatch(intake,/Diagnosis packet/i);
 assert.doesNotMatch(intake,/Copy agent packet/i);

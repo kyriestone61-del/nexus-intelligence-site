@@ -1,6 +1,6 @@
 const SUPABASE_URL='https://dmdgkjksouhhsuojthav.supabase.co';
+const PUBLIC_GATEWAY=`${SUPABASE_URL}/functions/v1/nexus-email-worker`;
 const PUBLIC_ORIGIN='https://nexusintelligence.live';
-const RECOVERY_WORKER_URL=`${SUPABASE_URL}/functions/v1/nexus-email-worker`;
 const jsonHeaders={'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'};
 const safe=(value,max=500)=>String(value??'').slice(0,max);
 
@@ -39,20 +39,12 @@ async function queueRecovery(env,email,emailHash,ipHash){
   if(!result.ok)throw new Error(`recovery_queue_${result.status}`);
   return payload;
 }
-async function queueRecoveryViaWorker(request,email,origin){
-  const result=await fetch(RECOVERY_WORKER_URL,{
-    method:'POST',
-    headers:{
-      'content-type':'application/json',
-      'origin':origin&&allowedOrigin(origin)?origin:PUBLIC_ORIGIN
-    },
-    body:JSON.stringify({mode:'auth_recovery',email,client_ip:sourceIp(request)})
-  });
+async function queueRecoveryViaGateway(origin,email){
+  const result=await fetch(PUBLIC_GATEWAY,{method:'POST',headers:{'content-type':'application/json','origin':origin||PUBLIC_ORIGIN},body:JSON.stringify({mode:'auth_recovery',email})});
   const payload=await result.json().catch(()=>({}));
-  if(!result.ok||payload?.ok===false)throw new Error(`recovery_worker_${result.status}:${safe(payload?.error||'worker_rejected',80)}`);
+  if(!result.ok||payload?.ok!==true)throw new Error(`recovery_gateway_${result.status}`);
   return payload;
 }
-
 export async function onRequestOptions({request}){
   const origin=request.headers.get('origin');
   if(origin&&!allowedOrigin(origin))return response({ok:false,error:'origin_not_allowed'},403,origin);
@@ -70,25 +62,17 @@ export async function onRequestPost({request,env}){
   if(!validEmail(email))return response({ok:false,error:'valid_email_required'},400,origin);
 
   const serviceRole=env?.SUPABASE_SERVICE_ROLE_KEY||'';
-  if(serviceRole){
-    try{
-      const [emailHash,ipHash]=await Promise.all([
-        digest(serviceRole,`email:${email}`),
-        digest(serviceRole,`ip:${sourceIp(request)}`)
-      ]);
-      const queued=await queueRecovery(env,email,emailHash,ipHash);
-      if(queued?.ok===false)throw new Error(String(queued?.error||'queue_rejected'));
-      return generic(origin);
-    }catch(error){
-      console.error('Relystra direct password recovery queue failed; trying secure worker fallback',safe(error?.message||error,120));
-    }
-  }
-
   try{
-    await queueRecoveryViaWorker(request,email,origin);
+    if(!serviceRole){await queueRecoveryViaGateway(origin||PUBLIC_ORIGIN,email);return generic(origin)}
+    const [emailHash,ipHash]=await Promise.all([
+      digest(serviceRole,`email:${email}`),
+      digest(serviceRole,`ip:${sourceIp(request)}`)
+    ]);
+    const queued=await queueRecovery(env,email,emailHash,ipHash);
+    if(queued?.ok===false)throw new Error(String(queued?.error||'queue_rejected'));
     return generic(origin);
   }catch(error){
-    console.error('Relystra password recovery worker fallback failed',safe(error?.message||error,120));
+    console.error('Relystra password recovery queue failed',safe(error?.message||error,120));
     return response({ok:false,error:'auth_email_service_unavailable'},503,origin);
   }
 }

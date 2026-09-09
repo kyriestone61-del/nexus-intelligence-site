@@ -131,7 +131,7 @@ function navigationHarness(){
   let finish;const pending=new Promise(resolve=>finish=resolve),routes=[],urls=[];
   const src=source('portal-admin-journey.js');
   const fn='async function navigate(target){'+src.split('async function navigate(target){')[1].split('async function renderProjects')[0];
-  const ctx={header:{},state:{companyId:'co'},document:{querySelectorAll:()=>[]},activate:id=>routes.push(id),renderOverview(){},renderHeader(){},builds:{refresh:()=>pending},delivery:{refresh:async()=>{}},store:{value:{}},tools:new Map(),offer:{refresh:async()=>{}},location:{href:'https://example.test/portal'},workspaceUrl:href=>href,URL,history:{replaceState:(_,__,url)=>urls.push(url)},window:{scrollTo(){}}};
+  const ctx={journeyGate:()=>null,header:{},state:{companyId:'co'},document:{querySelectorAll:()=>[]},activate:id=>routes.push(id),renderOverview(){},renderHeader(){},builds:{refresh:()=>pending},delivery:{refresh:async()=>{}},store:{value:{}},tools:new Map(),offer:{refresh:async()=>{}},location:{href:'https://example.test/portal'},workspaceUrl:href=>href,URL,history:{replaceState:(_,__,url)=>urls.push(url)},window:{scrollTo(){}}};
   const navigate=vm.runInNewContext(`let navigationSequence=0,active='overview',viewedProject=null;${fn};navigate`,ctx);
   return {navigate,finish:()=>finish(),routes,urls};
 }
@@ -183,7 +183,7 @@ test('Actions uses the shell route and survives the same activation used by refr
   const nodes=['today','actions'].map(clientView=>({dataset:{clientView},classList:{toggle(_key,v){this.active=v}},setAttribute(){}}));
   const window={scrollTo(){},NexusActionProcessingEngine:{renderClientActions(){renders++}}};
   const document={querySelectorAll:()=>nodes};
-  const shell=vm.runInNewContext(`${declaration}\nlet activeView='today',navigationVersion=0;\n${activate}\n({activateView,refresh:()=>activateView(activeView)})`,{window,document,URL,location:{href:'https://example.test/portal'},history:{replaceState(){}},renderToday(){},renderFiles(){},renderImprovement(){},renderReports(){}});
+  const shell=vm.runInNewContext(`${declaration}\nlet activeView='today',navigationVersion=0;\n${activate}\n({activateView,refresh:()=>activateView(activeView)})`,{journeyGate:()=>null,lifecycleStore:{value:{}},renderJourney(){},window,document,URL,location:{href:'https://example.test/portal'},history:{replaceState(){}},renderToday(){},renderFiles(){},renderImprovement(){},renderReports(){}});
   await shell.activateView('actions');await shell.refresh();
   assert.equal(nodes[0].classList.active,false);assert.equal(nodes[1].classList.active,true);assert.equal(renders,2);
 });
@@ -212,7 +212,7 @@ test('approval labels do not perpetually retrigger their body mutation observer'
 test('diagnosis events refresh workspace facts without navigating away from opened work',async()=>{
   const src=source('portal-admin-journey.js'),fn='async function refresh(){'+src.split('async function refresh(){')[1].split('async function navigate')[0];
   let finish;const loaded=new Promise(resolve=>finish=resolve),calls=[];
-  const run=vm.runInNewContext(`let refreshSequence=0,company='co',viewedProject=null,active='files',loadError=null;${fn};refresh`,{state:{companyId:'co'},store:{refresh:()=>loaded},renderHeader:()=>calls.push('header'),renderOverview:()=>calls.push('overview'),offer:{refresh:async()=>{}},activate(){throw Error('Refresh must not navigate within the same company')}});
+  const run=vm.runInNewContext(`let refreshSequence=0,company='co',viewedProject=null,active='files',loadError=null;${fn};refresh`,{transcript:{refresh(){}},state:{companyId:'co'},store:{refresh:()=>loaded},renderHeader:()=>calls.push('header'),renderOverview:()=>calls.push('overview'),offer:{refresh:async()=>{}},activate(){throw Error('Refresh must not navigate within the same company')}});
   const pending=run();finish({company_id:'co'});await pending;assert.deepEqual(calls,['header','overview']);
   assert.ok(src.includes("'nexus:diagnosis-changed'"));
 });
@@ -240,7 +240,7 @@ test('Files refresh retains the mounted upload form, selected file, and handlers
   const document={querySelector:()=>panel.connected?panel:null};
   const src=source('portal-client-shell-v2.js');
   const code='function renderFiles(){'+src.split('function renderFiles(){')[1].split('function openUploadForRequest')[0];
-  const render=vm.runInNewContext(`${code}\nrenderFiles`,{$:id=>id==='nexus-client-files'?root:id==='nexusClientUploadHost'?host:null,document,documentRequests:[],state:{docs:[]},arr:x=>x,bindCommon(){},events:{bind(){}}});
+  const render=vm.runInNewContext(`${code}\nrenderFiles`,{$:id=>id==='nexus-client-files'?root:id==='nexusClientUploadHost'?host:null,document,documentRequests:[],state:{docs:[]},arr:x=>x,bindRequestUploads(){},bindCommon(){},events:{bind(){}}});
   for(let i=0;i<3;i++){
     render();assert.equal(panel.connected,true,'refresh must remount the original live form');
     assert.equal(panel.parentElement,host);assert.equal(panel.file,file);assert.equal(panel.submit,submit);

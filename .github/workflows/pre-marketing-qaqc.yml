@@ -15,8 +15,6 @@ on:
       - 'portal-diagnosis-v2.css'
       - 'launch-readiness.js'
       - 'snapshot-lifecycle-patch.js'
-      - 'book.html'
-      - 'booking-manage.html'
       - 'assessment.html'
       - 'services.html'
       - 'industries.html'
@@ -39,8 +37,6 @@ on:
       - 'portal-diagnosis-v2.css'
       - 'launch-readiness.js'
       - 'snapshot-lifecycle-patch.js'
-      - 'book.html'
-      - 'booking-manage.html'
       - 'assessment.html'
       - 'services.html'
       - 'industries.html'
@@ -68,7 +64,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in portal-app.js portal-admin-intake.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-release-queue.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js functions/portal.js functions/_middleware.js functions/sitemap.xml.js functions/robots.txt.js functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js functions/api/opportunity-snapshot.js; do
+          for f in portal-app.js portal-admin-intake.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-release-queue.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js functions/portal.js functions/_middleware.js functions/sitemap.xml.js functions/robots.txt.js functions/api/opportunity-snapshot.js functions/api/auth-email.js functions/api/email-status.js functions/api/invite-client.js; do
             echo "Checking $f"
             node --input-type=module --check < "$f"
           done
@@ -168,15 +164,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "/api/booking-availability" book.html
-          grep -Fq "/api/booking-create" book.html
-          grep -Fq "Google Meet" book.html
-          grep -Fq "reschedule_url" book.html
-          grep -Fq "cancel_url" book.html
-          grep -Fq "freeBusy" functions/api/booking-create.js
-          grep -Fq "conferenceData" functions/_lib/google-calendar.js
-          grep -Fq "sendUpdates=all" functions/_lib/google-calendar.js
-          if grep -qi "preferred time" book.html; then echo 'Legacy preferred-time copy still present' >&2; exit 1; fi
+          grep -Fq '/book https://calendar.app.google/' _redirects
+          test ! -e book.html
+          test ! -e booking-manage.html
+          test ! -e functions/api/booking-availability.js
+          test ! -e functions/api/booking-create.js
+          test ! -e functions/api/booking-manage.js
+          test ! -e functions/_lib/google-calendar.js
 
       - name: Snapshot lifecycle and attribution contract
         shell: bash
@@ -205,7 +199,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|NEXUS_EMAIL_FROM|AI_GATEWAY_API_KEY|x-nexus-model-token' portal-admin-intake.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-release-queue.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html; then
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GOOGLE_CALENDAR_PRIVATE_KEY|RESEND_API_KEY|NEXUS_EMAIL_FROM|AI_GATEWAY_API_KEY|x-nexus-model-token' portal-admin-intake.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-release-queue.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js; then
             echo 'Server-only credential reference found in browser-delivered source.' >&2
             exit 1
           fi
@@ -214,7 +208,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -Rni 'statecraft' portal-admin-intake.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-release-queue.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js book.html booking-manage.html functions/_lib/google-calendar.js functions/api/booking-availability.js functions/api/booking-create.js functions/api/booking-manage.js supabase/functions/nexus-diagnosis-execute/index.ts supabase/functions/nexus-email-worker/index.ts; then
+          if grep -Rni 'statecraft' portal-admin-intake.js portal-diagnosis-controller-v2.js portal-diagnosis-execution-ux.js portal-diagnosis-release-queue.js portal-diagnosis-v2.js portal-diagnosis-manual-fallback.js portal-diagnosis-review-ux.js launch-readiness.js snapshot-lifecycle-patch.js supabase/functions/nexus-diagnosis-execute/index.ts supabase/functions/nexus-email-worker/index.ts; then
             echo 'Statecraft reference found in Nexus pre-marketing implementation.' >&2
             exit 1
           fi
@@ -226,7 +220,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re,sys
-          known_dynamic_exact={'/portal','/prospect-workspace','/booking-manage'}
+          known_dynamic_exact={'/portal','/prospect-workspace','/book'}
           known_dynamic_prefixes=('/services/','/industries/')
           failures=[]
           for p in Path('.').glob('*.html'):

@@ -56,26 +56,6 @@ body {
   color: #07111a !important;
 }
 
-.rebrand-transition {
-  position: relative;
-  z-index: 58;
-  border-bottom: 1px solid rgba(72, 183, 167, .22);
-  background: #10212d;
-  color: #d8e2e5;
-  padding: 8px 20px;
-  text-align: center;
-  font-size: 12px;
-  letter-spacing: .01em;
-}
-
-.rebrand-transition strong {
-  color: #f4f1e8;
-}
-
-.rebrand-transition span {
-  color: #8dd3c7;
-}
-
 .brand-proof-accent {
   color: #c7a45a;
 }

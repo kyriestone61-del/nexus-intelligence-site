@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const app=fs.readFileSync('portal-app.js','utf8');
 const upload=fs.readFileSync('portal-client-upload-service.js','utf8');
+const persistence=fs.readFileSync('portal-evidence-upload.js','utf8');
 const files=fs.readFileSync('portal-task-file-attachments.js','utf8');
 const live=fs.readFileSync('portal-task-file-attachments-live.js','utf8');
 const css=fs.readFileSync('portal-task-file-attachments.css','utf8');
@@ -14,12 +15,13 @@ const guard=fs.readFileSync('supabase/migrations/20260903_nexus_task_document_co
 // unrelated file-upload contract to one superseded feature tranche.
 assert.match(app,/const BUILD='[0-9]{8}-relystra-[a-z0-9-]+'/,'action-file release must use an explicit current RELYSTRA portal build id');
 
-assert.match(upload,/task_id:task\?\.id\|\|null/,'direct uploads must store task lineage on the document row');
+assert.match(upload,/taskId:task\?\.id\|\|null/,'direct uploads must store task lineage on the document row');
+assert.match(upload,/persistEvidence\(sb,/);
 assert.match(upload,/uploadFilesForTask/,'upload service must expose multi-file action uploads');
 assert.match(upload,/MAX_BYTES=26214400/,'direct action uploads must keep the existing 25 MB limit');
 assert.match(upload,/Action Attachment/,'task uploads must be categorized as action attachments');
-assert.match(upload,/document_area:'client_submission'/,'task uploads must remain in the client submission boundary');
-assert.match(upload,/source_role:'client'/,'task uploads must retain client provenance');
+assert.match(persistence,/documentArea='client_submission'/,'task uploads must remain in the client submission boundary');
+assert.match(persistence,/sourceRole='client'/,'task uploads must retain client provenance');
 assert.match(upload,/portal\.workspace\?\.\(\)/,'task uploads must refresh canonical workspace state');
 
 assert.match(files,/FILES FOR THIS ACTION/,'client action must visibly own its file section');
