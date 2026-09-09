@@ -6,6 +6,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {recommendationFindings,validatedBuildRecommendations} from '../_shared/relystra-build-recommendations.ts';
 import {verifiedSupportPassages} from '../_shared/relystra-support.ts';
+import {diagnosisReportBudget} from '../_shared/relystra-diagnosis-budget.ts';
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type, x-nexus-worker-token","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const jh={...cors,"Content-Type":"application/json","Cache-Control":"no-store"};
@@ -325,9 +326,9 @@ async function askSupport(req:Request,body:any,userId:string){
   if(saved.error)throw new Error('SUPPORT_RESPONSE_LOAD_FAILED');
   return {ok:true,...saved.data};
 }
-async function runDiagnosis(cfg:any,context:any,evidenceText:string,reviewNote:string){
+async function runDiagnosis(cfg:any,context:any,evidenceText:string,reviewNote:string,timeoutMs:number){
   const instruction=`Perform the complete governed diagnosis in ONE bounded model response to avoid serverless resource overruns. Internally execute four reasoning passes before producing the JSON: (1) Evidence Analyst — build a provenance-first ledger and separate FACT, CLIENT STATEMENT, ADMIN CONTEXT, INFERENCE, ESTIMATE, UNKNOWN; (2) Process & Opportunity Analyst — reconstruct Trigger → Owner → Inputs → Steps → Systems → Handoffs → Delays → Exceptions → Output, then identify bottlenecks, root causes, defensible baselines, and scored opportunities; (3) Independent QA / Governance Verifier — remove unsupported claims, invented numbers, invalid evidence references, unsafe autonomy, invalid template codes, duplicate recommendations, and causal/ROI overclaims; (4) Final Diagnosis Composer — return only the corrected final report. Unknowns must remain unknown. Use a template_code only when it exists in the supplied action_template_catalog and actually fits. Human approval is required before consequential client-facing actions. ${diagnosisSchema}`;
-  return validate(await callJson(cfg,"Evidence Analyst → Process & Opportunity Analyst → Independent QA / Governance Verifier → Final Diagnosis Composer",instruction,{context,review_note:reviewNote,authorized_evidence:safe(evidenceText,500000)},0.04));
+  return validate(await callJson(cfg,"Evidence Analyst → Process & Opportunity Analyst → Independent QA / Governance Verifier → Final Diagnosis Composer",instruction,{context,review_note:reviewNote,authorized_evidence:safe(evidenceText,500000)},0.04,timeoutMs));
 }
 
 async function notifyAdminsReady(run:any){
@@ -339,6 +340,7 @@ async function notifyAdminsReady(run:any){
 function isNonTransient(msg:string){return /MODEL_PROXY_AUTH_NOT_CONFIGURED|AI_PROVIDER_BILLING_REQUIRED|MODEL_PROXY_ACCESS_|MODEL_TIMEOUT|Invalid prompt|not configured|free tier|billing/i.test(msg)}
 
 Deno.serve(async(req:Request)=>{
+  const requestStartedAt=Date.now();
   // Reuse this deployed gateway within the project's function quota. Each payment
   // handler enforces its own authentication before any privileged operation.
   const handler=new URL(req.url).searchParams.get('handler');
@@ -426,7 +428,7 @@ Deno.serve(async(req:Request)=>{
     const attempt=Number(run.execution_attempts||0);
     const templates=await actionTemplateCatalog();
     const context={company:packet.company||{},project:packet.project||{},meeting:packet.meeting||{},evidence_manifest:bundle.docs.map((d:any)=>({id:d.id,file_name:d.file_name,category:d.category,note:d.note})),action_template_catalog:templates,discovery_framework_version:FRAMEWORK_VERSION};
-    const result=await runDiagnosis(cfg,context,parts.join("\n"),safe(run.review_notes,12000));
+    const result=await runDiagnosis(cfg,context,parts.join("\n"),safe(run.review_notes,12000),diagnosisReportBudget(requestStartedAt));
     result.execution={agent:"client_diagnosis",pipeline_version:4,stages:["Evidence Analyst","Process & Opportunity Analyst","Independent QA / Governance Verifier","Final Diagnosis Composer"],qa_score:Number(result.quality_assurance?.quality_score||0),qa_pass:result.quality_assurance?.pass===true,release_blockers:[],evidence_document_ids:bundle.docs.map((d:any)=>d.id),evidence_files:bundle.docs.map((d:any)=>d.file_name),evidence_parsers:bundle.parsers,admin_context_id:bundle.adminContext?.id||null,client_response_refs:bundle.clientResponses,action_template_catalog_size:templates.length,completed_at:new Date().toISOString(),model:MODEL,human_review_required:true,trigger:authState.mode};
 
     const completed=await db.rpc('relystra_complete_diagnosis_execution',{p_run_id:runId,p_lease_id:leaseId,p_result:result});
