@@ -7,7 +7,7 @@ test('account-free Basic Report keeps one primary scope, records decisions, and 
  await expect(page.getByRole('heading',{name:'One practical place to start.'})).toBeVisible();
  for(const size of sizes){await page.setViewportSize(size);await fits(page);await expect(page.getByRole('button',{name:'Accept this scope',exact:true})).toBeVisible();await page.screenshot({path:`test-results/basic-report-${size.width}.png`,fullPage:true})}
  await expect(page.locator('.report-panel.primary')).toHaveCount(1);await expect(page.locator('.report-later article')).toHaveCount(1);
- await expect(page.locator('.report-price')).toHaveText('$1,000.00');await expect(page.locator('.primary')).toContainText('$500.00 required deposit');
+ await expect(page.locator('.report-price')).toHaveText('$1,000.00');await expect(page.locator('.report-panel.primary')).toContainText('$500.00 required deposit');
  await page.getByRole('button',{name:'Discuss another recommendation'}).click();await expect(page.getByRole('status')).toContainText('request to discuss');
  await page.getByRole('button',{name:'Accept this scope',exact:true}).click();await expect(page.getByRole('button',{name:'Continue to secure payment'})).toBeVisible();
  await page.reload();await expect(page.getByRole('button',{name:'Continue to secure payment'})).toBeVisible();

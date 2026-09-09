@@ -9,6 +9,7 @@ export async function database(extraMigrations=[]){
   await db.exec(`create schema auth; create schema private; create schema storage;
     create role authenticated; create role anon; create role service_role bypassrls;
     create table auth.users(id uuid primary key);
+    create table public.nexus_qa_fixture_runs(run_key text primary key,company_id uuid,admin_user_id uuid,client_user_id uuid,created_at timestamptz default now());
     create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema public,auth,private to authenticated;
@@ -37,7 +38,7 @@ export async function database(extraMigrations=[]){
   for(const policy of controls.policies){
     await db.exec(`create policy ${quote(policy.policyname)} on public.${quote(policy.tablename)} as ${policy.permissive} for ${policy.cmd} to ${policy.roles.map(quote).join(',')}${policy.qual?' using ('+policy.qual+')':''}${policy.with_check?' with check ('+policy.with_check+')':''};`);
   }
-  await db.exec(`grant select,insert,update,delete on all tables in schema public to authenticated;`);
+  await db.exec(`grant select,insert,update,delete on all tables in schema public to authenticated; revoke all on public.nexus_qa_fixture_runs from authenticated,anon; grant all on public.nexus_qa_fixture_runs to service_role;`);
   for(const trigger of controls.triggers.filter(row=>/private.nexus_(enforce_task_update_boundary|guard_client_task_update|enforce_task_dependency_order|sync_task_owner)\(/.test(row.definition)))
     await db.exec(trigger.definition+';');
   // External notification/release engines are intentionally outside this local database fixture.

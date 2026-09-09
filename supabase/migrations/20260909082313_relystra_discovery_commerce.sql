@@ -162,6 +162,7 @@ begin
   if p.purchase_kind='diagnosis' then raise exception 'Full Diagnosis is included in the first implementation engagement'; end if;
   if p.status<>'awaiting_payment' then raise exception 'This plan is no longer awaiting payment'; end if;
   select * into cfg from public.nexus_delivery_settings where singleton;
+  if exists(select 1 from public.nexus_qa_fixture_runs q where q.company_id=p.company_id and q.created_at>now()-interval '24 hours' and q.admin_user_id is not null and q.client_user_id is not null) then cfg.payment_livemode:=false; end if;
   if not cfg.checkout_enabled or cfg.stripe_account_id is null then raise exception 'Checkout is not configured yet'; end if;
   if p.purchase_kind='balance' and not exists(select 1 from public.nexus_build_plans parent where parent.id=p.parent_plan_id and parent.status='paid' and parent.company_id=p.company_id and parent.checkout_account_id=cfg.stripe_account_id and parent.checkout_livemode=cfg.payment_livemode) then raise exception 'Balance checkout must use the original payment environment'; end if;
   if p.checkout_started_at is null then

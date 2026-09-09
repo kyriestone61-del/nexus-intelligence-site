@@ -34,7 +34,12 @@ test('Discovery report retains real input, limits free scope and activates exact
  assert.equal((await access('accept')).plan_id,accepted.plan_id,'accept replay returns same plan');
  assert.equal((await db.query('select * from nexus_projects')).rows.length,0,'acceptance does not activate work');
  const planId=accepted.plan_id;
+ await asUser(db,client,()=>assert.rejects(db.query('select * from nexus_qa_fixture_runs'),/permission denied/));
+ await db.query('insert into nexus_qa_fixture_runs(run_key,company_id,admin_user_id,client_user_id) values ($1,$2,$3,$4)',['local-verified-bootstrap',company,admin,client]);
+ await db.exec('update nexus_delivery_settings set payment_livemode=true');
  await db.query('select relystra_claim_checkout($1,$2)',[planId,admin]);
+ assert.equal((await db.query('select checkout_livemode from nexus_build_plans where id=$1',[planId])).rows[0].checkout_livemode,false,'registered ephemeral QA stays in Stripe test mode after live launch');
+ await db.exec('update nexus_delivery_settings set payment_livemode=false');
  await db.query("update nexus_build_plans set checkout_session_id='cs_initial' where id=$1",[planId]);
  const plan=(await db.query('select * from nexus_build_plans where id=$1',[planId])).rows[0];assert.equal(plan.items.length,1);
  const pay=async(id,amount,event='evt_initial',session='cs_initial',intent='pi_initial')=>db.query('select relystra_record_verified_payment($1,$2,$3,$4,$5,$6,$7,$8,$9) id',[id,event,session,intent,amount,'usd',false,(await db.query('select snapshot_digest from nexus_build_plans where id=$1',[id])).rows[0].snapshot_digest,'acct_test']);

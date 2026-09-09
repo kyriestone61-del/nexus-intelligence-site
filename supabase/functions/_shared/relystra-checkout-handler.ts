@@ -54,7 +54,12 @@ export async function handleCheckout(req: Request): Promise<Response> {
     // Test checkout may activate real database access, so only explicitly designated
     // disposable companies may use it. Live mode retains the normal company RLS boundary.
     const testCompanies=(Deno.env.get('RELYSTRA_STRIPE_TEST_COMPANY_IDS')||'').split(',').map(id=>id.trim());
-    if (!plan.checkout_livemode && !testCompanies.includes(plan.company_id)) return json({error:'TEST_WORKSPACE_REQUIRED',message:'Test checkout is available only in the designated QA workspace.'},403);
+    if (!plan.checkout_livemode && !testCompanies.includes(plan.company_id)) {
+      // Only the existing main-branch OIDC bootstrap may register ephemeral QA companies.
+      // The registry has no anonymous or authenticated table grants.
+      const fixture=await db.from('nexus_qa_fixture_runs').select('company_id').eq('company_id',plan.company_id).gt('created_at',new Date(Date.now()-86400000).toISOString()).not('admin_user_id','is',null).not('client_user_id','is',null).maybeSingle();
+      if(fixture.error||!fixture.data)return json({error:'TEST_WORKSPACE_REQUIRED',message:'Test checkout is available only in the designated QA workspace.'},403);
+    }
     const stripe = await stripeForMode(plan.checkout_livemode!,plan.checkout_account_id!);
     const session = plan.checkout_session_id
       ? await stripe.checkout.sessions.retrieve(plan.checkout_session_id)
