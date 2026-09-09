@@ -9,7 +9,7 @@ async function payTest(checkoutPage,url){
  // Hard guard: no live Checkout session is ever submitted by this test.
  expect(url).toMatch(/^https:\/\/checkout\.stripe\.com\/.*cs_test_/);
  await checkoutPage.goto(url);await expect(checkoutPage.locator('body')).toContainText(/Relystra/i);
- const cardChoice=checkoutPage.getByRole('radio',{name:/Card/i});if(await cardChoice.count())await cardChoice.first().check();
+ const cardChoice=checkoutPage.getByRole('button',{name:'Pay with card',exact:true});if(await cardChoice.count())await cardChoice.click();
  async function field(name,value){
   await expect.poll(async()=>{for(const frame of checkoutPage.frames())if(await frame.locator(`input[name="${name}"],select[name="${name}"]`).count())return true;return false},{timeout:30000,message:'Stripe field '+name}).toBe(true);
   for(const frame of checkoutPage.frames()){const el=frame.locator(`[name="${name}"]`).first();if(await el.count()){if((await el.evaluate(e=>e.tagName))==='SELECT')await el.selectOption(value);else await el.fill(value);return}}
