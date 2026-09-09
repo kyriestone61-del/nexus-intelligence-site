@@ -30,7 +30,7 @@ test('client Roadmap preserves original scope, supports one or multiple addition
  await page.getByRole('button',{name:'Recommended Builds Completed',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Included Now',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'View implementation progress',exact:true}).click();
- await expect(page.getByText('Bid intake',{exact:true})).toBeVisible();await fits(page);expect(errors).toEqual([]);
+ await expect(page.locator('#nexus-client-progress').getByText('Bid intake',{exact:true})).toBeVisible();await fits(page);expect(errors).toEqual([]);
 });
 test('administrator can save Offer defaults and the Master Build Library through actual database RPCs',async({page})=>{
  await page.goto('/qa/delivery-browser/?section=offers');await expect(page.getByRole('heading',{name:'Offers & optional local add-ons'})).toBeVisible();
@@ -38,4 +38,15 @@ test('administrator can save Offer defaults and the Master Build Library through
  await page.goto('/qa/delivery-browser/?section=templates');await expect(page.getByRole('heading',{name:'Master Build Library'})).toBeVisible();
  await page.getByRole('searchbox',{name:'Find a Build'}).fill('Estimate Follow-Up');
  const card=page.locator('[data-library-card]').filter({hasText:'Estimate Follow-Up System'});await card.locator('summary').click();await card.getByRole('button',{name:'Save capability',exact:true}).click();await expect(page.locator('#fixtureNotice')).toHaveText('Saved.');
+});
+
+test('administrator requests a private input for its paid Build before implementation',async({page})=>{
+ await page.goto('/qa/delivery-browser/?section=progress');
+ await page.getByText('Inputs · Bid intake',{exact:true}).click();
+ const form=page.locator('[data-delivery-form="request-input"]');
+ await form.getByLabel('Input title',{exact:true}).fill('Authorized sample rows');
+ await form.getByLabel('Why this input is needed',{exact:true}).fill('Populate the accepted intake register with authorized sample rows.');
+ await form.getByRole('button',{name:'Request Build input',exact:true}).click();
+ await expect(page.getByText('Bid intake: Authorized sample rows',{exact:true})).toBeVisible();
+ await expect(page.locator('[role="alert"]')).toHaveCount(0);
 });

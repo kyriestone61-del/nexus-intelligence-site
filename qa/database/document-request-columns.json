@@ -1,0 +1,170 @@
+[
+  {
+    "column_name": "id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": "gen_random_uuid()",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "title",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "purpose",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "examples",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "redaction_guidance",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "sensitivity",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'standard'::text",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'requested'::text",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "due_date",
+    "column_type": "date",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "requested_by",
+    "column_type": "uuid",
+    "not_null": true,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "fulfilled_document_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "updated_at",
+    "column_type": "timestamp with time zone",
+    "not_null": true,
+    "default_value": "now()",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "source_diagnosis_run_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "owner_scope",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'client'::text",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "evidence_status",
+    "column_type": "text",
+    "not_null": true,
+    "default_value": "'missing'::text",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "is_required",
+    "column_type": "boolean",
+    "not_null": true,
+    "default_value": "true",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "accepted_mime_types",
+    "column_type": "text[]",
+    "not_null": true,
+    "default_value": "ARRAY['application/pdf'::text, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'::text, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'::text, 'text/csv'::text, 'text/plain'::text, 'image/png'::text, 'image/jpeg'::text]",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "max_size_bytes",
+    "column_type": "bigint",
+    "not_null": true,
+    "default_value": "26214400",
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "revision_reason",
+    "column_type": "text",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "reviewed_at",
+    "column_type": "timestamp with time zone",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "reviewed_by",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  },
+  {
+    "column_name": "source_gap_analysis_id",
+    "column_type": "uuid",
+    "not_null": false,
+    "default_value": null,
+    "table_name": "nexus_document_requests"
+  }
+]

@@ -58,6 +58,23 @@ test('Discovery report retains real input, limits free scope and activates exact
  });
  const run=(await db.query("insert into nexus_diagnosis_runs(company_id,project_id,status,analysis_result,created_by) values ($1,$2,'approved',$3,$4) returning id",[company,project,{opportunity_backlog:[{title:'Test finding from QA evidence'}]},admin])).rows[0].id;
  assert.equal((await db.query('select context_diagnosis_run_id from nexus_projects where id=$1',[project])).rows[0].context_diagnosis_run_id,run);
+ await asUser(db,client,()=>assert.rejects(db.query('select relystra_request_build_input($1,$2,$3)',[firstBuild,'Samples','Two authorized sample records']),/Administrator/));
+ const inputRequest=await asUser(db,admin,()=>db.query('select relystra_request_build_input($1,$2,$3) id',[firstBuild,'Samples','Two authorized sample records']).then(r=>r.rows[0].id));
+ const briefPatch={tools_platforms:['Test register'],users_roles:['QA Owner'],automation_requirements:['None'],integrations:['None'],assumptions:['Authorized test data'],risks:['Backup required'],test_inputs:['Two test rows']};
+ await asUser(db,admin,()=>assert.rejects(db.query('select relystra_save_brief($1,$2,true)',[firstBuild,briefPatch]),/required Build inputs/));
+ await assert.rejects(db.query('update nexus_document_requests set company_id=$1 where id=$2',[foreign,inputRequest]),/immutable/);
+ await asUser(db,admin,()=>assert.rejects(db.query('select relystra_review_build_input($1,true,$2)',[inputRequest,'Reviewed synthetic records']),/uploaded private file/));
+ const inputDoc=(await db.query("insert into nexus_documents(company_id,project_id,request_id,file_name,storage_path,mime_type,size_bytes,uploaded_by,status) values ($1,$2,$3,'synthetic.csv',$4,'text/csv',40,$5,'shared') returning id",[company,project,inputRequest,company+'/synthetic.csv',client])).rows[0].id;
+ await db.query("insert into storage.objects(bucket_id,name) values ('nexus-client-documents',$1)",[company+'/synthetic.csv']);
+ // Production upload triggers set the received pointer; external document lifecycle is stubbed in this fixture.
+ await db.query("update nexus_document_requests set fulfilled_document_id=$1,status='received',evidence_status='uploaded' where id=$2",[inputDoc,inputRequest]);
+ await asUser(db,client,()=>assert.rejects(db.query('select relystra_review_build_input($1,true,$2)',[inputRequest,'Client cannot approve this upload']),/Administrator/));
+ await asUser(db,admin,()=>db.query('select relystra_review_build_input($1,false,$2)',[inputRequest,'Please include the missing owner column']));
+ await asUser(db,admin,()=>assert.rejects(db.query('select relystra_save_brief($1,$2,true)',[firstBuild,briefPatch]),/required Build inputs/));
+ await asUser(db,admin,()=>db.query('select relystra_review_build_input($1,true,$2)',[inputRequest,'Reviewed synthetic owner column and permitted records']));
+ await asUser(db,admin,()=>db.query('select relystra_save_brief($1,$2,true)',[firstBuild,briefPatch]));
+ assert.equal((await db.query('select count(*)::integer n from nexus_tasks where build_id=$1',[firstBuild])).rows[0].n,13);
+
  await assert.rejects(db.query('update nexus_projects set context_diagnosis_run_id=null where id=$1',[project]),/immutable/);
  const balance=await asUser(db,admin,()=>db.query('select relystra_create_balance_plan($1) id',[planId]).then(r=>r.rows[0].id));
  await db.query('select relystra_claim_checkout($1,$2)',[balance,admin]);await db.query("update nexus_build_plans set checkout_session_id='cs_balance' where id=$1",[balance]);

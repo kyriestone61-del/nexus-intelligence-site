@@ -19,6 +19,9 @@ function briefCard(build){
     ${build.brief_approved_at?briefFields.map(([key,title])=>bullet(title,b[key])).join(''):`<form data-delivery-form="brief" data-build="${esc(build.id)}"><p>One item per line. Record “None” where a requirement does not apply.</p>${briefFields.map(([key,title])=>area(key,title,b[key],true)).join('')}${area('checklist','Internal Build checklist — leave blank to use the approved template',b.checklist)}<div class="relystra-build-buttons"><button class="btn secondary" name="decision" value="save">Save brief</button><button class="btn primary" name="decision" value="approve">Approve brief & create internal tasks</button></div></form>`}</details>`;
 }
 
+function inputCard(build,requests){
+ return `<details class="relystra-build-card"><summary>Inputs · ${esc(build.name)}</summary><p>Request authorized source files for this purchased Build. Review each upload in Files before accepting it here.</p>${requests.map(r=>`<article><b>${esc(r.title)}</b><p>${esc(r.purpose)} · ${r.is_required?'Required':'Optional'} · ${esc(label(r.evidence_status))}</p>${r.revision_reason?`<p>${esc(r.revision_reason)}</p>`:''}${r.fulfilled_document_id&&r.evidence_status!=='approved'?`<form data-delivery-form="review-input" data-request="${esc(r.id)}">${area('note','Review result or revision reason','',true)}<button class="btn primary" name="decision" value="accept">Accept reviewed input</button><button class="btn secondary" name="decision" value="revise">Request corrected file</button></form>`:''}</article>`).join('')||'<p>No Build-specific files requested yet.</p>'}${!build.brief_approved_at?`<form data-delivery-form="request-input" data-build="${esc(build.id)}">${input('title','Input title','')}${area('purpose','Why this input is needed','',true)}${area('examples','Examples and permitted redactions','')}<label><input type="checkbox" name="required" checked>Required before implementation</label><button class="btn secondary">Request Build input</button></form>`:''}</details>`;
+}
 function contentForm(build,docs){
   const c=build.delivery_content||{},t=c.tutorial||{};
   return `<details class="relystra-build-card"><summary>Delivery materials · ${esc(build.name)}</summary><form data-delivery-form="content" data-build="${esc(build.id)}">
@@ -49,7 +52,7 @@ function deliveredCard(item,draftId,reviewable,status){
 }
 
 export function mountPackageDelivery(root,portal){
-  const {sb,state}=portal;let sequence=0,company=null,projectId=null,section='progress',project=null,progress=null,builds=[],tasks=[],requests=[],docs=[],busy=false;
+  const {sb,state}=portal;let sequence=0,company=null,projectId=null,section='progress',project=null,progress=null,builds=[],tasks=[],requests=[],docs=[],inputRequests=[],busy=false;
   async function refresh(options={}){
     if('projectId' in options)projectId=options.projectId;if(options.section)section=options.section;
     const co=state.companyId,id=projectId,version=++sequence;company=co;
@@ -63,12 +66,13 @@ export function mountPackageDelivery(root,portal){
         ...(state.admin?[
           sb.from('nexus_system_cards').select('*').eq('company_id',co).eq('project_id',id).not('opportunity_id','is',null).order('created_at'),
           sb.from('nexus_tasks').select('id,build_id,title,status,dependency_task_id,sort_order').eq('company_id',co).eq('project_id',id).eq('work_kind','build_task').is('archived_at',null).order('sort_order'),
+          sb.from('nexus_document_requests').select('id,build_id,title,purpose,status,evidence_status,fulfilled_document_id,is_required,revision_reason').eq('company_id',co).eq('project_id',id).not('build_id','is',null).order('created_at'),
           sb.from('nexus_documents').select('id,file_name').eq('company_id',co).or(`project_id.is.null,project_id.eq.${id}`).in('document_area',['nexus_shared','company_library']).neq('status','archived'),
         ]:[]),
       ]);
       if(version!==sequence||co!==state.companyId)return;
       const error=rows.find(r=>r.error)?.error;if(error)throw error;
-      [project,progress,requests,builds,tasks,docs]=rows.map(r=>r.data);builds=builds||[];tasks=tasks||[];docs=docs||[];render();
+      [project,progress,requests,builds,tasks,inputRequests,docs]=rows.map(r=>r.data);builds=builds||[];tasks=tasks||[];docs=docs||[];inputRequests=inputRequests||[];render();
     }catch(error){if(version===sequence)root.innerHTML=`<p role="alert">${esc(error.message||'Delivery could not be loaded.')}</p><button class="btn secondary" data-delivery-refresh>Retry</button>`}
     finally{if(version===sequence)root.removeAttribute('aria-busy')}
   }
@@ -79,7 +83,7 @@ export function mountPackageDelivery(root,portal){
     root.innerHTML=`<header><h1>${esc(final?'Final Package':project.name)}</h1><p>${esc(label(project.package_stage||'Preparing delivery'))}${progress.livemode===false?' · Test package':''}</p>${!state.admin&&project.package_stage==='final_qa'?'<p>Your approval is recorded. Relystra is completing the final delivery checks.</p>':''}<button class="btn secondary" data-delivery-refresh>Refresh</button></header>
       ${!final?`<label>Package progress <b>${progress.percent}%</b><progress max="100" value="${progress.percent}">${progress.percent}%</progress></label><div class="relystra-build-grid">${arr(progress.builds).map(b=>`<article class="relystra-build-card"><b>${esc(b.name)}</b><p>${esc(label(b.status||b.stage||'Preparing'))} · ${b.percent}%</p></article>`).join('')}</div>`:''}
       ${pkg?`<section><h2>${final?'Delivered Builds':'Draft Package'}</h2><div class="relystra-build-grid">${arr(pkg.items).map(i=>deliveredCard(i,final?null:pkg.id,!state.admin&&!final&&['client_review','revisions'].includes(project.package_stage),arr(progress.builds).find(b=>b.id===i.build_id)?.status)).join('')}</div></section>`:final?'<p>The Final Package becomes available after client approval and final QA.</p>':''}
-      ${state.admin&&!final?`<section><h2>Build Briefs</h2>${builds.map(briefCard).join('')}</section>
+      ${state.admin&&!final?`<section><h2>Build inputs</h2>${builds.map(b=>inputCard(b,inputRequests.filter(r=>r.build_id===b.id))).join('')}</section><section><h2>Build Briefs</h2>${builds.map(briefCard).join('')}</section>
         <section><h2>Internal Build Tasks</h2>${builds.map(b=>`<details class="relystra-build-card"><summary>${esc(b.name)}</summary>${tasks.filter(t=>t.build_id===b.id).map(t=>`<label><input type="checkbox" data-build-task="${esc(t.id)}" ${t.status==='completed'?'checked':''} ${!['briefs','building','revisions'].includes(project.package_stage)||(t.dependency_task_id&&tasks.some(d=>d.id===t.dependency_task_id&&d.status!=='completed'))?'disabled':''}>${esc(t.title)}</label>`).join('')||'<p>Approve the brief to generate internal work.</p>'}</details>`).join('')}</section>
         ${builds.filter(b=>b.build_status==='revision'&&!b.revision_resolution).map(b=>`<form class="relystra-build-card" data-delivery-form="revision" data-build="${esc(b.id)}"><h3>Review feedback · ${esc(b.name)}</h3><p>${esc(b.client_review?.note||b.client_review?.feedback)}</p><label>Scope decision<select name="decision"><option value="in_scope">Within purchased scope</option><option value="separate_build">Separate Build required</option><option value="approved_exception">Admin-approved exception</option></select></label>${area('note','Explain the scope decision','',true)}<button class="btn primary">Confirm revision scope</button></form>`).join('')}
         ${['building','internal_qa','revisions'].includes(project.package_stage)?builds.filter(b=>b.brief_approved_at).map(b=>contentForm(b,docs)+qaForm(b,'internal')).join(''):''}
@@ -112,6 +116,8 @@ export function mountPackageDelivery(root,portal){
   const onSubmit=event=>{
     const form=event.target.closest('[data-delivery-form]');if(!form)return;event.preventDefault();
     const fd=new FormData(form),get=key=>String(fd.get(key)||'').trim(),type=form.dataset.deliveryForm,build=form.dataset.build,decision=event.submitter?.value;
+    if(type==='request-input')return mutate(()=>sb.rpc('relystra_request_build_input',{p_build_id:build,p_title:get('title'),p_purpose:get('purpose'),p_examples:get('examples')||null,p_required:fd.has('required')}));
+    if(type==='review-input')return mutate(()=>sb.rpc('relystra_review_build_input',{p_request_id:form.dataset.request,p_accept:decision==='accept',p_note:get('note')}));
     if(type==='brief'){const patch=Object.fromEntries(briefFields.map(([key])=>[key,lines(get(key))]));if(get('checklist'))patch.checklist=lines(get('checklist'));return mutate(()=>sb.rpc('relystra_save_brief',{p_build_id:build,p_patch:patch,p_approve:decision==='approve'}))}
     if(type==='content'){
       const content={description:get('description'),preview_url:get('preview_url'),what_to_test:lines(get('what_to_test')),tutorial:{what:get('tutorial_what'),steps:lines(get('tutorial_steps')),when:get('tutorial_when'),troubleshooting:get('tutorial_troubleshooting')},

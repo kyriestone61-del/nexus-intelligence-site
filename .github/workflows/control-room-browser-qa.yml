@@ -7,6 +7,11 @@ on:
         description: 'Portal base URL'
         required: false
         default: 'https://nexus-intelligence-site.pages.dev'
+      commercial_release:
+        description: 'Run protected synthetic commerce, Stripe test settlement and final handoff'
+        required: false
+        type: boolean
+        default: false
       full_baseline:
         description: 'Run the full production workflow'
         required: false
@@ -43,11 +48,12 @@ permissions:
 jobs:
   cross-browser-control-room:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     defaults:
       run:
         working-directory: qa/playwright
     env:
+      NEXUS_QA_COMMERCIAL_RELEASE: ${{ github.event.inputs.commercial_release == 'true' && '1' || '0' }}
       NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
       NEXUS_QA_BOOTSTRAP_URL: https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-calendar-config-check
       NEXUS_QA_BASELINE_ONLY: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[operational-baseline]') && '1' || '0' }}
@@ -184,6 +190,10 @@ jobs:
             npx playwright test tests/qa-intake-register.spec.mjs --config=control-room.config.mjs --retries=0
           fi
 
+      - name: Run hosted commercial release acceptance
+        if: ${{ env.NEXUS_QA_COMMERCIAL_RELEASE == '1' }}
+        run: npx playwright test tests/commercial-production.spec.mjs --config=control-room.config.mjs --project=desktop-chrome --retries=0
+
       - name: Enforce authenticated coverage for production
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash
@@ -210,7 +220,7 @@ jobs:
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
-        if: ${{ always() && env.NEXUS_QA_QAQC_FULL == '1' }}
+        if: ${{ always() && (env.NEXUS_QA_QAQC_FULL == '1' || env.NEXUS_QA_COMMERCIAL_RELEASE == '1') }}
         with:
           name: relystra-full-app-qaqc-report
           path: |

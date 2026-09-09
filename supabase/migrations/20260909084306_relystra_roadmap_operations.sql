@@ -180,7 +180,7 @@ begin
   end if;
   if content is not distinct from b.delivery_content then return b.id; end if;
   perform pg_advisory_xact_lock(72635901);
-  if b.build_status not in ('building','revision') and (select count(*) from public.nexus_system_cards active join public.nexus_projects ap on ap.id=active.project_id where active.build_status in ('building','qa','revision') and ap.project_type='build_package' and ap.package_stage not in ('support','completed')) >= (select parallel_capacity from public.nexus_delivery_settings where singleton) then raise exception 'Delivery capacity is occupied. Resume this Build when a slot is available'; end if;
+  if b.build_status not in ('building','revision') and (select count(*) from public.nexus_system_cards active join public.nexus_projects ap on ap.id=active.project_id where coalesce(ap.payment_livemode,true)=coalesce(p.payment_livemode,true) and active.build_status in ('building','qa','revision') and ap.project_type='build_package' and ap.package_stage not in ('support','completed')) >= (select parallel_capacity from public.nexus_delivery_settings where singleton) then raise exception 'Delivery capacity is occupied. Resume this Build when a slot is available'; end if;
   update public.nexus_system_cards set delivery_content=content,internal_qa=null,final_qa=null,client_review=null,build_status='building',updated_at=now() where id=b.id;
   update public.nexus_projects set package_stage=case when package_stage='internal_qa' then 'building' else package_stage end,updated_at=now() where id=p.id;
   return b.id;
