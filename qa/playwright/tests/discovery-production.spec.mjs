@@ -10,6 +10,10 @@ const textFile=(name,text)=>({name,mimeType:'text/plain',buffer:Buffer.from(text
 test('hosted evidence-first discovery and three-source regeneration preserve real records',async({page,browser},info)=>{
  test.skip(!enabled||!ae||!ap,'Protected discovery release acceptance only');test.setTimeout(1500000);
  await login(page,ae,ap);const company=await page.locator('#companySelect option').evaluateAll((options,name)=>options.find(o=>o.textContent.trim()===name)?.value,companyName);expect(company).toBeTruthy();await open(page,company);
+ // Each device uses its own active source set while retaining the fixture's prior report versions.
+ const existing=await snapshot(page,company);
+ for(const doc of existing.documents.filter(d=>d.state!=='removed'))await page.evaluate(async({company,id})=>{const r=await window.NexusPortal.sb.rpc('relystra_discovery_workspace',{p_company_id:company,p_project_id:null,p_action:'remove',p_document_id:id});if(r.error)throw Error(r.error.message)},{company,id:doc.id});
+ await open(page,company);
  const prefix=info.project.name;
  await page.locator('[data-discovery-upload] input').setInputFiles(textFile(prefix+'-intake.txt','SYNTHETIC QA DISCOVERY. The owner says estimate requests arrive by email. The owner copies each request into a spreadsheet. Sometimes the estimator receives a request directly and the owner cannot see it. They want consistent intake ownership. No measured time savings are known.'));
  await page.getByRole('button',{name:'Upload & process documents',exact:true}).click();await processed(page);await generate(page);
