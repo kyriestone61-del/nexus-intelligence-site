@@ -3,13 +3,13 @@ const file={name:'meeting-transcript.txt',mimeType:'text/plain',buffer:Buffer.fr
 test('transcript upload failure retains file, retry persists, diagnosis failure recovers without duplicate navigation runs',async({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/qa/journey-browser/?upload=fail&diagnosis=fail');
-  await expect(page.getByRole('navigation',{name:'Numbered client journey'}).getByRole('button')).toHaveCount(10);
+  await expect(page.getByRole('navigation',{name:'Numbered client journey'}).getByRole('button')).toHaveCount(11);
   await page.locator('input[type=file]').setInputFiles(file);await page.getByRole('button',{name:'Upload meeting transcript',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText('Simulated upload failure');expect(await page.locator('input[type=file]').evaluate(e=>e.files.length)).toBe(1);
   await page.getByRole('button',{name:'Upload meeting transcript',exact:true}).click();await expect(page.getByText('Transcript ready:',{exact:false})).toBeVisible();
   await page.getByRole('button',{name:'Run Diagnosis',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Simulated diagnosis failure');
   await page.getByRole('button',{name:'Retry existing diagnosis',exact:true}).click();await expect(page.getByRole('heading',{name:'Existing diagnosis review'})).toBeVisible();
-  await page.getByRole('navigation').getByRole('button',{name:/Meeting transcript/}).click();await page.getByRole('button',{name:'Continue to diagnosis & approval',exact:true}).click();await expect(page.locator('#calls')).toHaveText('2');
+  await page.getByRole('navigation').getByRole('button',{name:/Upload Discovery Material/}).click();await page.getByRole('button',{name:'Continue to diagnosis & approval',exact:true}).click();await expect(page.locator('#calls')).toHaveText('2');
   await page.reload();await expect(page.getByText('Transcript ready:',{exact:false})).toBeVisible();
   await page.locator('#company').selectOption('b');await expect(page.getByText('No transcript selected yet.',{exact:false})).toBeVisible();
   await expect(page.getByRole('button',{name:'Run Diagnosis',exact:true})).toBeDisabled();

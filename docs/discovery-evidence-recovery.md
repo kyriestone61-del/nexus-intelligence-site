@@ -1,0 +1,13 @@
+# Discovery evidence recovery
+
+The former transcript upload stored a private file and metadata, but did not parse it or create the separately authored commercial Basic Report. The next action required paid Full Diagnosis access. Moon Wax's two September 9 DOCX uploads were intact, company-scoped and unparsed; no Discovery, project or diagnosis records existed. No disconnected generated report was found.
+
+The new preparation/project engagement owns a one-to-many evidence set. Existing exact-context Discovery uploads are adopted when the workspace is opened. The documents retain originals, filenames, MIME types, ownership, dates, parser/state/error and segment progress. Removal excludes a document; completed report provenance survives. Explicit retry rebuilds current extraction. New evidence increments a revision and invalidates active leases. Complete report versions remain immutable.
+
+Free diagnosis uses upload/parse, exact non-overlapping 12,000-character source segments, per-segment evidence extraction with verified exact quotations, four-node hierarchical reduction, seven-section synthesis and independent quality review. Each request processes one resumable stage under a two-minute lease. The existing authenticated worker resumes pending work. All segment identities are retained through reduction; source fidelity validators reject invented IDs and quotes. A 25 MB source and 4 million extracted-character per-document limit fails visibly; it never truncates source text. Scanned PDFs require searchable/OCR text. DOCX archive protections remain enabled.
+
+The free report requires every active document to be parsed and reviewed; unresolved failures block generation. Its version records every source and an immutable evidence ledger. Review corrections become additional source documents. The commercial report can reference the verified current diagnosis; prices and Build scope remain administrator-owned. Full Diagnosis/payment gates remain intact. The deeper pipeline reuses the complete current source hierarchy for large packages rather than concatenating source files into an unbounded prompt.
+
+Security: authenticated active company membership or platform administrator authorization; exact project/company validation; immutable linked document ownership/storage paths; service-only chunk/model-work tables and lease RPCs. Leases reject stale commits after evidence changes. Reports expose no credentials. Generation is limited to ten new runs per engagement per hour.
+
+Validation and deployment evidence are recorded separately after the actual protected hosted run, including Moon Wax recovery. No Moon Wax synthetic uploads, approvals or purchases are authorized by the QA script.

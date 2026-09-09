@@ -59,7 +59,7 @@ assert.equal(/\.onclick\s*=/.test(client),false,'base portal must not use onclic
 assert.match(runtime,/createStateController/);assert.match(runtime,/createEventRegistry/);assert.match(runtime,/createModalManager/);assert.match(runtime,/event\.shiftKey/);assert.match(runtime,/event\.key === 'Escape'/);assert.match(runtime,/document\.body\.classList\.add\('nexus-modal-open'\)/);
 assert.match(migration,/pg_advisory_xact_lock/);assert.match(migration,/insert into public\.nexus_companies/);assert.match(migration,/insert into public\.nexus_company_members/);assert.match(migration,/insert into public\.nexus_projects/);
 
-assert.match(shell,/PRIMARY_VIEWS=\[\['today','Overview'\],\['reports','Diagnosis'\],\['actions','Actions'\],\['builds','Roadmap & Builds'\],\['progress','Progress'\],\['final-package','Final Package'\],\['support','Support'\]\]/);
+assert.match(shell,/PRIMARY_VIEWS=\[\['today','Overview'\],\['transcript','Discovery & Free Diagnosis'\],\['reports','Full Diagnosis'\],\['actions','Actions'\],\['builds','Roadmap & Builds'\],\['progress','Progress'\],\['final-package','Final Package'\],\['support','Support'\]\]/);
 assert.match(shell,/journeyNext\(lifecycleStore.value/);assert.match(shell,/data-client-go/);assert.match(shell,/Reports/);assert.match(shell,/Help/);assert.match(shell,/Inbox/);
 assert.equal(shell.includes('new MutationObserver'),false);assert.equal(/\.onclick\s*=/.test(shell),false);assert.equal(/\.onchange\s*=/.test(shell),false);
 assert.match(shell,/runtime/);assert.match(shell,/events\.bind/);assert.match(shell,/boundary\.run|boundary\.wrap/);assert.match(shell,/modals\.open/);

@@ -47,7 +47,7 @@ export function diagnosisDocumentIds(run) {
 
 export function preparationDocuments(state, projectId = null, run = null) {
   const sourceIds = diagnosisDocumentIds(run);
-  return (state?.docs || []).filter(document => document.company_id === state?.companyId
+  return (state?.docs || []).filter(document => document.company_id === state?.companyId && !document.discovery_removed
     && (!document.project_id || document.project_id === projectId || sourceIds.has(document.id)));
 }
 

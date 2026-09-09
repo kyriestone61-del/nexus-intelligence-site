@@ -25,11 +25,11 @@ test('authenticated preparation retains private files and enforces diagnosis and
     await login(client,clientEmail,clientPassword);
     await expect(client.locator('#companySelect')).toHaveValue(company);
     const journey=client.getByRole('navigation',{name:'Numbered client journey'});
-    await expect(journey.getByRole('button')).toHaveCount(10);
-    await journey.getByRole('button',{name:/Meeting transcript/}).click();
-    await expect(client.getByRole('heading',{name:'Add the meeting transcript.'})).toBeVisible();
+    await expect(journey.getByRole('button')).toHaveCount(11);
+    await journey.getByRole('button',{name:/Upload Discovery Material/}).click();
+    await expect(client.getByRole('heading',{name:'Upload Discovery Material'})).toBeVisible();
     await expect(client.locator('[data-transcript-run]')).toHaveCount(0);
-    await expect(client.getByRole('button',{name:'Review setup & access',exact:true})).toBeVisible();
+    await expect(client.getByRole('button',{name:'Generate Free Diagnosis',exact:true})).toBeDisabled();
     await journey.getByRole('button',{name:/Final handoff/}).click();
     await expect(client.getByRole('heading',{name:'This step begins after scope and payment'})).toBeVisible();
 

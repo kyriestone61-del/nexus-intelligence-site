@@ -1,3 +1,5 @@
+import {discoveryWork} from '../../supabase/functions/_shared/relystra-discovery-handler.ts';
+import {serviceAdapter,deterministicDiscoveryModel} from '../database/discovery-model-fixture.mjs';
 // Disposable local PostgreSQL/browser integration fixture. Never connects to production or sends email.
 import http from 'node:http';
 import fs from 'node:fs/promises';
@@ -40,6 +42,7 @@ async function query(body){
       return column+(kind==='neq'?' <> ':' = ')+param(value);
     });
     let sql;
+    if(body.insert){const entries=Object.entries(body.insert);const r=await db.query(`insert into public.${identifier(body.table)}(${entries.map(([k])=>identifier(k)).join(',')}) values(${entries.map(([,v])=>param(v)).join(',')}) returning *`,params);return body.single?r.rows[0]:r.rows;}
     if(body.update){sql=`update public.${identifier(body.table)} set ${Object.entries(body.update).map(([key,value])=>`${identifier(key)}=${param(value)}`).join(',')}`}
     else sql=`select ${body.columns==='*'?'*':body.columns.split(',').map(identifier).join(',')} from public.${identifier(body.table)}`;
     if(filters.length)sql+=' where '+filters.join(' and ');
@@ -62,9 +65,13 @@ const reportToken=await asUser(db,admin,()=>db.query('select relystra_share_basi
 let queue=Promise.resolve();
 async function serialized(fn){let resolve;const result=new Promise(r=>resolve=r);queue=queue.then(async()=>{try{resolve({data:await fn(),error:null})}catch(error){resolve({data:null,error:{message:error.message}})}});return result;}
 
+const discoveryFiles=new Map();
+const discoveryDeps={db:serviceAdapter(db),config:async()=>({}),hash:async()=> 'fixture-hash',call:deterministicDiscoveryModel,parse:async doc=>{const text=discoveryFiles.get(doc.storage_path);if(doc.file_name.endsWith('.pdf'))throw Error('INVALID_PDF: Upload a valid searchable PDF.');return {text,parsed:true,parser:'text'}}};
 const server=http.createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,'http://localhost');
+    if(url.pathname==='/qa-discovery-file'&&req.method==='POST'){let raw='';for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);discoveryFiles.set(body.path,body.text);res.setHeader('content-type','application/json');return res.end('{}');}
+    if(url.pathname==='/qa-discovery-step'&&req.method==='POST'){let raw='';for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);const result=await serialized(()=>discoveryWork(discoveryDeps,body.engagement_id));res.setHeader('content-type','application/json');return res.end(JSON.stringify(result));}
     if(url.pathname==='/qa-reset-commercial'&&req.method==='POST'){
       const result=await serialized(async()=>{
         await db.query("update nexus_build_plans set status='cancelled' where company_id=$1 and status='awaiting_payment'",[company]);
@@ -94,4 +101,4 @@ const server=http.createServer(async(req,res)=>{
     res.setHeader('Content-Type',mime);res.setHeader('Cache-Control','no-store');res.end(await fs.readFile(filename));
   }catch(error){res.statusCode=404;res.end(error.message)}
 });
-server.listen(4179,'127.0.0.1',()=>console.log('Disposable delivery browser fixture: http://127.0.0.1:4179/qa/delivery-browser/'));
+server.listen(Number(process.env.PORT||4179),'127.0.0.1',()=>console.log('Disposable delivery browser fixture: http://127.0.0.1:4179/qa/delivery-browser/'));

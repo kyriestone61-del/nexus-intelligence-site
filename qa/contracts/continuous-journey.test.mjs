@@ -5,9 +5,9 @@ import {persistEvidence} from '../../portal-evidence-upload.js';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const base={company_id:'co',diagnosis:{access:false,status:null}};
-test('all ten stages stay visible while gates prevent premature delivery',()=>{
+test('all eleven stages stay visible while gates prevent premature delivery',()=>{
   for(const snapshot of [base,{...base,diagnosis:{access:true}},{...base,diagnosis:{status:'approved'}},{...base,package:{stage:'client_review'}},{...base,package:{stage:'completed'}}]){
-    assert.equal(journeyProgress(snapshot).length,10);assert.equal((journeyMarkup(snapshot).match(/<li /g)||[]).length,10);
+    assert.equal(journeyProgress(snapshot).length,11);assert.equal((journeyMarkup(snapshot).match(/<li /g)||[]).length,11);
     assert.equal(journeyProgress(snapshot).filter(s=>s.status==='current').length,snapshot.package?.stage==='completed'?0:1);
   }
   assert.ok(journeyGate('builds',base));assert.ok(journeyGate('progress',base));assert.ok(journeyGate('support',{...base,package:{stage:'client_review'}}));assert.equal(journeyGate('transcript',base),null);
@@ -22,7 +22,7 @@ test('the client shell applies lifecycle visibility to its compact navigation',(
   const shell=readFileSync('portal-client-shell-v2.js','utf8');
   assert.match(shell,/visibleDeliverySections/);
   assert.match(shell,/function updatePrimaryNavigation\(\)/);
-  assert.match(shell,/button\.toggleAttribute\('hidden',!visible\.has\(button\.dataset\.clientView\)\)/);
+  assert.match(shell,/button\.dataset\.clientView!=='transcript'/);
   assert.match(shell,/updateMiniContext\(\);updatePrimaryNavigation\(\);renderInbox\(\)/);
 });
 test('the client action surface excludes historical and delivery work once diagnosis-led Actions exist',()=>{
@@ -42,10 +42,10 @@ test('the portal ships labelled controls, a keyboard skip target, and labelled m
   assert.match(runtime,/modal\.setAttribute\('aria-labelledby', heading\.id\)/);
 });
 test('transcript next step respects access, saved evidence, and existing diagnosis',()=>{
-  assert.equal(journeyNext(base).section,'discovery');
+  assert.equal(journeyNext(base).section,'transcript');
   assert.equal(journeyNext({...base,diagnosis:{access:true}}).section,'transcript');
-  assert.equal(journeyProgress({...base,diagnosis:{access:true,status:'draft'}})[1].status,'current');
-  assert.equal(journeyProgress({...base,diagnosis:{access:true}},true)[2].status,'current');
+  assert.equal(journeyProgress({...base,diagnosis:{access:true,status:'draft'}})[0].status,'current');
+  assert.equal(journeyProgress({...base,diagnosis:{access:true}},true)[3].status,'current');
   assert.equal(journeyNext({...base,diagnosis:{access:true,status:'failed'}}).section,'diagnosis');
 });
 test('saved transcript selection cannot cross company or package',()=>{
