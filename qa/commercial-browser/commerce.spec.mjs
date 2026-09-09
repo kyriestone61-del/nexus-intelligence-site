@@ -62,3 +62,9 @@ test('rendered Services keeps the construction Offer path and retires legacy inj
  await expect(page.locator('[data-offer-ladder] article').filter({hasText:'Ongoing Support'})).toContainText('/month');
  await fits(page);
 });
+
+test('current capabilities page renders without its retired catalog injector',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/capabilities');
+ await expect(page.getByRole('heading',{name:'The workflow comes first.',exact:true})).toBeVisible();
+ await fits(page);expect(errors).toEqual([]);
+});
