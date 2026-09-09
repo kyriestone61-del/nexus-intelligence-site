@@ -7,6 +7,7 @@ on:
       - 'portal-app.js'
       - 'portal-admin-intake.js'
       - 'portal-diagnosis-controller-v2.js'
+      - 'portal-diagnosis-request.js'
       - 'portal-diagnosis-execution-ux.js'
       - 'portal-diagnosis-release-queue.js'
       - 'portal-diagnosis-v2.js'
@@ -29,6 +30,7 @@ on:
       - 'portal-app.js'
       - 'portal-admin-intake.js'
       - 'portal-diagnosis-controller-v2.js'
+      - 'portal-diagnosis-request.js'
       - 'portal-diagnosis-execution-ux.js'
       - 'portal-diagnosis-release-queue.js'
       - 'portal-diagnosis-v2.js'
@@ -74,7 +76,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq "status:'queued'" portal-diagnosis-controller-v2.js
-          grep -Fq "nexus-diagnosis-execute" portal-diagnosis-controller-v2.js
+          grep -Fq "executeDiagnosisStages(sb,id)" portal-diagnosis-controller-v2.js
+          grep -Fq "nexus-diagnosis-execute" portal-diagnosis-request.js
           grep -Fq 'const evidenceDocs=' portal-diagnosis-controller-v2.js
           grep -Fq 'supporting_document_ids:docs.map' portal-diagnosis-controller-v2.js
           grep -Fq 'ensureCurrentAdminContext' portal-diagnosis-controller-v2.js

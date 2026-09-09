@@ -8,6 +8,7 @@ on:
       - 'portal-discovery-capture.js'
       - 'portal-discovery-capture.css'
       - 'portal-diagnosis-controller-v2.js'
+      - 'portal-diagnosis-request.js'
       - 'portal-diagnosis-execution-ux.js'
       - 'portal-diagnosis-v2.js'
       - 'portal-diagnosis-manual-fallback.js'
@@ -78,7 +79,8 @@ jobs:
           grep -Fq 'Step\s*2\s*of\s*6' portal-diagnosis-controller-v2.js
           grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller-v2.js
           grep -Fq 'Review Diagnosis' portal-diagnosis-controller-v2.js
-          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
+          grep -Fq "executeDiagnosisStages(sb,id)" portal-diagnosis-controller-v2.js
+          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-request.js
           grep -Fq 'ready_for_review' portal-diagnosis-v2.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
           grep -Fq 'Finish Step 2 with ChatGPT' portal-diagnosis-manual-fallback.js
