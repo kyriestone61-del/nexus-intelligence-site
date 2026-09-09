@@ -187,7 +187,10 @@ async function documentRows(companyId:string,projectId:string|null,ids:string[]|
   const {data,error}=await q;if(error)throw error;
   // A run's recorded evidence IDs are the authoritative, immutable lineage.
   // Project reassignment after approval must not make those files disappear.
-  return (data||[]).filter((d:any)=>ids?.length||!projectId||!d.project_id||d.project_id===projectId);
+  const removed=await db.from('relystra_discovery_documents').select('document_id').eq('state','removed').in('document_id',(data||[]).map((d:any)=>d.id));
+  if(removed.error)throw removed.error;
+  const excluded=new Set((removed.data||[]).map((d:any)=>d.document_id));
+  return (data||[]).filter((d:any)=>!excluded.has(d.id)&&(ids?.length||d.project_id===projectId));
 }
 async function buildEvidenceBundle(cfg:any,companyId:string,projectId:string|null,ids:string[]|null=null){
   const docs=await documentRows(companyId,projectId,ids);

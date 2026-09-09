@@ -24,7 +24,7 @@ export function mountDiscoveryEvidence(root,portal,{onChange=()=>{},navigate=()=
   const co=company,pr=project,v=epoch;
   const result=await sb.rpc('relystra_discovery_workspace',{p_company_id:co,p_project_id:pr,p_action:action,...extra});
   if(result.error)throw result.error;
-  if(same(co,pr,v)){data=result.data;state.discoveryEvidence={company_id:co,project_id:pr,...data};render();onChange(data)}
+  if(same(co,pr,v)){data=result.data;state.discoveryEvidence={company_id:co,project_id:pr,...data};const removed=new Set(data.documents.filter(d=>d.state==='removed').map(d=>d.id));state.docs=(state.docs||[]).map(d=>({...d,discovery_removed:removed.has(d.id)}));render();onChange(data)}
   return result.data;
  }
  function render(){
