@@ -69,6 +69,7 @@ const server=http.createServer(async(req,res)=>{
       const result=await serialized(async()=>{
         await db.query("update nexus_build_plans set status='cancelled' where company_id=$1 and status='awaiting_payment'",[company]);
         await db.query("update nexus_discovery_requests set initial_plan_id=null,report_state='approved' where id=$1",[reportId]);
+        await db.query("delete from nexus_document_requests where company_id=$1 and build_id is not null",[company]);
         return true;
       });res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(result));
     }
