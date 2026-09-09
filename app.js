@@ -127,7 +127,7 @@
   // Public navigation is intentionally prospect-journey first.
   const menu=document.querySelector('.menu-btn'),nav=document.querySelector('.navlinks');
   if(nav&&!isPortal){
-    nav.innerHTML='<a href="/services">Solutions</a><a href="/methodology">How It Works</a><a href="/case-studies">Results</a><a href="/about">About</a><a class="nav-account" data-track="nav_client_login" href="/portal">Client Login</a><a class="nav-cta" data-track="nav_quick_scan" href="/quick-scan">Free AI Snapshot</a>';
+    nav.innerHTML='<a href="/services">Solutions</a><a href="/methodology">How It Works</a><a href="/construction">Construction</a><a href="/about">About</a><a class="nav-account" data-track="nav_client_login" href="/portal">Client Login</a><a class="nav-cta" data-track="nav_discovery" href="/book">Free Discovery</a>';
   }
   if(menu&&nav){
     menu.addEventListener('click',()=>{
@@ -172,7 +172,7 @@
     document.body.classList.remove('nx-has-mobile-start');
     if(window.NexusJourney.get().stage!=='new'||excluded.includes(path))return;
     const bar=document.createElement('div');bar.className='nx-mobile-start';
-    bar.innerHTML='<a class="btn primary" href="/quick-scan">Get My Free AI Snapshot →</a>';
+    bar.innerHTML='<a class="btn primary" href="/book">Book Free Discovery →</a>';
     document.body.appendChild(bar);document.body.classList.add('nx-has-mobile-start');
   }
   window.addEventListener('nexusjourneychange',renderJourneyUI);
@@ -396,7 +396,7 @@
     if(path!=='/'||document.getElementById('nxCustomerJourney'))return;
     const hero=document.querySelector('main .hero-section');if(!hero)return;
     const section=document.createElement('section');section.id='nxCustomerJourney';section.className='nx-customer-journey-section';
-    section.innerHTML=`<div class="wrap"><div class="nx-journey-shell"><div class="nx-journey-head"><div class="kicker">The simplest way to start</div><h2>One path from curiosity to measurable improvement.</h2><p>You do not need to know which AI tool you need. Start with the business problem and move forward only when the evidence supports the next step.</p></div><div class="nx-journey-steps"><div><span>01</span><b>Free AI Snapshot</b><small>Five minutes to identify the strongest opportunities.</small></div><i>→</i><div><span>02</span><b>Request a Fit Call</b><small>Confirm whether the problem is worth investigating together.</small></div><i>→</i><div><span>03</span><b>Paid Opportunity Assessment</b><small>Establish the real workflow, baseline, risk, and priority.</small></div><i>→</i><div><span>04</span><b>Implement</b><small>Build the smallest controlled solution that is justified.</small></div><i>→</i><div><span>05</span><b>Measure & Improve</b><small>Compare the result to the baseline and expand only when it works.</small></div></div><div class="actions"><a class="btn primary" href="/quick-scan">Get My Free AI Snapshot →</a><a class="btn secondary" href="/book">Request a Fit Call</a></div></div></div>`;
+    section.innerHTML=`<div class="wrap"><div class="nx-journey-shell"><div class="nx-journey-head"><div class="kicker">The simplest way to start</div><h2>One path from curiosity to measurable improvement.</h2><p>You do not need to know which AI tool you need. Start with the business problem and move forward only when the evidence supports the next step.</p></div><div class="nx-journey-steps"><div><span>01</span><b>Free AI Snapshot</b><small>Five minutes to identify the strongest opportunities.</small></div><i>→</i><div><span>02</span><b>Request a Fit Call</b><small>Confirm whether the problem is worth investigating together.</small></div><i>→</i><div><span>03</span><b>First implementation</b><small>One included Build, Full Diagnosis and your Roadmap.</small></div><i>→</i><div><span>04</span><b>Implement</b><small>Build the smallest controlled solution that is justified.</small></div><i>→</i><div><span>05</span><b>Measure & Improve</b><small>Compare the result to the baseline and expand only when it works.</small></div></div><div class="actions"><a class="btn primary" href="/book">Book Free Discovery →</a><a class="btn secondary" href="/book">Request a Fit Call</a></div></div></div>`;
     hero.insertAdjacentElement('afterend',section);
   }
 

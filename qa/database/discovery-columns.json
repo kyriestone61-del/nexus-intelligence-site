@@ -1,0 +1,226 @@
+[
+  {
+    "table_name": "nexus_discovery_context_entries",
+    "column_name": "id",
+    "column_type": "uuid",
+    "default_value": "gen_random_uuid()",
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_context_entries",
+    "column_name": "company_id",
+    "column_type": "uuid",
+    "default_value": null,
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_context_entries",
+    "column_name": "project_id",
+    "column_type": "uuid",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_context_entries",
+    "column_name": "context_type",
+    "column_type": "text",
+    "default_value": "'admin_context'::text",
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_context_entries",
+    "column_name": "content",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_context_entries",
+    "column_name": "is_current",
+    "column_type": "boolean",
+    "default_value": "true",
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_context_entries",
+    "column_name": "created_by",
+    "column_type": "uuid",
+    "default_value": null,
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_context_entries",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "default_value": "now()",
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "id",
+    "column_type": "uuid",
+    "default_value": "gen_random_uuid()",
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "full_name",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "email",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "company_name",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "website",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "problem_summary",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "created_at",
+    "column_type": "timestamp with time zone",
+    "default_value": "now()",
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "status",
+    "column_type": "text",
+    "default_value": "'new'::text",
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "requested_start",
+    "column_type": "timestamp with time zone",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "timezone",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "recommended_service",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "opportunity_title",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "journey_snapshot",
+    "column_type": "jsonb",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "booking_status",
+    "column_type": "text",
+    "default_value": "'requested'::text",
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "calendar_provider",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "calendar_event_id",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "meeting_url",
+    "column_type": "text",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "confirmed_start",
+    "column_type": "timestamp with time zone",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "confirmed_end",
+    "column_type": "timestamp with time zone",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "cancellation_token",
+    "column_type": "uuid",
+    "default_value": "gen_random_uuid()",
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "reschedule_token",
+    "column_type": "uuid",
+    "default_value": "gen_random_uuid()",
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "cancelled_at",
+    "column_type": "timestamp with time zone",
+    "default_value": null,
+    "not_null": false
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "first_touch",
+    "column_type": "jsonb",
+    "default_value": "'{}'::jsonb",
+    "not_null": true
+  },
+  {
+    "table_name": "nexus_discovery_requests",
+    "column_name": "last_touch",
+    "column_type": "jsonb",
+    "default_value": "'{}'::jsonb",
+    "not_null": true
+  }
+]

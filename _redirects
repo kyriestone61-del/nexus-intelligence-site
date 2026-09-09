@@ -9,9 +9,9 @@
 /operations /portal?view_mode=admin 301
 /operations/ /portal?view_mode=admin 301
 /operations.html /portal?view_mode=admin 301
-/assessment /quick-scan 301
-/assessment/ /quick-scan 301
-/assessment.html /quick-scan 301
+/assessment /book 301
+/assessment/ /book 301
+/assessment.html /book 301
 /prospect-workspace /portal 301
 /prospect-workspace/ /portal 301
 /prospect-workspace.html /portal 301
@@ -25,3 +25,8 @@
 /book https://calendar.app.google/Tf4mfbREYbdR51BV7 302
 /book/ https://calendar.app.google/Tf4mfbREYbdR51BV7 302
 /book.html https://calendar.app.google/Tf4mfbREYbdR51BV7 302
+
+# Previous free screening entry points now start with Discovery.
+/quick-scan /book 301
+/quick-scan/ /book 301
+/quick-scan.html /book 301

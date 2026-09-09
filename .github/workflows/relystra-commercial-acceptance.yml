@@ -1,0 +1,32 @@
+name: RELYSTRA Commercial Acceptance
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  commercial-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --prefix qa/database --ignore-scripts
+      - run: node qa/scripts/generate-delivery-catalog.mjs --check
+      - run: node --test qa/contracts/*.test.mjs qa/relystra-delivery-lifecycle.test.mjs qa/relystra-release-safety.test.mjs qa/database/*.test.mjs
+      - run: npm ci --prefix qa/playwright --ignore-scripts
+      - run: qa/playwright/node_modules/.bin/playwright install --with-deps chromium
+      - run: qa/playwright/node_modules/.bin/playwright test --config qa/commercial-browser/playwright.config.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: commercial-acceptance-evidence
+          path: |
+            qa/commercial-browser/report
+            qa/commercial-browser/test-results
+            test-results
+          if-no-files-found: ignore

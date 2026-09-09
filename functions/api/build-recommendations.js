@@ -18,7 +18,7 @@ export async function onRequest({request}){
     // Do not retry an ambiguous POST: generation may already have committed.
     const upstream=await fetch(endpoint,{method:'POST',redirect:'manual',
       headers:{authorization,apikey:publishable,'content-type':'application/json'},
-      body:JSON.stringify({operation:'recommend_builds',company_id:body.company_id,run_id:body.run_id}),
+      body:JSON.stringify({operation:'recommend_builds',company_id:body.company_id,run_id:body.run_id,catalog_after:body.catalog_after||''}),
       signal:controller.signal});
     let data;try{data=await upstream.json()}catch{
       console.error('build_recommendations_invalid_response',{requestId,status:upstream.status});
@@ -28,7 +28,7 @@ export async function onRequest({request}){
       console.error('build_recommendations_upstream_error',{requestId,status:upstream.status});
       return reply({ok:false,error:typeof data?.error==='string'?data.error.slice(0,500):'BUILD_SERVICE_FAILED',request_id:requestId},upstream.ok?502:upstream.status);
     }
-    return reply({ok:true,build_ids:Array.isArray(data.build_ids)?data.build_ids:[],status:data.status,human_review_required:true,request_id:requestId});
+    return reply({ok:true,build_ids:Array.isArray(data.build_ids)?data.build_ids:[],status:data.status,next_cursor:data.next_cursor||null,human_review_required:true,request_id:requestId});
   }catch(error){
     const timeout=error?.name==='TimeoutError'||error?.name==='AbortError';
     const diagnostic=String(error?.message||error).replaceAll(authorization,'[redacted]').slice(0,240);

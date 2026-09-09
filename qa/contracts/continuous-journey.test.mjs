@@ -42,7 +42,7 @@ test('the portal ships labelled controls, a keyboard skip target, and labelled m
   assert.match(runtime,/modal\.setAttribute\('aria-labelledby', heading\.id\)/);
 });
 test('transcript next step respects access, saved evidence, and existing diagnosis',()=>{
-  assert.equal(journeyNext(base).section,'overview');
+  assert.equal(journeyNext(base).section,'discovery');
   assert.equal(journeyNext({...base,diagnosis:{access:true}}).section,'transcript');
   assert.equal(journeyProgress({...base,diagnosis:{access:true,status:'draft'}})[1].status,'current');
   assert.equal(journeyProgress({...base,diagnosis:{access:true}},true)[2].status,'current');

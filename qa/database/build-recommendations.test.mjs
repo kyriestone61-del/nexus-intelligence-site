@@ -5,7 +5,8 @@ import {recommendationFindings,buildRecommendationPayload} from '../../supabase/
 
 const admin='00000000-0000-4000-8000-000000000001',client='00000000-0000-4000-8000-000000000002',company='00000000-0000-4000-8000-000000000003';
 const analysis={opportunity_backlog:[{title:'Bid intake',problem:'Scattered bids'}]};
-const draft={name:'Bid intake',outcome:'A routed bid',template_code:'build_bid_intake',source_path:'opportunity_backlog/0',completed_action_ids:[],
+const qualification=Object.fromEntries(['impact','urgency','effort','dependency_readiness','client_readiness','confidence'].map(k=>[k,{level:'medium',reason:'Supported by the supplied finding; uncertainty retained.'}]));
+const draft={qualified:true,qualification,operational_benefit:'Clear ownership of each bid',name:'Bid intake',outcome:'A routed bid',template_code:'build_bid_intake',source_path:'opportunity_backlog/0',completed_action_ids:[],
   scope_in:['One approved intake source'],scope_out:['No auto-submission'],acceptance_criteria:['A sample bid reaches its owner'],
   price_cents:1,complexity:'simple',duration_min:1,duration_max:1,build_review_state:'approved'};
 
@@ -55,7 +56,7 @@ test('generated Build batches reject stale evidence, roll back partial failures 
 test('invalid generated references get one bounded repair and still require full validation',async()=>{
   const {validatedBuildRecommendations}=await import('../../supabase/functions/_shared/relystra-build-recommendations.ts');
   const findings=[{source_path:'claims/0'}],templates=[{code:'valid_template'}],inputs=[];
-  const valid={name:'Bounded QA Build',outcome:'Reviewable QA outcome',source_path:'claims/0',template_code:'valid_template',completed_action_ids:[]};
+  const valid={qualified:true,qualification,operational_benefit:'Clear workflow ownership',name:'Bounded QA Build',outcome:'Reviewable QA outcome',source_path:'claims/0',template_code:'valid_template',completed_action_ids:[]};
   let attempts=0;
   const builds=await validatedBuildRecommendations(async(correction,timeout)=>{
     attempts++;assert.ok(timeout<=65000);

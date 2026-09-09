@@ -14,7 +14,7 @@ export async function database(extraMigrations=[]){
     grant usage on schema public,auth,private to authenticated;
     grant execute on function auth.uid() to authenticated;`);
   const extra=JSON.parse(await read('baseline-extra-metadata.json'));
-  const columns=[...JSON.parse(await read('baseline-columns.json')),...extra.columns];
+  const columns=[...JSON.parse(await read('baseline-columns.json')),...extra.columns,...JSON.parse(await read('discovery-columns.json'))];
   const identities=JSON.parse(await read('baseline-identities.json'));
   const controls=JSON.parse(await read('baseline-controls.json'));
   controls.constraints.push(...extra.constraints);
@@ -25,6 +25,7 @@ export async function database(extraMigrations=[]){
   }
   for(const constraint of controls.constraints.filter(row=>!/FOREIGN KEY/.test(row.definition)))
     await db.exec(`alter table public.${quote(constraint.table)} add constraint ${quote(constraint.name)} ${constraint.definition};`);
+  await db.exec('alter table public.nexus_discovery_requests add primary key(id); alter table public.nexus_discovery_context_entries add primary key(id)');
   for(const constraint of controls.constraints.filter(row=>/FOREIGN KEY/.test(row.definition))){
     const target=constraint.definition.match(/REFERENCES (\w+(?:\.\w+)?)/)?.[1];
     if(target==='auth.users'||names.includes(target))await db.exec(`alter table public.${quote(constraint.table)} add constraint ${quote(constraint.name)} ${constraint.definition};`);

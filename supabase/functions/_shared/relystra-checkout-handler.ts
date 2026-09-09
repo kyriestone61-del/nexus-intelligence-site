@@ -12,19 +12,30 @@ export async function handleCheckout(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({error:'METHOD_NOT_ALLOWED'},405);
   if (req.headers.get('origin') && req.headers.get('origin') !== origin) return json({error:'ORIGIN_NOT_ALLOWED'},403);
   try {
-    const bearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i,'');
-    if (!bearer) return json({error:'AUTH_REQUIRED'},401);
-    const url = Deno.env.get('SUPABASE_URL')!;
-    const actor = createClient(url,Deno.env.get('SUPABASE_ANON_KEY')!,{global:{headers:{Authorization:`Bearer ${bearer}`}},auth:{persistSession:false}});
-    const {data:{user},error:authError} = await actor.auth.getUser(bearer);
-    if (authError || !user) return json({error:'AUTH_REQUIRED'},401);
     const body = await req.json();
     if (typeof body.plan_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.plan_id) || !['checkout','cancel'].includes(body.operation || 'checkout')) return json({error:'INVALID_REQUEST'},400);
-    // RLS resolves the client's scope before any service-role operation or Stripe API request.
-    const {data:visible,error:readError} = await actor.from('nexus_build_plans').select('*').eq('id',body.plan_id).maybeSingle();
-    if (readError || !visible) return json({error:'PLAN_NOT_FOUND'},404);
-    if (visible.status !== 'awaiting_payment') return json({status:visible.status});
+    const url = Deno.env.get('SUPABASE_URL')!;
     const db = createClient(url,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
+    let visible:any,user:{id:string};
+    if(typeof body.report_token==='string'){
+      const {data:report,error}=await db.rpc('relystra_basic_report_access',{p_token:body.report_token,p_operation:'checkout'});
+      if(error||!report?.plan_id||report.plan_id!==body.plan_id)return json({error:'REPORT_UNAVAILABLE'},404);
+      const result=await db.from('nexus_build_plans').select('*').eq('id',report.plan_id).eq('source_discovery_id',report.id).eq('company_id',report.company_id).single();
+      if(result.error||!result.data)return json({error:'REPORT_UNAVAILABLE'},404);
+      visible=result.data;user={id:report.actor_id};
+    }else{
+      const bearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i,'');
+      if (!bearer) return json({error:'AUTH_REQUIRED'},401);
+      const actor = createClient(url,Deno.env.get('SUPABASE_ANON_KEY')!,{global:{headers:{Authorization:`Bearer ${bearer}`}},auth:{persistSession:false}});
+      const {data:authData,error:authError} = await actor.auth.getUser(bearer);
+      if(authError||!authData.user)return json({error:'AUTH_REQUIRED'},401);
+      user=authData.user;
+      // RLS resolves membership before any privileged commercial action.
+      const result=await actor.from('nexus_build_plans').select('*').eq('id',body.plan_id).maybeSingle();
+      if(result.error||!result.data)return json({error:'PLAN_NOT_FOUND'},404);
+      visible=result.data;
+    }
+    if (visible.status !== 'awaiting_payment') return json({status:visible.status});
     const cancel = body.operation === 'cancel';
     const cancelPlan = async (sessionId: string | null) => {
       const {error} = await db.rpc('relystra_cancel_verified_plan',{p_plan_id:body.plan_id,p_user_id:user.id,p_expired_session_id:sessionId});

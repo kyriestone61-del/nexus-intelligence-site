@@ -6,3 +6,4 @@ playwright-report/
 !.env.example
 
 supabase/.temp/
+qa/commercial-browser/report/

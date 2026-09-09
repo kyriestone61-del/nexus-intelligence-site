@@ -18,7 +18,7 @@ test('recommendation relay forwards only the caller and fixed operation, preserv
     count++;assert.equal(url,'https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-diagnosis-execute');
     assert.equal(options.headers.authorization,'Bearer test-caller');
     assert.equal(options.redirect,'manual');assert.ok(options.signal);
-    assert.deepEqual(JSON.parse(options.body),{operation:'recommend_builds',company_id:company,run_id:run});
+    assert.deepEqual(JSON.parse(options.body),{operation:'recommend_builds',company_id:company,run_id:run,catalog_after:''});
     return Response.json({ok:false,error:'ADMIN_REQUIRED'},{status:403});
   });
   const response=await onRequest({request:request({company_id:company,run_id:run,operation:'ask_support',url:'https://attacker.test'})});
@@ -32,7 +32,7 @@ test('transport failures return actionable status and never repeat an ambiguous 
 test('browser uses same-origin relay and returns real generation IDs',async t=>{
   t.mock.method(globalThis,'fetch',async(url,options)=>{
     assert.equal(url,'/api/build-recommendations');assert.equal(options.headers.authorization,'Bearer caller');
-    assert.deepEqual(JSON.parse(options.body),{company_id:company,run_id:run});
+    assert.deepEqual(JSON.parse(options.body),{company_id:company,run_id:run,catalog_after:''});
     return Response.json({ok:true,build_ids:['existing-build']});
   });
   const result=await requestBuildRecommendations({auth:{getSession:async()=>({data:{session:{access_token:'caller'}}})}},company,run);
@@ -46,4 +46,12 @@ test('browser distinguishes upstream failure and keeps its correlation reference
 test('redirected upstream is rejected without forwarding caller credentials to another destination',async t=>{
   let count=0;t.mock.method(globalThis,'fetch',async(url,options)=>{count++;assert.equal(options.redirect,'manual');return new Response(null,{status:302,headers:{location:'https://untrusted.test'}})});
   const response=await onRequest({request:request()});assert.equal(response.status,502);assert.equal((await response.json()).error,'BUILD_SERVICE_INVALID_RESPONSE');assert.equal(count,1);
+});
+
+test('browser traverses the complete catalog across batches and rejects a repeated cursor',async t=>{
+ let count=0;const sb={auth:{getSession:async()=>({data:{session:{access_token:'caller'}}})}};
+ t.mock.method(globalThis,'fetch',async(_url,options)=>{const body=JSON.parse(options.body);assert.equal(body.catalog_after,count?'build_z':'');count++;return Response.json({ok:true,build_ids:['build-'+count],next_cursor:count===1?'build_z':null})});
+ const result=await requestBuildRecommendations(sb,company,run);assert.equal(count,2);assert.deepEqual(result.build_ids,['build-1','build-2']);
+ t.mock.method(globalThis,'fetch',async()=>Response.json({ok:true,build_ids:[],next_cursor:'build_same'}));
+ await assert.rejects(requestBuildRecommendations(sb,company,run),/cursor did not advance/);
 });

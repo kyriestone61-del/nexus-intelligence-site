@@ -97,3 +97,16 @@ test('diagnosis checkout is idempotent, company-scoped, cancellable, and activat
     await asUser(db,client,()=>assert.rejects(db.query('select relystra_create_diagnosis_plan($1)',[company]),/already has diagnosis access/));
   }finally{await db.exec('reset role');await db.close()}
 });
+
+test('a partial payment charges only its exact deposit while retaining total scope and private return capability',()=>{
+ const deposit={...plan,deposit_cents:100000,source_discovery_id:'report'};
+ const p=checkoutParameters(deposit,'https://nexusintelligence.live');
+ assert.equal(p.line_items.length,1);assert.equal(p.line_items[0].price_data.unit_amount,100000);
+ assert.match(p.success_url,/basic-report\?plan=/);assert.ok(!p.success_url.includes('token'));
+ const verified=verifiedPayment(event,{...session,amount_total:100000},deposit,plan.checkout_account_id);
+ assert.equal(verified.p_amount_cents,100000);assert.equal(deposit.total_cents,425000);
+ assert.throws(()=>verifiedPayment(event,session,deposit,plan.checkout_account_id),/MISMATCH/);
+ for(const amount of [0,-1,425001,0.1])assert.throws(()=>checkoutParameters({...deposit,deposit_cents:amount},'https://nexusintelligence.live'),/DEPOSIT/);
+ const many={...plan,items:Array.from({length:101},()=>({name:'Approved Build',price_cents:1000,currency:'usd'})),total_cents:101000};
+ assert.equal(checkoutParameters(many,'https://nexusintelligence.live').line_items.length,1);
+});

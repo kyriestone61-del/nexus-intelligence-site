@@ -9,17 +9,24 @@ export function buildRecommendationPayload(result: unknown, findings: Array<{sou
   templates: Array<{code:string}>, inputs: Array<{id:string}>) {
   if (!result || typeof result !== 'object' || !Array.isArray((result as {builds?:unknown}).builds)) throw new Error('INVALID_BUILD_RECOMMENDATIONS');
   const builds = (result as {builds:Record<string,unknown>[]}).builds;
-  if (builds.length>25) throw new Error('BUILD_RECOMMENDATION_LIMIT');
+  if (builds.length>1000) throw new Error('BUILD_RECOMMENDATION_LIMIT');
   const seen=new Set<string>();
-  return builds.map(spec => {
+  return builds.filter(spec => spec.qualified === true).map(spec => {
     if (!spec || typeof spec !== 'object' || typeof spec.name!=='string' || !spec.name.trim() || typeof spec.outcome!=='string' || !spec.outcome.trim()) throw new Error('UNSUPPORTED_BUILD_RECOMMENDATION_NAME_OR_OUTCOME');
     if (!findings.some(f=>f.source_path===spec.source_path)) throw new Error('UNSUPPORTED_BUILD_RECOMMENDATION_SOURCE_PATH');
     if (!templates.some(t=>t.code===spec.template_code)) throw new Error('UNSUPPORTED_BUILD_RECOMMENDATION_TEMPLATE_CODE');
     if (!Array.isArray(spec.completed_action_ids) || spec.completed_action_ids.some(id=>!inputs.some(i=>i.id===id))) throw new Error('UNSUPPORTED_BUILD_RECOMMENDATION_ACTION_IDS');
-    const key=`${spec.source_path}:${spec.template_code}`;
+    const key=String(spec.template_code);
+    const qualification:Record<string,{level:string;reason:string}>={};
+    for(const field of ['impact','urgency','effort','dependency_readiness','client_readiness','confidence']){
+      const factor=(spec.qualification as Record<string,any>)?.[field];
+      if(!factor||!['low','medium','high','unknown'].includes(factor.level)||typeof factor.reason!=='string'||factor.reason.trim().length<5)throw new Error('UNSUPPORTED_BUILD_RECOMMENDATION_QUALIFICATION');
+      qualification[field]={level:factor.level,reason:factor.reason.trim().slice(0,3000)};
+    }
+    if(typeof spec.operational_benefit!=='string'||spec.operational_benefit.trim().length<5)throw new Error('UNSUPPORTED_BUILD_RECOMMENDATION_BENEFIT');
     if(seen.has(key))throw new Error('DUPLICATE_BUILD_RECOMMENDATION');seen.add(key);
     const strings=(value:unknown) => Array.isArray(value) ? value.filter((v):v is string=>typeof v==='string').map(v=>v.slice(0,3000)).slice(0,30) : [];
-    return {name:spec.name.trim().slice(0,250),outcome:spec.outcome.trim().slice(0,6000),problem:String(spec.problem||'').slice(0,6000),
+    return {qualified:true,qualification,operational_benefit:String(spec.operational_benefit).slice(0,3000),placement:spec.placement==='later'?'later':'next',dependency_reason:String(spec.dependency_reason||'').slice(0,3000),name:spec.name.trim().slice(0,250),outcome:spec.outcome.trim().slice(0,6000),problem:String(spec.problem||'').slice(0,6000),
       template_code:spec.template_code,source_path:spec.source_path,completed_action_ids:spec.completed_action_ids,
       scope_in:strings(spec.scope_in),scope_out:strings(spec.scope_out),required_inputs:strings(spec.required_inputs),
       acceptance_criteria:strings(spec.acceptance_criteria),assumptions:strings(spec.assumptions),risks:strings(spec.risks),

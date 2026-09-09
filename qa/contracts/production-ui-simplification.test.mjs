@@ -81,6 +81,6 @@ test('advanced admin filtering remains behind dedicated operating surfaces',()=>
 
 test('legacy duplicate workflows redirect to canonical surfaces',()=>{
   assert.match(redirects,/\/operations \/portal\?view_mode=admin 301/);
-  assert.match(redirects,/\/assessment \/quick-scan 301/);
+  assert.match(redirects,/\/assessment \/book 301/);
   assert.match(redirects,/\/prospect-workspace \/portal 301/);
 });
