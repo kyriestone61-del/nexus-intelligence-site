@@ -196,6 +196,13 @@ export function createModalManager({ events } = {}) {
     modal.setAttribute('role', modal.getAttribute('role') || 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-hidden', modal.classList.contains('show') ? 'false' : 'true');
+    if (!modal.hasAttribute('aria-label') && !modal.hasAttribute('aria-labelledby')) {
+      const heading = modal.querySelector('h1,h2,h3');
+      if (heading) {
+        heading.id ||= `${key}-title`;
+        modal.setAttribute('aria-labelledby', heading.id);
+      }
+    }
     registry.bind(modal, 'click', `${key}:backdrop`, event => { if (event.target === modal) close(modal); });
     modal.querySelectorAll('.close,[data-modal-close]').forEach((button, index) => registry.bind(button, 'click', `${key}:close:${index}`, () => close(modal)));
   }

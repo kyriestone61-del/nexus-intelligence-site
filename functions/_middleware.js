@@ -104,7 +104,7 @@ export async function onRequest(context){
     return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
   }
 
-  if(isPrivate)headers.set('X-Robots-Tag','noindex, nofollow, noarchive');
+  if(isPrivate||isProtectedMarketing)headers.set('X-Robots-Tag','noindex, nofollow, noarchive');
   else if(isPreview)headers.set('X-Robots-Tag','noindex');
 
   if(!String(headers.get('content-type')||'').includes('text/html')){
@@ -115,7 +115,7 @@ export async function onRequest(context){
 
   const canonical=`${SITE_ORIGIN}${path}`;
   const structuredData=`${path==='/'?jsonLd(organizationSchema):''}${path==='/services'?jsonLd(servicesSchema):''}${path==='/about'?jsonLd(founderSchema):''}`;
-  const headHtml=isPrivate
+  const headHtml=isPrivate||isProtectedMarketing
     ? '<meta name="robots" content="noindex,nofollow,noarchive">'
     : `<link rel="canonical" href="${canonical}"><meta property="og:url" content="${canonical}"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image">${structuredData}`;
 
@@ -123,7 +123,7 @@ export async function onRequest(context){
     .on('link[rel="canonical"]',{element(el){el.remove();}})
     .on('meta[property="og:url"]',{element(el){el.remove();}})
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
-    .on('meta[name="robots"]',{element(el){if(!isPrivate)el.remove();}})
+    .on('meta[name="robots"]',{element(el){if(!isPrivate&&!isProtectedMarketing)el.remove();}})
     .on('meta[name="relystra-stage"]',{element(el){el.remove();}})
     .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
