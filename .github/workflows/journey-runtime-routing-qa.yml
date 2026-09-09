@@ -95,7 +95,7 @@ jobs:
           grep -Fq 'Review Diagnosis' portal-diagnosis-controller-v2.js
           grep -Fq 'Diagnosis execution failed.' portal-diagnosis-controller-v2.js
           grep -Fq 'A diagnosis already exists.' portal-diagnosis-controller-v2.js
-          grep -Fq 'Finish Step 2 with ChatGPT' portal-diagnosis-manual-fallback.js
+          grep -Fq 'Finish Full Diagnosis with ChatGPT' portal-diagnosis-manual-fallback.js
           grep -Fq "status:'ready_for_review'" portal-diagnosis-manual-fallback.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
           grep -Fq 'nexus_release_client_task' portal-diagnosis-release-queue.js
