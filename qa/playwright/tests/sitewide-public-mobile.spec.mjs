@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 
 // Full RELYSTRA QAQC rerun marker after methodology mobile typography correction.
 const paths=[
-  '/','/about','/accessibility','/assessment','/capabilities','/construction','/delivery-standard','/faq','/industries','/methodology','/privacy','/problems','/quick-scan','/roi-calculator','/security','/services',
+  '/','/about','/accessibility','/capabilities','/construction','/delivery-standard','/faq','/industries','/methodology','/privacy','/problems','/roi-calculator','/security','/services',
   '/services/ai-enablement-training','/services/ai-opportunity-assessment','/services/business-transformation','/services/fractional-ai-director','/services/implementation-sprint','/services/managed-ai-operations','/terms'
 ];
 const base=process.env.NEXUS_QA_BASE_URL||'https://nexusintelligence.live';
@@ -57,4 +57,9 @@ test('sitemap exposes the complete governed public surface on the canonical doma
   const xml=await response.text();
   for(const path of paths)expect(xml).toContain(`<loc>${canonical}${path}</loc>`);
   expect(xml).not.toMatch(/\/portal|\/operations|\/admin/);
+});
+
+for(const path of ['/assessment','/quick-scan'])test(`retired diagnostic route ${path} leads to Free Discovery`,async({request})=>{
+ const r=await request.get(`${base}${path}`,{maxRedirects:0});expect(r.status()).toBe(301);
+ const target=new URL(r.headers().location,base);expect(target.origin).toBe(new URL(base).origin);expect(target.pathname).toBe('/book');
 });

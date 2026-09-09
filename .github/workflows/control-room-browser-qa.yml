@@ -185,7 +185,11 @@ jobs:
           fi
           # Legacy pilot specs remain in source as historical tests. Current delivery has
           # no unpaid Project: exercise real authenticated pre-build work in all browsers.
-          npx playwright test tests/control-room-reconcile.spec.mjs tests/delivery-prepurchase.spec.mjs --config=control-room.config.mjs --retries=0
+          # The automatic push run owns the full unpaid, three-device baseline.
+          # The opt-in paid scenario uses its own fresh company and verifies commercial gates.
+          if [ "${NEXUS_QA_COMMERCIAL_RELEASE:-0}" != '1' ]; then
+            npx playwright test tests/control-room-reconcile.spec.mjs tests/delivery-prepurchase.spec.mjs --config=control-room.config.mjs --retries=0
+          fi
           if [ '${{ github.event_name }}' != 'pull_request' ]; then
             npx playwright test tests/qa-intake-register.spec.mjs --config=control-room.config.mjs --retries=0
           fi
