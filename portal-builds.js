@@ -153,7 +153,7 @@ export function mountBuilds(root,portal){
       else if(button.dataset.balance){const {error}=await sb.rpc('relystra_create_balance_plan',{p_plan_id:button.dataset.balance});if(error)throw error;stage='scope';}
       else if(button.hasAttribute('data-generate-builds')){
         button.textContent='Preparing evidence-backed recommendations…';
-        const data=await requestBuildRecommendations(sb,company,diagnosis?.id,p=>{if(button.isConnected)button.textContent=`Reviewing Library · ${p.reviewed_batches} batches · ${p.count} qualified recommendations`;});
+        const data=await requestBuildRecommendations(sb,company,diagnosis?.id,p=>{if(button.isConnected)button.textContent=`Reviewing Library · ${p.reviewed_count} capabilities reviewed · ${p.count} qualified recommendations`;});
         if(state.companyId===company)toast(`${data.build_ids?.length||0} recommendations ready for review.`);
       }else if(button.hasAttribute('data-create-build-plan')){
         const {error}=await sb.rpc('relystra_create_build_plan',{p_company_id:company,p_build_ids:[...selected],p_name:'Additional implementation scope'});if(error)throw error;selected.clear();stage='scope';

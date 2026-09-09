@@ -17,11 +17,11 @@ async function requestBatch(sb,companyId,runId,catalogAfter){
 }
 
 export async function requestBuildRecommendations(sb,companyId,runId,onProgress=()=>{}){
-  let cursor='',ids=[]; const seen=new Set();
+  let cursor='',ids=[],reviewed=[]; const seen=new Set();
   do{
     if(seen.has(cursor))throw new Error('Recommendation cursor did not advance. Refresh before retrying.');
     seen.add(cursor);const batch=await requestBatch(sb,companyId,runId,cursor);
-    ids.push(...batch.build_ids);cursor=batch.next_cursor;onProgress({reviewed_batches:seen.size,count:ids.length});
+    ids.push(...batch.build_ids);reviewed.push(...(batch.reviewed_template_codes||[]));cursor=batch.next_cursor;onProgress({reviewed_batches:seen.size,reviewed_count:reviewed.length,count:ids.length});
   }while(cursor);
-  return {ok:true,build_ids:[...new Set(ids)],human_review_required:true};
+  return {ok:true,build_ids:[...new Set(ids)],reviewed_template_codes:[...new Set(reviewed)],human_review_required:true};
 }

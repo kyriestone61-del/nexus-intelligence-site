@@ -28,7 +28,7 @@ export async function onRequest({request}){
       console.error('build_recommendations_upstream_error',{requestId,status:upstream.status});
       return reply({ok:false,error:typeof data?.error==='string'?data.error.slice(0,500):'BUILD_SERVICE_FAILED',request_id:requestId},upstream.ok?502:upstream.status);
     }
-    return reply({ok:true,build_ids:Array.isArray(data.build_ids)?data.build_ids:[],status:data.status,next_cursor:data.next_cursor||null,human_review_required:true,request_id:requestId});
+    return reply({ok:true,build_ids:Array.isArray(data.build_ids)?data.build_ids:[],status:data.status,reviewed_template_codes:Array.isArray(data.reviewed_template_codes)?data.reviewed_template_codes:[],next_cursor:data.next_cursor||null,human_review_required:true,request_id:requestId});
   }catch(error){
     const timeout=error?.name==='TimeoutError'||error?.name==='AbortError';
     const diagnostic=String(error?.message||error).replaceAll(authorization,'[redacted]').slice(0,240);
