@@ -1,3 +1,4 @@
+import {executeDiagnosis as executeDiagnosisStages} from './portal-diagnosis-request.js';
 import {currentTranscript,transcriptSelectionKey} from './portal-journey-steps.js';
 import {companyPreparationQuery,preparationDocuments,workspaceSourceDiagnosisId} from './portal-workspace-context.js';
 import {buildDiscoveryPacket} from './portal-discovery-capture.js';
@@ -59,7 +60,7 @@ async function createQueuedRun(){
 }
 async function executeExisting(id){
   if(!id)return;const companyId=state.companyId;toast?.('Diagnosis analysis started.');
-  const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:id}});
+  const {data,error}=await executeDiagnosisStages(sb,id);
   if(error||data?.ok===false)throw new Error(data?.error||error?.message||'Diagnosis execution failed.');
   invalidateLatest();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await workspace?.();await window.NexusAdminIntake?.refresh?.({reload:true});
   const run=await loadRun(id);if(state.companyId!==companyId)return run;

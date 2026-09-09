@@ -1,3 +1,4 @@
+import {executeDiagnosis as executeDiagnosisStages} from './portal-diagnosis-request.js';
 (function(){
   const portal=window.NexusPortal;
   if(!portal)return;
@@ -178,7 +179,7 @@
 
   async function execute(id){
     toast?.('Diagnosis analysis started.');
-    const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:id}});
+    const {data,error}=await executeDiagnosisStages(sb,id);
     if(error||data?.ok===false){
       const message=data?.error||error?.message||'Diagnosis execution failed.';
       reviewCache.delete(id);
