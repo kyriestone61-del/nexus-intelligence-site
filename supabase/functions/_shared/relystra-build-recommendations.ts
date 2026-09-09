@@ -1,4 +1,12 @@
 // Deliberately narrow model output. Administrator review supplies final commercial terms.
+export function qualificationCatalog(templates:Array<{code:string;title:string;default_recipe:Record<string,unknown>}>) {
+  return templates.map(({code,title,default_recipe:r})=>({code,title,
+    workflow_lane:r.workflow_lane,problem:r.typical_problem,outcome:r.typical_outcome,
+    qualifying_conditions:r.qualifying_conditions,required_inputs:r.required_inputs,
+    implementation_effort:r.implementation_effort,complexity:r.complexity,
+    prerequisite_builds:r.prerequisite_builds,optional_automations:r.optional_automations}));
+}
+
 export function recommendationFindings(run: {id:string;analysis_result:Record<string,unknown>}) {
   return ['opportunity_backlog','bottlenecks','root_causes','claims'].flatMap(key =>
     (Array.isArray(run.analysis_result[key]) ? run.analysis_result[key] as unknown[] : []).map((snapshot,index) =>
@@ -41,12 +49,12 @@ export async function validatedBuildRecommendations(
   generate:(correction:unknown,timeoutMs:number)=>Promise<unknown>,
   findings:Array<{source_path:string}>,templates:Array<{code:string}>,inputs:Array<{id:string}>,
   now:()=>number=()=>Date.now()) {
-  const deadline=now()+90000;
+  const deadline=now()+100000;
   let correction:unknown=null;
   for(let attempt=0;attempt<2;attempt++){
     const remaining=deadline-now();
     if(remaining<5000)throw new Error('MODEL_TIMEOUT');
-    const result=await generate(correction,Math.min(65000,remaining));
+    const result=await generate(correction,Math.min(80000,remaining));
     try{return buildRecommendationPayload(result,findings,templates,inputs)}
     catch(error){
       const code=String((error as Error)?.message||error);

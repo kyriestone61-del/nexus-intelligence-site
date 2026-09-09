@@ -72,7 +72,16 @@ test('deployed Discovery, real Stripe test settlement, Full Diagnosis, expansion
   await rpc(page,'nexus_approve_diagnosis',{p_run_id:run.id,p_note:'Synthetic release acceptance: reviewed actual generated findings against the retained labeled QA transcript.'});
   expect((await rows(page,'nexus_projects','context_diagnosis_run_id',{id:original.id}))[0].context_diagnosis_run_id).toBe(run.id);
   await page.goto(`/portal?view_mode=admin&company=${company}&project=${original.id}&section=builds`);await expect(page.locator('[data-generate-builds]')).toBeEnabled({timeout:45000});
-  await page.locator('[data-generate-builds]').click();await expect(page.locator('[data-generate-builds]')).toBeEnabled({timeout:600000});
+  const library=await rows(page,'nexus_resolution_catalog','code,default_recipe',{active:true});const recommendationCalls=[];
+  const captureRecommendations=response=>{if(new URL(response.url()).pathname==='/api/build-recommendations'&&response.request().method()==='POST')recommendationCalls.push(response.json().then(data=>({status:response.status(),data})));};
+  page.on('response',captureRecommendations);
+  await page.locator('[data-generate-builds]').click();await expect(page.locator('[data-generate-builds]')).toBeEnabled({timeout:1000000});
+  page.off('response',captureRecommendations);const generation=await Promise.all(recommendationCalls);expect(generation.length).toBeGreaterThan(0);
+  for(const response of generation)expect(response.status,JSON.stringify(response.data)).toBe(200);
+  expect(generation.at(-1).data.next_cursor).toBeNull();
+  const reviewed=[...new Set(generation.flatMap(r=>r.data.reviewed_template_codes))].sort();
+  expect(reviewed).toEqual(library.filter(t=>t.default_recipe.catalog_kind==='build_template').map(t=>t.code).sort());
+  console.log('LIBRARY_GENERATION_ACCEPTANCE',JSON.stringify({batches:generation.length,reviewed:reviewed.length,complete:true}));
   const proposed=await rows(page,'nexus_opportunities','id,title,build_spec,build_review_state',{company_id:company,source_diagnosis_run_id:run.id});expect(proposed.length).toBeGreaterThan(2);expect(proposed.every(o=>o.build_review_state==='proposed')).toBe(true);
   const unique=[...new Map(proposed.filter(o=>o.build_spec.template_code!=='build_bid_intake').map(o=>[o.build_spec.template_code,o])).values()];expect(unique.length).toBeGreaterThanOrEqual(3);
   const candidates=unique.slice(0,3),catalog=await rows(page,'nexus_resolution_catalog','code,default_recipe',{active:true});

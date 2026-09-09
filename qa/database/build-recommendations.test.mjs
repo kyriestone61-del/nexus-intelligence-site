@@ -59,7 +59,7 @@ test('invalid generated references get one bounded repair and still require full
   const valid={qualified:true,qualification,operational_benefit:'Clear workflow ownership',name:'Bounded QA Build',outcome:'Reviewable QA outcome',source_path:'claims/0',template_code:'valid_template',completed_action_ids:[]};
   let attempts=0;
   const builds=await validatedBuildRecommendations(async(correction,timeout)=>{
-    attempts++;assert.ok(timeout<=65000);
+    attempts++;assert.ok(timeout<=80000);
     if(attempts===1)return {builds:[{...valid,template_code:'invented'}]};
     assert.equal(correction.validation_error,'UNSUPPORTED_BUILD_RECOMMENDATION_TEMPLATE_CODE');return {builds:[valid]};
   },findings,templates,inputs);
@@ -70,4 +70,14 @@ test('invalid generated references get one bounded repair and still require full
   attempts=0;
   await assert.rejects(validatedBuildRecommendations(async()=>{attempts++;throw Error('MODEL_PROXY_ACCESS_403');},findings,templates,inputs),/MODEL_PROXY_ACCESS_403/);
   assert.equal(attempts,1);
+});
+
+test('qualification input keeps all capability identities and omits commercial prices and internal delivery notes',async()=>{
+ const {qualificationCatalog}=await import('../../supabase/functions/_shared/relystra-build-recommendations.ts');
+ const templates=Array.from({length:59},(_,i)=>({code:'capability_'+i,title:'Capability '+i,default_recipe:{typical_problem:'Supported problem',typical_outcome:'Bounded outcome',qualifying_conditions:['Evidence required'],required_inputs:['Authorized records'],prerequisite_builds:['prerequisite'],default_price_cents:123456,internal_notes:'Private operating note',default_checklist:['Internal procedure']}}));
+ const projected=qualificationCatalog(templates);
+ assert.deepEqual(projected.map(t=>t.code),templates.map(t=>t.code));
+ assert.deepEqual(projected[0].prerequisite_builds,['prerequisite']);
+ assert.deepEqual(projected[0].required_inputs,['Authorized records']);
+ assert.ok(!JSON.stringify(projected).includes('123456'));assert.ok(!JSON.stringify(projected).includes('Private operating note'));assert.ok(!JSON.stringify(projected).includes('Internal procedure'));
 });
