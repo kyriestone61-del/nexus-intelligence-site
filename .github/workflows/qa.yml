@@ -213,4 +213,5 @@ jobs:
           set -euo pipefail
           grep -q '/api/opportunity-snapshot' quick-scan.html
           grep -q 'sms_opt_in' quick-scan.html
-          grep -q 'submit_nexus_opportunity_snapshot' functions/api/opportunity-snapshot.js
+          grep -q 'submit_relystra_opportunity_snapshot' functions/api/opportunity-snapshot.js
+          grep -q 'SUPABASE_SERVICE_ROLE_KEY' functions/api/opportunity-snapshot.js

@@ -220,7 +220,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re,sys
-          known_dynamic_exact={'/portal','/prospect-workspace'}
+          known_dynamic_exact={'/portal','/prospect-workspace','/book'}
           known_dynamic_prefixes=('/services/','/industries/')
           failures=[]
           for p in Path('.').glob('*.html'):
