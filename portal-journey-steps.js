@@ -1,20 +1,21 @@
 import {lifecycle,clientLifecycle} from './portal-delivery-lifecycle.js';
 import {preparationDocuments} from './portal-workspace-context.js';
-export const journeySteps=[['overview','Setup & access'],['transcript','Meeting transcript'],['diagnosis','Diagnosis & approval'],['actions','Required inputs'],['builds','Recommended Builds'],['scope','Agree scope & payment'],['progress','Build & quality checks'],['review','Client review'],['final-package','Final handoff'],['support','Completion & support']];
+export const journeySteps=[['transcript','Upload Discovery Material'],['free-diagnosis','Free Diagnosis'],['review-findings','Review Findings'],['diagnosis','Full Diagnosis & approval'],['actions','Required inputs'],['builds','Recommended Builds'],['scope','Agree scope & payment'],['progress','Build & quality checks'],['review','Client review'],['final-package','Final handoff'],['support','Completion & support']];
 export function transcriptDocuments(state,projectId=null,diagnosis=null){return preparationDocuments(state,projectId,diagnosis);}
 export function currentTranscript(state,projectId=null,selectedId=null,diagnosis=null){const docs=transcriptDocuments(state,projectId,diagnosis);return docs.find(d=>d.id===selectedId)||docs.find(d=>d.id===diagnosis?.transcript_document_id)||docs.find(d=>d.category==='Discovery Transcript'||/transcript|\.(srt|vtt)$/i.test(d.file_name||''))||null;}
 export function journeyProgress(snapshot,hasTranscript=false){
   const s=snapshot||{},d=s.diagnosis||{},next=lifecycle(s),p=s.package;
   let current=0;
-  if(s.initial_engagement&&d.status!=='approved'&&p?.stage==='briefs')current=2;
-  else if(p)current=({briefs:6,building:6,internal_qa:6,client_review:7,revisions:7,final_qa:8,support:9,completed:9}[p.stage]??6);
-  else if(d.status==='approved')current=next.section==='actions'?3:s.payment_pending?5:4;
-  else if(d.access)current=hasTranscript||['queued','analyzing','processing','ready_for_review','review_required','in_review','failed','blocked','revision_requested'].includes(d.status)?2:1;
+  if(s.initial_engagement&&d.status!=='approved'&&p?.stage==='briefs')current=3;
+  else if(p)current=({briefs:7,building:7,internal_qa:7,client_review:8,revisions:8,final_qa:9,support:10,completed:10}[p.stage]??6);
+  else if(d.status==='approved')current=next.section==='actions'?4:s.payment_pending?6:5;
+  else if(d.access)current=hasTranscript||['queued','analyzing','processing','ready_for_review','review_required','in_review','failed','blocked','revision_requested'].includes(d.status)?3:0;
+  if(!d.access&&!p){const f=s.free_discovery,r=f?.reports?.find(r=>r.status==='complete');current=r&&r.evidence_revision===f.revision?2:f?.documents?.some(d=>d.state==='parsed')?1:0;}
   return journeySteps.map(([key,title],index)=>({key,title,number:index+1,status:s.package?.stage==='completed'||index<current?'completed':index===current?'current':'upcoming'}));
 }
 export function journeyGate(key,snapshot){
   const s=snapshot||{},d=s.diagnosis||{},p=s.package;
-  if(['overview','transcript','diagnosis'].includes(key))return null;
+  if(['overview','transcript','free-diagnosis','review-findings','diagnosis'].includes(key))return null;
   if(['builds','scope'].includes(key)&&d.status!=='approved'&&!p)return {title:'Approve the diagnosis first',detail:'Relystra reviews and approves the evidence-backed findings before preparing the recommended work.',section:'diagnosis',label:'Go to diagnosis & approval'};
   if(key==='progress'&&s.project_id&&s.project_type!=='build_package')return null;
   if(['progress','review','final-package','support'].includes(key)&&!p)return {title:'This step begins after scope and payment',detail:'A verified paid Build Package starts implementation. Existing records remain available in the library.',section:'scope',label:'Go to scope & payment'};
@@ -31,4 +32,4 @@ export function journeyMarkup(snapshot,{active='overview',hasTranscript=false,at
 export function gateMarkup(gate,attribute='data-delivery-nav'){return `<article class="relystra-build-card relystra-stage-gate"><h1>${esc(gate.title)}</h1><p>${esc(gate.detail)}</p><button class="btn primary" type="button" ${attribute}="${gate.section}">${esc(gate.label)}</button></article>`;}
 
 export const transcriptSelectionKey=(company,project)=>`relystra_transcript:${company}:${project||'preparation'}`;
-export function journeyNext(snapshot,hasTranscript=false,client=false){const next=client?clientLifecycle(snapshot):lifecycle(snapshot);if(next.stage==='diagnosis'&&snapshot?.initial_engagement)return {...next,section:'transcript',label:'Review retained Discovery and additional evidence'};if(next.stage==='diagnosis')return {...next,section:'transcript',title:hasTranscript?'Your transcript is ready':'Add the meeting transcript',detail:hasTranscript?'Continue to diagnosis using the saved meeting transcript and supporting evidence.':'Upload the meeting transcript in Step 2, then continue with diagnosis.',label:hasTranscript?'Continue with diagnosis':'Upload meeting transcript',actor:hasTranscript?'ADMIN':'CLIENT'};if(next.stage==='diagnosis_purchase')return {...next,section:'overview'};if(next.stage==='payment')return {...next,section:'scope'};if(['client_review','revisions'].includes(next.stage))return {...next,section:'review'};return next;}
+export function journeyNext(snapshot,hasTranscript=false,client=false){const next=client?clientLifecycle(snapshot):lifecycle(snapshot);if(!snapshot?.diagnosis?.access&&!snapshot?.package)return {...next,section:'transcript',title:'Start with your discovery material',detail:'Upload and process every discovery document, generate your free diagnosis, then review the findings.',label:'Open Discovery & Free Diagnosis',actor:'CLIENT'};if(next.stage==='diagnosis'&&snapshot?.initial_engagement)return {...next,section:'transcript',label:'Review retained Discovery and additional evidence'};if(next.stage==='diagnosis')return {...next,section:'transcript',title:hasTranscript?'Your transcript is ready':'Add the meeting transcript',detail:hasTranscript?'Continue to diagnosis using the saved meeting transcript and supporting evidence.':'Upload discovery material in Step 1, then generate Free Diagnosis.',label:hasTranscript?'Continue with diagnosis':'Upload meeting transcript',actor:hasTranscript?'ADMIN':'CLIENT'};if(next.stage==='diagnosis_purchase')return {...next,section:'overview'};if(next.stage==='payment')return {...next,section:'scope'};if(['client_review','revisions'].includes(next.stage))return {...next,section:'review'};return next;}

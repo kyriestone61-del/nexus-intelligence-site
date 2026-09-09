@@ -38,7 +38,7 @@ mountMobileMenu(nav);
 
 function activate(id){document.querySelectorAll('.main > .section').forEach(el=>el.classList.toggle('active',el.id==='section-'+id))}
 function renderHeader(){
-  const s=store.value;if(!s){header.innerHTML='';return}
+  const s=store.value;if(s)s.free_discovery=state.discoveryEvidence?.company_id===state.companyId?state.discoveryEvidence:null;if(!s){header.innerHTML='';return}
   const name=state.companies?.find(c=>c.id===state.companyId)?.name||'Client workspace';
   header.innerHTML=`<div class="relystra-workspace-context"><div><small>Client workspace</small><h2>${esc(name)}</h2></div><label>Build Package<select data-package-picker><option value="">Current package</option>${s.projects.map(p=>`<option value="${esc(p.id)}" ${viewedProject===p.id?'selected':''}>${esc(p.name)}${p.status==='complete'?' · Completed':''}${!p.paid?' · Historical':''}</option>`).join('')}</select></label></div>${journeyMarkup(s,{active,hasTranscript:!!selectedTranscript(portal,s)})}`;
 }
@@ -51,18 +51,18 @@ async function refresh(){
   const version=++refreshSequence;
   if(company!==state.companyId){company=state.companyId;viewedProject=null;active='overview';navigationSequence++;header.hidden=false;activate('journey');store.invalidate();buildRoot.replaceChildren();deliveryRoot.replaceChildren()}
   try{const s=await store.refresh(viewedProject);if(!s||version!==refreshSequence)return;loadError=null;renderHeader();renderOverview();transcript.refresh(s);await offer.refresh(s);
-    if(['discovery','templates','offers'].includes(active))await commercial.refresh({mode:active==='templates'?'library':active});
+    if(['commercial-report','templates','offers'].includes(active))await commercial.refresh({mode:active==='templates'?'library':active==='commercial-report'?'discovery':active});
     if(['builds','scope'].includes(active))await builds.refresh({stage:active});else if(['progress','review','final-package','support'].includes(active)&&!journeyGate(active,s))await delivery.refresh({projectId:s.project_id,section:active==='review'?'progress':active});
   }catch(error){if(version===refreshSequence){loadError=error;header.innerHTML='<p role="alert">Workspace status could not be loaded.</p>';$('adminJourneyRoot').innerHTML=`<p role="alert">${esc(error.message)}</p><button class="btn secondary" data-workspace-retry>Retry</button>`}}
 }
 async function navigate(target){
   const version=++navigationSequence;
-  active=target;header.hidden=['clients','sales','projects','templates','settings','discovery','offers'].includes(target);
+  active=target;header.hidden=['clients','sales','projects','templates','settings','commercial-report','offers'].includes(target);
   document.querySelectorAll('[data-relystra-nav]').forEach(b=>b.classList.toggle('active',b.dataset.relystraNav===target));
   const aliases={diagnosis:'intake',actions:'tasks',files:'documents',sales:'revenue'};
   const gate=journeyGate(target,store.value);
   if(gate){activate('journey-gate');gateRoot.innerHTML=gateMarkup(gate)}
-  else if(target==='transcript'){activate('transcript');transcript.refresh(store.value)}
+  else if(['transcript','free-diagnosis','review-findings','discovery'].includes(target)){activate('transcript');transcript.refresh(store.value)}
   else if(target==='overview'){activate('journey');renderOverview()}
   else if(['builds','scope'].includes(target)){activate('relystra-builds');await builds.refresh({stage:target})}
   else if(['progress','review','final-package','support'].includes(target)){
@@ -71,7 +71,7 @@ async function navigate(target){
   }else if(target==='projects'){activate('relystra-projects');await renderProjects()}
   else if(target==='templates'){activate('relystra-commercial');await commercial.refresh({mode:'library'})}
   else if(target==='offers'){activate('relystra-commercial');await commercial.refresh({mode:'offers'})}
-  else if(target==='discovery'){activate('relystra-commercial');await commercial.refresh({mode:'discovery'})}
+  else if(target==='commercial-report'){activate('relystra-commercial');await commercial.refresh({mode:'discovery'})}
   else if(target==='settings'){activate('relystra-settings');await renderSettings()}
   else{const key=aliases[target]||target;tools.get(key)?.click();activate(key)}
   if(version!==navigationSequence)return;
@@ -116,4 +116,5 @@ settingsRoot.addEventListener('submit',async event=>{
 for(const event of ['nexus:workspace-ready','nexus:diagnosis-changed','nexus:diagnosis-updated','nexus:delivery-changed','relystra:delivery-changed'])window.addEventListener(event,refresh);
 async function openPackage(id,section='overview'){viewedProject=id;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,id));await refresh();await navigate(section)}
 window.NexusAdminJourney=Object.freeze({refresh,navigate,openPackage,get snapshot(){return store.value}});
+window.addEventListener('relystra:discovery-state',()=>{renderHeader();renderOverview()});
 await refresh();await navigate(new URL(location.href).searchParams.get('section')||'overview');

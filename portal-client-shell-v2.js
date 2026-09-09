@@ -16,7 +16,7 @@ const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const arr=value=>Array.isArray(value)?value:[];
 const terminal=new Set(['complete','completed','done','closed','resolved','cancelled','canceled','archived']);
-const PRIMARY_VIEWS=[['today','Overview'],['reports','Diagnosis'],['actions','Actions'],['builds','Roadmap & Builds'],['progress','Progress'],['final-package','Final Package'],['support','Support']];
+const PRIMARY_VIEWS=[['today','Overview'],['transcript','Discovery & Free Diagnosis'],['reports','Full Diagnosis'],['actions','Actions'],['builds','Roadmap & Builds'],['progress','Progress'],['final-package','Final Package'],['support','Support']];
 const ALL_SECTIONS=['transcript','scope','review','journey-gate','today','files','improvement','reports','actions','builds','progress','final-package','support'];
 const lifecycleStore=createLifecycleStore(portal);
 let lifecycleCompany=state.companyId,viewedPackage=new URL(location.href).searchParams.get('project'),buildComponent=null,deliveryComponents=new Map(),diagnosisOffer=null,transcriptComponent=null;
@@ -69,10 +69,11 @@ function updateMiniContext(){
 }
 function updatePrimaryNavigation(){
   const visible=new Set(visibleDeliverySections(lifecycleStore.value).map(([key])=>({overview:'today',diagnosis:'reports'}[key]||key)));
-  document.querySelectorAll('#nexusClientPrimaryNav [data-client-view]').forEach(button=>button.toggleAttribute('hidden',!visible.has(button.dataset.clientView)));
+  document.querySelectorAll('#nexusClientPrimaryNav [data-client-view]').forEach(button=>button.toggleAttribute('hidden',button.dataset.clientView!=='transcript'&&!visible.has(button.dataset.clientView)));
 }
-function renderJourney(){const host=$('relystraClientJourney');if(!host)return;host.innerHTML=journeyMarkup(lifecycleStore.value,{active:({today:'overview',reports:'diagnosis'}[activeView]||activeView),hasTranscript:!!selectedTranscript(portal,lifecycleStore.value),attribute:'data-client-go'});bindCommon(host)}
+function renderJourney(){if(lifecycleStore.value)lifecycleStore.value.free_discovery=state.discoveryEvidence?.company_id===state.companyId?state.discoveryEvidence:null;const host=$('relystraClientJourney');if(!host)return;host.innerHTML=journeyMarkup(lifecycleStore.value,{active:({today:'overview',reports:'diagnosis'}[activeView]||activeView),hasTranscript:!!selectedTranscript(portal,lifecycleStore.value),attribute:'data-client-go'});bindCommon(host)}
 async function activateView(view){
+  if(['free-diagnosis','review-findings','discovery'].includes(view))view='transcript';
   const version=++navigationVersion;
   view=({overview:'today',diagnosis:'reports'}[view]||view);
   if(!ALL_SECTIONS.includes(view))view='today';activeView=view;
@@ -167,6 +168,7 @@ async function refreshClientShell({force=false}={}){const companyId=state.compan
 
 events.bind(window,'nexus:workspace-ready','client-shell:workspace-ready',event=>{if(event.detail?.companyId===state.companyId)refreshClientShell({force:true})});events.bind(window,'nexus:diagnosis-changed','client-shell:diagnosis',()=>refreshClientShell({force:true}));
 for(const name of ['nexus:delivery-changed','relystra:delivery-changed'])events.bind(window,name,'client-shell:'+name,()=>refreshClientShell({force:true}));
+window.addEventListener('relystra:discovery-state',renderJourney);
 const initialView=new URL(location.href).searchParams.get('section')||'today';ensureShell();await refreshClientShell({force:true});activateView(initialView);
 async function openPackage(id,section='today'){viewedPackage=id;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,id));await refreshClientShell({force:true});await activateView(section)}
 window.NexusClientShell=Object.freeze({openPackage,refresh:refreshClientShell,activateView,getCurrentActionContext:()=>currentContext,openInbox,openGuide,__qa:{actionableInbox,updateGroups,requestCategory}});

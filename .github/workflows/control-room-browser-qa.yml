@@ -7,6 +7,11 @@ on:
         description: 'Portal base URL'
         required: false
         default: 'https://nexus-intelligence-site.pages.dev'
+      discovery_release:
+        description: 'Verify multi-document free diagnosis and recover the authorized Moon Wax sources'
+        required: false
+        type: boolean
+        default: false
       commercial_release:
         description: 'Run protected synthetic commerce, Stripe test settlement and final handoff'
         required: false
@@ -53,6 +58,7 @@ jobs:
       run:
         working-directory: qa/playwright
     env:
+      NEXUS_QA_DISCOVERY_RELEASE: ${{ github.event.inputs.discovery_release == 'true' && '1' || '0' }}
       NEXUS_QA_COMMERCIAL_RELEASE: ${{ github.event.inputs.commercial_release == 'true' && '1' || '0' }}
       NEXUS_QA_BASE_URL: ${{ github.event.inputs.base_url || 'https://nexus-intelligence-site.pages.dev' }}
       NEXUS_QA_BOOTSTRAP_URL: https://dmdgkjksouhhsuojthav.supabase.co/functions/v1/nexus-calendar-config-check
@@ -73,7 +79,7 @@ jobs:
           matched=0
           deployed="$(mktemp)"
           trap 'rm -f "$deployed"' EXIT
-          assets=(portal-diagnosis-request.js portal-diagnosis-v2.js portal-diagnosis-execution-ux.js portal-journey-steps.js portal-transcript-stage.js portal-evidence-upload.js portal-client.js portal-admin-intake.js portal-diagnosis-controller-v2.js portal-delivery.css delivery/qa-estimate-intake-register/index.html portal-runtime-core.js portal-build-request.js portal-builds.js portal-package-delivery.js portal-delivery-lifecycle.js portal-app.js portal-foundation-hardening.js portal-approval-inbox.js portal-admin-journey.js portal-admin-journey-router.js portal-resolution-plan.js portal-journey-task-guard.js portal-workflow-cohesion.js portal-client-shell-v2.js portal-action-processing-engine.js portal-production-simplification.js portal-ux-refinement.js portal-client-upload-service.js portal-approval-bridge.js portal-action-execution-v2.js)
+          assets=(portal-discovery-evidence.js portal-full-diagnosis-stage.js portal-diagnosis-request.js portal-diagnosis-v2.js portal-diagnosis-execution-ux.js portal-journey-steps.js portal-transcript-stage.js portal-evidence-upload.js portal-client.js portal-admin-intake.js portal-diagnosis-controller-v2.js portal-delivery.css delivery/qa-estimate-intake-register/index.html portal-runtime-core.js portal-build-request.js portal-builds.js portal-package-delivery.js portal-delivery-lifecycle.js portal-app.js portal-foundation-hardening.js portal-approval-inbox.js portal-admin-journey.js portal-admin-journey-router.js portal-resolution-plan.js portal-journey-task-guard.js portal-workflow-cohesion.js portal-client-shell-v2.js portal-action-processing-engine.js portal-production-simplification.js portal-ux-refinement.js portal-client-upload-service.js portal-approval-bridge.js portal-action-execution-v2.js)
           for attempt in $(seq 1 60); do
             matched=1
             for asset in "${assets[@]}"; do
@@ -187,12 +193,16 @@ jobs:
           # no unpaid Project: exercise real authenticated pre-build work in all browsers.
           # The automatic push run owns the full unpaid, three-device baseline.
           # The opt-in paid scenario uses its own fresh company and verifies commercial gates.
-          if [ "${NEXUS_QA_COMMERCIAL_RELEASE:-0}" != '1' ]; then
+          if [ "${NEXUS_QA_COMMERCIAL_RELEASE:-0}" != '1' ] && [ "${NEXUS_QA_DISCOVERY_RELEASE:-0}" != '1' ]; then
             npx playwright test tests/control-room-reconcile.spec.mjs tests/delivery-prepurchase.spec.mjs --config=control-room.config.mjs --retries=0
           fi
           if [ '${{ github.event_name }}' != 'pull_request' ]; then
             npx playwright test tests/qa-intake-register.spec.mjs --config=control-room.config.mjs --retries=0
           fi
+
+      - name: Run hosted discovery evidence and Moon Wax recovery
+        if: ${{ env.NEXUS_QA_DISCOVERY_RELEASE == '1' }}
+        run: npx playwright test tests/discovery-production.spec.mjs --config=control-room.config.mjs --retries=0
 
       - name: Run hosted commercial release acceptance
         if: ${{ env.NEXUS_QA_COMMERCIAL_RELEASE == '1' }}
@@ -224,7 +234,7 @@ jobs:
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
-        if: ${{ always() && (env.NEXUS_QA_QAQC_FULL == '1' || env.NEXUS_QA_COMMERCIAL_RELEASE == '1') }}
+        if: ${{ always() && (env.NEXUS_QA_QAQC_FULL == '1' || env.NEXUS_QA_COMMERCIAL_RELEASE == '1' || env.NEXUS_QA_DISCOVERY_RELEASE == '1') }}
         with:
           name: relystra-full-app-qaqc-report
           path: |

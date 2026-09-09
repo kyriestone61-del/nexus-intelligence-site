@@ -1,0 +1,27 @@
+import {test,expect} from '../playwright/node_modules/@playwright/test/index.mjs';
+const file=(name,text)=>({name,mimeType:'text/plain',buffer:Buffer.from(text)});
+test('multi-document discovery, failed parsing, review, stale revision and persisted history work at this device size',async({page},info)=>{
+ test.setTimeout(120000);
+ await page.goto('/qa/delivery-browser/?section=transcript');
+ await expect(page.getByRole('heading',{name:'Upload Discovery Material',exact:true})).toBeVisible();
+ const upload=async files=>{await page.locator('[data-discovery-upload] input').setInputFiles(files);await page.getByRole('button',{name:'Upload & process documents',exact:true}).click();};
+ await upload([file(`first-${info.project.name}.txt`,'Owner: Estimates arrive by email. Assign the estimator.'),file(`second-${info.project.name}.txt`,'Estimator: Phone requests sometimes bypass the intake sheet.'),file(`third-${info.project.name}.txt`,'Coordinator: Weekly review should reconcile missing request owners.')]);
+ await expect(page.locator('[data-discovery-status]')).toHaveText(/Ready to generate|Outdated/,{timeout:60000});
+ await page.locator('[data-free-generate]').click();await expect(page.locator('[data-discovery-status]')).toHaveText('Free Diagnosis complete',{timeout:60000});
+ for(const name of ['Business Context','Current Processes','Observed Problems','Key Findings','Opportunity Areas','Missing Information','Evidence Confidence'])await expect(page.getByRole('heading',{name,exact:true})).toBeVisible();
+ const first=await page.locator('[data-free-report]').getAttribute('data-free-report');
+ await page.reload();await expect(page.locator('[data-free-report]')).toHaveAttribute('data-free-report',first);
+ await upload([file(`broken-${info.project.name}.pdf`,'This is not a valid PDF')]);
+ await expect(page.getByRole('alert').filter({hasText:'INVALID_PDF'}).first()).toBeVisible();
+ const failed=page.locator('[data-discovery-document]').filter({hasText:`broken-${info.project.name}.pdf`});await failed.getByRole('button',{name:'Reprocess document'}).click();await expect(failed.getByRole('alert')).toContainText('INVALID_PDF');
+ await failed.getByRole('button',{name:'Remove from evidence'}).click();
+ await expect(page.locator('[data-discovery-status]')).toHaveText(/Outdated/);
+ await upload([file(`followup-${info.project.name}.txt`,'Owner: The coordinator checks unassigned requests each Monday.')]);
+ await expect(page.locator('[data-free-generate]')).toBeEnabled();await page.locator('[data-free-generate]').click();
+ await expect(page.locator('[data-discovery-status]')).toHaveText('Free Diagnosis complete',{timeout:60000});
+ expect(await page.locator('[data-free-report]').getAttribute('data-free-report')).not.toBe(first);
+ await page.locator('[data-free-version]').selectOption(first);await expect(page.locator('[data-free-report]')).toHaveAttribute('data-free-report',first);
+ await page.locator('[data-free-version]').selectOption('');await page.getByRole('button',{name:'Verify these findings',exact:true}).click();await expect(page.getByText('Findings verified ·',{exact:false})).toBeVisible();
+ const size=await page.evaluate(()=>({w:document.documentElement.clientWidth,s:document.documentElement.scrollWidth}));expect(size.s).toBeLessThanOrEqual(size.w+1);
+ await page.screenshot({path:`test-results/discovery-${info.project.name}.png`,fullPage:true});
+});

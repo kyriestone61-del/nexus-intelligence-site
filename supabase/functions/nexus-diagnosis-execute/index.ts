@@ -1,3 +1,4 @@
+import {discoveryWork,authorizeDiscovery} from '../_shared/relystra-discovery-handler.ts';
 import {stripeForMode} from '../_shared/relystra-stripe.ts';
 import {handleBasicReport} from '../_shared/relystra-basic-report-handler.ts';
 import {handleCheckout} from '../_shared/relystra-checkout-handler.ts';
@@ -77,20 +78,22 @@ async function pptxText(bytes:Uint8Array){
   const zip=await safeOfficeZip(bytes);
   const names=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/i.test(n)).sort((a,b)=>Number(a.match(/slide(\d+)/i)?.[1]||0)-Number(b.match(/slide(\d+)/i)?.[1]||0));
   const out:string[]=[];
-  for(const name of names.slice(0,80)){const xml=await zip.file(name)?.async("string");if(xml){if(xml.length>4*1024*1024)throw new Error("OFFICE_SLIDE_XML_LIMIT");out.push(`\n--- ${name.split('/').pop()} ---\n${stripXml(xml)}`)}}
-  return out.join("\n").slice(0,180000);
+  if(names.length>80)throw new Error("PRESENTATION_LIMIT: Split this presentation; no slides were discarded.");
+  for(const name of names){const xml=await zip.file(name)?.async("string");if(xml){if(xml.length>4*1024*1024)throw new Error("OFFICE_SLIDE_XML_LIMIT");out.push(`\n--- ${name.split('/').pop()} ---\n${stripXml(xml)}`)}}
+  return out.join("\n");
 }
 async function xlsxText(bytes:Uint8Array){
   await safeOfficeZip(bytes);
   const XLSX=await import("npm:xlsx@0.18.5");
   const book=XLSX.read(bytes,{type:"array",cellDates:true});
   let cells=0;
-  for(const name of book.SheetNames.slice(0,30)){
+  if(book.SheetNames.length>30)throw new Error("WORKBOOK_SHEET_LIMIT: Split this workbook; no sheets were discarded.");
+  for(const name of book.SheetNames){
     const ref=book.Sheets[name]?.['!ref'];if(!ref)continue;
     const range=XLSX.utils.decode_range(ref);cells+=(range.e.r-range.s.r+1)*(range.e.c-range.s.c+1);
     if(cells>MAX_WORKBOOK_CELLS)throw new Error("WORKBOOK_CELL_LIMIT");
   }
-  return book.SheetNames.slice(0,30).map(name=>`\n--- WORKSHEET: ${name} ---\n${XLSX.utils.sheet_to_csv(book.Sheets[name],{blankrows:false})}`).join("\n").slice(0,180000);
+  return book.SheetNames.map(name=>`\n--- WORKSHEET: ${name} ---\n${XLSX.utils.sheet_to_csv(book.Sheets[name],{blankrows:false})}`).join("\n");
 }
 function toBase64(bytes:Uint8Array){let s="";const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)s+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));return btoa(s)}
 function parse(raw:string){return JSON.parse(raw.trim().replace(/^```json\s*/i,"").replace(/```$/," ").trim())}
@@ -151,7 +154,8 @@ async function evidence(doc:any,cfg:any){
   }else if(mime.startsWith("image/")||/\.(png|jpg|jpeg|webp|gif)$/i.test(name)){text=await imageText(cfg,bytes,mime,doc.file_name);parser="vision";
   }else if(mime.startsWith("text/")||mime.includes("csv")||mime.includes("json")||mime.includes("xml")||/\.(txt|srt|vtt|csv|json|md|xml|html|htm)$/i.test(name)){text=new TextDecoder("utf-8",{fatal:false}).decode(bytes).replace(/\u0000/g,"");parser="text";
   }else{parsed=false;parser="metadata_only";text="This file is present as authorized evidence but its binary contents were not parsed by the diagnosis runtime. Do not infer its contents. Treat it as an evidence gap if its contents are necessary."}
-  text=text.slice(0,180000).trim();
+  text=text.trim();
+  if(text.length>4*1024*1024)throw new Error("DOCUMENT_TEXT_LIMIT: Split this document into files below 4 million extracted characters. No text was discarded.");
   if(parsed&&!text)throw new Error(`EMPTY_EVIDENCE:${doc.file_name}`);
   try{await db.from("nexus_documents").update({evidence_parser:parser,evidence_ingested_at:new Date().toISOString()}).eq("id",doc.id)}catch{}
   return {block:`\n=== EVIDENCE: ${doc.file_name} ===\nEvidence ID: ${doc.id}\nCategory: ${doc.category||"general"}\nContext note: ${doc.note||"none"}\nParser: ${parser}\n${text}\n=== END EVIDENCE ===\n`,text,parsed,parser};
@@ -189,7 +193,21 @@ async function buildEvidenceBundle(cfg:any,companyId:string,projectId:string|nul
   const docs=await documentRows(companyId,projectId,ids);
   if(ids?.length&&ids.some(id=>!docs.some((d:any)=>d.id===id)))throw new Error("MISSING_EVIDENCE");
   const parts:string[]=[];const parsers:any[]=[];
-  for(const d of docs){const parsed=await evidence(d,cfg);parts.push(parsed.block);parsers.push({id:d.id,file:d.file_name,parser:parsed.parser,parsed:parsed.parsed})}
+  // Reuse the fully reviewed hierarchy when it covers this exact current source
+  // set. Large discovery packages never return to an unbounded raw-text prompt.
+  const engagements=await db.from('relystra_discovery_engagements').select('id,revision').eq('company_id',companyId);
+  if(engagements.error)throw engagements.error;
+  let prepared:any=null;
+  if(engagements.data?.length){
+    const completed=await db.from('relystra_free_diagnoses').select('engagement_id,evidence_revision,document_ids,report').in('engagement_id',engagements.data.map((e:any)=>e.id)).eq('status','complete').order('created_at',{ascending:false});
+    if(completed.error)throw completed.error;
+    prepared=(completed.data||[]).find((r:any)=>engagements.data.some((e:any)=>e.id===r.engagement_id&&e.revision===r.evidence_revision)&&docs.length===r.document_ids.length&&docs.every((d:any)=>r.document_ids.includes(d.id))&&r.report?.analysis_context);
+  }
+  if(prepared){
+    parts.push(JSON.stringify({reviewed_discovery_evidence:prepared.report.analysis_context,source_documents:docs.map((d:any)=>({id:d.id,file_name:d.file_name})),coverage:prepared.report.coverage}));
+    parsers.push(...docs.map((d:any)=>({id:d.id,file:d.file_name,parser:'retained_complete_discovery_hierarchy',parsed:true})));
+  }else for(const d of docs){const parsed=await evidence(d,cfg);parts.push(parsed.block);parsers.push({id:d.id,file:d.file_name,parser:parsed.parser,parsed:parsed.parsed})}
+  if(parts.join('\n').length>450000)throw new Error('LARGE_EVIDENCE_REQUIRES_DISCOVERY: Process every source and generate Free Diagnosis before the deeper review. No text was discarded.');
   const context=await currentAdminContext(companyId,projectId);
   if(context?.content)parts.push(`\n=== ADMIN CONTEXT ===\nEvidence Ref: ADMIN_CONTEXT:${context.id}\n${safe(context.content,40000)}\n=== END ADMIN CONTEXT ===\n`);
   const client=await clientResponseEvidence(companyId,projectId);if(client.text)parts.push(client.text);
@@ -211,7 +229,7 @@ async function runGapAnalysis(cfg:any,companyId:string,projectId:string|null,use
   const {data:framework,error:frameworkError}=await db.from("nexus_discovery_framework_requirements").select("code,domain,requirement,default_question,desired_evidence,material,sort_order").eq("active",true).order("sort_order");
   if(frameworkError)throw frameworkError;
   const bundle=await buildEvidenceBundle(cfg,companyId,projectId,null);
-  const gap=validateGap(await callJson(cfg,"Discovery Coverage Analyst","Evaluate the authorized evidence against the reusable Master Discovery Framework. For every framework requirement, mark status answered, partial, missing, or not_applicable. Do not ask the client to repeat information already present. Output exactly: requirements:[{code,status,confidence,evidence_refs,reason}], gaps:[{code,domain,question,reason,request_kind,desired_evidence,material,priority,document_title,redaction_guidance}], sufficient_for_diagnosis:boolean, coverage_score:number, summary:string. request_kind is question, document, or both. Only material partial/missing requirements belong in gaps. coverage_score is 0-100.",{framework,authorized_evidence:safe(bundle.text,500000)}));
+  const gap=validateGap(await callJson(cfg,"Discovery Coverage Analyst","Evaluate the authorized evidence against the reusable Master Discovery Framework. For every framework requirement, mark status answered, partial, missing, or not_applicable. Do not ask the client to repeat information already present. Output exactly: requirements:[{code,status,confidence,evidence_refs,reason}], gaps:[{code,domain,question,reason,request_kind,desired_evidence,material,priority,document_title,redaction_guidance}], sufficient_for_diagnosis:boolean, coverage_score:number, summary:string. request_kind is question, document, or both. Only material partial/missing requirements belong in gaps. coverage_score is 0-100.",{framework,authorized_evidence:bundle.text}));
   const ids=bundle.docs.map((d:any)=>d.id);
   const {data:row,error}=await db.from("nexus_discovery_gap_analyses").insert({company_id:companyId,project_id:projectId,framework_version:FRAMEWORK_VERSION,evidence_document_ids:ids,evidence_count:ids.length,result:gap,created_by:userId}).select("id,created_at").single();
   if(error)throw error;
@@ -363,7 +381,14 @@ Deno.serve(async(req:Request)=>{
   try{
     const body=await req.json().catch(()=>({}));
     const operation=safe(body?.operation,60)||"diagnosis";
-    authState=await auth(req,operation==='ask_support');
+    authState=await auth(req,operation==='ask_support'||operation==='discovery_step');
+
+    if(operation==='discovery_step'){
+      if(!authState.userId)throw new Error('AUTH_REQUIRED');
+      await authorizeDiscovery(db,authState.userId,String(body.company_id||''),String(body.engagement_id||''));
+      const result=await discoveryWork({db,config:providerConfig,parse:evidence,call:callJson,hash},body.engagement_id);
+      return new Response(JSON.stringify(result),{status:result.ok?200:422,headers:jh});
+    }
 
     if(operation==='payment_readiness'){
       if(authState.mode!=='admin'||!authState.userId)throw new Error('ADMIN_REQUIRED');
@@ -416,6 +441,7 @@ Deno.serve(async(req:Request)=>{
       runId=pending.data?.run_id||'';
       if(!runId){const {data}=await db.from("nexus_diagnosis_runs").select("id").eq("status","queued").order("queued_at").limit(1).maybeSingle();runId=data?.id||"";}
     }
+    if(!runId&&authState.mode==="worker")return new Response(JSON.stringify(await discoveryWork({db,config:providerConfig,parse:evidence,call:callJson,hash})),{headers:jh});
     if(!runId)return new Response(JSON.stringify({ok:true,status:"idle"}),{headers:jh});
 
     const initial=await db.from("nexus_diagnosis_runs").select("*").eq("id",runId).single();
@@ -461,16 +487,18 @@ Deno.serve(async(req:Request)=>{
     const ids=[...new Set([...(run.supporting_document_ids||[]),...(run.transcript_document_id?[run.transcript_document_id]:[])])];
     const packet=run.analysis_packet||{};const projectId=packet.project?.id||run.project_id||null;
     const bundle=await buildEvidenceBundle(cfg,run.company_id,projectId,ids.length?ids:null);
-    const parts=[...bundle.parts];
+    let parts=[...bundle.parts];
+
     if(packet?.transcript_text)parts.unshift(`\n=== PASTED_TRANSCRIPT ===\nEvidence Ref: PASTED_TRANSCRIPT\n${safe(packet.transcript_text,180000)}\n=== END PASTED_TRANSCRIPT ===\n`);
     if(run.discovery_notes&&!bundle.adminContext?.content)parts.push(`\n=== ADMIN CONTEXT ===\nEvidence Ref: ADMIN_NOTES\n${safe(run.discovery_notes,40000)}\n=== END ADMIN CONTEXT ===\n`);
     if(!parts.length)throw new Error("NO_ANALYZABLE_EVIDENCE");
+    if(parts.join("\n").length>500000)throw new Error("FULL_DIAGNOSIS_CONTEXT_LIMIT: Process a focused evidence package first; no source text was discarded.");
 
     const attempt=Number(run.execution_attempts||0);
     const templates=await actionTemplateCatalog();
     const context={company:packet.company||{},project:packet.project||{},meeting:packet.meeting||{},evidence_manifest:bundle.docs.map((d:any)=>({id:d.id,file_name:d.file_name,category:d.category,note:d.note})),action_template_catalog:templates,discovery_framework_version:FRAMEWORK_VERSION};
     const execution={agent:"client_diagnosis",pipeline_version:5,stages:["Evidence Analyst","Process & Opportunity Analyst","Independent QA / Governance Verifier","Final Diagnosis Composer"],release_blockers:[],evidence_document_ids:bundle.docs.map((d:any)=>d.id),evidence_files:bundle.docs.map((d:any)=>d.file_name),evidence_parsers:bundle.parsers,admin_context_id:bundle.adminContext?.id||null,client_response_refs:bundle.clientResponses,action_template_catalog_size:templates.length,model:MODEL,human_review_required:true,trigger:authState.mode,attempt};
-    const queued=await db.rpc('relystra_enqueue_diagnosis_job',{p_run_id:runId,p_lease_id:leaseId,p_payload:{context,review_note:safe(run.review_notes,12000),authorized_evidence:safe(parts.join("\n"),500000)},p_execution:execution});
+    const queued=await db.rpc('relystra_enqueue_diagnosis_job',{p_run_id:runId,p_lease_id:leaseId,p_payload:{context,review_note:safe(run.review_notes,12000),authorized_evidence:parts.join("\n")},p_execution:execution});
     if(queued.error)throw queued.error;
     return new Response(JSON.stringify({ok:true,run_id:runId,status:"analyzing",pipeline_version:5}),{status:202,headers:jh});
   }catch(e){

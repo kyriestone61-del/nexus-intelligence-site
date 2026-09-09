@@ -1,7 +1,7 @@
 const info=await fetch('/qa-fixture-info').then(r=>r.json()),role=new URL(location.href).searchParams.get('role')||'admin';
 const send=body=>fetch('/qa-db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,role})}).then(r=>r.json());
 function from(table){const body={table,columns:'*',filters:[],order:[]},q={
-  select(columns){body.columns=columns;return q},update(value){body.update=value;return q},
+  select(columns='*'){body.columns=columns;return q},insert(value){body.insert=value;return q},update(value){body.update=value;return q},
   eq(key,value){body.filters.push(['eq',key,value]);return q},neq(key,value){body.filters.push(['neq',key,value]);return q},
   is(key,value){body.filters.push(['is',key,value]);return q},not(key){body.filters.push(['not',key]);return q},
   in(key,value){body.filters.push(['in',key,value]);return q},or(value){body.filters.push(['or',value]);return q},
@@ -9,8 +9,8 @@ function from(table){const body={table,columns:'*',filters:[],order:[]},q={
   range(start,end){body.offset=start;body.limit=end-start+1;return q},
   single(){body.single=true;return q},maybeSingle(){body.single=true;return q},then(resolve,reject){return send(body).then(resolve,reject)},
 };return q}
-const state={admin:role==='admin',companyId:info.company,companies:[{id:info.company,name:'Blue Harbor — local delivery fixture'}],user:{id:role==='admin'?info.admin:info.client}};
-window.NexusPortal={state,sb:{from,rpc:(rpc,args)=>send({rpc,args}),functions:{invoke:async()=>({error:{message:'External providers are intentionally unavailable in the local fixture.'}})}},toast:message=>document.getElementById('fixtureNotice').textContent=message,
+const state={admin:role==='admin',companyId:info.company,companies:[{id:info.company,name:'Blue Harbor — local delivery fixture'}],docs:[],user:{id:role==='admin'?info.admin:info.client}};
+window.NexusPortal={state,sb:{from,rpc:(rpc,args)=>send({rpc,args}),storage:{from:()=>({upload:async(path,file)=>fetch('/qa-discovery-file',{method:'POST',body:JSON.stringify({path,text:await file.text()})}).then(r=>r.json()),remove:async()=>({})})},functions:{invoke:async(name,{body})=>fetch('/qa-discovery-step',{method:'POST',body:JSON.stringify(body)}).then(r=>r.json())}},toast:message=>document.getElementById('fixtureNotice').textContent=message,
   workspace:async()=>{window.dispatchEvent(new CustomEvent('nexus:workspace-ready'));return true}};
 for(const b of document.querySelectorAll('[data-section]')){const s=document.createElement('section');s.id='section-'+b.dataset.section;s.className='section';s.textContent=b.textContent+' uses the retained production component; this fixture verifies the new delivery components.';document.querySelector('.main').append(s);b.onclick=()=>document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x===s))}
 window.NexusPortal.runtime=(await import('/portal-runtime-core.js')).createPortalRuntime(state,{notify:window.NexusPortal.toast});

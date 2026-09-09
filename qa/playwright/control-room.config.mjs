@@ -6,6 +6,7 @@ export default defineConfig({
   testDir:'./tests',
   testMatch:[
     'commercial-production.spec.mjs',
+    'discovery-production.spec.mjs',
     'control-room-reconcile.spec.mjs',
     'delivery-prepurchase.spec.mjs',
     'qa-intake-register.spec.mjs',
