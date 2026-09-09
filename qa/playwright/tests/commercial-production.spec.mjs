@@ -9,7 +9,11 @@ async function payTest(checkoutPage,url){
  // Hard guard: no live Checkout session is ever submitted by this test.
  expect(url).toMatch(/^https:\/\/checkout\.stripe\.com\/.*cs_test_/);
  await checkoutPage.goto(url);await expect(checkoutPage.locator('body')).toContainText(/Relystra/i);
- const cardChoice=checkoutPage.getByRole('button',{name:'Pay with card',exact:true});if(await cardChoice.count())await cardChoice.click();
+ // Stripe's zero-sized accordion button expands its hit area with CSS and
+ // covers the radio. Click the rendered label position as a person would.
+ const cardLabel=checkoutPage.getByText('Card',{exact:true});await expect(cardLabel).toBeVisible();
+ const cardBox=await cardLabel.boundingBox();expect(cardBox).toBeTruthy();
+ await checkoutPage.mouse.click(cardBox.x+cardBox.width/2,cardBox.y+cardBox.height/2);
  async function field(name,value){
   await expect.poll(async()=>{for(const frame of checkoutPage.frames())if(await frame.locator(`input[name="${name}"],select[name="${name}"]`).count())return true;return false},{timeout:30000,message:'Stripe field '+name}).toBe(true);
   for(const frame of checkoutPage.frames()){const el=frame.locator(`[name="${name}"]`).first();if(await el.count()){if((await el.evaluate(e=>e.tagName))==='SELECT')await el.selectOption(value);else await el.fill(value);return}}
