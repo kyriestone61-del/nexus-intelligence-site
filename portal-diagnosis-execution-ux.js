@@ -1,3 +1,4 @@
+import {executeDiagnosis as executeDiagnosisStages} from './portal-diagnosis-request.js';
 const portal=window.NexusPortal;
 if(!portal)throw new Error('Relystra portal context is unavailable.');
 const {sb,state,toast}=portal;
@@ -23,7 +24,7 @@ async function executeDiagnosis(button){
   const id=button?.dataset?.id;if(!id)return;
   executionBusy=true;showProgress(button);toast?.('Secured diagnosis started. Analysis is running…');
   try{
-    const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:id}});
+    const {data,error}=await executeDiagnosisStages(sb,id);
     if(error||data?.ok===false)throw new Error(data?.error||error?.message||'Diagnosis execution failed.');
     window.NexusDiagnosisController?.invalidateLatest?.();
     sessionStorage.setItem('nexus_diagnosis_open_after_reload',id);

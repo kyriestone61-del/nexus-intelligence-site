@@ -9,6 +9,7 @@ on:
       - 'portal-discovery-capture.js'
       - 'portal-discovery-capture.css'
       - 'portal-diagnosis-controller-v2.js'
+      - 'portal-diagnosis-request.js'
       - 'portal-diagnosis-execution-ux.js'
       - 'portal-diagnosis-v2.js'
       - 'portal-diagnosis-manual-fallback.js'
@@ -67,7 +68,8 @@ jobs:
           grep -Fq 'completed client discovery response' portal-diagnosis-controller-v2.js
           grep -Fq 'ensureCurrentAdminContext' portal-diagnosis-controller-v2.js
           grep -Fq "status:'queued'" portal-diagnosis-controller-v2.js
-          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
+          grep -Fq "executeDiagnosisStages(sb,id)" portal-diagnosis-controller-v2.js
+          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-request.js
           ! grep -Fq 'resolveTranscriptId' portal-diagnosis-controller-v2.js
           ! grep -Fq 'syncTranscriptSelection' portal-diagnosis-controller-v2.js
           ! grep -Fq 'selectedTranscript' portal-diagnosis-controller-v2.js

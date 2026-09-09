@@ -10,6 +10,7 @@ on:
       - 'portal-discovery-capture.js'
       - 'portal-discovery-capture.css'
       - 'portal-diagnosis-controller-v2.js'
+      - 'portal-diagnosis-request.js'
       - 'portal-diagnosis-execution-ux.js'
       - 'portal-diagnosis-v2.js'
       - 'portal-diagnosis-manual-fallback.js'
@@ -72,7 +73,8 @@ jobs:
           grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller-v2.js
           grep -Fq 'Step\s*2\s*of\s*6' portal-diagnosis-controller-v2.js
           grep -Fq 'Resolve Diagnosis Issue' portal-diagnosis-controller-v2.js
-          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-controller-v2.js
+          grep -Fq "executeDiagnosisStages(sb,id)" portal-diagnosis-controller-v2.js
+          grep -Fq "sb.functions.invoke('nexus-diagnosis-execute'" portal-diagnosis-request.js
           grep -Fq 'supporting_document_ids:docs.map' portal-diagnosis-controller-v2.js
           grep -Fq 'nexus_approve_diagnosis' portal-diagnosis-v2.js
           grep -Fq 'nexus_release_client_task' portal-diagnosis-release-queue.js

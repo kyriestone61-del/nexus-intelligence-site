@@ -1,3 +1,4 @@
+import {executeDiagnosis as executeDiagnosisStages} from './portal-diagnosis-request.js';
 import {companyPreparationQuery,diagnosisPreparationProjectIds,preparationDocuments,workspaceSourceDiagnosisId} from './portal-workspace-context.js';
 import {buildDiscoveryPacket} from './portal-discovery-capture.js';
 
@@ -230,7 +231,7 @@ async function approveDiagnosis(){
 async function requestFurtherAnalysis(){
   const run=latestRun(),note=$('furtherAnalysisNote')?.value?.trim()||'';if(!run||run.status!=='ready_for_review')return;if(!note)return toast?.('Describe what Relystra should reconsider or analyze more deeply.');
   const button=$('submitFurtherAnalysisBtn');button.disabled=true;button.textContent='Running…';
-  try{const {error}=await sb.rpc('nexus_request_diagnosis_revision',{p_run_id:run.id,p_note:note});if(error)throw error;toast?.('Further analysis requested. Relystra is re-running the diagnosis with your review instruction.');const result=await sb.functions.invoke('nexus-diagnosis-execute',{body:{run_id:run.id}});if(result.error||result.data?.ok===false)throw new Error(result.data?.error||result.error?.message||'Further analysis failed.');window.NexusDiagnosisController?.invalidateLatest?.();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await refresh({reload:true})}
+  try{const {error}=await sb.rpc('nexus_request_diagnosis_revision',{p_run_id:run.id,p_note:note});if(error)throw error;toast?.('Further analysis requested. Relystra is re-running the diagnosis with your review instruction.');const result=await executeDiagnosisStages(sb,run.id);if(result.error||result.data?.ok===false)throw new Error(result.data?.error||result.error?.message||'Further analysis failed.');window.NexusDiagnosisController?.invalidateLatest?.();window.dispatchEvent(new CustomEvent('nexus:diagnosis-changed'));await refresh({reload:true})}
   catch(error){toast?.(error.message||'Further analysis could not be completed.')}
   finally{if(button?.isConnected){button.disabled=false;button.textContent='Run Further Analysis'}}
 }
