@@ -1,3 +1,4 @@
+import {stripeForMode} from '../_shared/relystra-stripe.ts';
 import {handleBasicReport} from '../_shared/relystra-basic-report-handler.ts';
 import {handleCheckout} from '../_shared/relystra-checkout-handler.ts';
 import {handleStripeWebhook} from '../_shared/relystra-webhook-handler.ts';
@@ -352,6 +353,20 @@ Deno.serve(async(req:Request)=>{
     const body=await req.json().catch(()=>({}));
     const operation=safe(body?.operation,60)||"diagnosis";
     authState=await auth(req,operation==='ask_support');
+
+    if(operation==='payment_readiness'){
+      if(authState.mode!=='admin'||!authState.userId)throw new Error('ADMIN_REQUIRED');
+      const config=await db.from('nexus_delivery_settings').select('stripe_account_id,payment_livemode,checkout_enabled').eq('singleton',true).single();
+      if(config.error)throw new Error('PAYMENT_SETTINGS_UNAVAILABLE');
+      const modes:Record<string,unknown>={};
+      for(const livemode of [false,true]){
+        const name=livemode?'LIVE':'TEST';
+        const webhookConfigured=!!Deno.env.get(`RELYSTRA_STRIPE_${name}_WEBHOOK_SECRET`);
+        try{const stripe=await stripeForMode(livemode,config.data.stripe_account_id);const account=await stripe.accounts.retrieve(null);modes[name.toLowerCase()]={credentials_verified:true,webhook_configured:webhookConfigured,charges_enabled:account.charges_enabled,payouts_enabled:account.payouts_enabled,ready:webhookConfigured&&(!livemode||account.charges_enabled)};}
+        catch{modes[name.toLowerCase()]={credentials_verified:false,webhook_configured:webhookConfigured,ready:false};}
+      }
+      return new Response(JSON.stringify({ok:true,checkout_enabled:config.data.checkout_enabled,payment_livemode:config.data.payment_livemode,modes}),{headers:jh});
+    }
 
     if(operation==='ask_support'){
       if(authState.mode==='worker'||!authState.userId)throw new Error('AUTH_REQUIRED');

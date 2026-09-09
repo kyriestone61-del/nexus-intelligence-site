@@ -35,6 +35,9 @@ test('deployed Discovery, real Stripe test settlement, Full Diagnosis, expansion
  test.skip(!enabled,'Explicit protected production commercial acceptance dispatch required.');
  expect(ae&&ap&&ce&&cp&&companyName).toBeTruthy();test.setTimeout(24*60*1000);
  await login(page,ae,ap);
+ const readiness=await page.evaluate(async()=>{const r=await window.NexusPortal.sb.functions.invoke('nexus-diagnosis-execute',{body:{operation:'payment_readiness'}});if(r.error)throw r.error;return r.data});
+ console.log('PAYMENT_READINESS',JSON.stringify(readiness));expect(readiness.modes.test.ready).toBe(true);
+
  const company=await page.locator('#companySelect option').evaluateAll((options,name)=>options.find(o=>o.textContent.trim()===name)?.value,companyName);expect(company).toBeTruthy();
  await page.goto('/portal?view_mode=admin&company='+company);await expect.poll(()=>page.evaluate(()=>window.NexusPortal?.state.companyId),{timeout:45000}).toBe(company);
  const primary={template_code:'build_bid_intake',offer_code:'cleanup_sprint',name:'QA Bid Intake Register',problem:'Synthetic bids lack clear owners',outcome:'Each synthetic bid has an owner and current status',scope_in:['One manually maintained bid-intake register populated with two authorized synthetic records'],scope_out:['No external integrations, automatic outreach or bid submission'],inputs:['Two labeled synthetic bid requests'],deliverables:['Populated intake register','Validated backup','Usage, maintenance and walkthrough instructions'],acceptance_criteria:['Two sample records persist on refresh and backup/restore retains their fields'],price_cents:100000,deposit_cents:50000,currency:'usd',duration_min:2,duration_max:4};
