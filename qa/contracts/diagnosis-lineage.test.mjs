@@ -6,7 +6,7 @@ const worker=fs.readFileSync(new URL('../../supabase/functions/nexus-diagnosis-e
 const migration=fs.readFileSync(new URL('../../supabase/migrations/20260908013000_relystra_canonical_diagnosis_lineage.sql',import.meta.url),'utf8');
 
 test('diagnosis execution trusts recorded evidence IDs across later project handoffs',()=>{
-  assert.match(worker,/ids\?\.length\|\|!projectId\|\|!d\.project_id\|\|d\.project_id===projectId/);
+  assert.match(worker,/!excluded\.has\(d\.id\)\&\&\(ids\?\.length\|\|d\.project_id===projectId\)/);
   assert.match(worker,/const projectId=packet\.project\?\.id\|\|run\.project_id\|\|null/);
 });
 
