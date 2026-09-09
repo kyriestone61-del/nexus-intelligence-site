@@ -44,9 +44,13 @@ export async function discoveryWork(deps:Dependencies,engagementId:string|null=n
    const report=validateFreeDiagnosis(await deps.call(cfg,'Free Diagnosis consultant',freeDiagnosisPrompt,{nodes:job.nodes,documents:run.document_ids},0.05,90000),run.source_ids);
    return await commit('synthesis',{...job,run_id:run.id,stage:'qa',draft:report});
   }
-  const review=await deps.call(cfg,'Independent source fidelity and contradiction reviewer',`${freeDiagnosisPrompt}\nReview the draft against the evidence. Correct unsupported claims, missing attribution, overlooked contradictions and overconfident language. Return {report:<corrected report>,qa:{pass:boolean,issues:[string]}}. pass is true only when all defects are corrected; missing client information is an honest gap, not a defect.`,{draft:job.draft,evidence:job.nodes},0.05,90000);
+  const review=await deps.call(cfg,'Independent source fidelity and contradiction reviewer',`${freeDiagnosisPrompt}\nReview the draft against the evidence. Correct unsupported claims, missing attribution, overlooked contradictions and overconfident language. Return {report:<corrected report>,qa:{pass:boolean,issues:[string]}}. pass is true only when all defects are corrected. issues must contain ONLY unresolved defects and must be [] when pass is true. Put already-applied corrections in a separate corrections:[string] field. Missing client information is an honest gap, not a defect. Do not demand new client evidence to pass a report that explicitly discloses that gap.`,{draft:job.draft,evidence:job.nodes,previous_unresolved_issues:job.draft?._qa_previous_issues||[]},0.05,90000);
   const report=validateFreeDiagnosis(review.report,run.source_ids);
-  if(review.qa?.pass!==true||!Array.isArray(review.qa?.issues)||review.qa.issues.length)throw new Error('DIAGNOSIS_QA_FAILED: Source-fidelity review found unresolved issues. Retry generation or add clarifying evidence.');
+  if(review.qa?.pass!==true||!Array.isArray(review.qa?.issues)||review.qa.issues.length){
+   const issues=Array.isArray(review.qa?.issues)?review.qa.issues.filter((x:any)=>typeof x==='string'):['The quality reviewer did not return the required decision.'];
+   if(Number(job.draft?._qa_attempts||0)<1)return await commit('synthesis',{...job,run_id:run.id,stage:'qa',draft:{...report,_qa_attempts:1,_qa_previous_issues:issues}});
+   throw new Error('DIAGNOSIS_QA_FAILED: '+(issues.join('; ')||'The quality reviewer could not confirm source fidelity. Review the evidence and retry.'));
+  }
   return await commit('complete',{run_id:run.id,report:{...report,analysis_context:job.nodes,qa:{pass:true,issues:[]},coverage:{documents:run.document_ids.length,chunks:run.source_ids.length,complete:true},pipeline_version:1}});
  }catch(error){
   const message=String((error as Error)?.message||error).slice(0,1000);
