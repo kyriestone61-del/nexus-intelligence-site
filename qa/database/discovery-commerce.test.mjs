@@ -85,6 +85,10 @@ test('Discovery report retains real input, limits free scope and activates exact
  const qualification=Object.fromEntries(['impact','urgency','effort','dependency_readiness','client_readiness','confidence'].map(k=>[k,{level:k==='effort'?'low':'high',reason:'Supported by the synthetic approved finding.'}]));
  const spec={name:'Estimate follow-up',outcome:'Each estimate receives an owned follow-up',problem:'Follow-ups missed',diagnosis_run_id:run,template_code:'build_estimate_follow_up',source_path:'opportunity_backlog/0',completed_action_ids:[],qualification,operational_benefit:'Fewer missed follow-ups',commercial_state:'needs_discussion',placement:'next',offer_code:'cleanup_sprint',complexity_scores:[1,1,1,1,1],complexity:'simple',price_cents:100000,deposit_cents:50000,currency:'usd',duration_min:3,duration_max:5,scope_in:['One follow-up process'],scope_out:['No sales outreach'],required_inputs:['Client-approved estimate records'],acceptance_criteria:['Representative estimate can be followed through'],dependencies:[]};
  await db.query("insert into nexus_company_members(company_id,user_id,member_role,active) values ($1,$2,'owner',true)",[company,client]);
+ await db.query('select relystra_complete_initial_invite($1,$2)',[planId,client]);
+ await db.query('select relystra_complete_initial_invite($1,$2)',[planId,client]);
+ assert.equal((await db.query('select member_role from nexus_company_members where company_id=$1 and user_id=$2',[company,client])).rows[0].member_role,'owner');
+ assert.equal((await db.query('select invited_user_id from nexus_discovery_requests where id=$1',[id])).rows[0].invited_user_id,client);
  const extra=await asUser(db,admin,()=>db.query("select relystra_save_build($1,null,$2,'approve') id",[company,spec]).then(r=>r.rows[0].id));
  await asUser(db,client,async()=>{
   const roadmap=(await db.query('select relystra_roadmap($1) data',[company])).rows[0].data;
