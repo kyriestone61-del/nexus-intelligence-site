@@ -9,7 +9,7 @@ test('transcript upload failure retains file, retry persists, diagnosis failure 
   await page.getByRole('button',{name:'Upload meeting transcript',exact:true}).click();await expect(page.getByText('Transcript ready:',{exact:false})).toBeVisible();
   await page.getByRole('button',{name:'Run Diagnosis',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Simulated diagnosis failure');
   await page.getByRole('button',{name:'Retry existing diagnosis',exact:true}).click();await expect(page.getByRole('heading',{name:'Existing diagnosis review'})).toBeVisible();
-  await page.getByRole('navigation').getByRole('button',{name:/Meeting transcript/}).click();await page.getByRole('button',{name:'Continue to diagnosis & approval',exact:true}).click();await expect(page.locator('#calls')).toHaveText('2');
+  await page.getByRole('navigation').getByRole('button',{name:/Upload Discovery Material/}).click();await page.getByRole('button',{name:'Continue to diagnosis & approval',exact:true}).click();await expect(page.locator('#calls')).toHaveText('2');
   await page.reload();await expect(page.getByText('Transcript ready:',{exact:false})).toBeVisible();
   await page.locator('#company').selectOption('b');await expect(page.getByText('No transcript selected yet.',{exact:false})).toBeVisible();
   await expect(page.getByRole('button',{name:'Run Diagnosis',exact:true})).toBeDisabled();

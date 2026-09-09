@@ -1,4 +1,4 @@
-import {mountTranscriptStage} from '/portal-transcript-stage.js';
+import {mountFullDiagnosisStage as mountTranscriptStage} from '/portal-full-diagnosis-stage.js';
 import {journeyMarkup,journeyGate,gateMarkup} from '/portal-journey-steps.js';
 import {createPortalRuntime} from '/portal-runtime-core.js';
 const params=new URL(location.href).searchParams,role=params.get('role')||'admin';
