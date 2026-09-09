@@ -1,4 +1,5 @@
 const SUPABASE_URL='https://dmdgkjksouhhsuojthav.supabase.co';
+const PUBLIC_GATEWAY=`${SUPABASE_URL}/functions/v1/nexus-email-worker`;
 const jsonHeaders={'content-type':'application/json','cache-control':'no-store'};
 const clean=(value,max)=>String(value??'').trim().slice(0,max);
 const allowed={
@@ -32,7 +33,6 @@ export async function onRequestPost(context){
     const origin=context.request.headers.get('origin');
     if(!allowedOrigin(origin))return new Response(JSON.stringify({ok:false,error:'origin_not_allowed'}),{status:403,headers:jsonHeaders});
     const serviceKey=context.env?.SUPABASE_SERVICE_ROLE_KEY||'';
-    if(!serviceKey)return new Response(JSON.stringify({ok:false,error:'Snapshot submission is temporarily unavailable.'}),{status:503,headers:jsonHeaders});
     const body=await context.request.json();
     if(body.website_field) return new Response(JSON.stringify({ok:true}),{status:200,headers:jsonHeaders});
 
@@ -69,6 +69,11 @@ export async function onRequestPost(context){
     const last_touch=boundedObject(body.last_touch);
     const payload={first_name,email,phone,sms_opt_in,marketing_opt_in,company_name,business_type,team_size,priority_goal,opportunity_areas,frequency,burden,systems,authority,timeline,opportunity_score,primary_opportunity,top_opportunities,snapshot_data,first_touch,last_touch};
     const canonical=JSON.stringify(payload);
+    if(!serviceKey){
+      const upstream=await fetch(PUBLIC_GATEWAY,{method:'POST',headers:{'content-type':'application/json','origin':origin||'https://nexusintelligence.live'},body:JSON.stringify({mode:'opportunity_snapshot',payload})});
+      const result=await upstream.json().catch(()=>({}));
+      return new Response(JSON.stringify(upstream.ok?result:{ok:false,error:upstream.status===429?'Too many Snapshot requests. Please try again later.':'Your Snapshot could not be saved. Please try again.'}),{status:upstream.ok?200:upstream.status===429?429:500,headers:jsonHeaders});
+    }
     const [ipHash,emailHash,dedupeKey]=await Promise.all([
       digest(serviceKey,`snapshot-ip:${sourceIp(context.request)}`),
       digest(serviceKey,`snapshot-email:${email}`),

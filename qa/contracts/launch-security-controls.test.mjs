@@ -6,11 +6,14 @@ const read=path=>fs.readFileSync(path,'utf8');
 const migration=read('supabase/migrations/20260908020000_relystra_launch_security_controls.sql');
 const retirement=read('supabase/migrations/20260908023000_relystra_retire_unsafe_snapshot_rpc.sql');
 
-test('public Snapshot intake is service-gated, idempotent, quota-bound, and does not queue model work',()=>{
-  const edge=read('functions/api/opportunity-snapshot.js');
+test('public Snapshot intake stays behind a server boundary, is idempotent and quota-bound, and does not queue model work',()=>{
+  const edge=read('functions/api/opportunity-snapshot.js'),gateway=read('supabase/functions/nexus-email-worker/public-request-gateway.ts');
   assert.match(edge,/SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(edge,/submit_relystra_opportunity_snapshot/);
   assert.match(edge,/snapshot-ip:/);
+  assert.match(edge,/mode:'opportunity_snapshot'/);
+  assert.match(gateway,/submit_relystra_opportunity_snapshot/);
+  assert.match(gateway,/snapshot-ip:/);
   assert.match(migration,/unique\(submission_kind,dedupe_key\)/);
   assert.match(migration,/ip_recent>=12 or email_recent>=3 or global_recent>=120/);
   assert.match(retirement,/revoke all on function public\.submit_nexus_opportunity_snapshot\(jsonb\) from public,anon,authenticated/);
@@ -19,10 +22,12 @@ test('public Snapshot intake is service-gated, idempotent, quota-bound, and does
 });
 
 test('recovery stays on the trusted queue and one-time tokens are removed before verification',()=>{
-  const api=read('functions/api/auth-email.js'),worker=read('supabase/functions/nexus-email-worker/index.ts'),mail=read('supabase/functions/nexus-email-worker/auth-recovery.ts'),portal=read('portal-auth.js');
-  assert.doesNotMatch(api,/RECOVERY_WORKER_URL|queueRecoveryViaWorker/);
-  assert.doesNotMatch(worker,/maybeHandleAuthRecoveryRequest/);
+  const api=read('functions/api/auth-email.js'),worker=read('supabase/functions/nexus-email-worker/index.ts'),gateway=read('supabase/functions/nexus-email-worker/public-request-gateway.ts'),mail=read('supabase/functions/nexus-email-worker/auth-recovery.ts'),portal=read('portal-auth.js');
+  assert.match(api,/queueRecoveryViaGateway/);
+  assert.match(worker,/maybeHandlePublicRequest/);
   assert.equal(fs.existsSync('supabase/functions/nexus-email-worker/auth-recovery-request.ts'),false);
+  assert.doesNotMatch(gateway,/body\?\.client_ip/);
+  assert.match(gateway,/sourceIp\(req\)/);
   assert.match(mail,/target\.hash=new URLSearchParams/);
   assert.doesNotMatch(mail,/target\.searchParams\.set\('token_hash'/);
   assert.match(portal,/history\.replaceState\(\{\},'',`\$\{location\.pathname\}#mode=recovery`\);\s*const result=await sb\.auth\.verifyOtp/);
@@ -69,9 +74,12 @@ test('Pages middleware applies response security headers and public indexing is 
 });
 
 test('administrator client invitation grants one-company membership and queues a tokenless email',()=>{
-  const api=read('functions/api/invite-client.js'),worker=read('supabase/functions/nexus-email-worker/auth-recovery.ts'),ui=read('portal-admin-intake.js');
+  const api=read('functions/api/invite-client.js'),gateway=read('supabase/functions/nexus-email-worker/public-request-gateway.ts'),worker=read('supabase/functions/nexus-email-worker/auth-recovery.ts'),ui=read('portal-admin-intake.js');
   assert.match(api,/nexus_platform_admins/);
   assert.match(api,/relystra_queue_client_invite/);
+  assert.match(api,/mode:'invite_client'/);
+  assert.match(gateway,/nexus_platform_admins/);
+  assert.match(gateway,/relystra_queue_client_invite/);
   assert.match(migration,/on conflict\(company_id,user_id\) do update/);
   assert.match(migration,/'auth_invite'/);
   assert.match(migration,/'token_persisted',false/);

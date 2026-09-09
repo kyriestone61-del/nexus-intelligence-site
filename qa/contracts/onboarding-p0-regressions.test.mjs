@@ -4,13 +4,16 @@ import test from 'node:test';
 
 const read=path=>fs.readFileSync(path,'utf8');
 
-test('Snapshot submission uses the trusted Cloudflare boundary and durable abuse controls',()=>{
+test('Snapshot submission uses a trusted server boundary and durable abuse controls',()=>{
   const source=read('functions/api/opportunity-snapshot.js');
+  const gateway=read('supabase/functions/nexus-email-worker/public-request-gateway.ts');
   const migration=read('supabase/migrations/20260908020000_relystra_launch_security_controls.sql');
   const retirement=read('supabase/migrations/20260908023000_relystra_retire_unsafe_snapshot_rpc.sql');
   assert.match(source,/context\.env\?\.SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(source,/rest\/v1\/rpc\/submit_relystra_opportunity_snapshot/);
   assert.match(source,/cf-connecting-ip/);
+  assert.match(source,/mode:'opportunity_snapshot'/);
+  assert.match(gateway,/submit_relystra_opportunity_snapshot/);
   assert.match(migration,/relystra_public_submission_events/);
   assert.match(migration,/global_recent>=120/);
   assert.match(retirement,/revoke all on function public\.submit_nexus_opportunity_snapshot\(jsonb\) from public,anon,authenticated/);

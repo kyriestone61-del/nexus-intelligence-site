@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { prepareAuthRecovery, prepareAuthInvite, markAuthRecoveryProviderFailure, markAuthRecoveryAccepted, isAuthRecovery, isAuthInvite } from "./auth-recovery.ts";
+import { maybeHandlePublicRequest } from "./public-request-gateway.ts";
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"content-type,x-nexus-worker-token","Access-Control-Allow-Methods":"POST,OPTIONS"};
 const base=()=>Deno.env.get('SUPABASE_URL')||'https://dmdgkjksouhhsuojthav.supabase.co';
@@ -137,6 +138,7 @@ Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   if(req.method!=='POST')return new Response('method not allowed',{status:405,headers:cors});
   try{
+    const publicResponse=await maybeHandlePublicRequest(req,base(),h(),service());if(publicResponse)return publicResponse;
     const cfg=await config();const workerToken=req.headers.get('x-nexus-worker-token')||'';
     if(!cfg?.enabled||!workerToken||await digest(workerToken)!==cfg.secret_hash)return new Response(JSON.stringify({ok:false,error:'Unauthorized'}),{status:401,headers:{...cors,'content-type':'application/json'}});
     const support=await closeExpiredSupport().catch(async e=>{await health('delivery_support','degraded','Support period completion needs attention.',{error:clean((e as Error).message,200)});return {available:true,error:'SUPPORT_CLOSE_FAILED'}});

@@ -1,4 +1,5 @@
 const SUPABASE_URL='https://dmdgkjksouhhsuojthav.supabase.co';
+const PUBLIC_GATEWAY=`${SUPABASE_URL}/functions/v1/nexus-email-worker`;
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_-bZLK1vmL0eUMz65A6EUsw_I20LBq2B';
 const headers={'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'};
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
@@ -14,10 +15,15 @@ async function rest(url,options={}){
 
 export async function onRequestPost({request,env}){
   const serviceKey=env?.SUPABASE_SERVICE_ROLE_KEY||'';
-  if(!serviceKey)return reply({ok:false,error:'Client invitations are temporarily unavailable.'},503);
   const bearer=(request.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
   if(!bearer)return reply({ok:false,error:'Sign in as a Relystra administrator.'},401);
   try{
+    if(!serviceKey){
+      const body=await request.json().catch(()=>({}));
+      const upstream=await fetch(PUBLIC_GATEWAY,{method:'POST',headers:{'content-type':'application/json','authorization':`Bearer ${bearer}`,'origin':new URL(request.url).origin},body:JSON.stringify({mode:'invite_client',...body})});
+      const payload=await upstream.json().catch(()=>({}));
+      return reply(payload,upstream.status);
+    }
     const actor=await rest(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${bearer}`}});
     const admins=await rest(`${SUPABASE_URL}/rest/v1/nexus_platform_admins?user_id=eq.${encodeURIComponent(actor.id)}&select=user_id`,{headers:serviceHeaders(serviceKey)});
     if(!Array.isArray(admins)||!admins.length)return reply({ok:false,error:'Relystra administrator access required.'},403);
