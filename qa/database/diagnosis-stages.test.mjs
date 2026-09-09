@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {database,asUser} from './fixture.mjs';
-import {diagnosisStages,validateDiagnosisStage} from '../../supabase/functions/_shared/relystra-diagnosis-job.ts';
+import {diagnosisStages,validateDiagnosisStage,applyDiagnosisCorrections} from '../../supabase/functions/_shared/relystra-diagnosis-job.ts';
 import {executeDiagnosis} from '../../portal-diagnosis-request.js';
 const admin='00000000-0000-4000-8000-000000000001',company='00000000-0000-4000-8000-000000000003',run='00000000-0000-4000-8000-000000000004',lease='00000000-0000-4000-8000-000000000005',other='00000000-0000-4000-8000-000000000006';
 test('persisted diagnosis stages keep evidence private, prevent concurrent spend, resume progress, and reject stale leases',async()=>{
@@ -49,4 +49,14 @@ test('browser resumes persisted stages and never reports a partial diagnosis as 
  const sb={functions:{invoke:async()=>({data:{ok:true,status:++calls<4?'analyzing':'ready_for_review'},error:null})}};
  const result=await executeDiagnosis(sb,run,{wait:async()=>{waits++},now:()=>0});assert.equal(result.data.status,'ready_for_review');assert.equal(calls,4);assert.equal(waits,3);
  const failed=await executeDiagnosis({functions:{invoke:async()=>({data:{ok:false,error:'MODEL_TIMEOUT'}})}},run,{wait:async()=>{throw Error('Must not retry failed work')}});assert.equal(failed.data.error,'MODEL_TIMEOUT');
+});
+
+test('QA corrections update only existing analysis fields and preserve the report and prototype boundaries',()=>{
+ const prior={};for(let stage=0;stage<2;stage++)for(const k of diagnosisStages[stage].keys)prior[k]=k==='current_state'?{key_actors:['Unsupported role']}:[];
+ prior.process_map=[{name:'Example',steps:['Unsupported automated handoff']}];
+ const corrected=applyDiagnosisCorrections(prior,[{path:'current_state/key_actors',value:['Owner']},{path:'process_map/0/steps',value:['UNKNOWN: confirm the handoff']}]);
+ assert.equal(corrected.process_map[0].steps[0],'UNKNOWN: confirm the handoff');assert.equal(prior.process_map[0].steps[0],'Unsupported automated handoff');
+ for(const path of ['execution/model','current_state/__proto__/polluted','current_state/new_field','claims/99','current_state/key_actors/length'])assert.throws(()=>applyDiagnosisCorrections(prior,[{path,value:'forged'}]),/INVALID_DIAGNOSIS_CORRECTION/);
+ assert.throws(()=>applyDiagnosisCorrections(prior,[{path:'claims',value:{fake:true}}]),/INVALID_DIAGNOSIS_CORRECTION_TYPE/);
+ assert.equal({}.polluted,undefined);
 });
