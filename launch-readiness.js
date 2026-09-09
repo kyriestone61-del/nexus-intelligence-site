@@ -30,14 +30,14 @@
   },true);
 
   const pageMeta={
-    '/':{title:'Relystra | Practical AI Implementation for SMB Operations',description:'Find high-value AI and automation opportunities, validate the workflow, and implement controlled improvements with measurable baselines.'},
-    '/services':{title:'AI Implementation Solutions | Relystra',description:'Explore Relystra solutions for workflow automation, knowledge systems, reporting, customer operations, and practical AI implementation.'},
+    '/':{title:'Relystra | Construction Workflow Implementation',description:'Practical administrative workflows built for owner-led construction businesses using their actual information, with testing, training and handoff.'},
+    '/services':{title:'Builds and Pricing | Relystra',description:'Free Discovery, one first Build, included Full Diagnosis and optional additional implementations. See configurable planning ranges.'},
     '/quick-scan':{title:'Free AI Opportunity Snapshot | Relystra',description:'A five-minute screening that identifies your highest-potential AI opportunities and the first workflow worth investigating.'},
     '/assessment':{title:'Deeper AI Diagnostic | Relystra',description:'A deeper operational diagnostic for qualified prospects who need a more defensible AI implementation recommendation.'},
     '/book':{title:'Book a Relystra Fit Call | Relystra',description:'Choose a real available time to discuss your AI opportunity and carry your Snapshot or diagnostic context into the call.'},
     '/case-studies':{title:'Evidence & Results | Relystra',description:'Relystra evidence standards, measured improvement records, and verified case studies when client authorization is complete.'},
-    '/about':{title:'About Relystra',description:'How Relystra approaches practical AI implementation, evidence, human control, and measurable business improvement.'},
-    '/methodology':{title:'How Relystra Works',description:'See the Relystra path from opportunity screening and diagnosis to a controlled pilot, implementation, and measurement.'}
+    '/about':{title:'About Relystra',description:'Practical construction operations experience, clear scope and workflow implementation using client-authorized information.'},
+    '/methodology':{title:'How Relystra Works',description:'Discovery, Basic Report, first implementation, included Full Diagnosis, optional roadmap, testing and handoff.'}
   };
   function meta(name,content,property=false){let el=document.head.querySelector(`meta[${property?'property':'name'}="${name}"]`);if(!el){el=document.createElement('meta');el.setAttribute(property?'property':'name',name);document.head.appendChild(el)}el.content=content}
   function metadata(){

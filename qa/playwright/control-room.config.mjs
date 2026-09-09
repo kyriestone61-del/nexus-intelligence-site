@@ -5,6 +5,7 @@ const baseURL=process.env.NEXUS_QA_BASE_URL||'https://nexus-intelligence-site.pa
 export default defineConfig({
   testDir:'./tests',
   testMatch:[
+    'commercial-production.spec.mjs',
     'control-room-reconcile.spec.mjs',
     'delivery-prepurchase.spec.mjs',
     'qa-intake-register.spec.mjs',

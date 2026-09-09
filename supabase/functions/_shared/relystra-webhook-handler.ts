@@ -22,6 +22,24 @@ export async function handleStripeWebhook(req: Request): Promise<Response> {
     if (!payment) return new Response('Awaiting settlement',{status:200});
     const {error:recordError} = await db.rpc('relystra_record_verified_payment',payment);
     if (recordError) throw new Error('PAYMENT_RECORD_FAILED');
+    if(plan.source_discovery_id){
+      const {data:discovery,error:discoveryError}=await db.from('nexus_discovery_requests').select('email,full_name,invited_user_id').eq('id',plan.source_discovery_id).single();
+      if(discoveryError)throw new Error('INVITATION_CONTEXT_FAILED');
+      if(!discovery.invited_user_id){
+        let found=await db.rpc('relystra_find_auth_user',{p_email:discovery.email});
+        if(found.error)throw new Error('INVITATION_LOOKUP_FAILED');
+        let userId=found.data;
+        if(!userId){
+          const created=await db.auth.admin.createUser({email:discovery.email,email_confirm:true,user_metadata:{full_name:discovery.full_name,relystra_invited:true}});
+          userId=created.data.user?.id;
+          // Concurrent webhook delivery may have created the same account first.
+          if(!userId){found=await db.rpc('relystra_find_auth_user',{p_email:discovery.email});userId=found.data;}
+        }
+        if(!userId)throw new Error('INVITATION_ACCOUNT_FAILED');
+        const invited=await db.rpc('relystra_complete_initial_invite',{p_plan_id:plan.id,p_user_id:userId});
+        if(invited.error)throw new Error('INVITATION_QUEUE_FAILED');
+      }
+    }
     return new Response('Recorded',{status:200});
   } catch {
     // Non-2xx causes Stripe to retry; the transaction and provider reference make fulfillment idempotent.

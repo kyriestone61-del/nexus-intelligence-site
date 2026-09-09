@@ -1,5 +1,5 @@
 const SITE_ORIGIN='https://nexusintelligence.live';
-const PRIVATE_PREFIXES=['/portal','/operations','/prospect-workspace','/booking-manage','/api/'];
+const PRIVATE_PREFIXES=['/basic-report','/portal','/operations','/prospect-workspace','/booking-manage','/api/'];
 const PROTECTED_MARKETING_PATHS=new Set(['/privacy','/terms','/accessibility','/security']);
 const SERVICE_SLUGS=new Set(['ai-enablement-training','ai-opportunity-assessment','business-transformation','fractional-ai-director','implementation-sprint','managed-ai-operations']);
 const SECURITY_HEADERS={
@@ -28,7 +28,7 @@ const organizationSchema={
   url:`${SITE_ORIGIN}/`,
   logo:`${SITE_ORIGIN}/assets/relystra-mark.svg`,
   image:`${SITE_ORIGIN}/assets/relystra-og.png`,
-  description:'Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.',
+  description:'Relystra builds practical administrative workflows for owner-led construction businesses, using their actual information, with testing, training and handoff.',
   areaServed:{'@type':'Country',name:'United States'},
   founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie',url:`${SITE_ORIGIN}/about`,image:`${SITE_ORIGIN}/assets/kyrie-founder-primary.webp`}
 };
@@ -37,30 +37,25 @@ const servicesSchema={
   '@context':'https://schema.org',
   '@type':'Service',
   '@id':`${SITE_ORIGIN}/services#service`,
-  name:'Relystra AI & Automation Services',
-  serviceType:'AI and automation implementation consulting',
+  name:'Relystra Construction Workflow Implementation',
+  serviceType:'Administrative workflow implementation',
   provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`},
   areaServed:{'@type':'Country',name:'United States'},
-  description:'Relystra provides AI opportunity assessment, implementation, enablement, managed AI operations, business transformation, and fractional AI leadership services for small and mid-sized businesses.',
+  description:'Start with free Discovery and one recommended Build. Full Diagnosis is included with the first implementation. Additional Builds are optional and separately scoped and priced.',
   hasOfferCatalog:{
     '@type':'OfferCatalog',
     name:'Relystra Services',
     itemListElement:[
-      ['AI Opportunity Assessment','ai-opportunity-assessment'],
-      ['Implementation Sprint','implementation-sprint'],
-      ['AI Enablement & Training','ai-enablement-training'],
-      ['Managed AI Operations','managed-ai-operations'],
-      ['Business Transformation','business-transformation'],
-      ['Fractional AI Director','fractional-ai-director']
+      ['Free Discovery','free-discovery'],['Cleanup Sprint','cleanup-sprint'],['Single Build','single-build'],['Standard System','standard-system'],['Advanced System','advanced-system'],['Ongoing Support','ongoing-support']
     ].map(([name,slug])=>({
       '@type':'Offer',
-      url:`${SITE_ORIGIN}/services/${slug}`,
+      url:`${SITE_ORIGIN}/services`,
       itemOffered:{'@type':'Service',name,provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`}}
     }))
   }
 };
 
-const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie, founder of Relystra" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie is the Delaware-based founder of Relystra and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach to AI: understand the work, establish the baseline, identify the friction, preserve human ownership, and automate only what is justified.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie</a></div></div></div></div></section>`;
+const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie, founder of Relystra" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie is the Delaware-based founder of Relystra and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach: understand the work, organize the actual information, build a usable system, test it, and show the client how to keep it running.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie</a></div></div></div></div></section>`;
 
 const pricingSignal=`<p class="note" data-phase-five-pricing style="margin-top:18px"><b>Investment guidance is published below.</b> Each service shows a current starting point and typical planning window so you can assess fit before a call. Final fees and scope are defined in writing based on the actual engagement.</p>`;
 
@@ -86,6 +81,8 @@ export async function onRequest(context){
   const url=new URL(context.request.url);
   const path=canonicalPath(url.pathname);
 
+  if(['/quick-scan','/assessment'].includes(path)){return new Response(null,{status:301,headers:secure(new Headers({location:new URL('/book',url.origin).toString()}))});}
+
   if(path==='/case-studies'){
     const target=new URL('/methodology',url.origin);
     target.search=url.search;
@@ -97,6 +94,7 @@ export async function onRequest(context){
   const isProtectedMarketing=PROTECTED_MARKETING_PATHS.has(path);
   const isPreview=url.hostname.endsWith('.pages.dev');
   const headers=secure(new Headers(response.headers));
+  if(path==='/basic-report'){headers.set('Referrer-Policy','no-referrer');headers.set('Cache-Control','no-store');}
   // This downloadable QA artifact is self-contained; site navigation scripts
   // must not become dependencies of its offline copy.
   if(path==='/delivery/qa-estimate-intake-register'||path.startsWith('/delivery/qa-estimate-intake-register/')){
@@ -125,11 +123,11 @@ export async function onRequest(context){
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
     .on('meta[name="robots"]',{element(el){if(!isPrivate&&!isProtectedMarketing)el.remove();}})
     .on('meta[name="relystra-stage"]',{element(el){el.remove();}})
-    .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
+    .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Relystra builds practical administrative workflows for owner-led construction businesses, using their actual information, with testing, training and handoff.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
     .on('.navlinks a[href="/case-studies"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})
     .on('#serviceRoot .hero',{element(el){if(path==='/services')el.append(pricingSignal,{html:true});}})
-    .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Relystra identifies where AI and automation are justified, designs and implements controlled systems, and measures what changed.');}})
+    .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Relystra builds practical administrative workflows for owner-led construction businesses, using their actual information, with testing, training and handoff.');}})
     .on('.preview-metric small',{element(el){if(path==='/')el.remove();}})
     .on('.problem-btn[data-problem="revenue"]',{element(el){if(path==='/')el.remove();}})
     .on('.problem-btn[data-problem="data"]',{element(el){if(path==='/')el.remove();}})

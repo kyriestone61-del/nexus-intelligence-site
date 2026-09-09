@@ -6,6 +6,7 @@ function from(table){const body={table,columns:'*',filters:[],order:[]},q={
   is(key,value){body.filters.push(['is',key,value]);return q},not(key){body.filters.push(['not',key]);return q},
   in(key,value){body.filters.push(['in',key,value]);return q},or(value){body.filters.push(['or',value]);return q},
   order(key,options={}){body.order.push([key,options.ascending!==false]);return q},limit(value){body.limit=value;return q},
+  range(start,end){body.offset=start;body.limit=end-start+1;return q},
   single(){body.single=true;return q},maybeSingle(){body.single=true;return q},then(resolve,reject){return send(body).then(resolve,reject)},
 };return q}
 const state={admin:role==='admin',companyId:info.company,companies:[{id:info.company,name:'Blue Harbor — local delivery fixture'}],user:{id:role==='admin'?info.admin:info.client}};

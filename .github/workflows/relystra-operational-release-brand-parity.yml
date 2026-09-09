@@ -56,8 +56,8 @@ jobs:
             exit 1
           }
 
-          probe 'pages-home-brand' "$pages/" 'Systems that earn their place.'
-          probe 'custom-home-brand' "$custom/" 'Systems that earn their place.'
+          probe 'pages-home-brand' "$pages/" 'Construction workflows, made usable'
+          probe 'custom-home-brand' "$custom/" 'Construction workflows, made usable'
           probe 'pages-home-name' "$pages/" '<span>Relystra</span>'
           probe 'custom-home-name' "$custom/" '<span>Relystra</span>'
           probe_calendar_handoff 'pages-book-handoff' "$pages/book"

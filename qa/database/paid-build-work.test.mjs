@@ -31,6 +31,7 @@ test('only an approved paid brief creates internal Build Tasks and client progre
     await db.exec('reset role');
     const historical=(await db.query("insert into nexus_projects(company_id,name,created_by,project_type) values ($1,'Retained historical diagnosis',$2,'historical') returning id",[company,admin])).rows[0].id;
     await db.query('update nexus_diagnosis_runs set project_id=$1 where id=$2',[historical,run]);
+    for(const name of ['20260909082311_relystra_master_build_library.sql','20260909082312_relystra_commercial_roadmap.sql','20260909082313_relystra_discovery_commerce.sql','20260909084306_relystra_roadmap_operations.sql'])await db.exec(await fs.readFile(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8'));
     const initialNotifications=(await db.query('select count(*)::int n from nexus_notifications')).rows[0].n;
     let build=(await db.query('select * from nexus_system_cards where project_id=$1',[project])).rows[0];
     assert.equal((await db.query('select count(*)::int n from nexus_tasks')).rows[0].n,0,'payment creates briefs, not unreviewed execution tasks');
@@ -56,7 +57,7 @@ test('only an approved paid brief creates internal Build Tasks and client progre
       await db.query("select relystra_save_brief($1,'{}',true)",[build.id]);
     });
     const tasks=(await db.query('select * from nexus_tasks order by sort_order')).rows;
-    assert.equal(tasks.length,9,'repeated brief approval creates no duplicate checklist');
+    assert.equal(tasks.length,13,'repeated brief approval creates no duplicate checklist');
     assert.ok(tasks.every(t=>t.work_kind==='build_task'&&t.assignee==='nexus'&&!t.notify_client));
     build=(await db.query('select * from nexus_system_cards where id=$1',[build.id])).rows[0];
     assert.deepEqual(build.build_brief.approved_scope,['One intake source']);
@@ -70,7 +71,7 @@ test('only an approved paid brief creates internal Build Tasks and client progre
       assert.equal((await db.query('select * from nexus_task_events')).rows.length,0,'event snapshots do not expose hidden internal work');
       await assert.rejects(db.query('select relystra_set_build_task($1,true)',[tasks[1].id]),/administrator/);
       const progress=(await db.query('select relystra_package_progress($1) progress',[project])).rows[0].progress;
-      assert.equal(progress.percent,10);assert.equal(progress.stage,'building');
+      assert.equal(progress.percent,6);assert.equal(progress.stage,'building');
     });
     await asUser(db,admin,async()=>{
       for(const task of tasks.slice(1))await db.query('select relystra_set_build_task($1,true)',[task.id]);
@@ -79,7 +80,7 @@ test('only an approved paid brief creates internal Build Tasks and client progre
       await assert.rejects(db.query('select relystra_set_build_task($1,false)',[tasks[0].id]),/dependent task/);
     });
     const events=(await db.query("select * from nexus_task_events where event_type='completed'")).rows;
-    assert.equal(events.length,9);
+    assert.equal(events.length,tasks.length);
     assert.equal((await db.query('select count(*)::int n from nexus_notifications')).rows[0].n,initialNotifications,'internal task updates do not add notifications after payment and historical setup');
     assert.ok(events.every(e=>e.actor_id===admin&&e.detail.object_version&&e.detail.snapshot.work_kind==='build_task'));
     const checks=Object.fromEntries(['functionality','outputs','permissions','integrations','links','error_states','input_validation','data_behavior','mobile_usability','client_usability','documentation','faq','support_grounding']
