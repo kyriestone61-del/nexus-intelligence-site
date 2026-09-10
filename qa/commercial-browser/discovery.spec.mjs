@@ -1,5 +1,22 @@
 import {test,expect} from '../playwright/node_modules/@playwright/test/index.mjs';
 const file=(name,text)=>({name,mimeType:'text/plain',buffer:Buffer.from(text)});
+test('Full Diagnosis loads its own scoped access when the journey snapshot is unavailable',async({page},info)=>{
+ await page.goto('/qa/delivery-browser/?section=transcript&discovery=access-'+info.project.name);
+ await expect(page.getByRole('heading',{name:'Upload Discovery Material',exact:true})).toBeVisible();
+ await page.evaluate(async()=>{
+  const portal=window.NexusPortal,journey=window.NexusAdminJourney;
+  portal.$=id=>document.getElementById(id);portal.sb.auth={onAuthStateChange(){}};
+  window.NexusAdminJourney={navigate:journey.navigate,refresh:journey.refresh,snapshot:null};
+  await import('/portal-admin-intake.js');await journey.navigate('diagnosis');
+ });
+ await expect(page.getByRole('button',{name:'Review scope & payment',exact:true})).toBeVisible();
+ await expect(page.locator('#queueDiagnosisBtn')).toHaveCount(0);
+ await page.getByRole('button',{name:'Open Free Diagnosis',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Upload Discovery Material',exact:true})).toBeVisible();
+ await page.evaluate(async()=>{window.NexusPortal.state.companyId='different-company';await window.NexusAdminIntake.refresh();});
+ await expect(page.locator('#queueDiagnosisBtn')).toHaveCount(0);
+ await expect(page.locator('#reloadDiagnosisAccessBtn')).toHaveCount(1);
+});
 test('multi-document discovery, failed parsing, review, stale revision and persisted history work at this device size',async({page},info)=>{
  test.setTimeout(120000);
  await page.goto('/qa/delivery-browser/?section=transcript&discovery='+info.project.name);
