@@ -200,7 +200,7 @@ async function runGapAnalysis(){
     const p=project();const {data,error}=await sb.functions.invoke('nexus-diagnosis-execute',{body:{operation:'gap_analysis',company_id:state.companyId,project_id:p?.id||null}});
     if(error||data?.ok===false)throw await functionFailure({data,error},'Discovery coverage');
     toast?.(`Information coverage analyzed. ${arr(data.result?.gaps).length} material gap${arr(data.result?.gaps).length===1?'':'s'} remain.`);await refresh({reload:true});
-  }catch(error){toast?.(error.message||'Information gaps could not be analyzed.')}
+  }catch(error){console.warn('discovery_coverage_failed',{error_code:error.code,request_id:error.requestId});toast?.((error.message||'Information gaps could not be analyzed.')+(state.admin&&error.code?` Reference: ${error.code}${error.requestId?' · '+error.requestId:''}`:''))}
   finally{if(button?.isConnected){button.disabled=false;button.textContent='Recheck Coverage'}}
 }
 async function sendGapRequest(){
