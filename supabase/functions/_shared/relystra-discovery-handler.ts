@@ -15,7 +15,11 @@ export async function discoveryWork(deps:Dependencies,engagementId:string|null=n
    stage=document.state==='uploaded'?'parse':'extract';documentId=document.document_id;
    if(document.state==='uploaded'){
     const doc=await rows(db.from('nexus_documents').select('*').eq('id',documentId).eq('company_id',lease.company_id).single());
-    if(doc.project_id!==lease.project_id)throw new Error('DOCUMENT_ENGAGEMENT_MISMATCH');
+    if(doc.project_id!==lease.project_id){
+     const project=await rows(db.from('nexus_projects').select('source_discovery_id').eq('id',doc.project_id).eq('company_id',lease.company_id).maybeSingle());
+     const source=project?.source_discovery_id?await rows(db.from('nexus_discovery_requests').select('basic_report').eq('id',project.source_discovery_id).eq('company_id',lease.company_id).maybeSingle()):null;
+     if(source?.basic_report?.discovery_engagement_id!==lease.id)throw new Error('DOCUMENT_ENGAGEMENT_MISMATCH');
+    }
     const parsed=await deps.parse(doc,await deps.config());
     if(!parsed.parsed)throw new Error('UNSUPPORTED_DOCUMENT: Upload PDF, DOCX, TXT, Markdown, SRT or VTT.');
     const chunks=chunkDiscoveryText(parsed.text,documentId!);

@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {database,asUser} from './fixture.mjs';
+import {discoveryWork} from '../../supabase/functions/_shared/relystra-discovery-handler.ts';
+import {serviceAdapter,deterministicDiscoveryModel} from './discovery-model-fixture.mjs';
 export const commerceMigrations=(await fs.readdir(new URL('../../supabase/migrations/',import.meta.url))).filter(n=>/^202609(?:0[789]|10)/.test(n)&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('launch_security_controls')&&!n.includes('retire_unsafe_snapshot')).sort();
 const admin='00000000-0000-4000-8000-000000000001',client='00000000-0000-4000-8000-000000000002',company='00000000-0000-4000-8000-000000000003',foreign='00000000-0000-4000-8000-000000000004';
 test('Discovery report retains real input, limits free scope and activates exactly one included Build only after its verified deposit',async()=>{
@@ -53,6 +55,11 @@ test('Discovery report retains real input, limits free scope and activates exact
  assert.equal(retained.free_discovery.id,discovery.id,'payment retains original discovery engagement automatically');
  assert.equal(retained.free_discovery.documents[0].id,original);
  assert.equal((await db.query('select id from relystra_evidence_scope($1,$2)',[company,project])).rows[0].id,original,'full diagnosis and coverage retain the same authorized source');
+ const followup=crypto.randomUUID();await db.query("insert into nexus_documents(id,company_id,project_id,storage_path,file_name,category,uploaded_by) values($1,$2,$3,$4,'Followup.txt','Discovery Material',$5)",[followup,company,project,company+'/followup.txt',admin]);
+ await asUser(db,admin,()=>db.query("select relystra_discovery_workspace($1,$2,'process')",[company,project]));
+ const deps={db:serviceAdapter(db),config:async()=>({}),hash:async text=>text,parse:async()=>({text:'Owner: An authorized paid-project follow-up.',parsed:true,parser:'text'}),call:deterministicDiscoveryModel};
+ for(let i=0;i<6;i++)assert.equal((await discoveryWork(deps,discovery.id)).ok,true);
+ assert.equal((await db.query('select state from relystra_discovery_documents where document_id=$1',[followup])).rows[0].state,'parsed','new paid-project evidence processes in the retained discovery engagement');
  await assert.rejects(db.query("insert into nexus_diagnosis_runs(company_id,status,created_by) values($1,'queued',$2)",[company,admin]),/Full Diagnosis requires payment/);
  await assert.rejects(db.query("insert into nexus_diagnosis_runs(company_id,status,created_by) values($1,'queued',$2)",[foreign,admin]),/Full Diagnosis requires payment/);
  assert.equal((await db.query('select private.relystra_full_diagnosis_access($1,$2,null) access',[company,crypto.randomUUID()])).rows[0].access,false,'paid plan cannot authorize another project');
