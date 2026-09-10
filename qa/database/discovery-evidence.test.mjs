@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {database,asUser} from './fixture.mjs';
 import {chunkDiscoveryText,validateExtraction,validateFreeDiagnosis,discoverySections} from '../../supabase/functions/_shared/relystra-discovery-evidence.ts';
 import {discoveryState} from '../../portal-discovery-evidence.js';
-const migrations=(await fs.readdir(new URL('../../supabase/migrations/',import.meta.url))).filter(n=>/^2026090[789]/.test(n)&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('launch_security_controls')&&!n.includes('retire_unsafe_snapshot')).sort();
+const migrations=(await fs.readdir(new URL('../../supabase/migrations/',import.meta.url))).filter(n=>/^202609(?:0[789]|10)/.test(n)&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('launch_security_controls')&&!n.includes('retire_unsafe_snapshot')).sort();
 const admin='00000000-0000-4000-8000-000000000001',co='00000000-0000-4000-8000-000000000003',other='00000000-0000-4000-8000-000000000004',doc='00000000-0000-4000-8000-000000000005',client='00000000-0000-4000-8000-000000000006';
 test('discovery evidence processes retained uploads, gates free diagnosis, preserves versions and isolates companies',async()=>{
  const db=await database(migrations);
@@ -51,7 +51,7 @@ test('complete hierarchical state machine covers three documents plus > single-p
   for(const [i,t] of ['Owner: intake arrives by email.','Coordinator: intake also arrives by phone.','Estimator: responsibility is not consistent.'].entries())await insert(t,'source'+i+'.txt');
   const large=await insert(('SYNTHETIC process evidence with manual handoff.\n').repeat(13000)+'Unique final evidence.','large.txt');
   const workspace=async(action='view')=>asUser(db,admin,()=>db.query('select relystra_discovery_workspace($1,null,$2) s',[co,action]).then(r=>r.rows[0].s));
-  let s=await workspace('process');let extracts=0,qaChecks=0;const deps={db:serviceAdapter(db),config:async()=>({}),hash:async()=> 'test-content-hash',parse:async d=>({text:sources.get(d.id),parser:'text',parsed:true}),call:async(...args)=>{if(args[1]==='Document evidence extractor')extracts++;const result=await deterministicDiscoveryModel(...args);if(args[1].startsWith('Independent')&&++qaChecks===1)return {...result,qa:{pass:false,issues:['Clarify the attribution of the synthetic finding.']}};return result}};
+  let s=await workspace('process');let extracts=0,qaChecks=0;const deps={db:serviceAdapter(db),config:async()=>({}),hash:async text=> (await import('node:crypto')).createHash('sha256').update(text).digest('hex'),parse:async d=>({text:sources.get(d.id),parser:'text',parsed:true}),call:async(...args)=>{if(args[1]==='Document evidence extractor')extracts++;const result=await deterministicDiscoveryModel(...args);if(args[1].startsWith('Independent')&&++qaChecks===1)return {...result,qa:{pass:false,issues:['Clarify the attribution of the synthetic finding.']}};return result}};
   for(let i=0;i<200;i++){const result=await discoveryWork(deps,s.id);assert.equal(result.ok,true,JSON.stringify(result));if(result.action==='idle')break;}
   s=await workspace('generate');assert.ok(s.documents.every(d=>d.state==='parsed'));assert.ok(extracts>40);
   for(let i=0;i<100;i++){const result=await discoveryWork(deps,s.id);assert.equal(result.ok,true,JSON.stringify(result));if(result.action==='complete')break;}

@@ -10,5 +10,5 @@ export async function deterministicDiscoveryModel(cfg,label,instruction,payload)
  const nodes=payload.nodes||payload.evidence,sourceIds=[...new Set(nodes.flatMap(x=>x.source_ids))];
  if(label==='Cross-document evidence synthesis')return {themes:sourceIds.map(id=>({text:'Synthetic source considered.',source_refs:[id]})),contradictions:[],missing_information:[]};
  const report={...Object.fromEntries(discoverySections.map(k=>[k,[{text:'Synthetic evidence describes intake and responsibility gaps.',confidence:'strongly_indicated',source_refs:sourceIds}]])),contradictions:[]};
- return label.startsWith('Independent')?{report,qa:{pass:true,issues:[]}}:report;
+ return label.startsWith('Independent')?{corrections:[],qa:{pass:true,issues:[]}}:report;
 }

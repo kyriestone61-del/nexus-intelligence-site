@@ -1,4 +1,4 @@
-const info=await fetch('/qa-fixture-info').then(r=>r.json()),role=new URL(location.href).searchParams.get('role')||'admin';
+const info=await fetch('/qa-fixture-info'+location.search).then(r=>r.json()),role=new URL(location.href).searchParams.get('role')||'admin';
 const send=body=>fetch('/qa-db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,role})}).then(r=>r.json());
 function from(table){const body={table,columns:'*',filters:[],order:[]},q={
   select(columns='*'){body.columns=columns;return q},insert(value){body.insert=value;return q},update(value){body.update=value;return q},

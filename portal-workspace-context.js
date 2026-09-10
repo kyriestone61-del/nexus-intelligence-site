@@ -46,12 +46,14 @@ export function diagnosisDocumentIds(run) {
 }
 
 export function preparationDocuments(state, projectId = null, run = null) {
-  const sourceIds = diagnosisDocumentIds(run);
+  const sourceIds = diagnosisDocumentIds(run),discovery=state?.discoveryEvidence;
+  const canonical=discovery?.company_id===state?.companyId&&(discovery.project_id||null)===(projectId||null)
+    ?new Set((discovery.documents||[]).filter(d=>d.state!=='removed').map(d=>d.id)):null;
   return (state?.docs || []).filter(document => document.company_id === state?.companyId && !document.discovery_removed
-    && (!document.project_id || document.project_id === projectId || sourceIds.has(document.id)));
+    && (sourceIds.has(document.id) || (canonical?canonical.has(document.id):(document.project_id||null)===(projectId||null))));
 }
 
 export function companyPreparationQuery(query, projectId = null, relatedProjectIds = []) {
   const ids = [...new Set([projectId, ...relatedProjectIds].filter(Boolean))];
-  return ids.length ? query.or(`project_id.is.null,${ids.map(id => `project_id.eq.${id}`).join(',')}`) : query.is('project_id', null);
+  return ids.length ? query.or(ids.map(id => `project_id.eq.${id}`).join(',')) : query.is('project_id', null);
 }

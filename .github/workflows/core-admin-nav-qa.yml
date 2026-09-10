@@ -39,7 +39,7 @@ jobs:
           grep -Fq 'Supporting evidence' portal-admin-intake.js
           grep -Fq 'Analyze Missing Information' portal-admin-intake.js
           grep -Fq 'nexus_save_discovery_admin_context' portal-admin-intake.js
-          grep -Fq 'Run Diagnosis' portal-admin-intake.js
+          grep -Fq 'Run Full Diagnosis' portal-admin-intake.js
           grep -Fq "capture:{source:'evidence_first_step2'" portal-discovery-capture.js
           # The paid delivery lifecycle replaces the old six-stage and three-tab contracts.
           node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs

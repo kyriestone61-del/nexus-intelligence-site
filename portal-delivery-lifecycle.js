@@ -74,7 +74,7 @@ export function createLifecycleStore(portal){
     const {data,error}=await portal.sb.rpc('relystra_workspace_snapshot',{p_company_id:company,p_project_id:projectId});
     if(version!==sequence||portal.state.companyId!==company)return null;
     if(error)throw error;
-    value=data;return data;
+    value=data;if(data?.free_discovery)portal.state.discoveryEvidence=data.free_discovery;return data;
   },invalidate(){sequence++;value=null}};
 }
 

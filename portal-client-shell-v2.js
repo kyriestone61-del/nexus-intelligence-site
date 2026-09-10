@@ -71,7 +71,7 @@ function updatePrimaryNavigation(){
   const visible=new Set(visibleDeliverySections(lifecycleStore.value).map(([key])=>({overview:'today',diagnosis:'reports'}[key]||key)));
   document.querySelectorAll('#nexusClientPrimaryNav [data-client-view]').forEach(button=>button.toggleAttribute('hidden',button.dataset.clientView!=='transcript'&&!visible.has(button.dataset.clientView)));
 }
-function renderJourney(){if(lifecycleStore.value)lifecycleStore.value.free_discovery=state.discoveryEvidence?.company_id===state.companyId?state.discoveryEvidence:null;const host=$('relystraClientJourney');if(!host)return;host.innerHTML=journeyMarkup(lifecycleStore.value,{active:({today:'overview',reports:'diagnosis'}[activeView]||activeView),hasTranscript:!!selectedTranscript(portal,lifecycleStore.value),attribute:'data-client-go'});bindCommon(host)}
+function renderJourney(){const host=$('relystraClientJourney');if(!host)return;host.innerHTML=journeyMarkup(lifecycleStore.value,{active:({today:'overview',reports:'diagnosis'}[activeView]||activeView),hasTranscript:!!selectedTranscript(portal,lifecycleStore.value),attribute:'data-client-go'});bindCommon(host)}
 async function activateView(view){
   if(['free-diagnosis','review-findings','discovery'].includes(view))view='transcript';
   const version=++navigationVersion;
@@ -168,7 +168,7 @@ async function refreshClientShell({force=false}={}){const companyId=state.compan
 
 events.bind(window,'nexus:workspace-ready','client-shell:workspace-ready',event=>{if(event.detail?.companyId===state.companyId)refreshClientShell({force:true})});events.bind(window,'nexus:diagnosis-changed','client-shell:diagnosis',()=>refreshClientShell({force:true}));
 for(const name of ['nexus:delivery-changed','relystra:delivery-changed'])events.bind(window,name,'client-shell:'+name,()=>refreshClientShell({force:true}));
-window.addEventListener('relystra:discovery-state',renderJourney);
+window.addEventListener('relystra:discovery-state',async()=>{try{await lifecycleStore.refresh(viewedPackage);renderJourney()}catch{}});
 const initialView=new URL(location.href).searchParams.get('section')||'today';ensureShell();await refreshClientShell({force:true});activateView(initialView);
 async function openPackage(id,section='today'){viewedPackage=id;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,id));await refreshClientShell({force:true});await activateView(section)}
 window.NexusClientShell=Object.freeze({openPackage,refresh:refreshClientShell,activateView,getCurrentActionContext:()=>currentContext,openInbox,openGuide,__qa:{actionableInbox,updateGroups,requestCategory}});

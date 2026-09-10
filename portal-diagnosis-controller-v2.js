@@ -70,7 +70,10 @@ async function securedQueue({forceNew=false}={}){
   if(queueBusy)return;if(!state.admin||!state.companyId)return toast?.('Select a client company first.');queueBusy=true;
   const button=byId('queueDiagnosisBtn');if(button){button.disabled=true;button.textContent='Analyzing…'}
   try{
-    const companyId=state.companyId,projectId=project()?.id||null,current=await latestRun({force:true});
+    const companyId=state.companyId,projectId=project()?.id||null;
+    const access=await sb.rpc('relystra_workspace_snapshot',{p_company_id:companyId,p_project_id:projectId});if(access.error)throw access.error;
+    if(!access.data?.diagnosis?.access){toast?.('Full Diagnosis is included after the first engagement payment. Free Diagnosis and Review Findings remain available in Steps 2–3.');await window.NexusAdminJourney?.navigate('commercial-report');return;}
+    const current=await latestRun({force:true});
     if(state.companyId!==companyId||(project()?.id||null)!==projectId)throw new Error('The workspace changed. Start diagnosis from the selected client.');
     if(!forceNew&&current){
       if(['queued','analyzing'].includes(current.status)){toast?.('A diagnosis is already running. Opening its status.');return await openRun(current)}

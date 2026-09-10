@@ -1,19 +1,25 @@
-import {chunkDiscoveryText,validateExtraction,validateSynthesis,validateFreeDiagnosis,extractionPrompt,synthesisPrompt,freeDiagnosisPrompt} from './relystra-discovery-evidence.ts';
+import {classifyError,clientErrorMessage} from './relystra-errors.ts';
+import {chunkDiscoveryText,validateExtraction,validateSynthesis,validateFreeDiagnosis,applyFreeDiagnosisReview,extractionPrompt,synthesisPrompt,freeDiagnosisPrompt} from './relystra-discovery-evidence.ts';
 type Dependencies={db:any;config:()=>Promise<any>;parse:(doc:any,cfg:any)=>Promise<any>;call:(cfg:any,label:string,instruction:string,payload:any,temperature?:number,timeout?:number)=>Promise<any>;hash:(text:string)=>Promise<string>};
-async function rows(query:any){const r=await query;if(r.error)throw r.error;return r.data;}
+async function rows(query:any){const r=await query;if(r.error)throw classifyError(r.error,'database');return r.data;}
 export async function discoveryWork(deps:Dependencies,engagementId:string|null=null){
  const {db}=deps;const lease=await rows(db.rpc('relystra_claim_discovery_work',{p_engagement_id:engagementId}));
  if(!lease)return {ok:true,status:'idle_or_busy'};
- let documentId:string|null=null,runId:string|null=null;
- const commit=async(action:string,payload:any)=>{const ok=await rows(db.rpc('relystra_commit_discovery_work',{p_engagement_id:lease.id,p_lease_id:lease.lease_id,p_revision:lease.revision,p_action:action,p_payload:payload}));return {ok:true,status:ok?'processing':'evidence_changed',action};};
+ let documentId:string|null=null,runId:string|null=null,stage='claim';const started=Date.now(),requestId=crypto.randomUUID();
+ const metadata=()=>({request_id:requestId,company_id:lease.company_id,engagement_id:lease.id,run_id:runId,evidence_revision:lease.revision,stage,model:'openai/gpt-5.6-sol',gateway:'vercel-ai-gateway',duration_ms:Date.now()-started});
+ const commit=async(action:string,payload:any)=>{const ok=await rows(db.rpc('relystra_commit_discovery_work',{p_engagement_id:lease.id,p_lease_id:lease.lease_id,p_revision:lease.revision,p_action:action,p_payload:payload}));console.info(JSON.stringify({event:'discovery_stage_committed',...metadata(),action,accepted:ok}));return {ok:true,status:ok?'processing':'evidence_changed',action};};
  try{
   const documents=await rows(db.from('relystra_discovery_documents').select('*').eq('engagement_id',lease.id).in('state',['uploaded','parsing']).order('updated_at').limit(1));
   const document=documents?.[0];
   if(document){
-   documentId=document.document_id;
+   stage=document.state==='uploaded'?'parse':'extract';documentId=document.document_id;
    if(document.state==='uploaded'){
     const doc=await rows(db.from('nexus_documents').select('*').eq('id',documentId).eq('company_id',lease.company_id).single());
-    if(doc.project_id!==lease.project_id)throw new Error('DOCUMENT_ENGAGEMENT_MISMATCH');
+    if(doc.project_id!==lease.project_id){
+     const project=await rows(db.from('nexus_projects').select('source_discovery_id').eq('id',doc.project_id).eq('company_id',lease.company_id).maybeSingle());
+     const source=project?.source_discovery_id?await rows(db.from('nexus_discovery_requests').select('basic_report').eq('id',project.source_discovery_id).eq('company_id',lease.company_id).maybeSingle()):null;
+     if(source?.basic_report?.discovery_engagement_id!==lease.id)throw new Error('DOCUMENT_ENGAGEMENT_MISMATCH');
+    }
     const parsed=await deps.parse(doc,await deps.config());
     if(!parsed.parsed)throw new Error('UNSUPPORTED_DOCUMENT: Upload PDF, DOCX, TXT, Markdown, SRT or VTT.');
     const chunks=chunkDiscoveryText(parsed.text,documentId!);
@@ -21,7 +27,7 @@ export async function discoveryWork(deps:Dependencies,engagementId:string|null=n
    }
    const chunk=await rows(db.from('relystra_discovery_chunks').select('id,source_text').eq('document_id',documentId).is('extraction',null).order('ordinal').limit(1).maybeSingle());
    if(!chunk)throw new Error('MISSING_SOURCE_CHUNK: Reprocess this document.');
-   const cfg=await deps.config();
+   const cfg={...await deps.config(),request_id:requestId};
    const result=validateExtraction(await deps.call(cfg,'Document evidence extractor',extractionPrompt,{source_id:chunk.id,text:chunk.source_text},0.05,80000),{id:chunk.id,text:chunk.source_text});
    return await commit('extract',{document_id:documentId,chunk_id:chunk.id,extraction:result});
   }
@@ -30,7 +36,8 @@ export async function discoveryWork(deps:Dependencies,engagementId:string|null=n
   runId=run.id;
   if(run.evidence_revision!==lease.revision)throw new Error('EVIDENCE_CHANGED: Generate an updated diagnosis.');
   const job=await rows(db.from('relystra_discovery_synthesis').select('*').eq('run_id',run.id).single());
-  const cfg=await deps.config();
+  stage=job.stage;console.info(JSON.stringify({event:'discovery_stage_started',...metadata()}));
+  const cfg={...await deps.config(),request_id:requestId};
   if(job.stage==='reduce'){
    if(job.nodes.length<=4)return await commit('synthesis',{...job,run_id:run.id,stage:'report'});
    const batch=job.nodes.slice(job.cursor,job.cursor+4);
@@ -44,19 +51,19 @@ export async function discoveryWork(deps:Dependencies,engagementId:string|null=n
    const report=validateFreeDiagnosis(await deps.call(cfg,'Free Diagnosis consultant',freeDiagnosisPrompt,{nodes:job.nodes,documents:run.document_ids},0.05,90000),run.source_ids);
    return await commit('synthesis',{...job,run_id:run.id,stage:'qa',draft:report});
   }
-  const review=await deps.call(cfg,'Independent source fidelity and contradiction reviewer',`${freeDiagnosisPrompt}\nReview the draft against the evidence. Correct unsupported claims, missing attribution, overlooked contradictions and overconfident language. Return {report:<corrected report>,qa:{pass:boolean,issues:[string]}}. pass is true only when all defects are corrected. issues must contain ONLY unresolved defects and must be [] when pass is true. Put already-applied corrections in a separate corrections:[string] field. Missing client information is an honest gap, not a defect. Do not demand new client evidence to pass a report that explicitly discloses that gap.`,{draft:job.draft,evidence:job.nodes,previous_unresolved_issues:job.draft?._qa_previous_issues||[]},0.05,90000);
-  const report=validateFreeDiagnosis(review.report,run.source_ids);
+  const review=await deps.call(cfg,'Independent source fidelity and contradiction reviewer',`Review the complete draft against all supplied evidence. Return ONLY {corrections:[{section,items}],qa:{pass:boolean,issues:[string]}}. Corrections replace ONLY changed report sections; use [] when the draft is sound. Allowed sections: business_context,current_processes,observed_problems,key_findings,opportunity_areas,missing_information,evidence_confidence,contradictions. Items preserve the existing {text,confidence,source_refs} schema (contradictions use {text,source_refs}). Do not rewrite or return the complete report. Correct unsupported claims, overlooked conflicts and overconfidence. Missing business information is an honest gap, not a report defect when disclosed. An inference is acceptable when labeled. Set pass true only when no report-quality defects remain after applying your corrections; issues lists ONLY unresolved defects. Never invent new evidence. Keep corrections concise, preferably under 6000 characters.`,{draft:job.draft,evidence:job.nodes,previous_unresolved_issues:job.draft?._qa_previous_issues||[]},0.05,90000);
+  const report=applyFreeDiagnosisReview(job.draft,review,run.source_ids);
   if(review.qa?.pass!==true||!Array.isArray(review.qa?.issues)||review.qa.issues.length){
    const issues=Array.isArray(review.qa?.issues)?review.qa.issues.filter((x:any)=>typeof x==='string'):['The quality reviewer did not return the required decision.'];
    if(Number(job.draft?._qa_attempts||0)<1)return await commit('synthesis',{...job,run_id:run.id,stage:'qa',draft:{...report,_qa_attempts:1,_qa_previous_issues:issues}});
    throw new Error('DIAGNOSIS_QA_FAILED: '+(issues.join('; ')||'The quality reviewer could not confirm source fidelity. Review the evidence and retry.'));
   }
-  return await commit('complete',{run_id:run.id,report:{...report,analysis_context:job.nodes,qa:{pass:true,issues:[]},coverage:{documents:run.document_ids.length,chunks:run.source_ids.length,complete:true},pipeline_version:1}});
+  return await commit('complete',{run_id:run.id,metadata:metadata(),report:{...report,analysis_context:job.nodes,qa:{pass:true,issues:[]},coverage:{documents:run.document_ids.length,logical_documents:new Set(run.source_ids.map((id:string)=>id.split(':')[0])).size,chunks:run.source_ids.length,complete:true},pipeline_version:2}});
  }catch(error){
-  const message=String((error as Error)?.message||error).slice(0,1000);
-  await commit('fail',{document_id:documentId,run_id:runId,error:message});
-  // No source content or provider credentials in logs/responses.
-  return {ok:false,status:'failed',error:message};
+  const failure=classifyError(error,stage==='parse'?'parsing':'application');
+  console.error(JSON.stringify({event:'discovery_stage_failed',...metadata(),error_code:failure.code,boundary:failure.boundary,retryable:failure.retryable}));
+  const saved=await commit('fail',{document_id:documentId,run_id:runId,error:failure.code,error_code:failure.code,retryable:failure.retryable,metadata:metadata()});
+  return {ok:false,status:saved.status==='evidence_changed'?'evidence_changed':'failed',error:clientErrorMessage(failure),error_code:failure.code,retryable:failure.retryable,request_id:requestId};
  }
 }
 export async function authorizeDiscovery(db:any,userId:string,companyId:string,engagementId:string){
