@@ -9,6 +9,11 @@ import {database,asUser} from '../database/fixture.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const migrations=(await fs.readdir(path.join(root,'supabase/migrations'))).filter(n=>/^202609(?:0[789]|10)/.test(n)&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('launch_security_controls')&&!n.includes('retire_unsafe_snapshot')).sort();
 const db=await database(migrations);
+// Intake reads coverage history; retain the original table and admin RLS policy.
+const intakeMigration=await fs.readFile(path.join(root,'supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql'),'utf8');
+const coverageSchema=intakeMigration.match(/create table if not exists public\.nexus_discovery_gap_analyses[\s\S]*?(?=alter table public\.nexus_documents)/)?.[0];
+if(!coverageSchema)throw Error('Discovery coverage schema is missing from its migration');
+await db.exec(coverageSchema+' grant select on public.nexus_discovery_gap_analyses to authenticated;');
 const admin='00000000-0000-4000-8000-000000000001',client='00000000-0000-4000-8000-000000000002',company='00000000-0000-4000-8000-000000000003';
 await db.exec(`insert into auth.users values ('${admin}'),('${client}');insert into nexus_platform_admins(user_id) values ('${admin}');
 insert into nexus_companies(id,name,created_by) values ('${company}','Blue Harbor — local delivery fixture','${admin}');
