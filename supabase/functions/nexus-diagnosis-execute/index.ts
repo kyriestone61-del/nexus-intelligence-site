@@ -1,3 +1,4 @@
+import {coveragePrompt,coverageInput,expandCoverage} from '../_shared/relystra-coverage.ts';
 import {requestModel} from '../_shared/relystra-model-client.ts';
 import {classifyError,clientErrorMessage} from '../_shared/relystra-errors.ts';
 import {discoveryWork,authorizeDiscovery} from '../_shared/relystra-discovery-handler.ts';
@@ -160,7 +161,7 @@ async function clientResponseEvidence(companyId:string,projectId:string|null){
   if(error)throw error;
   const blocks:string[]=[];const refs:any[]=[];
   for(const task of data||[]){
-    if(projectId&&task.project_id&&task.project_id!==projectId)continue;
+    if(task.project_id!==projectId)continue;
     const response=task.response_data&&typeof task.response_data==="object"?task.response_data:{};
     if(!Object.keys(response).some(k=>k!=="client_note"&&String(response[k]??"").trim()))continue;
     const schema=arr(task.form_schema);const rows=schema.map((f:any)=>{const v=String(response[f.key]??"").trim();return v?`${f.label||f.key}: ${v}`:""}).filter(Boolean);
@@ -217,12 +218,12 @@ async function ingestEvidence(cfg:any,documentId:string){
   return {ok:true,document_id:doc.id,parser:parsed.parser,classification};
 }
 
-function validateGap(x:any){if(!Array.isArray(x?.requirements)||!Array.isArray(x?.gaps))throw new Error("INVALID_GAP_ANALYSIS");if(typeof x?.sufficient_for_diagnosis!=="boolean")throw new Error("INVALID_GAP_SUFFICIENCY");if(typeof x?.coverage_score!=="number")throw new Error("INVALID_GAP_COVERAGE");return x}
 async function runGapAnalysis(cfg:any,companyId:string,projectId:string|null,userId:string|null){
   const {data:framework,error:frameworkError}=await db.from("nexus_discovery_framework_requirements").select("code,domain,requirement,default_question,desired_evidence,material,sort_order").eq("active",true).order("sort_order");
   if(frameworkError)throw frameworkError;
   const bundle=await buildEvidenceBundle(cfg,companyId,projectId,null);
-  const gap=validateGap(await callJson(cfg,"Discovery Coverage Analyst","Evaluate the authorized evidence against the reusable Master Discovery Framework. For every framework requirement, mark status answered, partial, missing, or not_applicable. Do not ask the client to repeat information already present. Output exactly: requirements:[{code,status,confidence,evidence_refs,reason}], gaps:[{code,domain,question,reason,request_kind,desired_evidence,material,priority,document_title,redaction_guidance}], sufficient_for_diagnosis:boolean, coverage_score:number, summary:string. request_kind is question, document, or both. Only material partial/missing requirements belong in gaps. coverage_score is 0-100.",{framework,authorized_evidence:bundle.text}));
+  const input=coverageInput(framework,bundle);
+  const gap=expandCoverage(await callJson(cfg,'Discovery Coverage Analyst',coveragePrompt,input.payload),framework,input.index);
   const ids=bundle.docs.map((d:any)=>d.id);
   const {data:row,error}=await db.from("nexus_discovery_gap_analyses").insert({company_id:companyId,project_id:projectId,framework_version:FRAMEWORK_VERSION,evidence_document_ids:ids,evidence_count:ids.length,result:gap,created_by:userId}).select("id,created_at").single();
   if(error)throw error;
@@ -370,10 +371,11 @@ Deno.serve(async(req:Request)=>{
   if(handler)return new Response('Unknown handler',{status:404});
   if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
   if(req.method!=="POST")return new Response(JSON.stringify({ok:false,error:"Method not allowed"}),{status:405,headers:jh});
+  const requestId=crypto.randomUUID(),requestStarted=Date.now();let operation="diagnosis";
   let runId="",leaseId="";let authState:{mode:"worker"|"admin"|"client",userId:string|null}={mode:"admin",userId:null};
   try{
     const body=await req.json().catch(()=>({}));
-    const operation=safe(body?.operation,60)||"diagnosis";
+    operation=safe(body?.operation,60)||"diagnosis";
     authState=await auth(req,operation==='ask_support'||operation==='discovery_step'||operation==='discovery_kick'||operation==='gap_analysis');
 
     if(operation==='discovery_step'||operation==='discovery_kick'){
@@ -431,7 +433,7 @@ Deno.serve(async(req:Request)=>{
       const workspace=await userDb.rpc('relystra_discovery_workspace',{p_company_id:companyId,p_project_id:projectId});
       if(workspace.error)throw new Error('Company access required');
       await authorizeDiscovery(db,authState.userId,companyId,workspace.data.id);
-      return new Response(JSON.stringify(await runGapAnalysis(await providerConfig(),companyId,projectId,authState.userId)),{headers:jh});
+      return new Response(JSON.stringify(await runGapAnalysis({...await providerConfig(),request_id:requestId},companyId,projectId,authState.userId)),{headers:jh});
     }
 
     runId=safe(body?.run_id,80);
@@ -502,13 +504,13 @@ Deno.serve(async(req:Request)=>{
     if(queued.error)throw queued.error;
     return new Response(JSON.stringify({ok:true,run_id:runId,status:"analyzing",pipeline_version:5}),{status:202,headers:jh});
   }catch(e){
-    const msg=safe((e as Error)?.message||e,1200);console.error(JSON.stringify({event:'diagnosis_operation_failed',error_code:classifyError(e).code,run_id:runId,actor:authState.mode}));
+    const msg=safe((e as Error)?.message||e,1200);console.error(JSON.stringify({event:'diagnosis_operation_failed',request_id:requestId,operation,error_code:classifyError(e).code,boundary:classifyError(e).boundary,duration_ms:Date.now()-requestStarted,run_id:runId,actor:authState.mode}));
     const nonTransient=isNonTransient(msg);
     if(msg.includes("AI_PROVIDER_BILLING_REQUIRED"))await health("failed","Client Diagnosis provider requires billing activation.",{required_action:"activate_vercel_ai_gateway_billing",error_code:"AI_PROVIDER_BILLING_REQUIRED",run_id:runId,trigger:authState.mode,transient:false});
     else if(msg.includes("MODEL_PROXY_AUTH_NOT_CONFIGURED"))await health("failed","Client Diagnosis model provider is not configured.",{error_code:"MODEL_PROXY_AUTH_NOT_CONFIGURED",run_id:runId,trigger:authState.mode,transient:false});
     else if(msg.startsWith("MODEL_"))await health(nonTransient?"failed":"degraded","Client Diagnosis model provider request failed.",{error:safe(msg,500),run_id:runId,trigger:authState.mode,transient:!nonTransient});
     if(runId&&leaseId){try{const blocked=nonTransient||/MISSING_EVIDENCE|EMPTY_EVIDENCE|NO_ANALYZABLE_EVIDENCE|EVIDENCE_COMPANY_MISMATCH/.test(msg);await db.rpc('relystra_fail_diagnosis_execution',{p_run_id:runId,p_lease_id:leaseId,p_error:msg,p_blocked:blocked});await db.rpc('relystra_discard_diagnosis_job',{p_run_id:runId,p_lease_id:leaseId})}catch{}}
     const status=msg.includes("AUTH_REQUIRED")?401:msg.includes("ADMIN_REQUIRED")||msg.includes("WORKER_AUTH_FAILED")?403:msg.includes("AI_PROVIDER_BILLING_REQUIRED")?402:/request limit|rate limit/i.test(msg)?429:/RETRY_BUDGET|ALREADY_RUNNING|STATE_CONFLICT|IN_PROGRESS|support period has ended/i.test(msg)?409:500;
-    const failure=classifyError(e);return new Response(JSON.stringify({ok:false,error:["AUTH_REQUIRED","ADMIN_REQUIRED","WORKER_AUTH_FAILED"].includes(msg)?msg:clientErrorMessage(failure),error_code:failure.code,retryable:failure.retryable,request_id:crypto.randomUUID()}),{status:failure.code==='AUTHORIZATION_ERROR'?status===401?401:403:failure.status,headers:jh});
+    const failure=classifyError(e);return new Response(JSON.stringify({ok:false,error:["AUTH_REQUIRED","ADMIN_REQUIRED","WORKER_AUTH_FAILED"].includes(msg)?msg:clientErrorMessage(failure),error_code:failure.code,retryable:failure.retryable,request_id:requestId}),{status:failure.code==='AUTHORIZATION_ERROR'?status===401?401:403:failure.status,headers:jh});
   }
 });

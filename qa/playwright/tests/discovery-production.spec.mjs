@@ -61,7 +61,7 @@ test('recover Moon Wax retained discovery documents without fabricated evidence 
  if(info.project.name==='desktop-chrome'){
   await page.locator('[data-discovery-full]').click();await expect(page.locator('#runGapAnalysisBtn')).toBeVisible();
   const response=page.waitForResponse(res=>res.url().includes('/nexus-diagnosis-execute')&&res.request().postDataJSON()?.operation==='gap_analysis',{timeout:150000});
-  await page.locator('#runGapAnalysisBtn').click();const coverage=await response;expect(coverage.ok()).toBe(true);const result=await coverage.json();expect(Array.isArray(result.result?.gaps)).toBe(true);
+  await page.locator('#runGapAnalysisBtn').click();const coverage=await response;const result=await coverage.json();expect(coverage.ok(),JSON.stringify({status:coverage.status(),error_code:result.error_code,request_id:result.request_id})).toBe(true);expect(Array.isArray(result.result?.gaps)).toBe(true);
   await expect(page.locator('#runGapAnalysisBtn')).toBeEnabled({timeout:30000});
   await open(page,company);await page.getByRole('button',{name:'Verify these findings',exact:true}).click();
   await expect.poll(async()=>{const current=await snapshot(page,company);return current.reviews.some(v=>v.run_id===r.id&&v.decision==='verified')}).toBe(true);
