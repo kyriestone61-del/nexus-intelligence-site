@@ -57,13 +57,17 @@ test('recover Moon Wax retained discovery documents without fabricated evidence 
  expect(s.reports.length).toBe(before.reports.length+(needsGeneration&&!alreadyRunning?1:0));
  const saved=await page.evaluate(async company=>(await window.NexusPortal.sb.rpc('relystra_workspace_snapshot',{p_company_id:company,p_project_id:null})).data,company);
  expect(saved.diagnosis.access).toBe(false);expect(saved.workflow.current_step).toBe(s.reviews.some(v=>v.run_id===r.id&&v.decision==='verified')?4:3);
- await page.screenshot({path:info.outputPath('moon-wax-discovery.png'),fullPage:true});
+ await page.screenshot({path:info.outputPath('moon-wax-discovery.png'),fullPage:false});
  if(info.project.name==='desktop-chrome'){
   await page.locator('[data-discovery-full]').click();await expect(page.locator('#runGapAnalysisBtn')).toBeVisible();
+  const existingCoverage=await page.evaluate(()=>window.NexusAdminIntake.latestGapAnalysis());
+  if(!existingCoverage?.result?.requirements?.length){
   const response=page.waitForResponse(res=>res.url().includes('/nexus-diagnosis-execute')&&res.request().postDataJSON()?.operation==='gap_analysis',{timeout:150000});
   await page.locator('#runGapAnalysisBtn').click();const coverage=await response;const result=await coverage.json();expect(coverage.ok(),JSON.stringify({status:coverage.status(),error_code:result.error_code,request_id:result.request_id})).toBe(true);expect(Array.isArray(result.result?.gaps)).toBe(true);
   await expect(page.locator('#runGapAnalysisBtn')).toBeEnabled({timeout:30000});
-  await open(page,company);await page.getByRole('button',{name:'Verify these findings',exact:true}).click();
+  }
+  const coverageSaved=await page.evaluate(()=>window.NexusAdminIntake.latestGapAnalysis());expect(coverageSaved.result.requirements).toHaveLength(30);expect(Array.isArray(coverageSaved.result.gaps)).toBe(true);
+  await open(page,company);if(!s.reviews.some(v=>v.run_id===r.id&&v.decision==='verified'))await page.getByRole('button',{name:'Verify these findings',exact:true}).click();
   await expect.poll(async()=>{const current=await snapshot(page,company);return current.reviews.some(v=>v.run_id===r.id&&v.decision==='verified')}).toBe(true);
  }
  const second=await browser.newContext({...info.project.use}),fresh=await second.newPage();try{await login(fresh,ae,ap);await open(fresh,company);await expect(fresh.locator('[data-free-report]')).toHaveAttribute('data-free-report',r.id);await expect(fresh.getByText('Step 4 of 11: Full Diagnosis & approval',{exact:true})).toBeVisible();}finally{await second.close()}
@@ -85,7 +89,8 @@ test('recover Moon Wax retained discovery documents without fabricated evidence 
 
  await expect(page.locator('#queueDiagnosisBtn')).toHaveCount(0);
  const size=await page.evaluate(()=>({w:document.documentElement.clientWidth,s:document.documentElement.scrollWidth}));expect(size.s).toBeLessThanOrEqual(size.w+1);expect(errors).toEqual([]);
- await page.screenshot({path:info.outputPath('moon-wax-full-diagnosis-gate.png'),fullPage:true});
+ await page.getByRole('button',{name:'Review scope & payment',exact:true}).scrollIntoViewIfNeeded();
+ await page.screenshot({path:info.outputPath('moon-wax-full-diagnosis-gate.png'),fullPage:false});
  // No synthetic uploads, Full Diagnosis approval, purchases, invitations or Build changes for Moon Wax.
  console.log('MOON_WAX_DISCOVERY_RECOVERY',JSON.stringify({company,engagement:s.id,run:r.id,documents:r.document_ids,version:r.version,coverage:r.report.coverage,qa:r.report.qa,persisted:true}));
 });

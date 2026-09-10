@@ -64,6 +64,7 @@ async function navigate(target){
   if(gate){activate('journey-gate');gateRoot.innerHTML=gateMarkup(gate)}
   else if(['transcript','free-diagnosis','review-findings','discovery'].includes(target)){activate('transcript');transcript.refresh(store.value)}
   else if(target==='overview'){activate('journey');renderOverview()}
+  else if(target==='diagnosis'){await window.NexusAdminIntake?.refresh({reload:true});if(version!==navigationSequence)return;activate('intake')}
   else if(['builds','scope'].includes(target)){activate('relystra-builds');await builds.refresh({stage:target})}
   else if(['progress','review','final-package','support'].includes(target)){
     if(store.value?.project_type&&store.value.project_type!=='build_package'){tools.get('timeline')?.click();activate('timeline')}

@@ -19,6 +19,7 @@ let contextEntries=[];
 let discoveryTasks=[];
 let lastCompanyId=null;
 let loadSequence=0;
+let accessSnapshot=null;
 
 const company=()=>state.companies?.find(c=>c.id===state.companyId)||null;
 const project=()=>{const id=new URL(location.href).searchParams.get('project');return id?(state.projects||[]).find(p=>p.id===id&&p.company_id===state.companyId)||null:portal.activeProject?.()||null};
@@ -56,7 +57,10 @@ function ensureAdminIntake(){
 async function loadStep2Data(){
   if(!state.admin||!state.companyId)return;
   const sequence=++loadSequence,companyId=state.companyId,projectId=project()?.id||null;
+  accessSnapshot=null;
   try{
+    const access=await sb.rpc('relystra_workspace_snapshot',{p_company_id:companyId,p_project_id:projectId});
+    if(access.error)throw access.error;
     const sourceDiagnosisId=workspaceSourceDiagnosisId(state,projectId)||window.NexusAdminJourney?.snapshot?.diagnosis?.id||null;
     let runQuery=sb.from('nexus_diagnosis_runs').select('*').eq('company_id',companyId).neq('status','archived').neq('status','draft').order('created_at',{ascending:false}).limit(sourceDiagnosisId?1:30);
     runQuery=sourceDiagnosisId?runQuery.eq('id',sourceDiagnosisId):companyPreparationQuery(runQuery,projectId);
@@ -71,6 +75,7 @@ async function loadStep2Data(){
     const results=await Promise.all(queries);
     if(sequence!==loadSequence||companyId!==state.companyId||projectId!==(project()?.id||null))return;
     for(const result of results)if(result.error)throw result.error;
+    accessSnapshot=access.data;
     [contextEntries,gapAnalyses,discoveryTasks]=results.map(result=>result.data||[]);diagnosisRuns=runResult.data||[];
   }catch(error){if(sequence!==loadSequence||companyId!==state.companyId)return;console.error('Step 2 data load failed',error);toast?.(error.message||'Discovery & Diagnosis data could not be loaded.')}
 }
@@ -103,7 +108,8 @@ function executionMarkup(){
   const contextCount=latestContext()?1:0;
   const sourceCount=docs.length+responseCount+contextCount;
   const sufficient=gap?gapResult.sufficient_for_diagnosis===true:sourceCount>0;
-  const fullAccess=window.NexusAdminJourney?.snapshot?.diagnosis?.access;
+  const fullAccess=accessSnapshot?.company_id===state.companyId&&(accessSnapshot.project_id||null)===(project()?.id||null)?accessSnapshot.diagnosis?.access:null;
+  if(typeof fullAccess!=='boolean')return '<div class="step2-inline-state"><b>Full Diagnosis access is not loaded.</b><span>Reload workspace access before running or approving the Full Diagnosis. Your saved evidence remains available.</span></div><button id="reloadDiagnosisAccessBtn" class="btn secondary" type="button">Reload workspace access</button>';
   if(fullAccess===false)return `<div class="step2-diagnosis-ready"><b>Step 4 · Full Diagnosis</b><span>Full Diagnosis and the deeper Roadmap are included in the first paid implementation. Review the Basic Report for its exact scope, price and payment status. Your Free Diagnosis and discovery coverage require no payment.</span></div><div class="step2-actions"><button class="btn primary" type="button" data-delivery-nav="commercial-report">Review scope & payment</button><button class="btn secondary" type="button" data-delivery-nav="free-diagnosis">Open Free Diagnosis</button></div>`;
   const stale=diagnosisIsStale();
   if(run&&['queued','analyzing'].includes(run.status))return `<div class="step2-diagnosis-ready"><b>${run.status==='queued'?'Diagnosis queued.':'Analyzing authorized evidence…'}</b><span>Relystra is processing ${sourceCount} available source${sourceCount===1?'':'s'}. The state will move to Ready for Review when analysis finishes.</span></div>`;
@@ -242,6 +248,7 @@ async function runUpdatedDiagnosis(){
   try{const text=$('adminContextText')?.value?.trim();if(text&&text!==latestContext()?.content)await saveAdminContext({silent:true});await window.NexusDiagnosisController?.securedQueue?.({forceNew:true})}catch(error){toast?.(error.message||'Updated diagnosis could not be started.')}
 }
 function bindStep2(){
+  $('reloadDiagnosisAccessBtn')?.addEventListener('click',()=>refresh({reload:true}));
   $('clientInviteForm')?.addEventListener('submit',inviteClient);
   $('toggleEvidenceUploadBtn')?.addEventListener('click',()=>{$('evidenceUploadPanel').hidden=false;$('adminEvidenceFile')?.focus()});
   $('cancelEvidenceUploadBtn')?.addEventListener('click',()=>{$('evidenceUploadPanel').hidden=true});
