@@ -6,7 +6,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const base={company_id:'co',diagnosis:{access:false,status:null}};
 test('all eleven stages stay visible while gates prevent premature delivery',()=>{
-  for(const snapshot of [base,{...base,diagnosis:{access:true}},{...base,diagnosis:{status:'approved'}},{...base,package:{stage:'client_review'}},{...base,package:{stage:'completed'}}]){
+  for(const snapshot of [base,{...base,diagnosis:{access:true}},{...base,diagnosis:{status:'approved'}},{...base,package:{stage:'client_review'}},{...base,package:{stage:'completed'},workflow:{current_step:11,completed:true}}]){
     assert.equal(journeyProgress(snapshot).length,11);assert.equal((journeyMarkup(snapshot).match(/<li /g)||[]).length,11);
     assert.equal(journeyProgress(snapshot).filter(s=>s.status==='current').length,snapshot.package?.stage==='completed'?0:1);
   }
@@ -44,8 +44,8 @@ test('the portal ships labelled controls, a keyboard skip target, and labelled m
 test('transcript next step respects access, saved evidence, and existing diagnosis',()=>{
   assert.equal(journeyNext(base).section,'transcript');
   assert.equal(journeyNext({...base,diagnosis:{access:true}}).section,'transcript');
-  assert.equal(journeyProgress({...base,diagnosis:{access:true,status:'draft'}})[0].status,'current');
-  assert.equal(journeyProgress({...base,diagnosis:{access:true}},true)[3].status,'current');
+  assert.equal(journeyProgress({...base,diagnosis:{access:true,status:'draft'},workflow:{current_step:3}},false)[2].status,'current','stale local evidence and entitlement do not override the server step');
+  assert.equal(journeyProgress({...base,diagnosis:{access:true},workflow:{current_step:4}},true)[3].status,'current');
   assert.equal(journeyNext({...base,diagnosis:{access:true,status:'failed'}}).section,'diagnosis');
 });
 test('saved transcript selection cannot cross company or package',()=>{

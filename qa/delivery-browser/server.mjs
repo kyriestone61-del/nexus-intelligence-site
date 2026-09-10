@@ -7,7 +7,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {database,asUser} from '../database/fixture.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
-const migrations=(await fs.readdir(path.join(root,'supabase/migrations'))).filter(n=>/^2026090[789]/.test(n)&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('launch_security_controls')&&!n.includes('retire_unsafe_snapshot')).sort();
+const migrations=(await fs.readdir(path.join(root,'supabase/migrations'))).filter(n=>/^202609(?:0[789]|10)/.test(n)&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('launch_security_controls')&&!n.includes('retire_unsafe_snapshot')).sort();
 const db=await database(migrations);
 const admin='00000000-0000-4000-8000-000000000001',client='00000000-0000-4000-8000-000000000002',company='00000000-0000-4000-8000-000000000003';
 await db.exec(`insert into auth.users values ('${admin}'),('${client}');insert into nexus_platform_admins(user_id) values ('${admin}');
@@ -15,6 +15,12 @@ insert into nexus_companies(id,name,created_by) values ('${company}','Blue Harbo
 insert into nexus_company_members(company_id,user_id,member_role,active) values ('${company}','${client}','owner',true);
 insert into nexus_commercial_offerings(code,name,description,client_outcome,pricing_model,sort_order) values ('find','Operational Diagnosis','Diagnosis','Findings','fixed',1);
 insert into nexus_company_entitlements(company_id,offering_code,status,source,starts_at) values ('${company}','find','active','manual',now());`);
+const discoveryCompanies={};
+for(const [i,device] of ['desktop-chrome','android-chrome','iphone-safari'].entries()){
+ const id=`00000000-0000-4000-8000-00000000001${i}`;discoveryCompanies[device]=id;
+ await db.query('insert into nexus_companies(id,name,created_by) values ($1,$2,$3)',[id,'Unpaid discovery '+device,admin]);
+ await db.query("insert into nexus_company_members(company_id,user_id,member_role,active) values ($1,$2,'owner',true)",[id,client]);
+}
 const run=(await db.query("insert into nexus_diagnosis_runs(company_id,status,analysis_result,created_by) values ($1,'approved',$2,$3) returning id",[company,{opportunity_backlog:[{title:'Bid intake',problem:'Bids lack an assigned owner'}]},admin])).rows[0].id;
 const planId=await asUser(db,admin,async()=>{
   const qualification=Object.fromEntries(['impact','urgency','effort','dependency_readiness','client_readiness','confidence'].map(k=>[k,{level:'medium',reason:'Synthetic QA finding supports this qualification.'}]));
@@ -66,12 +72,12 @@ let queue=Promise.resolve();
 async function serialized(fn){let resolve;const result=new Promise(r=>resolve=r);queue=queue.then(async()=>{try{resolve({data:await fn(),error:null})}catch(error){resolve({data:null,error:{message:error.message}})}});return result;}
 
 const discoveryFiles=new Map();
-const discoveryDeps={db:serviceAdapter(db),config:async()=>({}),hash:async()=> 'fixture-hash',call:deterministicDiscoveryModel,parse:async doc=>{const text=discoveryFiles.get(doc.storage_path);if(doc.file_name.endsWith('.pdf'))throw Error('INVALID_PDF: Upload a valid searchable PDF.');return {text,parsed:true,parser:'text'}}};
+const discoveryDeps={db:serviceAdapter(db),config:async()=>({}),hash:async text=> (await import('node:crypto')).createHash('sha256').update(text).digest('hex'),call:deterministicDiscoveryModel,parse:async doc=>{const text=discoveryFiles.get(doc.storage_path);if(doc.file_name.endsWith('.pdf'))throw Error('INVALID_PDF: Upload a valid searchable PDF.');return {text,parsed:true,parser:'text'}}};
 const server=http.createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,'http://localhost');
     if(url.pathname==='/qa-discovery-file'&&req.method==='POST'){let raw='';for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);discoveryFiles.set(body.path,body.text);res.setHeader('content-type','application/json');return res.end('{}');}
-    if(url.pathname==='/qa-discovery-step'&&req.method==='POST'){let raw='';for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);const result=await serialized(()=>discoveryWork(discoveryDeps,body.engagement_id));res.setHeader('content-type','application/json');return res.end(JSON.stringify(result));}
+    if(url.pathname==='/qa-discovery-step'&&req.method==='POST'){let raw='';for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);if(body.operation==='discovery_kick'){const work=async()=>{for(let i=0;i<300;i++){const r=await serialized(()=>discoveryWork(discoveryDeps,body.engagement_id));if(r.error||!r.data.ok||['idle_or_busy'].includes(r.data.status)||['complete','idle'].includes(r.data.action))break;}};work().catch(console.error);res.setHeader('content-type','application/json');return res.end(JSON.stringify({data:{ok:true,status:'queued'},error:null}));}const result=await serialized(()=>discoveryWork(discoveryDeps,body.engagement_id));res.setHeader('content-type','application/json');return res.end(JSON.stringify(result));}
     if(url.pathname==='/qa-reset-commercial'&&req.method==='POST'){
       const result=await serialized(async()=>{
         await db.query("update nexus_build_plans set status='cancelled' where company_id=$1 and status='awaiting_payment'",[company]);
@@ -80,7 +86,7 @@ const server=http.createServer(async(req,res)=>{
         return true;
       });res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(result));
     }
-    if(url.pathname==='/qa-fixture-info'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({company,project,admin,client,reportToken,reportId,additionalIds}))}
+    if(url.pathname==='/qa-fixture-info'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({company:discoveryCompanies[url.searchParams.get("discovery")]||company,project,admin,client,reportToken,reportId,additionalIds}))}
     if(url.pathname==='/api/offers'){const r=await serialized(async()=>(await db.query('select relystra_offer_ladder() data')).rows[0].data);res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(r.data));}
     if(url.pathname==='/api/basic-report'&&req.method==='POST'){
       let raw='';for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);

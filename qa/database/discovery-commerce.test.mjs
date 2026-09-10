@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {database,asUser} from './fixture.mjs';
-export const commerceMigrations=(await fs.readdir(new URL('../../supabase/migrations/',import.meta.url))).filter(n=>/^2026090[789]/.test(n)&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('diagnosis_purchase_gate')&&!n.includes('launch_security_controls')&&!n.includes('retire_unsafe_snapshot')).sort();
+export const commerceMigrations=(await fs.readdir(new URL('../../supabase/migrations/',import.meta.url))).filter(n=>/^202609(?:0[789]|10)/.test(n)&&!n.includes('000100_')&&!n.includes('000200_')&&!n.includes('launch_security_controls')&&!n.includes('retire_unsafe_snapshot')).sort();
 const admin='00000000-0000-4000-8000-000000000001',client='00000000-0000-4000-8000-000000000002',company='00000000-0000-4000-8000-000000000003',foreign='00000000-0000-4000-8000-000000000004';
 test('Discovery report retains real input, limits free scope and activates exactly one included Build only after its verified deposit',async()=>{
  const db=await database(commerceMigrations);
@@ -24,7 +24,10 @@ test('Discovery report retains real input, limits free scope and activates exact
  const save=report=>asUser(db,admin,()=>db.query('select relystra_save_basic_report(null,$1,$2,$3,$4,true) id',[company,contact,'Synthetic authorized QA transcript: bid requests arrive in multiple inboxes and ownership is unclear.',report]).then(r=>r.rows[0].id));
  await assert.rejects(save({...report,later:[{},{},{}]}),/at most two/);
  await assert.rejects(save({...report,primary:{...primary,deposit_cents:100001}}),/valid price/);
- const id=await save(report);
+ const discovery=await asUser(db,admin,()=>db.query('select relystra_discovery_workspace($1,null) s',[company]).then(r=>r.rows[0].s));
+ const original=crypto.randomUUID();await db.query("insert into nexus_documents(id,company_id,storage_path,file_name,category,uploaded_by) values($1,$2,$3,'Original.txt','Discovery Transcript',$4)",[original,company,company+'/original.txt',admin]);
+ await asUser(db,admin,()=>db.query('select relystra_discovery_workspace($1,null)',[company]));
+ const id=await save({...report,discovery_engagement_id:discovery.id});
  const token=await asUser(db,admin,()=>db.query('select relystra_share_basic_report($1) token',[id]).then(r=>r.rows[0].token));
  await asUser(db,client,async()=>{assert.equal((await db.query('select * from nexus_discovery_requests')).rows.length,0);await assert.rejects(db.query('select relystra_basic_report_access($1)',[token]),/permission denied/)});
  const access=async(op='view')=>(await db.query('select relystra_basic_report_access($1,$2) report',[token,op])).rows[0].report;
@@ -46,6 +49,13 @@ test('Discovery report retains real input, limits free scope and activates exact
  await assert.rejects(pay(planId,49999),/amount/);
  const project=(await pay(planId,50000)).rows[0].id;
  assert.equal((await pay(planId,50000)).rows[0].id,project,'webhook replay does not duplicate project');
+ const retained=await asUser(db,admin,()=>db.query('select relystra_workspace_snapshot($1,$2) s',[company,project]).then(r=>r.rows[0].s));
+ assert.equal(retained.free_discovery.id,discovery.id,'payment retains original discovery engagement automatically');
+ assert.equal(retained.free_discovery.documents[0].id,original);
+ assert.equal((await db.query('select id from relystra_evidence_scope($1,$2)',[company,project])).rows[0].id,original,'full diagnosis and coverage retain the same authorized source');
+ await assert.rejects(db.query("insert into nexus_diagnosis_runs(company_id,status,created_by) values($1,'queued',$2)",[company,admin]),/Full Diagnosis requires payment/);
+ await assert.rejects(db.query("insert into nexus_diagnosis_runs(company_id,status,created_by) values($1,'queued',$2)",[foreign,admin]),/Full Diagnosis requires payment/);
+ assert.equal((await db.query('select private.relystra_full_diagnosis_access($1,$2,null) access',[company,crypto.randomUUID()])).rows[0].access,false,'paid plan cannot authorize another project');
  assert.equal((await db.query('select * from nexus_system_cards')).rows.length,1);
  const firstBuild=(await db.query('select id from nexus_system_cards where project_id=$1',[project])).rows[0].id;
  await asUser(db,admin,()=>assert.rejects(db.query('select relystra_save_brief($1,$2,true)',[firstBuild,{}]),/Full Diagnosis/));

@@ -44,7 +44,7 @@ assert.doesNotMatch(intake,/Copy agent packet/i);
 assert.match(intake,/Analyze Missing Information/);
 assert.match(intake,/Review Missing Information/);
 assert.match(intake,/Send Request/);
-assert.match(intake,/Run Diagnosis/);
+assert.match(intake,/Run Full Diagnosis/);
 assert.match(intake,/Approve Diagnosis/);
 assert.match(intake,/This context will be included in the next diagnosis run/);
 
@@ -56,7 +56,7 @@ assert.match(diagnosis,/Independent QA \/ Governance Verifier/);
 assert.match(diagnosis,/Final Diagnosis Composer/);
 assert.match(diagnosis,/pipeline_version:5/);
 assert.match(diagnosis,/MODEL_TIMEOUT_MS=105000/,'diagnosis execution must be bounded below the Edge runtime resource ceiling');
-assert.match(diagnosis,/AbortSignal\.timeout\(timeoutMs\)/,'model request must fail deterministically instead of leaving diagnosis stuck analyzing');
+assert.match(read('supabase/functions/_shared/relystra-model-client.ts'),/AbortSignal\.timeout\(timeoutMs\)/,'model request must fail deterministically instead of leaving diagnosis stuck analyzing');
 assert.match(diagnosis,/timeoutMs=MODEL_TIMEOUT_MS/,'diagnosis retains its bounded default while support uses a shorter timeout');
 assert.match(diagnosis,/relystra_claim_diagnosis_stage/,'each bounded model stage requires an atomic claim');
 assert.match(diagnosis,/relystra_advance_diagnosis_stage/,'validated partial analysis must persist before advancing');

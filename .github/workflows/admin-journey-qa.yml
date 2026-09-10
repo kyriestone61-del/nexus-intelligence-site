@@ -68,7 +68,7 @@ jobs:
           grep -Fq 'Analyze Missing Information' portal-admin-intake.js
           grep -Fq 'Review Missing Information' portal-admin-intake.js
           grep -Fq 'nexus_save_discovery_admin_context' portal-admin-intake.js
-          grep -Fq 'Run Diagnosis' portal-admin-intake.js
+          grep -Fq 'Run Full Diagnosis' portal-admin-intake.js
           grep -Fq 'Approve Diagnosis' portal-admin-intake.js
           grep -Fq 'diagnosisJourneyButton' portal-diagnosis-controller-v2.js
           grep -Fq 'Step\s*2\s*of\s*6' portal-diagnosis-controller-v2.js

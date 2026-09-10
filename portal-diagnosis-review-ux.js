@@ -44,7 +44,7 @@ const hasResult=run=>{
 };
 
 function diagnosisJourneyButton(button){
-  if(!button?.closest?.('#adminJourneyRoot'))return false;
+  if(!button?.closest?.('#adminJourneyRoot')||button.matches('[data-delivery-nav],[data-relystra-nav]'))return false;
   const step=button.closest('.journey-step');
   const stepTitle=text(step?.querySelector('h3')?.textContent);
   const label=text(button.textContent).toLowerCase();
@@ -102,7 +102,7 @@ async function routeDiagnosis(button){
     const opened=await openIntake();
     if(!opened)throw new Error('Discovery & Diagnosis could not be opened.');
     if(!run){
-      toast?.('No diagnosis exists yet. Queue the diagnosis from Step 4 on this page.');
+      toast?.('No Full Diagnosis exists yet. Generate Free Diagnosis in Step 2, review free findings in Step 3, then continue to Full Diagnosis in Step 4.');
       return;
     }
     const actionOpened=await clickRunAction(run);

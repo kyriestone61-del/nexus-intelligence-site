@@ -73,7 +73,7 @@ jobs:
           ! grep -qi 'Diagnosis packet' portal-admin-intake.js
           grep -q 'Analyze Missing Information' portal-admin-intake.js
           grep -q 'Review Missing Information' portal-admin-intake.js
-          grep -q 'Run Diagnosis' portal-admin-intake.js
+          grep -q 'Run Full Diagnosis' portal-admin-intake.js
           grep -q 'Approve Diagnosis' portal-admin-intake.js
           grep -q 'nexus_send_discovery_information_request' supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql
           grep -q 'drop trigger if exists nexus_document_request_release_chain' supabase/migrations/20260902_nexus_step2_discovery_diagnosis_redesign.sql

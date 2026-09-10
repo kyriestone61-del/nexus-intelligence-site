@@ -38,7 +38,7 @@ mountMobileMenu(nav);
 
 function activate(id){document.querySelectorAll('.main > .section').forEach(el=>el.classList.toggle('active',el.id==='section-'+id))}
 function renderHeader(){
-  const s=store.value;if(s)s.free_discovery=state.discoveryEvidence?.company_id===state.companyId?state.discoveryEvidence:null;if(!s){header.innerHTML='';return}
+  const s=store.value;if(!s){header.innerHTML='';return}
   const name=state.companies?.find(c=>c.id===state.companyId)?.name||'Client workspace';
   header.innerHTML=`<div class="relystra-workspace-context"><div><small>Client workspace</small><h2>${esc(name)}</h2></div><label>Build Package<select data-package-picker><option value="">Current package</option>${s.projects.map(p=>`<option value="${esc(p.id)}" ${viewedProject===p.id?'selected':''}>${esc(p.name)}${p.status==='complete'?' · Completed':''}${!p.paid?' · Historical':''}</option>`).join('')}</select></label></div>${journeyMarkup(s,{active,hasTranscript:!!selectedTranscript(portal,s)})}`;
 }
@@ -116,5 +116,5 @@ settingsRoot.addEventListener('submit',async event=>{
 for(const event of ['nexus:workspace-ready','nexus:diagnosis-changed','nexus:diagnosis-updated','nexus:delivery-changed','relystra:delivery-changed'])window.addEventListener(event,refresh);
 async function openPackage(id,section='overview'){viewedProject=id;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,id));await refresh();await navigate(section)}
 window.NexusAdminJourney=Object.freeze({refresh,navigate,openPackage,get snapshot(){return store.value}});
-window.addEventListener('relystra:discovery-state',()=>{renderHeader();renderOverview()});
+window.addEventListener('relystra:discovery-state',async()=>{try{await store.refresh(viewedProject);renderHeader();renderOverview()}catch{}});
 await refresh();await navigate(new URL(location.href).searchParams.get('section')||'overview');

@@ -147,7 +147,7 @@ jobs:
           grep -q 'Review Missing Information' portal-admin-intake.js
           grep -q 'nexus_save_discovery_admin_context' portal-admin-intake.js
           grep -q 'This context will be included in the next diagnosis run' portal-admin-intake.js
-          grep -q 'Run Diagnosis' portal-admin-intake.js
+          grep -q 'Run Full Diagnosis' portal-admin-intake.js
           grep -q 'Approve Diagnosis' portal-admin-intake.js
           grep -q "DISCOVERY_CAPTURE_STATUS='draft'" portal-discovery-capture.js
           grep -q "capture:{source:'evidence_first_step2'" portal-discovery-capture.js
