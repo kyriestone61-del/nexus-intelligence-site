@@ -57,6 +57,8 @@ test('recover Moon Wax retained discovery documents without fabricated evidence 
  expect(s.reports.length).toBe(before.reports.length+(needsGeneration&&!alreadyRunning?1:0));
  const saved=await page.evaluate(async company=>(await window.NexusPortal.sb.rpc('relystra_workspace_snapshot',{p_company_id:company,p_project_id:null})).data,company);
  expect(saved.diagnosis.access).toBe(false);expect(saved.workflow.current_step).toBe(s.reviews.some(v=>v.run_id===r.id&&v.decision==='verified')?4:3);
+ await page.screenshot({path:info.outputPath('moon-wax-workflow.png'),fullPage:false});
+ await page.locator('[data-free-report] h2').first().scrollIntoViewIfNeeded();
  await page.screenshot({path:info.outputPath('moon-wax-discovery.png'),fullPage:false});
  if(info.project.name==='desktop-chrome'){
   await page.locator('[data-discovery-full]').click();await expect(page.locator('#runGapAnalysisBtn')).toBeVisible();
@@ -91,6 +93,9 @@ test('recover Moon Wax retained discovery documents without fabricated evidence 
  const size=await page.evaluate(()=>({w:document.documentElement.clientWidth,s:document.documentElement.scrollWidth}));expect(size.s).toBeLessThanOrEqual(size.w+1);expect(errors).toEqual([]);
  await page.getByRole('button',{name:'Review scope & payment',exact:true}).scrollIntoViewIfNeeded();
  await page.screenshot({path:info.outputPath('moon-wax-full-diagnosis-gate.png'),fullPage:false});
+ await page.getByRole('button',{name:'Review scope & payment',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Discovery & Basic Report',exact:true})).toBeVisible();
+ await expect(page.getByText(`Reviewed Free Diagnosis version ${r.version} is linked. All source documents remain retained in Discovery.`,{exact:true})).toBeVisible();
  // No synthetic uploads, Full Diagnosis approval, purchases, invitations or Build changes for Moon Wax.
  console.log('MOON_WAX_DISCOVERY_RECOVERY',JSON.stringify({company,engagement:s.id,run:r.id,documents:r.document_ids,version:r.version,coverage:r.report.coverage,qa:r.report.qa,persisted:true}));
 });

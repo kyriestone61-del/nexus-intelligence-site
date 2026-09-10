@@ -27,7 +27,8 @@
 .relystra-build-card>label:has(input[type=checkbox]){display:flex;align-items:center;gap:10px;min-height:44px}
 @media(max-width:700px){.relystra-workspace-context{display:grid;grid-template-columns:minmax(0,1fr)}.relystra-workspace-context select{width:100%}.relystra-workspace-tabs{padding-bottom:16px}}
 
-.relystra-mobile-toggle{display:none}
+.relystra-mobile-toggle{display:none;appearance:none;-webkit-appearance:none;background:#211b32;color:#f4f0e8;border:1px solid #66527e;border-radius:8px;padding:10px 14px;font:inherit}
+#companySelect,.relystra-workspace-context select,#relystraClientPackage{appearance:none;-webkit-appearance:none;color-scheme:dark;background-color:#211b32;color:#f4f0e8;border:1px solid #66527e;border-radius:8px;padding:10px 36px 10px 12px;background-image:linear-gradient(45deg,transparent 50%,#f4f0e8 50%),linear-gradient(135deg,#f4f0e8 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 12px) 50%;background-size:6px 6px;background-repeat:no-repeat}
 @media(max-width:760px){.relystra-mobile-toggle{display:flex;align-items:center;justify-content:space-between;min-height:44px;width:100%;margin:8px 0}.sidebar.relystra-menu-collapsed #relystraSidebarNav,.sidebar.relystra-menu-collapsed #nexusClientPrimaryNav{display:none!important}}
 
 @media(max-width:760px){#nexusClientMiniContext{display:grid;padding:4px 2px 8px;margin-bottom:4px}#nexusClientMiniContext .kicker{display:none}#nexusClientMiniContext label{display:grid;gap:4px}}
