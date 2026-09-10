@@ -66,7 +66,7 @@ test('deployed Discovery, real Stripe test settlement, Full Diagnosis, expansion
   await login(client,ce,cp);await expect(client.locator('#nexusClientPrimaryNav')).toBeVisible();
   const firstRoadmap=await rpc(client,'relystra_roadmap',{p_company_id:company});expect(firstRoadmap.included).toHaveLength(1);expect(firstRoadmap.payments[0].paid_cents).toBe(50000);
   await page.goto(`/portal?view_mode=admin&company=${company}&project=${original.id}&section=transcript`);
-  await expect(page.getByRole('button',{name:'Run Diagnosis',exact:true})).toBeVisible({timeout:45000});await page.getByRole('button',{name:'Run Diagnosis',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Run Full Diagnosis',exact:true})).toBeVisible({timeout:45000});await page.getByRole('button',{name:'Run Full Diagnosis',exact:true}).click();
   let runs=[];await expect.poll(async()=>{runs=await rows(page,'nexus_diagnosis_runs','id,status,transcript_document_id,analysis_result',{company_id:company,project_id:original.id});return runs[0]?.status},{timeout:660000,intervals:[3000,5000]}).toBe('ready_for_review');
   const run=runs[0];expect(run.transcript_document_id).toBeTruthy();expect(run.analysis_result).toBeTruthy();expect(run.analysis_result.quality_assurance?.pass,JSON.stringify(run.analysis_result.quality_assurance)).toBe(true);
   await rpc(page,'nexus_approve_diagnosis',{p_run_id:run.id,p_note:'Synthetic release acceptance: reviewed actual generated findings against the retained labeled QA transcript.'});
