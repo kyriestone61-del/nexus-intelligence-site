@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.115.0";
+import {revokeQaUser,deleteUser} from '../_shared/relystra-qa-identity.ts';
 import Stripe from "npm:stripe@22.6.1";
 
 const REPOSITORY='kyriestone61-del/nexus-intelligence-site';
@@ -56,11 +57,11 @@ async function createUser(admin:any,{email,password,fullName,runKey,companyName}
   const {data,error}=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:fullName,nexus_qa:true,nexus_qa_run_key:runKey,nexus_qa_company_name:companyName,disposable:true},app_metadata:{nexus_qa:true,nexus_qa_run_key:runKey,disposable:true}});
   check(error,'auth_create_user');if(!data?.user?.id)throw new Error('auth_create_user_response');return data.user;
 }
-async function deleteUser(admin:any,id:string|null){if(!id)return;const {error}=await admin.auth.admin.deleteUser(id,false);check(error,'auth_delete_user');}
 async function deleteCompany(admin:any,id:string|null,name:string){if(!id)return;const {error}=await admin.from('nexus_companies').delete().eq('id',id).eq('name',name);check(error,'company_delete');}
 async function getFixture(admin:any,runKey:string){const {data,error}=await admin.from('nexus_qa_fixture_runs').select('run_key,company_id,admin_user_id,client_user_id,created_at').eq('run_key',runKey).maybeSingle();check(error,'fixture_read');return data;}
 async function cleanupFixture(admin:any,runKey:string){
   const fixture=await getFixture(admin,runKey);if(!fixture)return 0;
+  await revokeQaUser(admin,fixture.admin_user_id);await revokeQaUser(admin,fixture.client_user_id);
   if(!fixture.company_id){await deleteUser(admin,fixture.client_user_id);await deleteUser(admin,fixture.admin_user_id);return 2;}
   const expectedName=`Nexus QA ${runKey}`;
   const {data:company,error:companyError}=await admin.from('nexus_companies').select('id').eq('id',fixture.company_id).eq('name',expectedName).maybeSingle();check(companyError,'fixture_company_read');

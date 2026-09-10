@@ -19,7 +19,12 @@ test('multi-document discovery, failed parsing, review, stale revision and persi
  await failed.getByRole('button',{name:'Remove from evidence'}).click();
  await expect(page.locator('[data-discovery-status]')).toHaveText(/Outdated/);
  await upload([file(`followup-${info.project.name}.txt`,'Owner: The coordinator checks unassigned requests each Monday.')]);
- await expect(page.locator('[data-free-generate]')).toBeEnabled();await page.locator('[data-free-generate]').click();
+ await expect(page.locator('[data-free-generate]')).toBeEnabled();
+ await page.evaluate(()=>{const original=window.NexusPortal.sb.rpc;window.NexusPortal.sb.rpc=async function(name,args){if(name==='relystra_request_free_diagnosis')await new Promise(resolve=>window.releaseGeneration=resolve);return original.call(this,name,args)}});
+ await page.locator('[data-free-generate]').click();
+ await expect(page.locator('[data-discovery-status]')).toHaveText('Requesting Free Diagnosis…');
+ await expect(page.locator('[data-free-generate]')).toBeDisabled();
+ await page.evaluate(()=>window.releaseGeneration());
  await expect(page.locator('[data-discovery-status]')).toHaveText('Free Diagnosis complete',{timeout:60000});
  expect(await page.locator('[data-free-report]').getAttribute('data-free-report')).not.toBe(first);
  await page.locator('[data-free-version]').selectOption(first);await expect(page.locator('[data-free-report]')).toHaveAttribute('data-free-report',first);
