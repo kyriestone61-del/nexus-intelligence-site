@@ -93,6 +93,9 @@ test('recover Moon Wax retained discovery documents without fabricated evidence 
  const size=await page.evaluate(()=>({w:document.documentElement.clientWidth,s:document.documentElement.scrollWidth}));expect(size.s).toBeLessThanOrEqual(size.w+1);expect(errors).toEqual([]);
  await page.getByRole('button',{name:'Review scope & payment',exact:true}).scrollIntoViewIfNeeded();
  await page.screenshot({path:info.outputPath('moon-wax-full-diagnosis-gate.png'),fullPage:false});
+ await page.getByRole('button',{name:'Review scope & payment',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Discovery & Basic Report',exact:true})).toBeVisible();
+ await expect(page.getByText(`Reviewed Free Diagnosis version ${r.version} is linked. All source documents remain retained in Discovery.`,{exact:true})).toBeVisible();
  // No synthetic uploads, Full Diagnosis approval, purchases, invitations or Build changes for Moon Wax.
  console.log('MOON_WAX_DISCOVERY_RECOVERY',JSON.stringify({company,engagement:s.id,run:r.id,documents:r.document_ids,version:r.version,coverage:r.report.coverage,qa:r.report.qa,persisted:true}));
 });
