@@ -57,6 +57,8 @@ test('recover Moon Wax retained discovery documents without fabricated evidence 
  expect(s.reports.length).toBe(before.reports.length+(needsGeneration&&!alreadyRunning?1:0));
  const saved=await page.evaluate(async company=>(await window.NexusPortal.sb.rpc('relystra_workspace_snapshot',{p_company_id:company,p_project_id:null})).data,company);
  expect(saved.diagnosis.access).toBe(false);expect(saved.workflow.current_step).toBe(s.reviews.some(v=>v.run_id===r.id&&v.decision==='verified')?4:3);
+ await page.screenshot({path:info.outputPath('moon-wax-workflow.png'),fullPage:false});
+ await page.locator('[data-free-report] h2').first().scrollIntoViewIfNeeded();
  await page.screenshot({path:info.outputPath('moon-wax-discovery.png'),fullPage:false});
  if(info.project.name==='desktop-chrome'){
   await page.locator('[data-discovery-full]').click();await expect(page.locator('#runGapAnalysisBtn')).toBeVisible();
