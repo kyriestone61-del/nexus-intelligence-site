@@ -31,9 +31,9 @@ export function mountDiscoveryEvidence(root,portal,{onChange=()=>{},navigate=()=
  }
  function render(){
   // Keep a selected local file input through background status refreshes. Browsers cannot restore its FileList from HTML.
-  const selectedInput=!busy?root.querySelector('[data-discovery-upload] input[type=file]'):null;
+  const selectedInput=root.querySelector('[data-discovery-upload] input[type=file]');
   const selectedCategory=root.querySelector('[data-discovery-upload] select')?.value;
-  const reviewNote=!busy?root.querySelector('[data-discovery-review] textarea')?.value:null;
+  const reviewNote=root.querySelector('[data-discovery-review] textarea')?.value;
   const status=discoveryState(data),docs=data?.documents||[],live=docs.filter(d=>d.state!=='removed'),parsed=live.filter(d=>d.state==='parsed'),failed=live.filter(d=>d.state==='failed');
   const ready=live.length>0&&parsed.length===live.length;const complete=selectedVersion?data?.reports.find(r=>r.id===selectedVersion):status.complete;
   root.innerHTML=`<header><div class="eyebrow">Step 1 · Discovery intake</div><h1>Upload Discovery Material</h1><p>Add all meeting transcripts, interview notes and process documents for this engagement. Every active document is processed before diagnosis.</p></header>
@@ -44,7 +44,7 @@ export function mountDiscoveryEvidence(root,portal,{onChange=()=>{},navigate=()=
   <section class="relystra-build-card"><div class="eyebrow">Step 2 · Free Diagnosis</div><h2 data-discovery-status>${esc(status.label)}</h2><p>Relystra synthesizes every processed source, checks contradictions and preserves uncertainty. No payment is needed for this initial diagnosis.</p>${data?.reports[0]?.error?`<p role="alert">${esc(data.reports[0].error)}</p>`:''}${status.state==='outdated'?'<p role="status">The previous report is retained below. Review and regenerate it to include the current evidence set.</p>':''}<button type="button" class="btn primary" data-free-generate ${!ready||busy||status.state==='generating'||state.previewReadOnly?'disabled':''}>${data?.reports.length?'Regenerate Free Diagnosis':'Generate Free Diagnosis'}</button>${status.state==='generating'?`<button type="button" class="btn secondary" data-discovery-resume >Refresh diagnosis status</button>`:''}${!ready?'<p>Process at least one document and resolve any failed uploads to enable generation.</p>':''}<p data-discovery-message role="status">${esc(message)}</p>${error?`<p role="alert">${esc(error)}</p><button type="button" class="btn secondary" data-discovery-refresh>Refresh saved status</button>`:''}</section>
   <section class="relystra-build-card"><div class="eyebrow">Step 3 · Review Findings</div>${data?.reports.some(r=>r.status==='complete')?`<label>Diagnosis history<select data-free-version><option value="">Latest complete report</option>${data.reports.filter(r=>r.status==='complete').map(r=>`<option value="${esc(r.id)}" ${selectedVersion===r.id?'selected':''}>Version ${r.version} · evidence revision ${r.evidence_revision}</option>`).join('')}</select></label>`:''}${freeReportMarkup(complete)||'<p>Your structured findings will appear here after all documents are processed and Free Diagnosis completes.</p>'}${complete?`<form data-discovery-review><label>Corrections or additional context<textarea name="note" rows="4" placeholder="Explain any incorrect or missing information."></textarea></label><button class="btn primary" name="decision" value="verified" ${busy||complete.evidence_revision!==data.revision||state.previewReadOnly?'disabled':''}>Verify these findings</button><button class="btn secondary" name="decision" value="correction_requested" ${busy||complete.evidence_revision!==data.revision||state.previewReadOnly?'disabled':''}>Save correction as new evidence</button></form>${(data.reviews||[]).filter(r=>r.run_id===complete.id).map(r=>`<p>${r.decision==='verified'?'Findings verified':'Correction requested'} · ${esc(r.note)}</p>`).join('')}`:''}</section>
   <section class="relystra-build-card"><button type="button" class="btn primary" data-discovery-full>Continue to Full Diagnosis</button><h2>Step 4 · Full Diagnosis / Action Planning</h2><p>After review, Relystra confirms the first Build and its commercial terms. Full Diagnosis and the deeper Roadmap remain included in the first paid engagement.</p>${state.admin?'<button type="button" class="btn secondary" data-discovery-commercial>Prepare first Build scope & Basic Report</button>':''}</section>`;
-  if(selectedInput?.files?.length)root.querySelector('[data-discovery-upload] input[type=file]')?.replaceWith(selectedInput);
+  if(selectedInput?.files?.length){selectedInput.disabled=busy||state.previewReadOnly;root.querySelector('[data-discovery-upload] input[type=file]')?.replaceWith(selectedInput);}
   if(selectedCategory)root.querySelector('[data-discovery-upload] select').value=selectedCategory;
   if(reviewNote&&root.querySelector('[data-discovery-review] textarea'))root.querySelector('[data-discovery-review] textarea').value=reviewNote;
  }
@@ -79,7 +79,7 @@ export function mountDiscoveryEvidence(root,portal,{onChange=()=>{},navigate=()=
     const run=selectedVersion?data.reports.find(r=>r.id===selectedVersion):data.reports.find(r=>r.status==='complete');const note=String(fd.get('note')||'').trim();
     await command(decision,{p_run_id:run.id,p_note:note});
     if(decision==='correction_requested')files.push(new File([note],`Discovery review correction ${Date.now()}.txt`,{type:'text/plain'}));
-    else{message='Your review has been saved.';return;}
+    else{const noteInput=root.querySelector('[data-discovery-review] textarea');if(noteInput)noteInput.value='';message='Your review has been saved.';return;}
    }
    const failures=[];
    for(const file of files){if(!same(co,pr,v))return;try{
@@ -87,7 +87,7 @@ export function mountDiscoveryEvidence(root,portal,{onChange=()=>{},navigate=()=
     const doc=await persistEvidence(sb,{file,companyId:co,userId:state.user.id,projectId:pr,category:String(fd.get('category')||'Discovery Material'),sourceRole:state.admin?'nexus':'client'});
     if(!same(co,pr,v))return;state.docs=[doc,...(state.docs||[]).filter(d=>d.id!==doc.id)];await command('attach',{p_document_id:doc.id});
    }catch(e){failures.push(e.message)}}
-   await command();if(failures.length)error=failures.join('\n');await drive();
+   await command();if(failures.length)error=failures.join('\n');else{const input=root.querySelector('[data-discovery-upload] input');if(input)input.value='';}await drive();
   });
  });
  root.addEventListener('click',event=>{const b=event.target.closest('button');if(!b)return;
