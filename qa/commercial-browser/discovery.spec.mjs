@@ -1,7 +1,7 @@
 import {test,expect} from '../playwright/node_modules/@playwright/test/index.mjs';
 const file=(name,text)=>({name,mimeType:'text/plain',buffer:Buffer.from(text)});
 test('Full Diagnosis loads its own scoped access when the journey snapshot is unavailable',async({page},info)=>{
- await page.goto('/qa/delivery-browser/?section=transcript&discovery=access-'+info.project.name);
+ await page.goto('/qa/delivery-browser/?section=transcript&discovery='+info.project.name);
  await expect(page.getByRole('heading',{name:'Upload Discovery Material',exact:true})).toBeVisible();
  await page.evaluate(async()=>{
   const portal=window.NexusPortal,journey=window.NexusAdminJourney;
