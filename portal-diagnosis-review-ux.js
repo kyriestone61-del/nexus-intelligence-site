@@ -46,6 +46,7 @@ const hasResult=run=>{
 function diagnosisJourneyButton(button){
   if(!button?.closest?.('#adminJourneyRoot')||button.matches('[data-delivery-nav],[data-relystra-nav]'))return false;
   const step=button.closest('.journey-step');
+  if(!step)return false; // Only retained legacy cards; current discovery actions own their handlers.
   const stepTitle=text(step?.querySelector('h3')?.textContent);
   const label=text(button.textContent).toLowerCase();
   return stepTitle==='Diagnose'||label.includes('diagnosis');
