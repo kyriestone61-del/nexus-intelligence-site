@@ -31,7 +31,7 @@ test('preparation includes company evidence and the selected project, excluding 
   companyPreparationQuery(query);
   companyPreparationQuery(query,'paid');
   companyPreparationQuery(query,'paid',['discovery','diagnosis','paid']);
-  assert.deepEqual(calls,[['is','project_id',null],['or','project_id.is.null,project_id.eq.paid'],['or','project_id.is.null,project_id.eq.paid,project_id.eq.discovery,project_id.eq.diagnosis']]);
+  assert.deepEqual(calls,[['is','project_id',null],['or','project_id.eq.paid'],['or','project_id.eq.paid,project_id.eq.discovery,project_id.eq.diagnosis']]);
 });
 
 test('paid workspace resolves its canonical diagnosis and exact retained evidence',()=>{
@@ -43,12 +43,15 @@ test('paid workspace resolves its canonical diagnosis and exact retained evidenc
     {id:'supporting',company_id:'blue',project_id:'discovery'},
     {id:'package',company_id:'blue',project_id:'paid'},
     {id:'unrelated',company_id:'blue',project_id:'other'},
+    {id:'unlinked-preparation',company_id:'blue',project_id:null},
     {id:'foreign',company_id:'other',project_id:null},
   ]};
   const run={id:'run-1',project_id:'pilot',analysis_packet:{project:{id:'discovery'}},transcript_document_id:'transcript',supporting_document_ids:['supporting']};
   assert.equal(workspaceSourceDiagnosisId(state,'paid'),'run-1');
   assert.deepEqual(diagnosisPreparationProjectIds(run,'paid'),['paid','pilot','discovery']);
   assert.deepEqual(preparationDocuments(state,'paid',run).map(row=>row.id),['transcript','supporting','package']);
+  state.discoveryEvidence={company_id:'blue',project_id:'paid',documents:[{id:'transcript',state:'parsed'}]};
+  assert.deepEqual(preparationDocuments(state,'paid').map(row=>row.id),['transcript'],'current evidence counts use the server scope');
 });
 
 const source=fs.readFileSync(new URL('../../portal-client.js',import.meta.url),'utf8');

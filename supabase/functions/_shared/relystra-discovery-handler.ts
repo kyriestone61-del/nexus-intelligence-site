@@ -6,7 +6,7 @@ export async function discoveryWork(deps:Dependencies,engagementId:string|null=n
  const {db}=deps;const lease=await rows(db.rpc('relystra_claim_discovery_work',{p_engagement_id:engagementId}));
  if(!lease)return {ok:true,status:'idle_or_busy'};
  let documentId:string|null=null,runId:string|null=null,stage='claim';const started=Date.now(),requestId=crypto.randomUUID();
- const metadata=()=>({request_id:requestId,company_id:lease.company_id,engagement_id:lease.id,run_id:runId,evidence_revision:lease.revision,stage,model:'openai/gpt-5.6-sol',provider:'vercel-ai-gateway',duration_ms:Date.now()-started});
+ const metadata=()=>({request_id:requestId,company_id:lease.company_id,engagement_id:lease.id,run_id:runId,evidence_revision:lease.revision,stage,model:'openai/gpt-5.6-sol',gateway:'vercel-ai-gateway',duration_ms:Date.now()-started});
  const commit=async(action:string,payload:any)=>{const ok=await rows(db.rpc('relystra_commit_discovery_work',{p_engagement_id:lease.id,p_lease_id:lease.lease_id,p_revision:lease.revision,p_action:action,p_payload:payload}));console.info(JSON.stringify({event:'discovery_stage_committed',...metadata(),action,accepted:ok}));return {ok:true,status:ok?'processing':'evidence_changed',action};};
  try{
   const documents=await rows(db.from('relystra_discovery_documents').select('*').eq('engagement_id',lease.id).in('state',['uploaded','parsing']).order('updated_at').limit(1));
@@ -54,7 +54,7 @@ export async function discoveryWork(deps:Dependencies,engagementId:string|null=n
    if(Number(job.draft?._qa_attempts||0)<1)return await commit('synthesis',{...job,run_id:run.id,stage:'qa',draft:{...report,_qa_attempts:1,_qa_previous_issues:issues}});
    throw new Error('DIAGNOSIS_QA_FAILED: '+(issues.join('; ')||'The quality reviewer could not confirm source fidelity. Review the evidence and retry.'));
   }
-  return await commit('complete',{run_id:run.id,metadata:metadata(),report:{...report,analysis_context:job.nodes,qa:{pass:true,issues:[]},coverage:{documents:run.document_ids.length,chunks:run.source_ids.length,complete:true},pipeline_version:2}});
+  return await commit('complete',{run_id:run.id,metadata:metadata(),report:{...report,analysis_context:job.nodes,qa:{pass:true,issues:[]},coverage:{documents:run.document_ids.length,logical_documents:new Set(run.source_ids.map((id:string)=>id.split(':')[0])).size,chunks:run.source_ids.length,complete:true},pipeline_version:2}});
  }catch(error){
   const failure=classifyError(error,stage==='parse'?'parsing':'application');
   console.error(JSON.stringify({event:'discovery_stage_failed',...metadata(),error_code:failure.code,boundary:failure.boundary,retryable:failure.retryable}));
