@@ -68,6 +68,21 @@ test('recover Moon Wax retained discovery documents without fabricated evidence 
  }
  const second=await browser.newContext({...info.project.use}),fresh=await second.newPage();try{await login(fresh,ae,ap);await open(fresh,company);await expect(fresh.locator('[data-free-report]')).toHaveAttribute('data-free-report',r.id);await expect(fresh.getByText('Step 4 of 11: Full Diagnosis & approval',{exact:true})).toBeVisible();}finally{await second.close()}
  await page.locator('[data-discovery-full]').click();await expect(page.getByRole('button',{name:'Review scope & payment',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'+ Add Evidence',exact:true}).click();await expect(page.locator('#adminEvidenceFile')).toBeVisible();
+ await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect(page.locator('#adminEvidenceFile')).toBeHidden();
+ const brief=await page.locator('#adminContextText').inputValue();
+ if(info.project.name==='desktop-chrome'){
+  if(brief.trim()){
+   const save=page.waitForResponse(res=>res.url().includes('/rpc/nexus_save_discovery_admin_context'));
+   await page.getByRole('button',{name:'Save Brief',exact:true}).click();expect((await save).ok()).toBe(true);
+   await expect(page.locator('#saveAdminContextBtn')).toBeEnabled();await expect(page.locator('#adminContextText')).toHaveValue(brief);
+  }else{await page.getByRole('button',{name:'Save Brief',exact:true}).click();await expect(page.getByText('Add context before saving.',{exact:true})).toBeVisible();}
+ }
+ const menu=page.getByRole('button',{name:'Workspace menu',exact:true});
+ if(await menu.isVisible()){await menu.click();await expect(menu).toHaveAttribute('aria-expanded','true');await menu.click();await expect(menu).toHaveAttribute('aria-expanded','false');}
+ await page.getByRole('button',{name:'Open Free Diagnosis',exact:true}).click();await expect(page.locator('[data-free-report]')).toHaveAttribute('data-free-report',r.id);
+ await page.locator('[data-discovery-full]').click();
+
  await expect(page.locator('#queueDiagnosisBtn')).toHaveCount(0);
  const size=await page.evaluate(()=>({w:document.documentElement.clientWidth,s:document.documentElement.scrollWidth}));expect(size.s).toBeLessThanOrEqual(size.w+1);expect(errors).toEqual([]);
  await page.screenshot({path:info.outputPath('moon-wax-full-diagnosis-gate.png'),fullPage:true});
