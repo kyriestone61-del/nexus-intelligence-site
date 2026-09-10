@@ -120,3 +120,6 @@ assert.match(sms,/SMS provider not configured/);
 assert.match(sms,/INVALID_PHONE_FORMAT/);
 
 console.log('Relystra vNext diagnosis experience contract checks passed.');
+
+// Existing relays retain machine-readable auth rejection without exposing provider details.
+assert.match(diagnosis,/error:\["AUTH_REQUIRED","ADMIN_REQUIRED","WORKER_AUTH_FAILED"\]\.includes\(msg\)\?msg:clientErrorMessage\(failure\)/);
