@@ -87,7 +87,7 @@ test('administrator startup resolves relative workspace links against the curren
   const navigate=source.match(/async function navigate\(target\)\{[\s\S]*?\n\}/)[0],urls=[];
   const ctx=vm.createContext({journeyGate:()=>null,store:{value:{}},URL,workspaceUrl,navigationSequence:0,active:null,header:{},state:{companyId:'moon'},viewedProject:null,
     location:new URL('https://example.test/portal?company=old&task=old-task'),document:{querySelectorAll:()=>[]},
-    activate:()=>{},renderOverview:()=>{},renderHeader:()=>{},window:{scrollTo:()=>{}},history:{replaceState:(_a,_b,url)=>urls.push(url)}});
+    activate:()=>{},renderOverview:()=>{},renderHeader:()=>{},window:{scrollTo:()=>{}},history:{replaceState:(_a,_b,url)=>urls.push(url),pushState:(_a,_b,url)=>urls.push(url)}});
   await vm.runInContext(navigate+"\nnavigate('overview')",ctx);
   assert.deepEqual(urls,['/portal?company=moon&section=overview']);
   assert.equal(ctx.header.hidden,false);

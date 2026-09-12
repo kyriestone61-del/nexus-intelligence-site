@@ -13,7 +13,7 @@ const operations=readFileSync(new URL('../../portal-ops.js',import.meta.url),'ut
 const redirects=readFileSync(new URL('../../_redirects',import.meta.url),'utf8');
 
 test('delivery boot uses the canonical owners and does not load the retired Phase Zero overlay',()=>{
-  assert.match(portalApp,/const BUILD='20260908-relystra-post-release-qaqc2'/);
+  assert.match(portalApp,/const BUILD='20260911-relystra-free-diagnosis-v2'/);
   assert.match(portalApp,/portal-delivery\.css/);
   assert.doesNotMatch(portalApp,/portal-phase-zero-lifecycle\.js/);
   assert.match(portalApp,/portal-admin-journey\.js/);

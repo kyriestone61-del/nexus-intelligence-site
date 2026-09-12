@@ -57,6 +57,16 @@ function reportSections(r:any,client=false){
   }else sections.push(["Your Action Items",bulletText(r?.client_action_items)]);
   return sections.filter(([,body])=>clean(body));
 }
+function freeReportSections(r:any){
+  const summary=arr(r?.executive_summary).map((x:any)=>`${clean(String(x?.label||"Summary").replaceAll("_"," "))}: ${clean(x?.text)}`).join("\n");
+  const snapshot=arr(r?.diagnosis_snapshot).map((x:any)=>`• ${clean(x?.area)} | ${clean(String(x?.condition||"").replaceAll("_"," "))} | ${clean(x?.priority||"to validate")} priority`).join("\n");
+  const findings=arr(r?.key_findings).slice(0,5).map((x:any,index:number)=>{const parts=[`Finding ${String(index+1).padStart(2,"0")}: ${clean(x?.title||x?.text)}`,`Observed condition: ${clean(x?.text)}`];if(x?.evidence_summary)parts.push(`Evidence: ${clean(x.evidence_summary)}`);if(x?.business_impact||x?.why_it_matters)parts.push(`Business impact: ${clean(x.business_impact||x.why_it_matters)}`);parts.push(`Priority: ${clean(x?.priority||"To validate")}`);if(x?.recommended_direction)parts.push(`Recommended direction: ${clean(x.recommended_direction)}`);return parts.join("\n")}).join("\n\n");
+  const friction=arr(r?.observed_problems).map((x:any)=>`• ${x?.area?`${clean(x.area)}: `:""}${clean(x?.text)}`).join("\n");
+  const opportunities=arr(r?.opportunity_areas).slice(0,5).map((x:any,index:number)=>`Opportunity ${index+1}: ${clean(x?.title||x?.text)}\n${clean(x?.text)}${x?.potential_benefit?`\nPotential benefit: ${clean(x.potential_benefit)}`:""}`).join("\n\n");
+  const quickWins=arr(r?.quick_wins).slice(0,4).map((x:any,index:number)=>`Potential quick win ${index+1}: ${clean(x?.title)}\n${clean(x?.text)}\nPotential benefit: ${clean(x?.potential_benefit)}`).join("\n\n");
+  const investigation=arr(r?.missing_information).slice(0,6).map((x:any,index:number)=>`Question ${index+1}: ${clean(x?.text)}${x?.what_to_review?`\nReview needed: ${clean(x.what_to_review)}`:""}${x?.why_it_matters?`\nWhy it matters: ${clean(x.why_it_matters)}`:""}`).join("\n\n");
+  return [["Executive Summary",summary||bulletText(r?.business_context,"text","")],["Diagnosis Snapshot",snapshot],["Highest-Priority Findings",findings],["Where Friction Is Occurring",friction],["Highest-Value Opportunities",opportunities],["Potential Quick Wins",quickWins],["What Needs Deeper Investigation",investigation]].filter(([,body])=>clean(body));
+}
 function wrap(text:string,max=92){
   const lines:string[]=[];
   for(const raw of String(text||"").split("\n")){
@@ -74,9 +84,15 @@ Deno.serve(async(req:Request)=>{
   try{
     const {user,isAdmin}=await userFrom(req);
     const body=await req.json().catch(()=>({}));
-    let report:any=null,companyName="Client",client=false,filename="Relystra-Diagnosis-Report.pdf";
+    let report:any=null,companyName="Client",client=false,free=false,reportDate="",reportVersion=1,filename="Relystra-Diagnosis-Report.pdf";
 
-    if(body?.run_id){
+    if(body?.free_run_id){
+      const {data:run,error}=await db.from("relystra_free_diagnoses").select("id,company_id,status,version,completed_at,report").eq("id",body.free_run_id).eq("status","complete").single();
+      if(error||!run?.report)throw new Error("REPORT_NOT_FOUND");
+      if(!isAdmin&&!await isMember(user.id,run.company_id))throw new Error("COMPANY_ACCESS_REQUIRED");
+      const {data:company}=await db.from("nexus_companies").select("name").eq("id",run.company_id).single();
+      report=run.report;companyName=company?.name||"Client";client=true;free=true;reportDate=String(run.completed_at||new Date().toISOString()).slice(0,10);reportVersion=run.version||1;filename=`RELYSTRA_${companyName.replace(/[^a-z0-9_-]+/gi,"-").replace(/^-+|-+$/g,"")||"Client"}_Free-Diagnosis_${reportDate}.pdf`;
+    }else if(body?.run_id){
       if(!isAdmin)throw new Error("ADMIN_REQUIRED");
       const {data:run,error}=await db.from("nexus_diagnosis_runs").select("id,company_id,status,analysis_result").eq("id",body.run_id).single();
       if(error||!run?.analysis_result)throw new Error("REPORT_NOT_FOUND");
@@ -100,14 +116,15 @@ Deno.serve(async(req:Request)=>{
         ensure(size+7);page.drawText(line,{x:margin+indent,y,size,font:isBold?bold:regular,color:rgb(.08,.08,.11)});y-=size+5;
       }
     };
-    page.drawText("RELYSTRA",{x:margin,y,size:11,font:bold,color:rgb(.20,.12,.45)});y-=28;
-    draw(client?"Client Diagnosis Report":"Client Diagnosis — Internal Full Report",20,true);y-=2;
+    page.drawText("RELYSTRA",{x:margin,y,size:11,font:bold,color:rgb(.36,.24,.44)});y-=28;
+    draw(free?"Free Business Diagnosis":client?"Client Diagnosis Report":"Client Diagnosis — Internal Full Report",20,true);y-=2;
     draw(companyName,12,true);y-=6;
-    draw(client?"Prepared for client review. Use the secure Relystra workspace to submit questions.":"Internal Relystra report. Human review remains required before any client release or implementation decision.",9,false);y-=14;
+    draw(free?`Preliminary Operational Assessment | Prepared by Relystra | ${reportDate} | Version ${reportVersion}`:client?"Prepared for client review. Use the secure Relystra workspace to submit questions.":"Internal Relystra report. Human review remains required before any client release or implementation decision.",9,false);y-=14;
 
-    for(const [heading,bodyText] of reportSections(report,client)){
+    for(const [heading,bodyText] of (free?freeReportSections(report):reportSections(report,client))){
       ensure(55);draw(heading,13,true);y-=3;draw(bodyText,9,false);y-=13;
     }
+    if(free){ensure(72);draw("Recommended Next Step",13,true);y-=3;draw("Validate the preliminary findings in Step 3. Relystra can then inspect the affected workflows, identify root causes, define requirements, and determine which improvements are worth pursuing.",9,false);for(const [index,p] of pdf.getPages().entries()){p.drawLine({start:{x:margin,y:42},end:{x:width-margin,y:42},thickness:.5,color:rgb(.75,.72,.78)});p.drawText("RELYSTRA | Free Diagnosis",{x:margin,y:28,size:7,font:regular,color:rgb(.4,.37,.42)});p.drawText(`Page ${index+1} of ${pdf.getPageCount()}`,{x:width-margin-52,y:28,size:7,font:bold,color:rgb(.4,.37,.42)})}}
     const bytes=await pdf.save();
     return new Response(bytes,{headers:{...cors,"Content-Type":"application/pdf","Content-Disposition":`attachment; filename="${filename}"`,`Cache-Control`:"no-store"}});
   }catch(e){

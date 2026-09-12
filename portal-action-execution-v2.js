@@ -69,7 +69,7 @@ function ensureShell(){
     const h=toolbar.querySelector('h1');
     const p=toolbar.querySelector('p.small');
     if(simple){if(h)h.textContent=simpleDeliveryMode()?'Delivery Workflow':'Diagnosis Setup';if(p)p.textContent=simpleDeliveryMode()?'One plan from the diagnosis. Finish these steps in order.':'Complete these two steps in order, then Relystra can run the diagnosis.'}
-    else{if(h)h.textContent=state.admin?'Action Items':'Your Action Items';if(p)p.textContent=state.admin?'Gather and accept the evidence needed to scope Builds. Review suggested Actions before assigning work.':'See exactly what Relystra needs from you, submit it for review, and track what has been approved.'}
+    else{let eyebrow=toolbar.querySelector('.relystra-step-toolbar-kicker');if(!eyebrow){eyebrow=document.createElement('div');eyebrow.className='eyebrow relystra-step-toolbar-kicker';toolbar.firstElementChild?.prepend(eyebrow)}eyebrow.textContent='Step 5 of 11 · Required Inputs';if(h)h.textContent='Required Inputs';if(p)p.textContent=state.admin?'Track required, completed, missing, and blocking inputs before Build planning. Review client submissions without mixing in delivery work.':'See exactly what Relystra still needs, submit it for review, and track what is already complete.'}
   }
   let top=$('actionExecutionTop');if(!top){top=document.createElement('div');top.id='actionExecutionTop';top.className='action-execution-top';const note=section.querySelector('.note');(note||list).before(top)}
   let filters=$('actionExecutionFilters');if(!filters){filters=document.createElement('div');filters.id='actionExecutionFilters';filters.className='action-view-tabs';list.before(filters)}
