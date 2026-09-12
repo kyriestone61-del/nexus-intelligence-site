@@ -56,7 +56,8 @@ jobs:
       - name: Action processing engine assertions
         run: |
           set -euo pipefail
-          grep -Fq 'Every action. One clear next move.' portal-action-processing-engine.js
+          grep -Fq 'Step 5 of 11 · Required Inputs' portal-action-processing-engine.js
+          grep -Fq '<h1>Required Inputs</h1>' portal-action-processing-engine.js
           grep -Fq 'data-action-start' portal-action-processing-engine.js
           grep -Fq 'data-action-upload' portal-action-processing-engine.js
           grep -Fq 'data-action-comment' portal-action-processing-engine.js
