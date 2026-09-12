@@ -32,7 +32,10 @@ else if(new URL(location.href).searchParams.has('shell')){
   state.projects=(await portal.sb.from('nexus_projects').select('*').eq('company_id',info.company)).data||[];
   state.tasks=(await portal.sb.from('nexus_tasks').select('*').eq('company_id',info.company)).data||[];
   const topbar=document.createElement('header');topbar.className='topbar';document.getElementById('portalApp').before(topbar);
-  for(const href of ['/portal-runtime-hardening.css','/portal-client-shell-v2.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link)}
+  for(const href of ['/portal-runtime-hardening.css','/portal-client-shell-v2.css','/portal-action-processing-engine.css']){const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link)}
+  // Match the production client bootstrap: Step 5 is owned by the governed
+  // Action engine, so the isolated role fixture must load it before the shell.
+  await import('/portal-action-processing-engine.js');
   await import('/portal-client-shell-v2.js');
 }
 else{

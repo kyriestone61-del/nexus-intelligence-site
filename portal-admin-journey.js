@@ -1,5 +1,5 @@
 import {mountCommercialAdmin} from './portal-commercial-admin.js';
-import {journeyMarkup,journeyGate,gateMarkup,journeyNext} from './portal-journey-steps.js';
+import {journeyMarkup,journeyGate,gateMarkup,journeyNext,journeyPagerMarkup} from './portal-journey-steps.js';
 import {mountTranscriptStage,selectedTranscript} from './portal-transcript-stage.js';
 import {createLifecycleStore,lifecycle,mountMobileMenu} from './portal-delivery-lifecycle.js';
 import {mountBuilds} from './portal-builds.js';
@@ -18,9 +18,10 @@ function section(id){let el=$('section-'+id);if(!el){el=document.createElement('
 const overview=section('journey'),buildRoot=section('relystra-builds'),deliveryRoot=section('relystra-delivery'),projectsRoot=section('relystra-projects'),templatesRoot=section('relystra-templates'),settingsRoot=section('relystra-settings');
 overview.innerHTML='<div id="adminJourneyRoot"></div>';
 const commercialRoot=section('relystra-commercial'),commercial=mountCommercialAdmin(commercialRoot,portal);
-const transcriptRoot=section('transcript'),gateRoot=section('journey-gate');
-const transcript=mountTranscriptStage(transcriptRoot,portal,{navigate,onChange:refresh});
+const transcriptRoot=section('transcript'),freeDiagnosisRoot=section('free-diagnosis'),reviewFindingsRoot=section('review-findings'),gateRoot=section('journey-gate');
+const transcript=mountTranscriptStage({transcript:transcriptRoot,freeDiagnosis:freeDiagnosisRoot,reviewFindings:reviewFindingsRoot},portal,{navigate});
 const header=document.createElement('div');header.id='relystraWorkspaceHeader';main.prepend(header);
+const pager=document.createElement('div');pager.id='relystraAdminStepPager';main.append(pager);
 const offerRoot=document.createElement('div');offerRoot.id='relystraDiagnosisOffer';overview.append(offerRoot);
 const builds=mountBuilds(buildRoot,portal),delivery=mountPackageDelivery(deliveryRoot,portal),offer=mountDiagnosisOffer(offerRoot,portal);
 
@@ -41,6 +42,7 @@ function renderHeader(){
   const s=store.value;if(!s){header.innerHTML='';return}
   const name=state.companies?.find(c=>c.id===state.companyId)?.name||'Client workspace';
   header.innerHTML=`<div class="relystra-workspace-context"><div><small>Client workspace</small><h2>${esc(name)}</h2></div><label>Build Package<select data-package-picker><option value="">Current package</option>${s.projects.map(p=>`<option value="${esc(p.id)}" ${viewedProject===p.id?'selected':''}>${esc(p.name)}${p.status==='complete'?' · Completed':''}${!p.paid?' · Historical':''}</option>`).join('')}</select></label></div>${journeyMarkup(s,{active,hasTranscript:!!selectedTranscript(portal,s)})}`;
+  pager.innerHTML=journeyPagerMarkup(active,s);pager.hidden=!pager.innerHTML;
 }
 function renderOverview(){
   if(loadError){$('adminJourneyRoot').innerHTML=`<p role="alert">${esc(loadError.message)}</p><button class="btn secondary" data-workspace-retry>Retry</button>`;return}
@@ -52,23 +54,25 @@ async function refresh(){
   if(company!==state.companyId){company=state.companyId;viewedProject=null;active='overview';navigationSequence++;header.hidden=false;activate('journey');store.invalidate();buildRoot.replaceChildren();deliveryRoot.replaceChildren()}
   try{const s=await store.refresh(viewedProject);if(!s||version!==refreshSequence)return;loadError=null;renderHeader();renderOverview();transcript.refresh(s);await offer.refresh(s);
     if(['commercial-report','templates','offers'].includes(active))await commercial.refresh({mode:active==='templates'?'library':active==='commercial-report'?'discovery':active});
-    if(['builds','scope'].includes(active))await builds.refresh({stage:active});else if(['progress','review','final-package','support'].includes(active)&&!journeyGate(active,s))await delivery.refresh({projectId:s.project_id,section:active==='review'?'progress':active});
+    if(['builds','scope'].includes(active))await builds.refresh({stage:active});else if(['progress','review','final-package','support'].includes(active)&&!journeyGate(active,s))await delivery.refresh({projectId:s.project_id,section:active});
   }catch(error){if(version===refreshSequence){loadError=error;header.innerHTML='<p role="alert">Workspace status could not be loaded.</p>';$('adminJourneyRoot').innerHTML=`<p role="alert">${esc(error.message)}</p><button class="btn secondary" data-workspace-retry>Retry</button>`}}
 }
 async function navigate(target){
+  const historyMode=arguments[1]?.historyMode||'push';
   const version=++navigationSequence;
   active=target;header.hidden=['clients','sales','projects','templates','settings','commercial-report','offers'].includes(target);
   document.querySelectorAll('[data-relystra-nav]').forEach(b=>b.classList.toggle('active',b.dataset.relystraNav===target));
   const aliases={diagnosis:'intake',actions:'tasks',files:'documents',sales:'revenue'};
   const gate=journeyGate(target,store.value);
   if(gate){activate('journey-gate');gateRoot.innerHTML=gateMarkup(gate)}
-  else if(['transcript','free-diagnosis','review-findings','discovery'].includes(target)){activate('transcript');transcript.refresh(store.value)}
+  else if(['transcript','free-diagnosis','review-findings'].includes(target)){activate(target);transcript.refresh(store.value)}
+  else if(target==='discovery'){active='transcript';activate('transcript');transcript.refresh(store.value)}
   else if(target==='overview'){activate('journey');renderOverview()}
   else if(target==='diagnosis'){await window.NexusAdminIntake?.refresh({reload:true});if(version!==navigationSequence)return;activate('intake')}
   else if(['builds','scope'].includes(target)){activate('relystra-builds');await builds.refresh({stage:target})}
   else if(['progress','review','final-package','support'].includes(target)){
     if(store.value?.project_type&&store.value.project_type!=='build_package'){tools.get('timeline')?.click();activate('timeline')}
-    else{activate('relystra-delivery');await delivery.refresh({projectId:store.value?.project_id,section:target==='review'?'progress':target})}
+    else{activate('relystra-delivery');await delivery.refresh({projectId:store.value?.project_id,section:target})}
   }else if(target==='projects'){activate('relystra-projects');await renderProjects()}
   else if(target==='templates'){activate('relystra-commercial');await commercial.refresh({mode:'library'})}
   else if(target==='offers'){activate('relystra-commercial');await commercial.refresh({mode:'offers'})}
@@ -76,7 +80,7 @@ async function navigate(target){
   else if(target==='settings'){activate('relystra-settings');await renderSettings()}
   else{const key=aliases[target]||target;tools.get(key)?.click();activate(key)}
   if(version!==navigationSequence)return;
-  renderHeader();const url=new URL(workspaceUrl(location.href,state.companyId,viewedProject),location.origin);url.searchParams.set('section',target);history.replaceState(null,'',url.pathname+url.search+url.hash);window.scrollTo({top:0,left:0,behavior:'auto'});
+  renderHeader();const url=new URL(workspaceUrl(location.href,state.companyId,viewedProject),location.origin);url.searchParams.set('section',active);if(historyMode!=='none'){const method=historyMode==='replace'?'replaceState':'pushState';if(url.pathname+url.search+url.hash!==location.pathname+location.search+location.hash)history[method](null,'',url.pathname+url.search+url.hash)}window.scrollTo({top:0,left:0,behavior:'auto'});
 }
 async function renderProjects(){
   const {data,error}=await sb.from('nexus_projects').select('id,company_id,name,status,project_type,paid_at,package_stage').order('created_at',{ascending:false});
@@ -100,7 +104,7 @@ main.addEventListener('click',async event=>{
     company=co;viewedProject=id;await refresh();await navigate('progress');
   }
 });
-header.addEventListener('change',async event=>{if(!event.target.matches('[data-package-picker]'))return;viewedProject=event.target.value||null;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,viewedProject));await refresh();await navigate('overview')});
+header.addEventListener('change',async event=>{if(!event.target.matches('[data-package-picker]'))return;viewedProject=event.target.value||null;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,viewedProject));await refresh();await navigate('overview',{historyMode:'replace'})});
 settingsRoot.addEventListener('submit',async event=>{
   event.preventDefault();const form=event.target,fd=new FormData(form),n=key=>Number(fd.get(key)),button=form.querySelector('button');
   const price_guidance={},duration_guidance={};
@@ -115,7 +119,8 @@ settingsRoot.addEventListener('submit',async event=>{
   catch(error){toast(error.message)}finally{button.disabled=false}
 });
 for(const event of ['nexus:workspace-ready','nexus:diagnosis-changed','nexus:diagnosis-updated','nexus:delivery-changed','relystra:delivery-changed'])window.addEventListener(event,refresh);
-async function openPackage(id,section='overview'){viewedProject=id;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,id));await refresh();await navigate(section)}
+async function openPackage(id,section='overview'){viewedProject=id;history.replaceState(null,'',workspaceUrl(location.href,state.companyId,id));await refresh();await navigate(section,{historyMode:'replace'})}
 window.NexusAdminJourney=Object.freeze({refresh,navigate,openPackage,get snapshot(){return store.value}});
 window.addEventListener('relystra:discovery-state',async()=>{try{await store.refresh(viewedProject);renderHeader();renderOverview()}catch{}});
-await refresh();await navigate(new URL(location.href).searchParams.get('section')||'overview');
+window.addEventListener('popstate',()=>navigate(new URL(location.href).searchParams.get('section')||'overview',{historyMode:'none'}));
+await refresh();await navigate(new URL(location.href).searchParams.get('section')||'overview',{historyMode:'replace'});

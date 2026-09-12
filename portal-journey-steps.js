@@ -1,6 +1,10 @@
 import {lifecycle,clientLifecycle} from './portal-delivery-lifecycle.js';
 import {preparationDocuments} from './portal-workspace-context.js';
 export const journeySteps=[['transcript','Upload Discovery Material'],['free-diagnosis','Free Diagnosis'],['review-findings','Review Findings'],['diagnosis','Full Diagnosis & approval'],['actions','Required inputs'],['builds','Recommended Builds'],['scope','Agree scope & payment'],['progress','Build & quality checks'],['review','Client review'],['final-package','Final handoff'],['support','Completion & support']];
+export function workflowStepIntroMarkup(key,{title,description,statusLabel='Current stage',statusDetail='',nextTitle=''}={}){
+  const index=journeySteps.findIndex(([stepKey])=>stepKey===key),number=index+1,resolvedTitle=title||journeySteps[index]?.[1]||'Workflow step';
+  return `<header class="relystra-step-page-head" data-step-page="${esc(key)}"><div class="relystra-step-page-copy"><div class="eyebrow">Step ${number} of ${journeySteps.length} · ${esc(resolvedTitle)}</div><h1>${esc(resolvedTitle)}</h1><p>${esc(description||'Review this stage and complete the next required action.')}</p></div><aside class="relystra-step-state" aria-label="Step status"><span>${esc(statusLabel)}</span>${statusDetail?`<strong>${esc(statusDetail)}</strong>`:''}${nextTitle?`<small>Next · ${esc(nextTitle)}</small>`:''}</aside></header>`;
+}
 export function transcriptDocuments(state,projectId=null,diagnosis=null){return preparationDocuments(state,projectId,diagnosis);}
 export function currentTranscript(state,projectId=null,selectedId=null,diagnosis=null){const docs=transcriptDocuments(state,projectId,diagnosis);return docs.find(d=>d.id===selectedId)||docs.find(d=>d.id===diagnosis?.transcript_document_id)||docs.find(d=>d.category==='Discovery Transcript'||/transcript|\.(srt|vtt)$/i.test(d.file_name||''))||null;}
 export function journeyProgress(snapshot,hasTranscript=false){
@@ -21,7 +25,13 @@ export function journeyGate(key,snapshot){
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function journeyMarkup(snapshot,{active='overview',hasTranscript=false,attribute='data-delivery-nav'}={}){
   const steps=journeyProgress(snapshot,hasTranscript),current=steps.find(s=>s.status==='current')||steps.at(-1);
-  return `<nav class="relystra-numbered-journey" aria-label="Numbered client journey"><p><b>Step ${current.number} of ${steps.length}: ${esc(current.title)}</b></p><ol>${steps.map(s=>`<li class="is-${s.status}"><button type="button" ${attribute}="${s.key}" aria-current="${active===s.key?'step':'false'}"><span class="journey-number" aria-hidden="true">${s.number}</span><span>${esc(s.title)}<small>${s.status==='completed'?'Completed':s.status==='current'?'Current step':'Upcoming'}</small></span></button></li>`).join('')}</ol></nav>`;
+  const viewed=steps.find(s=>s.key===active);
+  return `<nav class="relystra-numbered-journey" aria-label="Numbered client journey"><p class="relystra-journey-position"><span>${viewed?'Viewing':'Current stage'}</span><b>${viewed?`Step ${viewed.number} of ${steps.length} · ${esc(viewed.title)}`:`Step ${current.number} of ${steps.length} · ${esc(current.title)}`}</b></p><ol>${steps.map(s=>{const gate=journeyGate(s.key,snapshot),isActive=active===s.key,stateLabel=s.status==='completed'?'Completed':s.status==='current'?'Current step':gate?'Blocked':'Available',label=isActive?`Current page · ${stateLabel}`:stateLabel;return `<li class="is-${s.status} ${gate?'is-blocked':'is-available'} ${isActive?'is-active':''}"><button type="button" ${attribute}="${s.key}" aria-current="${isActive?'step':'false'}"><span class="journey-number" aria-hidden="true">${s.status==='completed'?'✓':s.number}</span><span>${esc(s.title)}<small>${label}</small></span></button></li>`}).join('')}</ol></nav>`;
+}
+export function journeyPagerMarkup(active,snapshot,{attribute='data-delivery-nav'}={}){
+  const index=journeySteps.findIndex(([key])=>key===active);if(index<0)return '';
+  const previous=journeySteps[index-1],next=journeySteps[index+1],nextGate=next?journeyGate(next[0],snapshot):null;
+  return `<nav class="relystra-step-navigation" aria-label="Previous and next workflow steps">${previous?`<button type="button" class="btn secondary" ${attribute}="${previous[0]}">← Step ${index} · ${esc(previous[1])}</button>`:'<span></span>'}${next?`<button type="button" class="btn primary" ${attribute}="${next[0]}">${nextGate?'View requirements for':'Continue to'} Step ${index+2} · ${esc(next[1])} →</button>`:'<span aria-live="polite">Workflow complete</span>'}</nav>`;
 }
 export function gateMarkup(gate,attribute='data-delivery-nav'){return `<article class="relystra-build-card relystra-stage-gate"><h1>${esc(gate.title)}</h1><p>${esc(gate.detail)}</p><button class="btn primary" type="button" ${attribute}="${gate.section}">${esc(gate.label)}</button></article>`;}
 

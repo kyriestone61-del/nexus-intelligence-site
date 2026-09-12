@@ -21,6 +21,10 @@ assert.match(pdf,/nexus_platform_admins/,'full report PDF must verify admin stat
 assert.match(pdf,/nexus_company_members/,'client report PDF must verify company membership');
 assert.match(pdf,/analysis_result/);
 assert.match(pdf,/client_report/);
+assert.match(pdf,/free_run_id/,'the report endpoint must accept a completed Free Diagnosis run');
+assert.match(pdf,/relystra_free_diagnoses/,'Free Diagnosis export must load the saved report version');
+assert.match(pdf,/RELYSTRA_\$\{companyPart\}_Free-Diagnosis_\$\{date\}\.pdf/,'Free Diagnosis export must use the professional dated filename');
+assert.match(pdf,/Page \$\{index\+1\} of \$\{pages\.length\}/,'Free Diagnosis PDF must include page numbering');
 assert.match(pdf,/application\/pdf/);
 
 assert.match(worker,/RESEND_API_KEY/);

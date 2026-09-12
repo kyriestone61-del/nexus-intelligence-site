@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RELYSTRA Free Diagnosis v2 QA</title>
+  <link rel="stylesheet" href="/styles.css?v=20260911-v2">
+  <link rel="stylesheet" href="/portal-v2.css?v=20260911-v2">
+  <link rel="stylesheet" href="/portal-delivery.css?v=20260911-v3">
+  <script>window.RELYSTRA_QA_ERRORS=[];addEventListener('error',event=>RELYSTRA_QA_ERRORS.push(event.message));addEventListener('unhandledrejection',event=>RELYSTRA_QA_ERRORS.push(String(event.reason)));const qaConsoleError=console.error;console.error=(...args)=>{RELYSTRA_QA_ERRORS.push(args.map(String).join(' '));qaConsoleError(...args)};</script>
+  <style>body{margin:0;padding:24px;background:#09080f;color:#f4f0e8}.qa-shell{width:min(1180px,100%);margin:auto}.qa-context{margin-bottom:16px}.qa-context h2{margin:4px 0;font-size:24px}.section{display:none}.section.active{display:block}.qa-placeholder{max-width:920px}.qa-placeholder p{max-width:680px}</style>
+</head>
+<body class="portal-body">
+  <main class="qa-shell">
+    <header class="qa-context"><div class="eyebrow">Deterministic workflow fixture</div><h2>Moon Wax Co. · Workflow architecture</h2><p>One shared engagement · eleven dedicated destinations</p></header>
+    <div id="qaJourney"></div>
+    <section class="section" data-route="transcript"></section>
+    <section class="section" data-route="free-diagnosis"></section>
+    <section class="section" data-route="review-findings"></section>
+    <section class="section qa-placeholder" data-route="diagnosis"></section>
+    <section class="section qa-placeholder" data-route="actions"></section>
+    <section class="section qa-placeholder" data-route="builds"></section>
+    <section class="section qa-placeholder" data-route="scope"></section>
+    <section class="section qa-placeholder" data-route="progress"></section>
+    <section class="section qa-placeholder" data-route="review"></section>
+    <section class="section qa-placeholder" data-route="final-package"></section>
+    <section class="section qa-placeholder" data-route="support"></section>
+    <div id="qaPager"></div>
+  </main>
+  <script type="module" src="/qa/workflow-routing-browser/fixture.js?v=20260911-v4"></script>
+</body>
+</html>

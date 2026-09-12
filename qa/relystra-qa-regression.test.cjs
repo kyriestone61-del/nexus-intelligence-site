@@ -131,7 +131,7 @@ function navigationHarness(){
   let finish;const pending=new Promise(resolve=>finish=resolve),routes=[],urls=[];
   const src=source('portal-admin-journey.js');
   const fn='async function navigate(target){'+src.split('async function navigate(target){')[1].split('async function renderProjects')[0];
-  const ctx={journeyGate:()=>null,header:{},state:{companyId:'co'},document:{querySelectorAll:()=>[]},activate:id=>routes.push(id),renderOverview(){},renderHeader(){},builds:{refresh:()=>pending},delivery:{refresh:async()=>{}},store:{value:{}},tools:new Map(),offer:{refresh:async()=>{}},location:{href:'https://example.test/portal'},workspaceUrl:href=>href,URL,history:{replaceState:(_,__,url)=>urls.push(url)},window:{scrollTo(){}}};
+  const ctx={journeyGate:()=>null,header:{},state:{companyId:'co'},document:{querySelectorAll:()=>[]},activate:id=>routes.push(id),renderOverview(){},renderHeader(){},builds:{refresh:()=>pending},delivery:{refresh:async()=>{}},store:{value:{}},tools:new Map(),offer:{refresh:async()=>{}},location:{href:'https://example.test/portal'},workspaceUrl:href=>href,URL,history:{replaceState:(_,__,url)=>urls.push(url),pushState:(_,__,url)=>urls.push(url)},window:{scrollTo(){}}};
   const navigate=vm.runInNewContext(`let navigationSequence=0,active='overview',viewedProject=null;${fn};navigate`,ctx);
   return {navigate,finish:()=>finish(),routes,urls};
 }
@@ -183,7 +183,7 @@ test('Actions uses the shell route and survives the same activation used by refr
   const nodes=['today','actions'].map(clientView=>({dataset:{clientView},classList:{toggle(_key,v){this.active=v}},setAttribute(){}}));
   const window={scrollTo(){},NexusActionProcessingEngine:{renderClientActions(){renders++}}};
   const document={querySelectorAll:()=>nodes};
-  const shell=vm.runInNewContext(`${declaration}\nlet activeView='today',navigationVersion=0;\n${activate}\n({activateView,refresh:()=>activateView(activeView)})`,{journeyGate:()=>null,lifecycleStore:{value:{}},renderJourney(){},window,document,URL,location:{href:'https://example.test/portal'},history:{replaceState(){}},renderToday(){},renderFiles(){},renderImprovement(){},renderReports(){}});
+  const shell=vm.runInNewContext(`${declaration}\nlet activeView='today',navigationVersion=0;\n${activate}\n({activateView,refresh:()=>activateView(activeView)})`,{journeyGate:()=>null,lifecycleStore:{value:{}},renderJourney(){},window,document,URL,location:{href:'https://example.test/portal'},history:{replaceState(){},pushState(){}},renderToday(){},renderFiles(){},renderImprovement(){},renderReports(){}});
   await shell.activateView('actions');await shell.refresh();
   assert.equal(nodes[0].classList.active,false);assert.equal(nodes[1].classList.active,true);assert.equal(renders,2);
 });

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RELYSTRA responsive workflow QA</title>
+  <style>
+    html,body{margin:0;background:#09080f}
+    body{display:grid;justify-content:center;min-height:100vh;padding:18px}
+    iframe{display:block;height:4200px;border:1px solid #373142;border-radius:18px;background:#09080f}
+  </style>
+</head>
+<body>
+  <iframe title="Responsive workflow preview"></iframe>
+  <script>
+    const query=new URLSearchParams(location.search),width=Math.max(320,Math.min(1440,Number(query.get('width'))||390)),section=query.get('section')||'free-diagnosis';
+    const frame=document.querySelector('iframe');frame.style.width=`${width}px`;frame.src=`./?company=qa-company&project=qa-engagement&section=${encodeURIComponent(section)}&phase=4-${width}`;
+    frame.title=`${width} pixel ${section} workflow preview`;
+  </script>
+</body>
+</html>

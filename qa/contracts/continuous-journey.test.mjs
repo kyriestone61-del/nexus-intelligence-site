@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {journeyProgress,journeyGate,journeyMarkup,currentTranscript,journeyNext} from '../../portal-journey-steps.js';
+import {journeyProgress,journeyGate,journeyMarkup,journeyPagerMarkup,currentTranscript,journeyNext} from '../../portal-journey-steps.js';
 import {persistEvidence} from '../../portal-evidence-upload.js';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
@@ -12,6 +12,16 @@ test('all eleven stages stay visible while gates prevent premature delivery',()=
   }
   assert.ok(journeyGate('builds',base));assert.ok(journeyGate('progress',base));assert.ok(journeyGate('support',{...base,package:{stage:'client_review'}}));assert.equal(journeyGate('transcript',base),null);
   assert.equal(journeyGate('progress',{...base,project_id:'legacy',project_type:'legacy'}),null);
+});
+test('the viewed route, server progress, access state, and adjacent navigation remain distinct',()=>{
+  const snapshot={...base,workflow:{current_step:3}};
+  const markup=journeyMarkup(snapshot,{active:'free-diagnosis'});
+  assert.match(markup,/Viewing<\/span><b>Step 2 of 11 · Free Diagnosis/);
+  assert.match(markup,/is-completed is-available is-active[^>]*>[\s\S]*?data-delivery-nav="free-diagnosis" aria-current="step"/);
+  assert.match(markup,/data-delivery-nav="review-findings" aria-current="false"[\s\S]*?<small>Current step<\/small>/);
+  assert.match(markup,/data-delivery-nav="builds" aria-current="false"[\s\S]*?<small>Blocked<\/small>/);
+  const pager=journeyPagerMarkup('free-diagnosis',snapshot);
+  assert.match(pager,/data-delivery-nav="transcript"/);assert.match(pager,/data-delivery-nav="review-findings"/);
 });
 test('the numbered journey owns its layout instead of inheriting the global site nav flex rule',()=>{
   const css=readFileSync('portal-delivery.css','utf8');
