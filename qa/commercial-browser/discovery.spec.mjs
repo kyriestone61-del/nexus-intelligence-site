@@ -53,6 +53,6 @@ test('multi-document discovery, failed parsing, review, stale revision and persi
  await page.locator('[data-free-version]').selectOption('');await page.getByRole('button',{name:'Continue to Review Findings',exact:true}).click();await expect(page.getByRole('heading',{name:'Review Findings',exact:true})).toBeVisible();
  const size=await page.evaluate(()=>({w:document.documentElement.clientWidth,s:document.documentElement.scrollWidth}));expect(size.s).toBeLessThanOrEqual(size.w+1);
  await page.getByRole('button',{name:'Confirm findings & continue',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Full Diagnosis & Approval',exact:true})).toBeVisible();
+ await expect(page.getByText('Diagnosis uses the retained production component; this fixture verifies the new delivery components.',{exact:true})).toBeVisible();
  await page.screenshot({path:`test-results/discovery-${info.project.name}.png`,fullPage:true});
 });
