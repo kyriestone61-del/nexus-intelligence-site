@@ -82,9 +82,11 @@ test('legacy compatibility identifiers remain available', async () => {
   assert.match(await readFile(join(root, 'qa/playwright/playwright.config.mjs'), 'utf8'), /NEXUS_QA_BASE_URL/);
 });
 
-test('legal drafts remain provisional and the current-domain sender uses canonical branding', async () => {
-  assert.match(await readFile(join(root, 'privacy.html'), 'utf8'), /Staging notice:/);
-  assert.match(await readFile(join(root, 'terms.html'), 'utf8'), /Staging notice:/);
+test('public legal pages avoid migration residue and the current-domain sender uses canonical branding', async () => {
+  for (const path of ['privacy.html', 'terms.html']) {
+    const page = await readFile(join(root, path), 'utf8');
+    assert.doesNotMatch(page, /Staging notice:|successor brand to Relystra/i);
+  }
   assert.match(await readFile(join(root, 'supabase/functions/nexus-email-worker/index.ts'), 'utf8'), /Relystra <contact@nexusintelligence\.live>/);
   assert.doesNotMatch(await readFile(join(root, 'supabase/functions/nexus-email-worker/index.ts'), 'utf8'), /formerly Nexus Intelligence/);
 });

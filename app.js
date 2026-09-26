@@ -122,7 +122,7 @@
   // Public navigation is intentionally prospect-journey first.
   const menu=document.querySelector('.menu-btn'),nav=document.querySelector('.navlinks');
   if(nav&&!isPortal){
-    nav.innerHTML='<a href="/services">Solutions</a><a href="/methodology">How It Works</a><a href="/construction">Construction</a><a href="/about">About</a><a class="nav-account" data-track="nav_client_login" href="/portal">Client Login</a><a class="nav-cta" data-track="nav_discovery" href="/book">Free Discovery</a>';
+    nav.innerHTML='<a href="/">Home</a><a href="/services">Solutions</a><a href="/methodology">How It Works</a><a href="/about">About</a><a class="nav-account" data-track="nav_client_login" href="/portal">Client Login</a><a class="nav-cta" data-track="nav_discovery" href="/book">Book Free Discovery</a>';
   }
   if(menu&&nav){
     menu.addEventListener('click',()=>{
