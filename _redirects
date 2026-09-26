@@ -16,9 +16,19 @@
 /prospect-workspace/ /portal 301
 /prospect-workspace.html /portal 301
 
-# Cloudflare Pages route rewrites for dynamic detail views.
-# Service detail pages now use real /services/<slug>/index.html routes so the selected slug cannot be lost by pretty-URL canonicalization.
-/industries/* /industries.html 200
+# Retired public taxonomies lead to the current customer journey.
+/capabilities /services 301
+/capabilities.html /services 301
+/problems /services 301
+/problems.html /services 301
+/roi-calculator /services 301
+/roi-calculator.html /services 301
+/service-detail /services 301
+/service-detail.html /services 301
+/services/* /services 301
+/industries /construction 301
+/industries.html /construction 301
+/industries/* /construction 301
 
 # Nexus Fit Call — use the live Google Calendar appointment schedule.
 # Keep this as a temporary redirect so Nexus can later move back to an embedded first-party booking experience without breaking inbound links.

@@ -83,6 +83,11 @@ export async function onRequest(context){
 
   if(['/quick-scan','/assessment'].includes(path)){return new Response(null,{status:301,headers:secure(new Headers({location:new URL('/book',url.origin).toString()}))});}
 
+  // Keep old inbound links useful without exposing overlapping, retired offer catalogs.
+  const retiredDestination=path==='/industries'||path.startsWith('/industries/')?'/construction'
+    :(['/capabilities','/problems','/roi-calculator','/service-detail'].includes(path)||path.startsWith('/services/'))?'/services':null;
+  if(retiredDestination){return new Response(null,{status:301,headers:secure(new Headers({location:new URL(retiredDestination,url.origin).toString()}))});}
+
   if(path==='/case-studies'){
     const target=new URL('/methodology',url.origin);
     target.search=url.search;
