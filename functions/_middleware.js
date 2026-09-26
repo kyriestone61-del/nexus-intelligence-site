@@ -128,6 +128,7 @@ export async function onRequest(context){
     .on('script[data-nexus-schema="indexability"]',{element(el){el.remove();}})
     .on('meta[name="robots"]',{element(el){if(!isPrivate&&!isProtectedMarketing)el.remove();}})
     .on('meta[name="relystra-stage"]',{element(el){el.remove();}})
+    .on('script[src="/app.js"]',{element(el){el.setAttribute('src','/app.js?v=20260926-1');}})
     .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Relystra builds practical administrative workflows for owner-led construction businesses, using their actual information, with testing, training and handoff.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
     .on('.navlinks a[href="/case-studies"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})
