@@ -4,10 +4,11 @@ test.use({viewport:{width:390,height:844}});
 
 test('mobile menu exposes a touch-friendly client login route',async({page})=>{
   await page.goto('/',{waitUntil:'domcontentloaded'});
-  await page.getByRole('button',{name:'Open navigation'}).click();
-  const login=page.locator('.navlinks .nav-account[href="/portal"]');
-  test.skip(await login.count()===0,'The target environment does not contain this candidate change yet.');
+  await page.getByRole('button',{name:'Menu',exact:true}).click();
+  const login=page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Client login',exact:true});
   await expect(login).toBeVisible();
+  await expect(login).toHaveAttribute('href','/portal');
+  await expect(login).toHaveAttribute('data-track','nav_client_login');
   const box=await login.boundingBox();
   expect(box?.height||0).toBeGreaterThanOrEqual(44);
   await login.click();

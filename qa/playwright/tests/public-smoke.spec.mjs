@@ -16,10 +16,12 @@ test('public homepage and portal load without server errors',async({page})=>{
 
 test('public navigation exposes client login and reaches the sign-in experience',async({page})=>{
   await page.goto('/',{waitUntil:'domcontentloaded'});
-  const login=page.locator('.navlinks .nav-account[href="/portal"]');
-  test.skip(await login.count()===0,'The target environment does not contain this candidate change yet.');
+  const menu=page.getByRole('button',{name:'Menu',exact:true});
+  if(await menu.isVisible())await menu.click();
+  const login=page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Client login',exact:true});
   await expect(login).toBeVisible();
   await expect(login).toHaveAttribute('href','/portal');
+  await expect(login).toHaveAttribute('data-track','nav_client_login');
   await login.click();
   await expect(page).toHaveURL(/\/portal\/?$/);
   await expect(page.locator('#signInForm')).toBeVisible();
