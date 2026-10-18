@@ -1,5 +1,6 @@
 const SITE_ORIGIN='https://nexusintelligence.live';
 const PRIVATE_PREFIXES=['/basic-report','/portal','/operations','/prospect-workspace','/booking-manage','/api/'];
+const CONVERTED_PUBLIC_PATHS=new Set(['services','methodology','about','construction','faq','delivery-standard'].flatMap(page=>[`/${page}`,`/${page}/`,`/${page}.html`,`/${page}.html/`]));
 const PROTECTED_MARKETING_PATHS=new Set(['/privacy','/terms','/accessibility','/security']);
 const SERVICE_SLUGS=new Set(['ai-enablement-training','ai-opportunity-assessment','business-transformation','fractional-ai-director','implementation-sprint','managed-ai-operations']);
 const SECURITY_HEADERS={
@@ -16,19 +17,19 @@ const founderSchema={
   jobTitle:'Founder',
   url:`${SITE_ORIGIN}/about`,
   image:`${SITE_ORIGIN}/assets/kyrie-founder-primary.webp`,
-  worksFor:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`},
-  description:'Delaware-based founder of Relystra with 4+ years of commercial construction project-engineering and operations experience.'
+  worksFor:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Nepsis Intelligence',url:`${SITE_ORIGIN}/`},
+  description:'Delaware-based founder of Nepsis Intelligence with 4+ years of commercial construction project-engineering and operations experience.'
 };
 
 const organizationSchema={
   '@context':'https://schema.org',
   '@type':'Organization',
   '@id':`${SITE_ORIGIN}/#organization`,
-  name:'Relystra',
+  name:'Nepsis Intelligence',
   url:`${SITE_ORIGIN}/`,
-  logo:`${SITE_ORIGIN}/assets/relystra-mark.svg`,
-  image:`${SITE_ORIGIN}/assets/relystra-og.png`,
-  description:'Relystra builds practical administrative workflows for owner-led construction businesses, using their actual information, with testing, training and handoff.',
+  logo:`${SITE_ORIGIN}/assets/nepsis-homepage-mark.svg`,
+  image:`${SITE_ORIGIN}/assets/nepsis-homepage-mark.svg`,
+  description:'Nepsis Intelligence helps owner-led construction businesses simplify recurring workflows through practical, human-led systems.',
   areaServed:{'@type':'Country',name:'United States'},
   founder:{'@type':'Person','@id':`${SITE_ORIGIN}/about#founder`,name:'Kyrie',url:`${SITE_ORIGIN}/about`,image:`${SITE_ORIGIN}/assets/kyrie-founder-primary.webp`}
 };
@@ -37,25 +38,25 @@ const servicesSchema={
   '@context':'https://schema.org',
   '@type':'Service',
   '@id':`${SITE_ORIGIN}/services#service`,
-  name:'Relystra Construction Workflow Implementation',
+  name:'Nepsis Intelligence Workflow Implementation',
   serviceType:'Administrative workflow implementation',
-  provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`},
+  provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Nepsis Intelligence',url:`${SITE_ORIGIN}/`},
   areaServed:{'@type':'Country',name:'United States'},
-  description:'Start with free Discovery and one recommended Build. Full Diagnosis is included with the first implementation. Additional Builds are optional and separately scoped and priced.',
+  description:'Start with a free consultation and Basic Diagnosis report. Any paid Full Diagnosis and implementation are agreed together in a written scope.',
   hasOfferCatalog:{
     '@type':'OfferCatalog',
-    name:'Relystra Services',
+    name:'Nepsis Intelligence Services',
     itemListElement:[
       ['Free Discovery','free-discovery'],['Cleanup Sprint','cleanup-sprint'],['Single Build','single-build'],['Standard System','standard-system'],['Advanced System','advanced-system'],['Ongoing Support','ongoing-support']
     ].map(([name,slug])=>({
       '@type':'Offer',
       url:`${SITE_ORIGIN}/services`,
-      itemOffered:{'@type':'Service',name,provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Relystra',url:`${SITE_ORIGIN}/`}}
+      itemOffered:{'@type':'Service',name,provider:{'@type':'Organization','@id':`${SITE_ORIGIN}/#organization`,name:'Nepsis Intelligence',url:`${SITE_ORIGIN}/`}}
     }))
   }
 };
 
-const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie, founder of Relystra" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie is the Delaware-based founder of Relystra and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach: understand the work, organize the actual information, build a usable system, test it, and show the client how to keep it running.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie</a></div></div></div></div></section>`;
+const founderHomepageSection=`<section id="founderSnapshot"><div class="wrap"><div class="split" style="align-items:center"><div><img src="/assets/kyrie-founder-primary.webp" width="360" height="450" loading="lazy" alt="Kyrie, founder of Nepsis Intelligence" style="width:100%;max-width:360px;aspect-ratio:4/5;object-fit:cover;border-radius:22px;border:1px solid var(--line);display:block"></div><div><div class="kicker">Founder</div><h2 style="font-size:40px">Built by someone who has worked inside the workflows.</h2><p>Kyrie is the Delaware-based founder of Nepsis Intelligence and a project engineer with 4+ years of commercial construction operations experience across submittals, RFIs, document control, subcontractor coordination, and site-safety responsibilities.</p><p style="color:var(--muted)">That background informs a practical approach: understand the work, organize the actual information, build a usable system, test it, and show the client how to keep it running.</p><div class="actions"><a class="btn secondary" href="/about">Meet Kyrie</a></div></div></div></div></section>`;
 
 const pricingSignal=`<p class="note" data-phase-five-pricing style="margin-top:18px"><b>Investment guidance is published below.</b> Each service shows a current starting point and typical planning window so you can assess fit before a call. Final fees and scope are defined in writing based on the actual engagement.</p>`;
 
@@ -116,6 +117,16 @@ export async function onRequest(context){
 
   if(response.status>=400&&!headers.has('X-Robots-Tag'))headers.set('X-Robots-Tag','noindex');
 
+  // Converted Nepsis pages own their markup, metadata, consent and navigation.
+  // Do not reintroduce legacy brand/schema, founder sections or runtime patches.
+  // Production is indexable; branch previews and error responses stay private.
+  if(path==='/'||CONVERTED_PUBLIC_PATHS.has(url.pathname)){
+    if(response.status>=400)headers.set('X-Robots-Tag','noindex, nofollow, noarchive');
+    else if(isPreview)headers.set('X-Robots-Tag','noindex');
+    else headers.delete('X-Robots-Tag');
+    return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+  }
+
   const canonical=`${SITE_ORIGIN}${path}`;
   const structuredData=`${path==='/'?jsonLd(organizationSchema):''}${path==='/services'?jsonLd(servicesSchema):''}${path==='/about'?jsonLd(founderSchema):''}`;
   const headHtml=isPrivate||isProtectedMarketing
@@ -129,11 +140,11 @@ export async function onRequest(context){
     .on('meta[name="robots"]',{element(el){if(!isPrivate&&!isProtectedMarketing)el.remove();}})
     .on('meta[name="relystra-stage"]',{element(el){el.remove();}})
     .on('script[src="/app.js"]',{element(el){el.setAttribute('src','/app.js?v=20260926-1');}})
-    .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Relystra builds practical administrative workflows for owner-led construction businesses, using their actual information, with testing, training and handoff.');}})
+    .on('meta[name="description"]',{element(el){if(path==='/')el.setAttribute('content','Nepsis Intelligence helps owner-led construction businesses simplify recurring workflows through practical, human-led systems.');}})
     .on('head',{element(el){el.append(headHtml,{html:true});}})
     .on('.navlinks a[href="/case-studies"]',{element(el){if(!isProtectedMarketing&&!isPrivate)el.remove();}})
     .on('#serviceRoot .hero',{element(el){if(path==='/services')el.append(pricingSignal,{html:true});}})
-    .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Relystra builds practical administrative workflows for owner-led construction businesses, using their actual information, with testing, training and handoff.');}})
+    .on('.hero-home .hero-copy > p',{element(el){if(path==='/')el.setInnerContent('Nepsis Intelligence helps owner-led construction businesses simplify recurring workflows through practical, human-led systems.');}})
     .on('.preview-metric small',{element(el){if(path==='/')el.remove();}})
     .on('.problem-btn[data-problem="revenue"]',{element(el){if(path==='/')el.remove();}})
     .on('.problem-btn[data-problem="data"]',{element(el){if(path==='/')el.remove();}})
@@ -141,8 +152,8 @@ export async function onRequest(context){
     .on('.problem-btn[data-problem="service"] span',{element(el){if(path==='/')el.setInnerContent('02');}})
     .on('.problem-btn[data-problem="knowledge"] span',{element(el){if(path==='/')el.setInnerContent('03');}})
     .on('.problem-btn[data-problem="systems"] span',{element(el){if(path==='/')el.setInnerContent('04');}})
-    .on('#problemDetail .kicker',{element(el){if(path==='/')el.setInnerContent('Relystra evaluation');}})
-    .on('#problemText',{element(el){if(path==='/')el.setInnerContent('Relystra maps repetitive handoffs, copying, routing, document preparation, and status-update work, then evaluates which steps are appropriate for automation.');}})
+    .on('#problemDetail .kicker',{element(el){if(path==='/')el.setInnerContent('Nepsis evaluation');}})
+    .on('#problemText',{element(el){if(path==='/')el.setInnerContent('Nepsis maps repetitive handoffs, copying, routing, document preparation, and status-update work, then evaluates which steps are appropriate for automation.');}})
     .on('.flow-card.after .flow-head .tag',{element(el){if(path==='/')el.setInnerContent('Illustrative target state');}})
     .on('.flow-card.after .flow-foot',{element(el){if(path==='/')el.setInnerContent('Target state: fewer manual handoffs • explicit controls • measurable process');}})
     .on('main',{element(el){if(path==='/')el.append(founderHomepageSection,{html:true});}})

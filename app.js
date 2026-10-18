@@ -1,6 +1,7 @@
 (function(){
   const path=location.pathname.replace(/\/$/,'')||'/';
   const isPortal=path==='/portal';
+  const isNepsisStaticPublic=document.documentElement.hasAttribute('data-nepsis-static-public');
   const JOURNEY_KEY='nexus_prospect_journey_v2';
 
   const safeParse=(value,fallback={})=>{try{return JSON.parse(value)||fallback}catch{return fallback}};
@@ -109,19 +110,19 @@
   }
 
   // Shared visual layers.
-  if(!isPortal&&!document.querySelector('link[href="/simple-site.css"]')){
+  if(!isPortal&&!isNepsisStaticPublic&&!document.querySelector('link[href="/simple-site.css"]')){
     const link=document.createElement('link');link.rel='stylesheet';link.href='/simple-site.css';document.head.appendChild(link);
   }
-  if(!document.querySelector('link[href="/mobile-ux.css"]')){
+  if(!isNepsisStaticPublic&&!document.querySelector('link[href="/mobile-ux.css"]')){
     const link=document.createElement('link');link.rel='stylesheet';link.href='/mobile-ux.css';document.head.appendChild(link);
   }
-  if(!document.querySelector('link[href="/experience-round-two.css"]')){
+  if(!isNepsisStaticPublic&&!document.querySelector('link[href="/experience-round-two.css"]')){
     const link=document.createElement('link');link.rel='stylesheet';link.href='/experience-round-two.css';document.head.appendChild(link);
   }
 
   // Public navigation is intentionally prospect-journey first.
   const menu=document.querySelector('.menu-btn'),nav=document.querySelector('.navlinks');
-  if(nav&&!isPortal){
+  if(nav&&!isPortal&&!isNepsisStaticPublic){
     nav.innerHTML='<a href="/">Home</a><a href="/services">Solutions</a><a href="/methodology">How It Works</a><a href="/about">About</a><a class="nav-account" data-track="nav_client_login" href="/portal">Client Login</a><a class="nav-cta" data-track="nav_discovery" href="/book">Book Free Discovery</a>';
   }
   if(menu&&nav){
@@ -151,7 +152,7 @@
   }
 
   function renderMobileStart(){
-    if(isPortal)return;
+    if(isPortal||isNepsisStaticPublic)return;
     const excluded=['/quick-scan','/assessment','/book','/prospect-workspace'];
     document.querySelector('.nx-mobile-start')?.remove();
     document.body.classList.remove('nx-has-mobile-start');
@@ -346,7 +347,7 @@
 
   // Improvement 10: informational pages always end with a context-aware next action.
   function injectNextStep(){
-    if(isPortal||document.getElementById('nxNextStep')||!['/services','/methodology','/about','/industries','/capabilities','/problems','/delivery-standard','/faq'].includes(path))return;
+    if(isPortal||isNepsisStaticPublic||document.getElementById('nxNextStep')||!['/services','/methodology','/about','/industries','/capabilities','/problems','/delivery-standard','/faq'].includes(path))return;
     const footer=document.querySelector('footer.footer');if(!footer)return;
     const section=document.createElement('section');section.id='nxNextStep';
     section.innerHTML='<div class="wrap"><div class="nx-next-step"><div><div class="kicker">Start with one workflow</div><h3>Find the first improvement worth building.</h3><p>Free Discovery leads to a Basic Report with one recommended Build. You review the scope and price before implementation.</p></div><div class="actions"><a class="btn primary" href="/book">Book Free Discovery →</a></div></div></div>';

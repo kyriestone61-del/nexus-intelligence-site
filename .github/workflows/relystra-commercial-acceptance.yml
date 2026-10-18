@@ -18,6 +18,7 @@ jobs:
       - run: npm ci --prefix qa/database --ignore-scripts
       - run: node qa/scripts/generate-delivery-catalog.mjs --check
       - run: node --test qa/contracts/*.test.mjs qa/relystra-delivery-lifecycle.test.mjs qa/relystra-release-safety.test.mjs qa/database/*.test.mjs
+      - run: node --test tests/nepsis-homepage-qaqc.mjs tests/nepsis-public-pages-qaqc.mjs tests/nepsis-homepage-middleware-qaqc.mjs tests/nepsis-public-release-boundary.test.mjs
       - run: npm ci --prefix qa/playwright --ignore-scripts
       - run: qa/playwright/node_modules/.bin/playwright install --with-deps chromium webkit
       - run: qa/playwright/node_modules/.bin/playwright test --config qa/commercial-browser/playwright.config.mjs
