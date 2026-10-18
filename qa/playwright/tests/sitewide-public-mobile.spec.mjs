@@ -5,6 +5,8 @@ const paths=[
   '/','/about','/accessibility','/capabilities','/construction','/delivery-standard','/faq','/industries','/methodology','/privacy','/problems','/roi-calculator','/security','/services',
   '/services/ai-enablement-training','/services/ai-opportunity-assessment','/services/business-transformation','/services/fractional-ai-director','/services/implementation-sprint','/services/managed-ai-operations','/terms'
 ];
+const sitemapPaths=['/','/about','/accessibility','/construction','/delivery-standard','/faq','/methodology','/privacy','/security','/services','/terms'];
+const retiredSitemapPaths=paths.filter(path=>!sitemapPaths.includes(path));
 const base=process.env.NEXUS_QA_BASE_URL||'https://nexusintelligence.live';
 const canonical='https://nexusintelligence.live';
 
@@ -55,7 +57,8 @@ test('booking route remains an intentional external redirect',async({request})=>
 test('sitemap exposes the complete governed public surface on the canonical domain',async({request})=>{
   const response=await request.get(`${base}/sitemap.xml`);expect(response.ok()).toBeTruthy();
   const xml=await response.text();
-  for(const path of paths)expect(xml).toContain(`<loc>${canonical}${path}</loc>`);
+  for(const path of sitemapPaths)expect(xml).toContain(`<loc>${canonical}${path}</loc>`);
+  for(const path of retiredSitemapPaths)expect(xml).not.toContain(`<loc>${canonical}${path}</loc>`);
   expect(xml).not.toMatch(/\/portal|\/operations|\/admin/);
 });
 
