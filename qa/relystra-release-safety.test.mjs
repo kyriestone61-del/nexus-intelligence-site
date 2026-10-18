@@ -19,6 +19,9 @@ async function walk(dir) {
 }
 
 const allFiles = await walk(root);
+const convertedPublicHtml = new Set(['index.html', 'services.html', 'methodology.html', 'about.html', 'construction.html', 'faq.html']);
+const nepsisLegacyShellHtml = new Set(['delivery-standard.html']);
+const brandedLegalHtml = new Set(['privacy.html', 'terms.html', 'security.html', 'accessibility.html']);
 const activeHtml = allFiles.filter(path => extname(path) === '.html'
   && !path.includes('/hlo-builds/')
   && !path.includes('/qa/')
@@ -37,15 +40,41 @@ test('release metadata makes preview-only state explicit', async () => {
   assert.equal(release.domainMigration, 'deferred-by-owner');
 });
 
-test('every active HTML document carries brand and preview safeguards', async () => {
+test('converted public and supporting documents carry the intended brand and indexing policy', async () => {
   assert.ok(activeHtml.length > 0);
   for (const path of activeHtml) {
     const text = await readFile(path, 'utf8');
-    assert.match(text, /relystra-brand\.css/, relative(root, path));
-    assert.match(text, /relystra-mark\.svg/, relative(root, path));
-    assert.match(text, /site\.webmanifest/, relative(root, path));
-    assert.match(text, /apple-touch-icon\.png/, relative(root, path));
-    assert.match(text, /noindex,nofollow/, relative(root, path));
+    const name = relative(root, path);
+    if (convertedPublicHtml.has(name)) {
+      assert.match(text, /<title>[^<]*Nepsis Intelligence[^<]*<\/title>/, name);
+      assert.match(text, /href="\/nepsis-homepage\.css"/, name);
+      assert.match(text, /href="\/assets\/nepsis-homepage-mark\.svg"/, name);
+      assert.match(text, /src="\/nepsis-homepage\.js"/, name);
+      assert.match(text, /name="robots" content="index,follow"/, name);
+      assert.doesNotMatch(text, /relystra-brand\.css|relystra-mark\.svg|src="\/app\.js"|relystra-stage/, name);
+    } else if (nepsisLegacyShellHtml.has(name)) {
+      assert.match(text, /<title>[^<]*Nepsis Intelligence[^<]*<\/title>/, name);
+      assert.match(text, /relystra-brand\.css/, name);
+      assert.match(text, /href="\/assets\/nepsis-homepage-mark\.svg"/, name);
+      assert.match(text, /name="robots" content="index,follow"/, name);
+      assert.doesNotMatch(text, /relystra-mark\.svg|relystra-stage|site\.webmanifest|apple-touch-icon|relystra-icon/i, name);
+    } else if (brandedLegalHtml.has(name)) {
+      assert.match(text, /<title>[^<]*Nepsis Intelligence[^<]*<\/title>/, name);
+      assert.match(text, /relystra-brand\.css/, name);
+      assert.match(text, /href="\/assets\/nepsis-homepage-mark\.svg"/, name);
+      assert.match(text, /site\.webmanifest/, name);
+      assert.match(text, /apple-touch-icon\.png/, name);
+      assert.match(text, /name="robots" content="noindex,nofollow"/, name);
+      assert.match(text, /Nepsis Intelligence is the public-facing brand/, name);
+      assert.match(text, /Relystra/, name);
+      assert.doesNotMatch(text, /relystra-mark\.svg|relystra-stage/, name);
+    } else {
+      assert.match(text, /relystra-brand\.css/, name);
+      assert.match(text, /relystra-mark\.svg/, name);
+      assert.match(text, /site\.webmanifest/, name);
+      assert.match(text, /apple-touch-icon\.png/, name);
+      assert.match(text, /noindex,nofollow/, name);
+    }
   }
 });
 
@@ -59,6 +88,22 @@ test('public production pages are indexable while private and preview routes rem
   assert.match(headers, /\/portal\*\s+[\s\S]*X-Robots-Tag: noindex, nofollow/);
   assert.match(middleware, /const isPreview=url\.hostname\.endsWith\('\.pages\.dev'\)/);
   assert.match(middleware, /if\(isPrivate\|\|isProtectedMarketing\)headers\.set\('X-Robots-Tag','noindex, nofollow, noarchive'\)/);
+});
+
+test('converted Nepsis pages are indexable on production and noindex on branch previews', async () => {
+  const source = await readFile(join(root, 'functions/_middleware.js'), 'utf8');
+  const { onRequest } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+  globalThis.HTMLRewriter = class { constructor() { throw Error('Converted pages must bypass the legacy rewrite pipeline'); } };
+  for (const name of convertedPublicHtml) {
+    const html = await readFile(join(root, name), 'utf8');
+    const route = name === 'index.html' ? '/' : `/${name.replace('.html', '')}`;
+    for (const [host, expected] of [['nexusintelligence.live', null], ['review.project.pages.dev', 'noindex']]) {
+      const response = await onRequest({ request: new Request(`https://${host}${route}`), next: async () => new Response(html, { headers: { 'content-type': 'text/html' } }) });
+      assert.equal(response.headers.get('X-Robots-Tag'), expected, `${host}${route}`);
+      assert.equal(response.headers.get('X-Frame-Options'), 'DENY');
+      assert.equal(await response.text(), html);
+    }
+  }
 });
 
 test('canonical brand avoids prohibited compound names', async () => {

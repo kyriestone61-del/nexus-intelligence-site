@@ -51,15 +51,38 @@ test('administrator requests a private input for its paid Build before implement
  await expect(page.locator('[role="alert"]')).toHaveCount(0);
 });
 
-test('rendered Services keeps the construction Offer path and retires legacy injected recommendations',async({page})=>{
+test('rendered Services preserves the settled free-to-paid sequence and retires legacy injected recommendations',async({page})=>{
  await page.goto('/services');
- await expect(page.getByRole('heading',{name:'One clear first Build. A practical path forward.'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'One workflow. A clearer way forward.'})).toBeVisible();
  await expect(page.locator('body')).not.toContainText('AI Opportunity Assessment');
  await expect(page.locator('body')).not.toContainText('Free AI Snapshot');
  await expect(page.locator('#nxServiceGuide')).toHaveCount(0);
- await expect(page.locator('footer')).toContainText('owner-led construction businesses');
- await expect(page.getByRole('heading',{name:'Cleanup Sprint',exact:true})).toBeVisible();
- await expect(page.locator('[data-offer-ladder] article').filter({hasText:'Ongoing Support'})).toContainText('/month');
+ await expect(page.locator('meta[name="description"]')).toHaveAttribute('content',/owner-led construction businesses/);
+ await expect(page.locator('footer')).toContainText('Nepsis Intelligence');
+ await expect(page.locator('footer')).toContainText('Practical systems. Human-led.');
+ await expect(page.getByRole('heading',{name:'Basic Diagnosis report',exact:true})).toBeVisible();
+ const paid=page.locator('.service-card').filter({hasText:'Full Diagnosis + implementation'});
+ await expect(paid).toContainText('One paid engagement combines deeper diagnosis with a bounded implementation.');
+ await expect(page.locator('body')).not.toContainText('$350');
+ await fits(page);
+});
+
+test('rendered Delivery Standard remains inside the Nepsis public sequence',async({page})=>{
+ await page.goto('/delivery-standard');
+ await expect(page.getByRole('heading',{name:'The Nepsis Intelligence Engagement Evidence Chain.'})).toBeVisible();
+ await expect(page.locator('body')).not.toContainText('Free Discovery');
+ await expect(page.locator('body')).not.toContainText('Basic Report');
+ await expect(page.locator('body')).not.toContainText('recommended Build');
+ await expect(page.locator('#nxNextStep')).toHaveCount(0);
+ await expect(page.locator('#nexusSchema')).toHaveCount(0);
+ await expect(page.locator('link[href="/simple-site.css"]')).toHaveCount(0);
+ await expect(page.locator('link[href="/mobile-ux.css"]')).toHaveCount(0);
+ const login=page.locator('.navlinks a[href="/portal"]');
+ await expect(login).toHaveAttribute('href','/portal');
+ if(!await login.isVisible())await page.getByRole('button',{name:'Open navigation'}).click();
+ await expect(login).toBeVisible();
+ for(const retired of ['/industries','/problems','/capabilities'])await expect(page.locator(`.navlinks a[href="${retired}"]`)).toHaveCount(0);
+ await expect(page.getByRole('link',{name:'Schedule a free consultation'}).first()).toHaveAttribute('href','/book');
  await fits(page);
 });
 

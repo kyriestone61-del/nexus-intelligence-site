@@ -43,6 +43,7 @@ jobs:
           node --input-type=module --check < functions/api/email-status.js
           node --input-type=module --check < functions/api/email-dispatch.js
           node tests/client-shell-refactor-qaqc.mjs
+          node --test tests/nepsis-homepage-qaqc.mjs tests/nepsis-public-pages-qaqc.mjs tests/nepsis-homepage-middleware-qaqc.mjs tests/nepsis-public-release-boundary.test.mjs
       - name: Founder console safety assertions
         shell: bash
         run: |
@@ -182,7 +183,7 @@ jobs:
         run: |
           set -euo pipefail
           node --test qa/contracts/commercial-public.test.mjs
-          grep -q 'Book Free Discovery' index.html
+          grep -q 'Schedule a free consultation' index.html
           grep -q 'Full Diagnosis' services.html
           grep -q 'Included Now' portal-builds.js
           if grep -qi 'Moon Wax' industries.html; then
