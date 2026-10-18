@@ -44,6 +44,17 @@ test('legal pages show the public brand while preserving the existing Relystra l
   }
 });
 
+test('operational brand parity verifies Nepsis publicly and preserves Relystra in the portal', () => {
+  const workflow = read('.github/workflows/relystra-operational-release-brand-parity.yml');
+  assert.match(workflow, /name: Nepsis Public \/ Relystra Portal Brand Parity/);
+  assert.match(workflow, /pages-home-brand[^\n]+Nepsis Intelligence \| Practical Construction Systems/);
+  assert.match(workflow, /custom-home-name[^\n]+<span>NEPSIS<\/span><small>INTELLIGENCE<\/small>/);
+  assert.match(workflow, /pages-portal-brand[^\n]+Relystra/);
+  assert.match(workflow, /custom-portal-brand[^\n]+Relystra/);
+  assert.match(workflow, /NEPSIS_PUBLIC_RELYSTRA_PORTAL_BRAND_PARITY=PASS/);
+  assert.doesNotMatch(workflow, /Construction workflows, made usable|<span>Relystra<\/span>/);
+});
+
 test('release does not invent the unresolved price or collapse diagnosis into implementation acceptance', () => {
   const html = publicPages.map(page => read(`${page}.html`)).join('\n');
   assert.doesNotMatch(html, /\$350|350-dollar|350 dollar/i);

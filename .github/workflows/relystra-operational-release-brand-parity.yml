@@ -1,4 +1,4 @@
-name: RELYSTRA Operational Release Brand Parity
+name: Nepsis Public / Relystra Portal Brand Parity
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Verify Pages and custom-domain RELYSTRA identity
+      - name: Verify Nepsis public identity and Relystra portal continuity
         shell: bash
         run: |
           set -euo pipefail
@@ -56,13 +56,13 @@ jobs:
             exit 1
           }
 
-          probe 'pages-home-brand' "$pages/" 'Construction workflows, made usable'
-          probe 'custom-home-brand' "$custom/" 'Construction workflows, made usable'
-          probe 'pages-home-name' "$pages/" '<span>Relystra</span>'
-          probe 'custom-home-name' "$custom/" '<span>Relystra</span>'
+          probe 'pages-home-brand' "$pages/" '<title>Nepsis Intelligence | Practical Construction Systems</title>'
+          probe 'custom-home-brand' "$custom/" '<title>Nepsis Intelligence | Practical Construction Systems</title>'
+          probe 'pages-home-name' "$pages/" '<span>NEPSIS</span><small>INTELLIGENCE</small>'
+          probe 'custom-home-name' "$custom/" '<span>NEPSIS</span><small>INTELLIGENCE</small>'
           probe_calendar_handoff 'pages-book-handoff' "$pages/book"
           probe_calendar_handoff 'custom-book-handoff' "$custom/book"
           probe 'pages-portal-brand' "$pages/portal" 'Relystra'
           probe 'custom-portal-brand' "$custom/portal" 'Relystra'
 
-          echo 'RELYSTRA_OPERATIONAL_BRAND_PARITY=PASS'
+          echo 'NEPSIS_PUBLIC_RELYSTRA_PORTAL_BRAND_PARITY=PASS'
