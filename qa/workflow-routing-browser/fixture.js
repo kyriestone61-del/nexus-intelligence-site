@@ -54,6 +54,10 @@ const discovery={
 };
 const reportState=new URL(location.href).searchParams.get('reportState');
 if(reportState==='empty')discovery.reports=[];
+if(reportState==='not-ready'){
+  discovery.reports=[];
+  discovery.documents=[];
+}
 if(reportState==='processing'){
   discovery.reports=[];
   discovery.documents[1].state='parsing';

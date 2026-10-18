@@ -8,6 +8,7 @@ test('public navigation keeps a visible client login route',()=>{
   const app=read('app.js');
   const pages=['index','services','methodology','about','construction','faq'];
   const styles=read('styles.css');
+  const runtimeSmoke=read('.github/workflows/production-runtime-smoke.yml');
 
   assert.match(app,/class="nav-account"[^>]*href="\/portal">Client Login<\/a>/);
   for(const page of pages){
@@ -31,6 +32,8 @@ test('public navigation keeps a visible client login route',()=>{
   assert.doesNotMatch(deliveryLogin[1],/hidden|aria-hidden="true"|tabindex="-1"|style=/);
   for(const retired of ['/industries','/problems','/capabilities'])assert.doesNotMatch(deliveryNav,new RegExp(`href="${retired}"`));
   assert.match(styles,/\.nav-account\{/);
+  assert.match(runtimeSmoke,/custom-public-client-login-home[^\n]+data-track="nav_client_login" href="\/portal">Client login<\/a>/);
+  assert.doesNotMatch(runtimeSmoke,/custom-public-client-login-home[^\n]+class="nav-account"/);
 });
 
 test('later phases cannot strip client login from public navigation',()=>{

@@ -174,7 +174,7 @@ jobs:
           probe_absent 'custom-inbox-no-self-observer' "$origin/portal-approval-inbox.js" 'new MutationObserver'
 
           if [ "$GITHUB_EVENT_NAME" != 'pull_request' ]; then
-            probe_get 'custom-public-client-login-home' "$origin/" 'class="nav-account"'
+            probe_get 'custom-public-client-login-home' "$origin/" 'data-track="nav_client_login" href="/portal">Client login</a>'
             probe_get 'custom-public-client-login-app' "$origin/app.js" 'data-track="nav_client_login"'
             probe_get 'custom-public-client-login-style' "$origin/styles.css" '.nav-account{'
           fi
