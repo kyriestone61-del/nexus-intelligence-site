@@ -9,8 +9,8 @@ const sha256 = name => crypto.createHash('sha256').update(fs.readFileSync(new UR
 const publicPages = ['index', 'about', 'services', 'methodology', 'construction', 'faq', 'delivery-standard'];
 const legalPages = ['privacy', 'terms', 'security', 'accessibility'];
 
-test('release keeps the authenticated portal and booking contract byte-for-byte unchanged', () => {
-  assert.equal(sha256('portal.html'), '557140cf7bbc2fd9c89810b74f869ac70cd901d544b242898f466a36b71ae7b5');
+test('release keeps the approved private Nepsis portal checkpoint and booking contract byte-for-byte unchanged', () => {
+  assert.equal(sha256('portal.html'), '64064f3ef75a00c70b0ae43be7b7886c41243b4ad11cbc34b3519bb383a0ca48');
   assert.equal(sha256('_redirects'), '80c26659e927677c01a48b545815de3a2058ee1792337a0e6052e8c51f05d59f');
   assert.match(read('_redirects'), /^\/book https:\/\/calendar\.app\.google\/Tf4mfbREYbdR51BV7 302$/m);
 });
