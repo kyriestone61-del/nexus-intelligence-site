@@ -46,7 +46,7 @@ function bindStaticEvents(){
       const {data,error}=await Promise.race([request,timeout]);
       if(error)throw error;
       if(data?.session){authMsg('Account created and signed in.');return}
-      pane('confirmPane');if($('confirmText'))$('confirmText').textContent=`We sent a confirmation email to ${email}. Open it, click Confirm email address, then return to Relystra and sign in.`;authMsg('');
+      pane('confirmPane');if($('confirmText'))$('confirmText').textContent=`We sent a confirmation email to ${email}. Open it, click Confirm email address, then return to Nepsis and sign in.`;authMsg('');
     }catch(error){authMsg(error.message||'Account creation could not be completed.',true)}
     finally{clearTimeout(timer);setBusy(button,false)}
   },{silent:true}));
@@ -103,7 +103,7 @@ async function ensureProfile(){
 async function resolveAdmin(){
   try{const {data,error}=await sb.rpc('nexus_is_platform_admin');if(error)throw error;return data===true}
   catch(error){
-    console.warn('Canonical Relystra administrator check failed; using compatibility fallback.',error?.message||error);
+    console.warn('Canonical Nepsis administrator check failed; using compatibility fallback.',error?.message||error);
     const fallback=await sb.from('nexus_platform_admins').select('user_id').eq('user_id',state.user.id).maybeSingle();
     if(fallback.error)throw fallback.error;return !!fallback.data;
   }
@@ -140,7 +140,7 @@ async function companies(){
     show('onboard');const pending=storage.getJSON('nexus_pending_company',{});if($('onboardCompany'))$('onboardCompany').value=pending?.name||'';if($('onboardWebsite'))$('onboardWebsite').value=pending?.website||'';return;
   }
   show('portal');
-  if($('roleLabel'))$('roleLabel').textContent=state.admin?'Relystra administrator':'Client workspace';
+  if($('roleLabel'))$('roleLabel').textContent=state.admin?'Nepsis administrator':'Client workspace';
   if($('newMilestoneBtn'))$('newMilestoneBtn').style.display=state.admin?'inline-flex':'none';
   if($('newDocumentRequestBtn'))$('newDocumentRequestBtn').style.display=state.admin?'inline-flex':'none';
   const select=$('companySelect');
@@ -152,7 +152,7 @@ async function companies(){
 
 async function fetchEmailStatus(){
   try{const response=await fetch('/api/email-status',{cache:'no-store'});if(!response.ok)throw new Error(`HTTP ${response.status}`);const data=await response.json();return !!data.configured}
-  catch(error){console.warn('Relystra email status unavailable',error);return false}
+  catch(error){console.warn('Nepsis email status unavailable',error);return false}
 }
 
 async function fetchNotificationPrefs(companyId){
@@ -171,12 +171,19 @@ async function fetchDataRequirements(project){
   return rows.map(row=>({...row,catalog:byId[row.catalog_id]||null})).sort((a,b)=>(a.catalog?.sort_order||999)-(b.catalog?.sort_order||999));
 }
 
-async function workspace(companyId=state.companyId,{reason='refresh'}={}){
+async function workspace(companyId=state.companyId,options={}){
+  const {reason='refresh'}=options;
   if(!companyId)return;
   if(!state.companies.some(item=>item.id===companyId))throw new Error('This company is not available to your account.');
+  const hasProjectRequest=Object.hasOwn(options,'projectId');
+  const requestedUrl=new URL(location.href);
+  const requestedProjectId=hasProjectRequest?(options.projectId||null):(requestedUrl.searchParams.get('company')===companyId?requestedUrl.searchParams.get('project'):null);
+  const previousCompanyId=state.companyId,previousProjectId=state.activeProjectId||null;
   const token=workspaceRequests.begin();
   const company=state.companies.find(item=>item.id===companyId);
-  const queries=await Promise.all([
+  window.dispatchEvent(new CustomEvent('nexus:workspace-loading',{detail:{companyId,projectId:requestedProjectId,previousCompanyId,previousProjectId,reason}}));
+  try{
+   const queries=await Promise.all([
     sb.from('nexus_projects').select('*').eq('company_id',companyId).order('created_at',{ascending:false}),
     sb.from('nexus_tasks').select('*').eq('company_id',companyId).order('created_at',{ascending:false}),
     sb.from('nexus_milestones').select('*').eq('company_id',companyId).order('sort_order').order('due_date'),
@@ -187,13 +194,14 @@ async function workspace(companyId=state.companyId,{reason='refresh'}={}){
     sb.from('nexus_document_requests').select('*').eq('company_id',companyId).order('created_at',{ascending:false}),
     sb.from('nexus_active_engagements').select('project_id').eq('company_id',companyId).maybeSingle()
   ]);
-  const projects=queryData(queries[0],'Projects');
-  if(queries[8].error)throw new Error(`Active project: ${queries[8].error.message}`);
-  const requestedUrl=new URL(location.href);
-  const requestedProject=requestedUrl.searchParams.get('company')===companyId?requestedUrl.searchParams.get('project'):null;
+   if(!workspaceRequests.isCurrent(token))return false;
+   const projects=queryData(queries[0],'Projects');
+   if(queries[8].error)throw new Error(`Active project: ${queries[8].error.message}`);
+   const requestedProject=projects.find(project=>project.company_id===companyId&&project.id===requestedProjectId)||null;
+   if(hasProjectRequest&&requestedProjectId&&!requestedProject)throw new Error('This project is not available in the selected company workspace.');
   // An explicit historical package is a view selection, distinct from the current
   // engagement pointer. Preserve completed handoff links across reloads.
-  const selected=projects.find(project=>project.company_id===companyId&&project.id===requestedProject)
+  const selected=requestedProject
     ||selectActiveProject(projects,companyId,queries[8].data?.project_id);
   if(selected){const index=projects.findIndex(item=>item.id===selected.id);projects.unshift(...projects.splice(index,1))}
   const next={
@@ -214,15 +222,19 @@ async function workspace(companyId=state.companyId,{reason='refresh'}={}){
   stateController.patch(next,`workspace:${reason}`);
   history.replaceState(history.state,'',workspaceUrl(location.href,companyId,selected?.id));
   const select=$('companySelect');if(select&&select.value!==companyId)select.value=companyId;
-  if($('companyMini'))$('companyMini').innerHTML=`<div class="kicker">Active workspace</div><b>${esc(company?.name||'Workspace')}</b><div class="small">${esc(company?.industry||company?.website||'Relystra client workspace')}</div>`;
+  if($('companyMini'))$('companyMini').innerHTML=`<div class="kicker">Active workspace</div><b>${esc(company?.name||'Workspace')}</b><div class="small">${esc(company?.industry||company?.website||'Nepsis client workspace')}</div>`;
   if($('workspaceTitle'))$('workspaceTitle').textContent=company?.name||'Company workspace';
   render();
   window.dispatchEvent(new CustomEvent('nexus:workspace-ready',{detail:{companyId,projectId:selected?.id||null,reason,revision:stateController.revision}}));
   return true;
+  }catch(error){
+    if(workspaceRequests.isCurrent(token))window.dispatchEvent(new CustomEvent('nexus:workspace-error',{detail:{companyId,projectId:requestedProjectId,previousCompanyId,previousProjectId,reason,message:error?.message||'Workspace unavailable'}}));
+    throw error;
+  }
 }
 
 function taskRow(item){return `<div class="row"><div class="grow"><span class="pill">${esc(item.assignee)}</span> <span class="pill">${esc(item.priority)}</span><br><b>${esc(item.title)}</b><div class="small">${esc(item.description||'')}</div><div class="small">${item.due_date?'Due '+date(item.due_date):'No fixed due date'}</div></div><select class="task-status" data-id="${item.id}" aria-label="Status for ${esc(item.title)}">${[['open','Open'],['in_progress','In progress'],['blocked','Blocked'],['done','Done']].map(([value,label])=>`<option value="${value}" ${item.status===value?'selected':''}>${label}</option>`).join('')}</select></div>`}
-function docRow(item){const source=item.source_role==='nexus'?'Relystra':'Client';return `<div class="row"><div class="grow"><span class="pill">${esc(item.category)}</span> <span class="pill">${source}</span> <span class="pill">v${item.version_number}</span><br><b>${esc(item.file_name)}</b><div class="small">${esc(item.note||'')}</div><div class="small">${dt(item.created_at)}${item.size_bytes?' · '+formatBytes(item.size_bytes):''}</div></div><button class="btn secondary download" data-id="${item.id}" type="button">Download ↓</button></div>`}
+function docRow(item){const source=item.source_role==='nexus'?'Nepsis':'Client';return `<div class="row"><div class="grow"><span class="pill">${esc(item.category)}</span> <span class="pill">${source}</span> <span class="pill">v${item.version_number}</span><br><b>${esc(item.file_name)}</b><div class="small">${esc(item.note||'')}</div><div class="small">${dt(item.created_at)}${item.size_bytes?' · '+formatBytes(item.size_bytes):''}</div></div><button class="btn secondary download" data-id="${item.id}" type="button">Download ↓</button></div>`}
 function mileRow(item){return `<div class="mile"><span class="pill">${esc(item.status)}</span><br><b>${esc(item.title)}</b><div class="small">${esc(item.description||'')}</div><div class="small">${date(item.start_date)} → ${date(item.due_date)}</div></div>`}
 
 function render(){
@@ -235,12 +247,12 @@ function render(){
     if($('taskList'))$('taskList').innerHTML=state.tasks.map(taskRow).join('')||'<div class="empty">No tasks yet.</div>';
     if($('documentList'))$('documentList').innerHTML=state.docs.map(docRow).join('')||'<div class="empty">No files have been shared yet.</div>';
     if($('milestoneList'))$('milestoneList').innerHTML=state.miles.map(mileRow).join('')||'<div class="empty">No milestones yet.</div>';
-    const project=selectActiveProject(state.projects,state.companyId,state.activeEngagementProjectId||state.activeProjectId);if($('projectBox'))$('projectBox').innerHTML=project?`<span class="pill">${esc(project.status)}</span><h3>${esc(project.name)}</h3><p class="small">${esc(project.summary||project.service_type||'Relystra engagement workspace')}</p><div class="small">${date(project.start_date)} → ${date(project.target_end_date)}</div>`:'<div class="empty">No project configured.</div>';
+    const project=selectActiveProject(state.projects,state.companyId,state.activeEngagementProjectId||state.activeProjectId);if($('projectBox'))$('projectBox').innerHTML=project?`<span class="pill">${esc(project.status)}</span><h3>${esc(project.name)}</h3><p class="small">${esc(project.summary||project.service_type||'Nepsis engagement workspace')}</p><div class="small">${date(project.start_date)} → ${date(project.target_end_date)}</div>`:'<div class="empty">No project configured.</div>';
     if($('metricList'))$('metricList').innerHTML=state.metrics.map(item=>`<div class="metric-card"><span class="pill">${esc(item.unit||'metric')}</span><h3>${esc(item.name)}</h3><div class="small">Baseline</div><b style="font-size:22px">${item.baseline_value??'—'} ${esc(item.unit||'')}</b><div class="small" style="margin-top:8px">Current: ${item.current_value??'—'} · Target: ${item.target_value??'—'}</div><p class="small">${esc(item.measurement_method||'Measurement method not yet documented.')}</p></div>`).join('')||'<div class="empty">No measurements yet.</div>';
     if($('notificationList'))$('notificationList').innerHTML=state.notes.map(item=>`<div class="row"><div class="grow"><span class="pill">${esc(item.notification_type)}</span><br><b>${esc(item.title)}</b><div class="small">${esc(item.message||'')}</div><div class="small">${dt(item.created_at)}</div></div>${item.read_at?'':'<span class="pill">new</span>'}</div>`).join('')||'<div class="empty">No notifications yet.</div>';
     if($('activityList'))$('activityList').innerHTML=state.activity.map(item=>`<div class="row"><div class="grow"><b>${esc(item.summary||item.action)}</b><div class="small">${esc(item.entity_type||'activity')}</div></div><div class="small">${dt(item.created_at)}</div></div>`).join('')||'<div class="empty">No activity yet.</div>';
     renderDataRoom();renderEmailPrefs();bindRenderedControls();
-  }catch(error){console.error('Relystra base workspace render failed',error);toast('The workspace could not finish rendering. Refresh and try again.')}
+  }catch(error){console.error('Nepsis base workspace render failed',error);toast('The workspace could not finish rendering. Refresh and try again.')}
 }
 
 function addressedStatus(status){return ['ready','uploaded','build_with_nexus','not_available','not_applicable'].includes(status)}
@@ -248,14 +260,14 @@ function detail(label,text,extra=''){return `<div class="req-detail ${extra}"><b
 function requirementCard(row){
   const catalog=row.catalog||{},fileLike=['file','export'].includes(catalog.input_type),answerLike=['answer','list','access_context'].includes(catalog.input_type),addressed=addressedStatus(row.status);
   let html=`<article class="requirement-card ${addressed?'addressed':''}"><div class="requirement-head"><div><span class="pill">${esc(catalog.category||'Preparation')}</span> <span class="pill">${esc((catalog.importance||'helpful').replaceAll('_',' '))}</span></div><span class="req-status ${esc(row.status)}">${esc(String(row.status||'open').replaceAll('_',' '))}</span></div><h3>${esc(catalog.title||'Preparation item')}</h3>`;
-  html+=detail('Why Relystra needs it',catalog.why_needed||'This helps Relystra understand the current state without guessing.');html+=detail('How to find it',catalog.how_to_find||'Ask the person closest to the workflow or check the systems where the work happens.');html+=detail('Good examples',catalog.good_examples||'A representative example is enough.');html+=detail('Don’t have it?',catalog.if_missing||'That is okay. Relystra can help build the minimum useful version with you.','missing');if(row.client_note)html+=detail('Your note / response',row.client_note);
-  if(!state.admin){html+='<div class="req-actions">';if(fileLike)html+=`<button class="btn primary req-upload" data-id="${row.id}" data-title="${esc(catalog.title||'this item')}" type="button">Upload evidence</button>`;if(answerLike)html+=`<button class="btn secondary req-answer-btn" data-id="${row.id}" type="button">Answer here</button>`;html+=`<button class="btn secondary req-build" data-id="${row.id}" type="button">Build with Relystra</button><button class="btn secondary req-na" data-id="${row.id}" type="button">Not applicable</button></div><div class="req-answer" data-id="${row.id}"><textarea id="req-note-${row.id}" placeholder="Be specific. A short list or clear explanation is enough.">${esc(row.client_note||'')}</textarea><div class="actions" style="margin-top:8px"><button class="btn primary req-save" data-id="${row.id}" type="button">Save response</button></div></div>`}
+  html+=detail('Why Nepsis needs it',catalog.why_needed||'This helps Nepsis understand the current state without guessing.');html+=detail('How to find it',catalog.how_to_find||'Ask the person closest to the workflow or check the systems where the work happens.');html+=detail('Good examples',catalog.good_examples||'A representative example is enough.');html+=detail('Don’t have it?',catalog.if_missing||'That is okay. Nepsis can help build the minimum useful version with you.','missing');if(row.client_note)html+=detail('Your note / response',row.client_note);
+  if(!state.admin){html+='<div class="req-actions">';if(fileLike)html+=`<button class="btn primary req-upload" data-id="${row.id}" data-title="${esc(catalog.title||'this item')}" type="button">Upload evidence</button>`;if(answerLike)html+=`<button class="btn secondary req-answer-btn" data-id="${row.id}" type="button">Answer here</button>`;html+=`<button class="btn secondary req-build" data-id="${row.id}" type="button">Build with Nepsis</button><button class="btn secondary req-na" data-id="${row.id}" type="button">Not applicable</button></div><div class="req-answer" data-id="${row.id}"><textarea id="req-note-${row.id}" placeholder="Be specific. A short list or clear explanation is enough.">${esc(row.client_note||'')}</textarea><div class="actions" style="margin-top:8px"><button class="btn primary req-save" data-id="${row.id}" type="button">Save response</button></div></div>`}
   return html+'</article>';
 }
-function documentRequestCard(row){let html='<div class="row"><div class="grow"><span class="pill">Requested by Relystra</span>';if(row.due_date)html+=` <span class="pill">Due ${date(row.due_date)}</span>`;html+=`<br><b>${esc(row.title)}</b><div class="small">${esc(row.purpose||'')}</div>`;if(row.examples)html+=`<div class="small"><b>Examples:</b> ${esc(row.examples)}</div>`;if(row.redaction_guidance)html+=`<div class="small"><b>Privacy:</b> ${esc(row.redaction_guidance)}</div>`;html+='<div class="small">If you do not have this item, tell Relystra—we can help create or reconstruct the minimum useful version.</div></div>';if(!state.admin)html+=`<button class="btn primary upload-request" data-id="${row.id}" data-title="${esc(row.title)}" type="button">Upload →</button>`;return html+'</div>'}
-function renderDataRoom(){const root=$('dataRoomRequirements');if(!root)return;const total=state.dataRequirements.length,addressed=state.dataRequirements.filter(row=>addressedStatus(row.status)).length,pct=total?Math.round(addressed/total*100):0;if($('dataRoomProgress'))$('dataRoomProgress').innerHTML=`<div class="data-room-meter-track"><div class="data-room-meter-fill" style="width:${pct}%"></div></div><strong>${addressed} of ${total||'—'} preparation items addressed</strong>`;root.innerHTML=state.dataRequirements.length?state.dataRequirements.map(requirementCard).join(''):'<div class="empty">Relystra has not assigned a preparation checklist to this project yet.</div>';const requestRoot=$('explicitDocumentRequests'),openRequests=state.docRequests.filter(row=>row.status==='requested');if(requestRoot)requestRoot.innerHTML=openRequests.length?`<div class="request-strip">${openRequests.map(documentRequestCard).join('')}</div>`:'<div class="empty">No additional one-off document requests are outstanding.</div>'}
+function documentRequestCard(row){let html='<div class="row"><div class="grow"><span class="pill">Requested by Nepsis</span>';if(row.due_date)html+=` <span class="pill">Due ${date(row.due_date)}</span>`;html+=`<br><b>${esc(row.title)}</b><div class="small">${esc(row.purpose||'')}</div>`;if(row.examples)html+=`<div class="small"><b>Examples:</b> ${esc(row.examples)}</div>`;if(row.redaction_guidance)html+=`<div class="small"><b>Privacy:</b> ${esc(row.redaction_guidance)}</div>`;html+='<div class="small">If you do not have this item, tell Nepsis—we can help create or reconstruct the minimum useful version.</div></div>';if(!state.admin)html+=`<button class="btn primary upload-request" data-id="${row.id}" data-title="${esc(row.title)}" type="button">Upload →</button>`;return html+'</div>'}
+function renderDataRoom(){const root=$('dataRoomRequirements');if(!root)return;const total=state.dataRequirements.length,addressed=state.dataRequirements.filter(row=>addressedStatus(row.status)).length,pct=total?Math.round(addressed/total*100):0;if($('dataRoomProgress'))$('dataRoomProgress').innerHTML=`<div class="data-room-meter-track"><div class="data-room-meter-fill" style="width:${pct}%"></div></div><strong>${addressed} of ${total||'—'} preparation items addressed</strong>`;root.innerHTML=state.dataRequirements.length?state.dataRequirements.map(requirementCard).join(''):'<div class="empty">Nepsis has not assigned a preparation checklist to this project yet.</div>';const requestRoot=$('explicitDocumentRequests'),openRequests=state.docRequests.filter(row=>row.status==='requested');if(requestRoot)requestRoot.innerHTML=openRequests.length?`<div class="request-strip">${openRequests.map(documentRequestCard).join('')}</div>`:'<div class="empty">No additional one-off document requests are outstanding.</div>'}
 
-function renderEmailPrefs(){const root=$('emailPreferencePanel');if(!root)return;const pref=state.notificationPrefs||{email_enabled:true,task_emails:true,approval_emails:true,document_request_emails:true,digest_cadence:'daily'};root.innerHTML=`<div class="email-control"><div class="toolbar" style="margin-bottom:0"><div><div class="kicker">Notification routing</div><h3 style="margin:4px 0">Stay clear on what Relystra needs from you.</h3></div><span class="email-status ${state.emailConfigured?'live':''}">${state.emailConfigured?'Email delivery connected':'Email delivery provider connection pending'}</span></div><details class="nexus-progressive-help"><summary>Notification details</summary><p class="small">Choose which action notices reach email. In-app activity remains available in Relystra.</p></details><div class="pref-grid"><label class="pref-toggle"><input id="prefEmail" type="checkbox" ${pref.email_enabled?'checked':''}><span><b>Email notifications</b><span>Master email preference.</span></span></label><label class="pref-toggle"><input id="prefTasks" type="checkbox" ${pref.task_emails?'checked':''}><span><b>Tasks</b><span>New client actions.</span></span></label><label class="pref-toggle"><input id="prefApprovals" type="checkbox" ${pref.approval_emails?'checked':''}><span><b>Approvals</b><span>Decisions that need you.</span></span></label><label class="pref-toggle"><input id="prefDocs" type="checkbox" ${pref.document_request_emails?'checked':''}><span><b>File requests</b><span>Evidence Relystra requests.</span></span></label></div><div class="field" style="max-width:260px;margin-top:10px"><label>Action-summary cadence</label><select id="prefDigest"><option value="daily" ${pref.digest_cadence==='daily'?'selected':''}>Daily when actions exist</option><option value="weekly" ${pref.digest_cadence==='weekly'?'selected':''}>Weekly</option><option value="off" ${pref.digest_cadence==='off'?'selected':''}>Off</option></select></div><div class="actions" style="margin-top:12px"><button id="savePrefs" class="btn secondary" type="button">Save preferences</button></div></div>`}
+function renderEmailPrefs(){const root=$('emailPreferencePanel');if(!root)return;const pref=state.notificationPrefs||{email_enabled:true,task_emails:true,approval_emails:true,document_request_emails:true,digest_cadence:'daily'};root.innerHTML=`<div class="email-control"><div class="toolbar" style="margin-bottom:0"><div><div class="kicker">Notification routing</div><h3 style="margin:4px 0">Stay clear on what Nepsis needs from you.</h3></div><span class="email-status ${state.emailConfigured?'live':''}">${state.emailConfigured?'Email delivery connected':'Email delivery provider connection pending'}</span></div><details class="nexus-progressive-help"><summary>Notification details</summary><p class="small">Choose which action notices reach email. In-app activity remains available in Nepsis.</p></details><div class="pref-grid"><label class="pref-toggle"><input id="prefEmail" type="checkbox" ${pref.email_enabled?'checked':''}><span><b>Email notifications</b><span>Master email preference.</span></span></label><label class="pref-toggle"><input id="prefTasks" type="checkbox" ${pref.task_emails?'checked':''}><span><b>Tasks</b><span>New client actions.</span></span></label><label class="pref-toggle"><input id="prefApprovals" type="checkbox" ${pref.approval_emails?'checked':''}><span><b>Approvals</b><span>Decisions that need you.</span></span></label><label class="pref-toggle"><input id="prefDocs" type="checkbox" ${pref.document_request_emails?'checked':''}><span><b>File requests</b><span>Evidence Nepsis requests.</span></span></label></div><div class="field" style="max-width:260px;margin-top:10px"><label>Action-summary cadence</label><select id="prefDigest"><option value="daily" ${pref.digest_cadence==='daily'?'selected':''}>Daily when actions exist</option><option value="weekly" ${pref.digest_cadence==='weekly'?'selected':''}>Weekly</option><option value="off" ${pref.digest_cadence==='off'?'selected':''}>Off</option></select></div><div class="actions" style="margin-top:12px"><button id="savePrefs" class="btn secondary" type="button">Save preferences</button></div></div>`}
 
 function bindRenderedControls(){
   document.querySelectorAll('.task-status').forEach(control=>events.bind(control,'change',`task-status:${control.dataset.id}`,boundary.wrap('task status update',async()=>{const result=await sb.from('nexus_tasks').update({status:control.value,updated_at:new Date().toISOString()}).eq('id',control.dataset.id);if(result.error)throw result.error;await workspace()})));
@@ -270,17 +282,25 @@ function bindRenderedControls(){
 }
 
 async function saveRequirementAnswer(id){const note=$(`req-note-${id}`)?.value.trim();if(!note){toast('Add a response before saving.');return}const result=await sb.from('nexus_project_data_requirements').update({client_note:note,status:'ready',updated_by:state.user.id,updated_at:new Date().toISOString()}).eq('id',id);if(result.error)throw result.error;toast('Preparation response saved.');await workspace()}
-async function setRequirementStatus(id,status){const result=await sb.from('nexus_project_data_requirements').update({status,updated_by:state.user.id,updated_at:new Date().toISOString()}).eq('id',id);if(result.error)throw result.error;toast(status==='build_with_nexus'?'Marked for Relystra to help build.':'Preparation item updated.');await workspace()}
-function prepareUpload({requirementId=null,requestId=null,title=''}){try{currentRequirementId=requirementId;currentRequestId=requestId;const box=$('uploadContext');if(!box)return;box.classList.add('show');box.innerHTML=`<b>Upload for:</b> ${esc(title)} <button id="clearUploadContext" class="btn secondary" type="button" style="min-height:30px;padding:0 9px;margin-left:8px">Clear</button>`;if($('docNote'))$('docNote').value=$('docNote').value||`Evidence for ${title}`;events.bind($('clearUploadContext'),'click','upload-context:clear',clearUploadContext);box.scrollIntoView({behavior:'smooth',block:'center'});$('docFile')?.focus()}catch(error){console.error('Relystra upload preparation failed',error);toast('The upload form could not be prepared.')}}
+async function setRequirementStatus(id,status){const result=await sb.from('nexus_project_data_requirements').update({status,updated_by:state.user.id,updated_at:new Date().toISOString()}).eq('id',id);if(result.error)throw result.error;toast(status==='build_with_nexus'?'Marked for Nepsis to help build.':'Preparation item updated.');await workspace()}
+function prepareUpload({requirementId=null,requestId=null,title=''}){try{currentRequirementId=requirementId;currentRequestId=requestId;const box=$('uploadContext');if(!box)return;box.classList.add('show');box.innerHTML=`<b>Upload for:</b> ${esc(title)} <button id="clearUploadContext" class="btn secondary" type="button" style="min-height:30px;padding:0 9px;margin-left:8px">Clear</button>`;if($('docNote'))$('docNote').value=$('docNote').value||`Evidence for ${title}`;events.bind($('clearUploadContext'),'click','upload-context:clear',clearUploadContext);box.scrollIntoView({behavior:'smooth',block:'center'});$('docFile')?.focus()}catch(error){console.error('Nepsis upload preparation failed',error);toast('The upload form could not be prepared.')}}
 function clearUploadContext(){currentRequirementId=null;currentRequestId=null;const box=$('uploadContext');if(box){box.classList.remove('show');box.innerHTML=''}}
+events.bind(window,'nexus:workspace-loading','upload-context:workspace-loading',clearUploadContext);
 
 async function saveNotificationPrefs(){const row={company_id:state.companyId,user_id:state.user.id,email_enabled:!!$('prefEmail')?.checked,task_emails:!!$('prefTasks')?.checked,approval_emails:!!$('prefApprovals')?.checked,document_request_emails:!!$('prefDocs')?.checked,digest_cadence:$('prefDigest')?.value||'daily',updated_at:new Date().toISOString()};const result=await sb.from('nexus_notification_preferences').upsert(row,{onConflict:'company_id,user_id'});if(result.error)throw result.error;toast('Notification preferences saved.');stateController.patch({notificationPrefs:await fetchNotificationPrefs(state.companyId)},'preferences:saved');renderEmailPrefs();bindRenderedControls()}
 
 async function downloadDocument(id){const doc=state.docs.find(item=>item.id===id);if(!doc){toast('Document record not found.');return}const buttons=[...document.querySelectorAll(`.download[data-id="${CSS.escape(id)}"]`)];buttons.forEach(button=>{button.disabled=true;button.textContent='Preparing…'});try{const signed=await sb.storage.from(BUCKET).createSignedUrl(doc.storage_path,120,{download:doc.file_name});if(!signed.error&&signed.data?.signedUrl){const anchor=document.createElement('a');anchor.href=signed.data.signedUrl;anchor.download=doc.file_name;anchor.rel='noopener';document.body.appendChild(anchor);anchor.click();anchor.remove();return}const fallback=await sb.storage.from(BUCKET).download(doc.storage_path);if(fallback.error)throw fallback.error;const url=URL.createObjectURL(fallback.data),anchor=document.createElement('a');anchor.href=url;anchor.download=doc.file_name;document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),2500)}catch(error){console.error('Document download failed',error);toast(`Download failed: ${error.message||'access could not be verified'}`)}finally{buttons.forEach(button=>{button.disabled=false;button.textContent='Download ↓'})}}
 
 async function handleUpload(event){event.preventDefault();const form=event.currentTarget,file=$('docFile')?.files?.[0];if(!file)return;
-  const companyId=state.companyId,requirement=state.dataRequirements.find(row=>row.id===currentRequirementId),request=state.docRequests.find(row=>row.id===currentRequestId);
-  const document=await persistEvidence(sb,{file,companyId,userId:state.user.id,projectId:request?request.project_id||null:selectActiveProject(state.projects,companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,category:$('docCategory')?.value||'General',note:$('docNote')?.value.trim()||null,sensitivity:requirement?.catalog?.sensitivity||request?.sensitivity||'standard',requestId:request?.id||null,requirementId:requirement?.id||null,documentArea:state.admin?'nexus_shared':'client_submission',sourceRole:state.admin?'nexus':'client'});
+  const companyId=state.companyId,requirementId=currentRequirementId,requestId=currentRequestId;
+  const requirement=state.dataRequirements.find(row=>row.id===requirementId),request=state.docRequests.find(row=>row.id===requestId);
+  const viewedProject=state.projects.find(project=>project.company_id===companyId&&project.id===state.activeProjectId)||null;
+  if(requirementId&&!requirement)throw new Error('That evidence requirement is no longer in the selected package. Choose it again before uploading.');
+  if(requestId&&!request)throw new Error('That document request is no longer in the selected package. Choose it again before uploading.');
+  if(requirement?.project_id&&String(requirement.project_id)!==String(viewedProject?.id||''))throw new Error('That evidence requirement belongs to a different package. Choose it again from the current package.');
+  if(request?.project_id&&String(request.project_id)!==String(viewedProject?.id||''))throw new Error('That document request belongs to a different package. Choose it again from the current package.');
+  if(!request&&viewedProject&&['complete','completed','cancelled','canceled','archived'].includes(String(viewedProject.status||'').toLowerCase()))throw new Error('Completed packages are read-only. Select the current package before uploading new evidence.');
+  const document=await persistEvidence(sb,{file,companyId,userId:state.user.id,projectId:request?request.project_id||null:viewedProject?.id||selectActiveProject(state.projects,companyId,state.activeEngagementProjectId)?.id||null,category:$('docCategory')?.value||'General',note:$('docNote')?.value.trim()||null,sensitivity:requirement?.catalog?.sensitivity||request?.sensitivity||'standard',requestId:request?.id||null,requirementId:requirement?.id||null,documentArea:state.admin?'nexus_shared':'client_submission',sourceRole:state.admin?'nexus':'client'});
   if(state.companyId!==companyId)return;
   try{await log('document_uploaded','document',document.id,`Document uploaded: ${file.name}`)}catch{toast('File saved. Activity log could not refresh.')}
   if(state.companyId!==companyId)return;form.reset();clearUploadContext();toast('Document uploaded securely.');await workspace();
@@ -289,7 +309,7 @@ async function handleTaskCreate(event){event.preventDefault();const row={company
 async function handleMetricCreate(event){event.preventDefault();const num=value=>value===''?null:Number(value),row={company_id:state.companyId,project_id:selectActiveProject(state.projects,state.companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,name:$('metricName')?.value.trim()||'',unit:$('metricUnit')?.value.trim()||null,baseline_value:num($('metricBaseline')?.value||''),current_value:num($('metricCurrent')?.value||''),target_value:num($('metricTarget')?.value||''),measurement_method:$('metricMethod')?.value.trim()||null,measured_at:new Date().toISOString(),created_by:state.user.id};const result=await sb.from('nexus_metrics').insert(row).select().single();if(result.error)throw result.error;await log('measurement_added','metric',result.data.id,`Measurement added: ${row.name}`);modals.close('metricModal');event.currentTarget.reset();await workspace()}
 async function handleMilestoneCreate(event){event.preventDefault();if(!state.admin)return;const row={company_id:state.companyId,project_id:selectActiveProject(state.projects,state.companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,title:$('milestoneTitle')?.value.trim()||'',description:$('milestoneDescription')?.value.trim()||null,start_date:$('milestoneStart')?.value||null,due_date:$('milestoneDue')?.value||null,status:$('milestoneStatus')?.value||'planned',created_by:state.user.id};const result=await sb.from('nexus_milestones').insert(row).select().single();if(result.error)throw result.error;await log('milestone_created','milestone',result.data.id,`Milestone added: ${row.title}`);modals.close('milestoneModal');event.currentTarget.reset();await workspace()}
 async function handleDocumentRequest(event){event.preventDefault();if(!state.admin)return;const row={company_id:state.companyId,project_id:selectActiveProject(state.projects,state.companyId,state.activeEngagementProjectId||state.activeProjectId)?.id||null,title:$('requestDocTitle')?.value.trim()||'',purpose:$('requestDocPurpose')?.value.trim()||null,examples:$('requestDocExamples')?.value.trim()||null,redaction_guidance:$('requestDocPrivacy')?.value.trim()||null,sensitivity:$('requestDocSensitivity')?.value||'standard',due_date:$('requestDocDue')?.value||null,requested_by:state.user.id};const result=await sb.from('nexus_document_requests').insert(row).select().single();if(result.error)throw result.error;await log('document_requested','document_request',result.data.id,`Document requested: ${row.title}`);modals.close('documentRequestModal');event.currentTarget.reset();toast('Document request sent to the client workspace.');await workspace()}
-async function log(action,type,id,summary){try{const result=await sb.from('nexus_activity_log').insert({company_id:state.companyId,actor_id:state.user.id,action,entity_type:type,entity_id:id,summary});if(result.error)console.warn('Relystra activity log write failed',result.error)}catch(error){console.warn('Relystra activity log write failed',error)}}
+async function log(action,type,id,summary){try{const result=await sb.from('nexus_activity_log').insert({company_id:state.companyId,actor_id:state.user.id,action,entity_type:type,entity_id:id,summary});if(result.error)console.warn('Nepsis activity log write failed',result.error)}catch(error){console.warn('Nepsis activity log write failed',error)}}
 async function markAllRead(){const ids=state.notes.filter(item=>!item.read_at&&(!item.user_id||item.user_id===state.user.id)).map(item=>item.id);if(ids.length){const result=await sb.from('nexus_notifications').update({read_at:new Date().toISOString()}).in('id',ids);if(result.error)throw result.error}await workspace()}
 async function requestBrowserAlerts(){if(!('Notification'in window)){toast('Browser alerts are unavailable here.');return}const permission=await Notification.requestPermission();toast(permission==='granted'?'Browser alerts enabled.':'Browser alerts were not enabled.')}
 
@@ -298,9 +318,15 @@ window.NexusPortal={sb,state,stateController,runtime,$,toast,workspace,log,downl
 await initAuthUX({sb,$,pane,show,runtime});
 
 async function handleAuthSession(session){
+  // A verified recovery token creates a short-lived session solely to update the
+  // password. Keep the client inside recovery instead of loading workspace data.
+  if(session?.user&&document.getElementById('portalRecoveryOverlay')){
+    stateController.patch({user:session.user,admin:false,authorizationStatus:'recovery'},'auth:recovery');
+    show('auth');return;
+  }
   if(session?.user){await identity(session.user);return}
   workspaceRequests.invalidate();identityUserId=null;stateController.patch({user:null,admin:false,authorizationStatus:'signed_out',companies:[],companyId:null,projects:[],tasks:[],miles:[],metrics:[],docs:[],notes:[],activity:[],dataRequirements:[],docRequests:[]},'auth:signed-out');show('auth');
 }
 
 sb.auth.onAuthStateChange((_event,session)=>{queueMicrotask(()=>boundary.run('authentication state change',()=>handleAuthSession(session),{silent:true}))});
-const sessionResult=await sb.auth.getSession();if(sessionResult.error)console.warn('Initial Relystra session lookup failed',sessionResult.error);await boundary.run('initial portal session',()=>handleAuthSession(sessionResult.data?.session||null),{silent:false});
+const sessionResult=await sb.auth.getSession();if(sessionResult.error)console.warn('Initial Nepsis session lookup failed',sessionResult.error);await boundary.run('initial portal session',()=>handleAuthSession(sessionResult.data?.session||null),{silent:false});

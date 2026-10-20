@@ -6,13 +6,14 @@ import {mountBuilds} from './portal-builds.js';
 import {mountPackageDelivery} from './portal-package-delivery.js';
 import {mountDiagnosisOffer} from './portal-diagnosis-offer.js';
 import {workspaceUrl} from './portal-workspace-context.js';
+import {emptyOperatorTodayRecords,loadOperatorTodayRecords,operatorTodayMarkup,operatorTodayModel} from './portal-operator-today.js';
 
 const portal=window.NexusPortal;
 if(!portal?.state.admin)throw new Error('Administrator workspace required');
 const {state,sb,toast}=portal,$=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const store=createLifecycleStore(portal),tools=new Map();
-let company=state.companyId,viewedProject=new URL(location.href).searchParams.get('project'),active='overview',refreshSequence=0,navigationSequence=0,loadError=null;
+let company=state.companyId,viewedProject=new URL(location.href).searchParams.get('project'),active='overview',refreshSequence=0,navigationSequence=0,loadError=null,todayRecords=emptyOperatorTodayRecords(),todayErrors=[];
 const main=document.querySelector('.main'),nav=document.querySelector('.side-nav');
 function section(id){let el=$('section-'+id);if(!el){el=document.createElement('section');el.id='section-'+id;el.className='section';main.append(el)}return el}
 const overview=section('journey'),buildRoot=section('relystra-builds'),deliveryRoot=section('relystra-delivery'),projectsRoot=section('relystra-projects'),templatesRoot=section('relystra-templates'),settingsRoot=section('relystra-settings');
@@ -31,9 +32,9 @@ const retained=document.createElement('div');retained.hidden=true;retained.id='r
 for(const button of tools.values())retained.append(button);
 nav.replaceChildren();nav.append(retained);
 function navButton(title,target,parent=nav){const b=document.createElement('button');b.type='button';b.textContent=title;b.dataset.relystraNav=target;b.onclick=()=>navigate(target);parent.append(b);return b}
-navButton('Home','overview').classList.add('journey-primary');navButton('Clients','clients');navButton('Projects','projects');navButton('Sales','sales');navButton('Discovery & Basic Report','discovery');
+navButton('Today','overview').classList.add('journey-primary');navButton('Clients','clients');navButton('Projects','projects');navButton('Sales','sales');navButton('Discovery & Basic Report','discovery');
 const records=document.createElement('details');records.className='admin-tool-drawer';records.innerHTML='<summary>Records & Tools</summary>';nav.append(records);
-navButton('Files','files',records);navButton('Activity','activity',records);navButton('Master Build Library','templates',records);navButton('Offers & Local Add-ons','offers',records);
+navButton('Files','files',records);navButton('Activity','activity',records);if(tools.has('requests'))navButton('Requests','requests',records);if(tools.has('approvals'))navButton('Approvals','approvals',records);if(tools.has('automations'))navButton('Automations','automations',records);if(tools.has('metrics'))navButton('Improvements','improvements',records);navButton('Master Build Library','templates',records);navButton('Offers & Local Add-ons','offers',records);
 navButton('Settings','settings').classList.add('relystra-settings-nav');
 mountMobileMenu(nav);
 
@@ -46,13 +47,15 @@ function renderHeader(){
 }
 function renderOverview(){
   if(loadError){$('adminJourneyRoot').innerHTML=`<p role="alert">${esc(loadError.message)}</p><button class="btn secondary" data-workspace-retry>Retry</button>`;return}
-  const next=journeyNext(store.value,!!selectedTranscript(portal,store.value)),actor={ADMIN:'Relystra',CLIENT:'Client',AI_SYSTEM:'AI / system',NO_ACTION_COMPLETE:'No action required'}[next.actor];
-  $('adminJourneyRoot').innerHTML=`<header><div class="eyebrow">Overview</div><h1>${esc(next.title)}</h1><p>${esc(next.detail)}</p></header><section class="relystra-build-card"><p><b>Who moves next:</b> ${actor}</p>${next.blocker?`<p role="status">${esc(next.blocker)}</p>`:''}${next.percent!==null?`<label>Build Package progress <progress max="100" value="${next.percent}">${next.percent}%</progress> ${next.percent}%</label>`:''}${next.stage==='diagnosis_purchase'?'':`<button type="button" class="btn primary" data-delivery-nav="${esc(next.section)}">${esc(next.label)}</button>`}</section><p>Current stage: ${esc(next.stage.replaceAll('_',' '))}</p>`;
+  const next=journeyNext(store.value,!!selectedTranscript(portal,store.value));
+  const model=operatorTodayModel({snapshot:store.value,state,records:todayRecords,next});
+  const name=state.companies?.find(c=>c.id===state.companyId)?.name||'Client workspace';
+  $('adminJourneyRoot').innerHTML=operatorTodayMarkup(model,{companyName:name,errors:todayErrors});
 }
 async function refresh(){
   const version=++refreshSequence;
   if(company!==state.companyId){company=state.companyId;viewedProject=null;active='overview';navigationSequence++;header.hidden=false;activate('journey');store.invalidate();buildRoot.replaceChildren();deliveryRoot.replaceChildren()}
-  try{const s=await store.refresh(viewedProject);if(!s||version!==refreshSequence)return;loadError=null;renderHeader();renderOverview();transcript.refresh(s);await offer.refresh(s);
+  try{const s=await store.refresh(viewedProject);if(!s||version!==refreshSequence)return;const today=await loadOperatorTodayRecords(sb,state.companyId);if(version!==refreshSequence)return;todayRecords=today.records;todayErrors=today.errors;loadError=null;renderHeader();renderOverview();transcript.refresh(s);await offer.refresh(s);
     if(['commercial-report','templates','offers'].includes(active))await commercial.refresh({mode:active==='templates'?'library':active==='commercial-report'?'discovery':active});
     if(['builds','scope'].includes(active))await builds.refresh({stage:active});else if(['progress','review','final-package','support'].includes(active)&&!journeyGate(active,s))await delivery.refresh({projectId:s.project_id,section:active});
   }catch(error){if(version===refreshSequence){loadError=error;header.innerHTML='<p role="alert">Workspace status could not be loaded.</p>';$('adminJourneyRoot').innerHTML=`<p role="alert">${esc(error.message)}</p><button class="btn secondary" data-workspace-retry>Retry</button>`}}
@@ -62,7 +65,7 @@ async function navigate(target){
   const version=++navigationSequence;
   active=target;header.hidden=['clients','sales','projects','templates','settings','commercial-report','offers'].includes(target);
   document.querySelectorAll('[data-relystra-nav]').forEach(b=>b.classList.toggle('active',b.dataset.relystraNav===target));
-  const aliases={diagnosis:'intake',actions:'tasks',files:'documents',sales:'revenue'};
+  const aliases={diagnosis:'intake',actions:'tasks',files:'documents',sales:'revenue',improvements:'metrics'};
   const gate=journeyGate(target,store.value);
   if(gate){activate('journey-gate');gateRoot.innerHTML=gateMarkup(gate)}
   else if(['transcript','free-diagnosis','review-findings'].includes(target)){activate(target);transcript.refresh(store.value)}
@@ -93,7 +96,7 @@ async function renderTemplates(){
 }
 async function renderSettings(){
   const {data,error}=await sb.from('nexus_delivery_settings').select('*').single();
-  settingsRoot.innerHTML=`<h1>Settings</h1>${error?`<p role="alert">${esc(error.message)}</p>`:`<form id="relystraDeliverySettings" class="relystra-build-card"><p>Full Diagnosis is included in the first implementation. Configure approved Offers and Library pricing for new work.</p><label>Parallel Build capacity<input name="capacity" type="number" min="1" step="1" required value="${data.parallel_capacity}"></label><label>QA allowance (business days)<input name="qa" type="number" min="1" step="1" required value="${data.qa_days}"></label><label>Client review allowance (business days)<input name="review" type="number" min="1" step="1" required value="${data.client_review_days}"></label><fieldset><legend>Complexity scoring</legend><label>Simple maximum score<input name="simple_max" type="number" min="5" max="13" required value="${data.simple_max}"></label><label>Standard maximum score<input name="standard_max" type="number" min="6" max="14" required value="${data.standard_max}"></label></fieldset>${['simple','standard','advanced'].map(tier=>`<fieldset><legend>${esc(tier)} Build guidance</legend><label>Minimum price (${esc(data.currency.toUpperCase())})<input name="${tier}_price_min" type="number" min="0.01" step="0.01" required value="${data.price_guidance[tier][0]/100}"></label><label>Maximum guide price<input name="${tier}_price_max" type="number" min="0.01" step="0.01" required value="${data.price_guidance[tier][1]/100}"></label><label>Minimum business days<input name="${tier}_days_min" type="number" min="1" required value="${data.duration_guidance[tier][0]}"></label><label>Maximum business days<input name="${tier}_days_max" type="number" min="1" required value="${data.duration_guidance[tier][1]}"></label></fieldset>`).join('')}<p>Guidance supports review. Each approved Build retains its own fixed price and duration.</p><button class="btn primary">Save delivery settings</button></form>`}`;
+  settingsRoot.innerHTML=`<h1>Settings</h1>${error?`<p role="alert">${esc(error.message)}</p>`:`<form id="relystraDeliverySettings" class="relystra-build-card"><p>The Basic Diagnosis is free. A client who chooses to continue pays for one agreed Full Diagnosis report and service scope. Configure only approved Offers and Library pricing; no default client price is inferred here.</p><label>Parallel Build capacity<input name="capacity" type="number" min="1" step="1" required value="${data.parallel_capacity}"></label><label>QA allowance (business days)<input name="qa" type="number" min="1" step="1" required value="${data.qa_days}"></label><label>Client review allowance (business days)<input name="review" type="number" min="1" step="1" required value="${data.client_review_days}"></label><fieldset><legend>Complexity scoring</legend><label>Simple maximum score<input name="simple_max" type="number" min="5" max="13" required value="${data.simple_max}"></label><label>Standard maximum score<input name="standard_max" type="number" min="6" max="14" required value="${data.standard_max}"></label></fieldset>${['simple','standard','advanced'].map(tier=>`<fieldset><legend>${esc(tier)} Build guidance</legend><label>Minimum price (${esc(data.currency.toUpperCase())})<input name="${tier}_price_min" type="number" min="0.01" step="0.01" required value="${data.price_guidance[tier][0]/100}"></label><label>Maximum guide price<input name="${tier}_price_max" type="number" min="0.01" step="0.01" required value="${data.price_guidance[tier][1]/100}"></label><label>Minimum business days<input name="${tier}_days_min" type="number" min="1" required value="${data.duration_guidance[tier][0]}"></label><label>Maximum business days<input name="${tier}_days_max" type="number" min="1" required value="${data.duration_guidance[tier][1]}"></label></fieldset>`).join('')}<p>Guidance supports approval review. Each approved Build retains its own fixed price and duration.</p><button class="btn primary">Save delivery settings</button></form>`}`;
 }
 main.addEventListener('click',async event=>{
   const button=event.target.closest('button');if(!button)return;

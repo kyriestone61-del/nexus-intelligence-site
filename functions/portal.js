@@ -20,7 +20,7 @@ export async function onRequest(context) {
   if (!patched.includes('id="mainWebsiteBtn"')) {
     patched = patched.replace(
       '<select id="companySelect"',
-      '<a id="mainWebsiteBtn" class="btn secondary" href="/" title="Return to the Relystra website">← Main Website</a><select id="companySelect"'
+      '<a id="mainWebsiteBtn" class="btn secondary" href="/" title="Return to the Nepsis website">← Main Website</a><select id="companySelect"'
     );
   }
 

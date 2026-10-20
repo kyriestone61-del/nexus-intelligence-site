@@ -70,14 +70,16 @@ test('the controlled Moon Wax browser fixture remains populated, semantic, and h
 });
 
 test('production shells restore direct URLs and browser history without changing workspace identity',()=>{
-  for(const file of ['portal-client-shell-v2.js','portal-admin-journey.js']){
-    const text=source(file);
+  const client=source('portal-client-shell-v2.js');
+  const admin=source('portal-admin-journey.js');
+  for(const text of [client,admin]){
     assert.match(text,/new URL\(location\.href\)\.searchParams\.get\('project'\)/);
-    assert.match(text,/workspaceUrl\(location\.href,state\.companyId/);
     assert.match(text,/pushState/);
     assert.match(text,/popstate/);
     assert.match(text,/historyMode:'none'/);
   }
+  assert.match(client,/portal\.workspace\(state\.companyId,\{reason:'client-package-picker',projectId\}\)/);
+  assert.match(admin,/workspaceUrl\(location\.href,state\.companyId/);
 });
 
 test('the isolated client role fixture boots the same Step 5 owner as production',()=>{

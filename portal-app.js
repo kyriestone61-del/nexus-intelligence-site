@@ -1,5 +1,5 @@
 const asset=path=>`/${String(path||'').replace(/^\//,'')}`;
-const BUILD='20260911-relystra-free-diagnosis-v2';
+const BUILD='20261016-nepsis-client-journey-v1';
 window.__relystraDeliveryLifecycle=true;
 
 window.__nexusPortalBooting=true;
@@ -10,28 +10,32 @@ const bootStyle=document.createElement('style');
 bootStyle.id='nexusPortalBootStyle';
 bootStyle.textContent=`
   body.nexus-runtime-booting #portalApp{visibility:hidden!important}
-  #nexusPortalBootOverlay{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:#09080f;color:#f4f0e8;font-family:inherit}
-  #nexusPortalBootOverlay .nexus-boot-card{width:min(460px,calc(100vw - 40px));padding:28px;border:1px solid rgba(229,224,255,.14);border-radius:18px;background:#15131f;box-shadow:0 24px 70px rgba(0,0,0,.36)}
-  #nexusPortalBootOverlay .nexus-boot-mark{width:38px;height:38px;display:grid;place-items:center;border-radius:9px;background:#9c7cff;color:#0c0815;font-weight:950;margin-bottom:18px}
-  #nexusPortalBootOverlay h2{margin:0 0 7px;font-size:24px}
-  #nexusPortalBootOverlay p{margin:0;color:#aaa4ba;line-height:1.5;font-size:13px}
-  #nexusPortalBootOverlay .nexus-boot-line{height:4px;margin-top:20px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06)}
-  #nexusPortalBootOverlay .nexus-boot-line:after{content:"";display:block;height:100%;width:42%;border-radius:inherit;background:#d9ff72;animation:nexusBootMove 1.1s ease-in-out infinite alternate}
+  #nexusPortalBootOverlay{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:20px;background:#f7f3ea;color:#0b263a;font-family:"Avenir Next",Avenir,"Helvetica Neue",Arial,sans-serif}
+  #nexusPortalBootOverlay .nexus-boot-card{width:min(500px,calc(100vw - 40px));padding:36px;border:1px solid #bfc5c3;border-top:4px solid #0d5b66;border-radius:4px;background:#fffdf8;box-shadow:0 24px 70px rgba(8,37,56,.12)}
+  #nexusPortalBootOverlay .nexus-boot-brand{display:flex;align-items:center;gap:12px;margin-bottom:30px;color:#082538}
+  #nexusPortalBootOverlay .nexus-boot-brand img{width:40px;height:40px;border-radius:4px}
+  #nexusPortalBootOverlay .nexus-boot-brand span{display:grid;gap:2px;font-family:Baskerville,Georgia,"Times New Roman",serif;font-size:18px;letter-spacing:.25em}
+  #nexusPortalBootOverlay .nexus-boot-brand small{font-family:"Avenir Next",Avenir,"Helvetica Neue",Arial,sans-serif;font-size:7px;font-weight:700;letter-spacing:.18em;color:#425462}
+  #nexusPortalBootOverlay h2{margin:0 0 9px;color:#082538;font-family:Baskerville,Georgia,"Times New Roman",serif;font-size:32px;font-weight:400;line-height:1.05;letter-spacing:-.025em}
+  #nexusPortalBootOverlay p{margin:0;color:#425462;line-height:1.55;font-size:13px}
+  #nexusPortalBootOverlay .nexus-boot-line{height:3px;margin-top:25px;overflow:hidden;background:#e2efeb}
+  #nexusPortalBootOverlay .nexus-boot-line:after{content:"";display:block;height:100%;width:42%;background:#197884;animation:nexusBootMove 1.1s ease-in-out infinite alternate}
   @keyframes nexusBootMove{from{transform:translateX(-5%)}to{transform:translateX(145%)}}
+  @media(prefers-reduced-motion:reduce){#nexusPortalBootOverlay .nexus-boot-line:after{animation:none;width:68%}}
 `;
 document.head.appendChild(bootStyle);
 
 const bootOverlay=document.createElement('div');
 bootOverlay.id='nexusPortalBootOverlay';
-bootOverlay.innerHTML='<div class="nexus-boot-card"><div class="nexus-boot-mark">R</div><h2>Loading Relystra workspace…</h2><p>Confirming your account and opening the correct workspace.</p><div class="nexus-boot-line"></div></div>';
+bootOverlay.innerHTML='<div class="nexus-boot-card"><div class="nexus-boot-brand"><img src="/assets/nepsis-homepage-mark.svg" alt=""><span>NEPSIS<small>INTELLIGENCE</small></span></div><h2>Opening your Nepsis workspace…</h2><p>Confirming your account and opening the correct company workspace.</p><div class="nexus-boot-line"></div></div>';
 document.body.appendChild(bootOverlay);
 
-function loadStyle(file){return new Promise(resolve=>{const link=document.createElement('link');link.rel='stylesheet';link.href=asset(`${file}?v=${BUILD}`);link.onload=resolve;link.onerror=()=>{console.error(`Relystra stylesheet failed to load: ${file}`);resolve()};document.head.appendChild(link)})}
+function loadStyle(file){return new Promise(resolve=>{const link=document.createElement('link');link.rel='stylesheet';link.href=asset(`${file}?v=${BUILD}`);link.onload=resolve;link.onerror=()=>{console.error(`Nepsis stylesheet failed to load: ${file}`);resolve()};document.head.appendChild(link)})}
 async function loadStyles(files){await Promise.all(files.map(loadStyle))}
 function setBootMessage(title,message){const card=bootOverlay.querySelector('.nexus-boot-card');if(!card)return;const h=card.querySelector('h2'),p=card.querySelector('p');if(h)h.textContent=title;if(p)p.textContent=message}
 function clearBootLock(){window.__nexusPortalBooting=false;document.body.classList.add('nexus-shell-ready');const app=document.getElementById('portalApp');if(app)app.style.visibility='';document.body.classList.remove('nexus-runtime-booting');bootOverlay.remove();bootStyle.remove()}
 function showCoreLoadFailure(error){
-  console.error('Relystra portal enhancement failed to initialize.',error);
+  console.error('Nepsis portal enhancement failed to initialize.',error);
   clearBootLock();
   document.body.classList.add('nexus-runtime-degraded');
   if(document.getElementById('nexusPortalDegradedBanner'))return;
@@ -39,20 +43,20 @@ function showCoreLoadFailure(error){
   banner.id='nexusPortalDegradedBanner';
   banner.setAttribute('role','status');
   banner.style.cssText='position:relative;z-index:10000;padding:10px 16px;background:#2a2138;color:#f4f0e8;border-bottom:1px solid rgba(255,255,255,.12);font:600 13px/1.4 system-ui,sans-serif;text-align:center';
-  banner.textContent='Relystra opened in recovery mode because one workspace enhancement did not finish loading. Core portal access remains available.';
+  banner.textContent='Nepsis opened in recovery mode because one workspace enhancement did not finish loading. Core portal access remains available.';
   const app=document.getElementById('portalApp');
   (app||document.body).prepend(banner);
 }
-async function optionalImport(url){try{return await import(url)}catch(error){console.error(`Optional Relystra portal module failed to load: ${url}`,error);return null}}
-async function requiredImport(url,label=url){try{return await import(url)}catch(error){console.error(`Required Relystra portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
+async function optionalImport(url){try{return await import(url)}catch(error){console.error(`Optional Nepsis portal module failed to load: ${url}`,error);return null}}
+async function requiredImport(url,label=url){try{return await import(url)}catch(error){console.error(`Required Nepsis portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
 async function importWithoutRecurringIntervals(url,blockedDelays=[]){const nativeSetInterval=window.setInterval;window.setInterval=(fn,delay,...args)=>blockedDelays.includes(Number(delay))?0:nativeSetInterval(fn,delay,...args);try{return await import(url)}finally{window.setInterval=nativeSetInterval}}
-async function requiredImportWithoutRecurringIntervals(url,blockedDelays=[],label=url){try{return await importWithoutRecurringIntervals(url,blockedDelays)}catch(error){console.error(`Required Relystra portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
+async function requiredImportWithoutRecurringIntervals(url,blockedDelays=[],label=url){try{return await importWithoutRecurringIntervals(url,blockedDelays)}catch(error){console.error(`Required Nepsis portal module failed to load: ${label}`,error);showCoreLoadFailure(error);throw error}}
 async function waitFor(test,{timeout=5000,step=70}={}){const start=Date.now();while(Date.now()-start<timeout){try{if(test())return true}catch{}await new Promise(resolve=>setTimeout(resolve,step))}return false}
 
 await loadStyles(['portal-runtime-hardening.css','portal-delivery.css']);
 try{await importWithoutRecurringIntervals(asset(`portal-client.js?v=${BUILD}`),[180])}catch(error){showCoreLoadFailure(error);throw error}
 await optionalImport(asset(`portal-client-plain-language.js?v=${BUILD}`));
-const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Relystra portal context is unavailable.'));throw new Error('Relystra portal context is unavailable.')}
+const portal=window.NexusPortal;if(!portal){showCoreLoadFailure(new Error('Nepsis portal context is unavailable.'));throw new Error('Nepsis portal context is unavailable.')}
 if(portal.state?.user&&portal.state.authorizationStatus!=='verified'){
   setBootMessage('Workspace access could not be confirmed','Retry to confirm your account permissions and load the correct workspace.');
   const retry=document.createElement('button');retry.type='button';retry.className='btn primary';retry.textContent='Retry workspace access';retry.onclick=()=>location.reload();bootOverlay.querySelector('.nexus-boot-card').append(retry);
@@ -84,6 +88,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-diagnosis-pdf-ui.js?v=${BUILD}`),'diagnosis PDF downloads');
   window.NexusClientPlainLanguage?.apply?.();
   if(platformAdmin)perspectiveModule?.mountPerspectiveSwitcher?.(portal);
+  await loadStyles(['portal-nepsis-visual-system.css']);
   clearBootLock();
 }else if(useAdminShell){
   const adminStyles=['portal-layout-fix.css','portal-simplify.css','portal-admin-intake.css','portal-discovery-capture.css','portal-diagnosis-v2.css','portal-action-workflow.css','portal-action-execution-v2.css','portal-action-processing-engine.css','portal-guided-ops.css','portal-admin-journey.css','portal-journey-qaqc.css','portal-revenue-engine.css','portal-approval-inbox.css','portal-workflow-cohesion.css','portal-client-guide.css','portal-ux-refinement.css','portal-mobile-hardening.css','portal-buildingblok-cohesion.css'];
@@ -93,7 +98,7 @@ if(useClientShell){
   await requiredImport(asset(`portal-approval-bridge.js?v=${BUILD}`),'approval routing bridge');
   if(portal.state?.companyId){
     const opsModule=await requiredImport(asset(`portal-ops.js?v=${BUILD}`),'operations workspace');
-    if(!opsModule?.initOps){const error=new Error('Relystra operations module did not expose initOps.');showCoreLoadFailure(error);throw error}
+    if(!opsModule?.initOps){const error=new Error('Nepsis operations module did not expose initOps.');showCoreLoadFailure(error);throw error}
     window.__nexusOpsInit=false;
     const opsClient=window.NexusFoundationHardening?.opsClient||portal.sb;
     await opsModule.initOps({sb:opsClient,state:portal.state,$:portal.$,toast:portal.toast,workspace:portal.workspace,log:portal.log});
@@ -120,9 +125,10 @@ if(useClientShell){
   await requiredImport(asset(`portal-vnext-runtime-router.js?v=${BUILD}`),'existing PDF and notification routing');
   await requiredImport(asset(`portal-vnext-experience.js?v=${BUILD}`),'vNext diagnosis and client report experience');
   await requiredImport(asset(`portal-approval-inbox.js?v=${BUILD}`),'approval chains and Inbox');
-  await requiredImport(asset(`portal-admin-journey.js?v=${BUILD}`),'Relystra delivery workspace');
-  if(!window.NexusAdminJourney?.navigate){const error=new Error('Relystra delivery navigation did not initialize.');showCoreLoadFailure(error);throw error}
+  await requiredImport(asset(`portal-admin-journey.js?v=${BUILD}`),'Nepsis delivery workspace');
+  if(!window.NexusAdminJourney?.navigate){const error=new Error('Nepsis delivery navigation did not initialize.');showCoreLoadFailure(error);throw error}
   perspectiveModule?.mountPerspectiveSwitcher?.(portal);
+  await loadStyles(['portal-nepsis-visual-system.css']);
   clearBootLock();
 }else{
   await requiredImport(asset(`portal-production-simplification.js?v=${BUILD}`),'production simplification');

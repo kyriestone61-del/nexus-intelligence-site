@@ -98,7 +98,9 @@ const server=http.createServer(async(req,res)=>{
       if(['checkout','cancel'].includes(body.operation)){res.statusCode=409;res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({error:'LOCAL_PROVIDER_BOUNDARY',message:'Local acceptance verifies saved scope. External payment is tested separately.'}));}
       const result=await serialized(async()=>(await db.query('select relystra_basic_report_access($1,$2) data',[body.token,body.operation])).rows[0].data);
       res.setHeader('Content-Type','application/json');if(result.error){res.statusCode=404;return res.end(JSON.stringify(result.error));}
-      const {actor_id,company_id,...report}=result.data;return res.end(JSON.stringify({ok:true,report}));
+      const settings=(await db.query('select checkout_enabled,stripe_account_id from public.nexus_delivery_settings where singleton')).rows[0];
+      const checkout_available=settings?.checkout_enabled===true&&typeof settings?.stripe_account_id==='string'&&settings.stripe_account_id.length>0;
+      const {actor_id,company_id,...report}=result.data;return res.end(JSON.stringify({ok:true,report:{...report,checkout_available}}));
     }
     if(url.pathname==='/qa-db'&&req.method==='POST'){
       let text='';for await(const chunk of req){text+=chunk;if(text.length>200000)throw Error('Payload too large')}

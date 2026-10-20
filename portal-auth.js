@@ -14,7 +14,7 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
     const note=document.createElement('details');
     note.id='portalVerificationPreflight';
     note.className='portal-verify-preflight nexus-progressive-help';
-    note.innerHTML='<summary>Email verification</summary><p><b>After creating your account, verify your email once.</b> Open the confirmation message from Relystra, click the verification link, then return here to sign in.</p>';
+    note.innerHTML='<summary>Email verification</summary><p><b>After creating your account, verify your email once.</b> Open the confirmation message from Nepsis, click the verification link, then return here to sign in.</p>';
     createForm.appendChild(note);
   }
 
@@ -31,16 +31,45 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
   const search=new URLSearchParams(location.search);
   const hash=new URLSearchParams((location.hash||'').replace(/^#/,''));
   const authError=search.get('error_description')||search.get('error')||hash.get('error_description')||hash.get('error');
-  const recoveryType=search.get('type')||hash.get('type');
-  const recoveryTokenHash=search.get('token_hash')||hash.get('token_hash');
-  const recoveryReturn=search.get('mode')==='recovery'||recoveryType==='recovery';
-  const inviteReturn=hash.get('mode')==='invite'&&recoveryType==='magiclink'&&Boolean(recoveryTokenHash);
+  // Treat a one-time callback as one atomic tuple from either the query or the
+  // fragment. Never combine a type from one channel with a token/mode from the
+  // other, because conflicting parameters could otherwise fall back to an
+  // unrelated ambient session.
+  const callbackParams=hash.has('token_hash')?hash:search.has('token_hash')?search:null;
+  const secondaryParams=callbackParams===hash?search:callbackParams===search?hash:null;
+  const recoveryType=callbackParams?.get('type')||null;
+  const recoveryTokenHash=callbackParams?.get('token_hash')||null;
+  const callbackMode=callbackParams?.get('mode')||null;
+  const recoveryMode=search.get('mode')==='recovery'||hash.get('mode')==='recovery';
+  const inviteMode=search.get('mode')==='invite'||hash.get('mode')==='invite';
+  const secondaryMode=secondaryParams?.get('mode')||null;
+  const callbackConflict=Boolean(callbackParams&&secondaryParams&&(
+    secondaryParams.has('token_hash')||secondaryParams.has('type')
+    ||(['recovery','invite'].includes(secondaryMode)&&secondaryMode!==callbackMode)
+  ));
+  const recoveryReturn=recoveryMode||Boolean(recoveryTokenHash&&recoveryType==='recovery'&&!callbackConflict);
+  const inviteReturn=Boolean(recoveryTokenHash&&recoveryType==='magiclink'&&callbackMode==='invite'&&!callbackConflict);
+  const invalidRecoveryReturn=recoveryMode&&(
+    callbackConflict
+    ||(recoveryTokenHash?recoveryType!=='recovery'||Boolean(callbackMode&&callbackMode!=='recovery'):search.has('type')||hash.has('type'))
+  );
+  const invalidInviteReturn=inviteMode&&!inviteReturn;
+  const invalidCallbackReturn=callbackConflict||invalidInviteReturn||invalidRecoveryReturn;
   const looksLikeAuthReturn=search.has('code')||search.has('token_hash')||search.has('type')||hash.has('access_token')||hash.has('refresh_token')||hash.has('type');
 
   let session=null;
-  try{const result=await sb.auth.getSession();session=result.data?.session||null;if(result.error)console.warn('Relystra auth session check failed',result.error)}catch(error){console.warn('Relystra auth session check failed',error)}
+  try{const result=await sb.auth.getSession();session=result.data?.session||null;if(result.error)console.warn('Nepsis auth session check failed',result.error)}catch(error){console.warn('Nepsis auth session check failed',error)}
 
-  if(inviteReturn&&!session?.user){
+  if(invalidCallbackReturn){
+    storage.remove(pendingFlag);
+    history.replaceState({},'',location.pathname);
+    showVerificationOverlay(false,invalidInviteReturn||callbackMode==='invite'||recoveryType==='magiclink'
+      ?'That invitation link is invalid, expired, or has conflicting parameters. Ask Nepsis to resend access.'
+      :'That password-recovery link is invalid, expired, or has conflicting parameters. Request a new recovery email and try again.');
+    return;
+  }
+
+  if(inviteReturn){
     storage.remove(pendingFlag);
     try{
       history.replaceState({},'',`${location.pathname}#mode=invite`);
@@ -49,18 +78,18 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
       session=result.data?.session||null;
       history.replaceState({},'',location.pathname);
       if(!session?.user)throw new Error('Invitation session was not created.');
-      showVerificationOverlay(true,'Your Relystra client workspace is ready.');return;
+      showVerificationOverlay(true,'Your Nepsis client workspace is ready.');return;
     }catch(error){
-      console.warn('Relystra invitation token verification failed',error);
+      console.warn('Nepsis invitation token verification failed',error);
       history.replaceState({},'',location.pathname);
-      showVerificationOverlay(false,'That invitation link is invalid, expired, or has already been used. Ask Relystra to resend access.');return;
+      showVerificationOverlay(false,'That invitation link is invalid, expired, or has already been used. Ask Nepsis to resend access.');return;
     }
   }
 
   if(recoveryReturn){
     storage.remove(pendingFlag);
     if(authError){showVerificationOverlay(false,'That password-recovery link is invalid or has expired. Request a new recovery email and try again.');return}
-    if(!session?.user&&recoveryTokenHash&&recoveryType==='recovery'){
+    if(recoveryTokenHash&&recoveryType==='recovery'){
       try{
         history.replaceState({},'',`${location.pathname}#mode=recovery`);
         const result=await sb.auth.verifyOtp({token_hash:recoveryTokenHash,type:'recovery'});
@@ -68,12 +97,12 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
         session=result.data?.session||null;
         history.replaceState({},'',`${location.pathname}#mode=recovery`);
       }catch(error){
-        console.warn('Relystra password-recovery token verification failed',error);
+        console.warn('Nepsis password-recovery token verification failed',error);
         showVerificationOverlay(false,'That password-recovery link is invalid, expired, or has already been used. Request a new recovery email and try again.');return;
       }
     }
     if(!session?.user){showVerificationOverlay(false,'That password-recovery link is invalid or has expired. Request a new recovery email and try again.');return}
-    showRecoveryResetOverlay();return;
+    showRecoveryResetOverlay(session.user.id);return;
   }
 
   const expected=storage.get(pendingFlag)==='1';
@@ -95,7 +124,7 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
     if(document.getElementById('portalRecoveryOverlay'))return;
     const overlay=document.createElement('div');overlay.id='portalRecoveryOverlay';overlay.className='portal-verified-overlay';overlay.tabIndex=-1;
     const suggested=$('signInEmail')?.value?.trim()||'';
-    overlay.innerHTML=`<div class="portal-verified-card" aria-labelledby="portalRecoveryTitle"><div class="eyebrow">Account recovery</div><h1 id="portalRecoveryTitle">Reset your password.</h1><p>Enter your Relystra email. If it matches an account, we will send a secure recovery link.</p><form id="portalRecoveryRequestForm"><div class="field"><label for="portalRecoveryEmail">Email</label><input id="portalRecoveryEmail" type="email" autocomplete="email" required value="${escapeHtml(suggested)}"></div><p id="portalRecoveryMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoverySend" class="btn primary" type="submit">Send recovery email →</button><button id="portalRecoveryCancel" class="btn secondary" type="button">Cancel</button></div></form></div>`;
+    overlay.innerHTML=`<div class="portal-verified-card" aria-labelledby="portalRecoveryTitle"><img class="nepsis-recovery-mark" src="/assets/nepsis-homepage-mark.svg" alt=""><div class="eyebrow">Account recovery</div><h1 id="portalRecoveryTitle">Reset your password.</h1><p>Enter the email connected to your Nepsis workspace. If it matches an account, we will send a secure recovery link.</p><form id="portalRecoveryRequestForm"><div class="field"><label for="portalRecoveryEmail">Email</label><input id="portalRecoveryEmail" type="email" autocomplete="email" required value="${escapeHtml(suggested)}"></div><p id="portalRecoveryMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoverySend" class="btn primary" type="submit">Send recovery email →</button><button id="portalRecoveryCancel" class="btn secondary" type="button">Cancel</button></div></form></div>`;
     appendOverlay(overlay,'#portalRecoveryEmail');
     const email=document.getElementById('portalRecoveryEmail');
     events.bind(document.getElementById('portalRecoveryCancel'),'click','recovery:cancel',()=>removeOverlay(overlay));
@@ -106,18 +135,18 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
         const response=await fetch('/api/auth-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({operation:'recovery',email:address})});
         const payload=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(payload?.error||`Recovery request failed (${response.status})`);
-        if(message)message.textContent='If that email matches a Relystra account, a recovery link has been sent. Check your inbox and spam folder.';
+        if(message)message.textContent='If that email matches a Nepsis account, a recovery link has been sent. Check your inbox and spam folder.';
         if(button)button.hidden=true;const cancel=document.getElementById('portalRecoveryCancel');if(cancel)cancel.textContent='Close';
       }
-      catch(error){console.error('Relystra password recovery request failed',error);if(message)message.textContent='The recovery email service is temporarily unavailable. Try again in a few minutes.';if(button){button.disabled=false;button.textContent='Send recovery email →'}}
+      catch(error){console.error('Nepsis password recovery request failed',error);if(message)message.textContent='The recovery email service is temporarily unavailable. Try again in a few minutes.';if(button){button.disabled=false;button.textContent='Send recovery email →'}}
     },{silent:true}));
   }
 
-  function showRecoveryResetOverlay(){
+  function showRecoveryResetOverlay(expectedUserId){
     if(document.getElementById('portalRecoveryOverlay'))return;
     show?.('auth');
     const overlay=document.createElement('div');overlay.id='portalRecoveryOverlay';overlay.className='portal-verified-overlay';overlay.tabIndex=-1;
-    overlay.innerHTML='<div class="portal-verified-card" aria-labelledby="portalRecoveryResetTitle"><div class="eyebrow">Secure password reset</div><h1 id="portalRecoveryResetTitle">Create a new password.</h1><p>Use at least 12 characters with both letters and numbers.</p><form id="portalRecoveryResetForm"><div class="field"><label for="portalRecoveryPassword">New password</label><input id="portalRecoveryPassword" type="password" minlength="12" autocomplete="new-password" required></div><div class="field"><label for="portalRecoveryConfirm">Confirm new password</label><input id="portalRecoveryConfirm" type="password" minlength="12" autocomplete="new-password" required></div><p id="portalRecoveryResetMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoveryReset" class="btn primary" type="submit">Update password →</button></div></form></div>';
+    overlay.innerHTML='<div class="portal-verified-card" aria-labelledby="portalRecoveryResetTitle"><img class="nepsis-recovery-mark" src="/assets/nepsis-homepage-mark.svg" alt=""><div class="eyebrow">Secure password reset</div><h1 id="portalRecoveryResetTitle">Create a new password.</h1><p>Use at least 12 characters with both letters and numbers.</p><form id="portalRecoveryResetForm"><div class="field"><label for="portalRecoveryPassword">New password</label><input id="portalRecoveryPassword" type="password" minlength="12" autocomplete="new-password" required></div><div class="field"><label for="portalRecoveryConfirm">Confirm new password</label><input id="portalRecoveryConfirm" type="password" minlength="12" autocomplete="new-password" required></div><p id="portalRecoveryResetMessage" class="small" role="status" aria-live="polite"></p><div class="actions"><button id="portalRecoveryReset" class="btn primary" type="submit">Update password →</button></div></form></div>';
     appendOverlay(overlay,'#portalRecoveryPassword');
     const password=document.getElementById('portalRecoveryPassword'),confirm=document.getElementById('portalRecoveryConfirm');
     events.bind(document.getElementById('portalRecoveryResetForm'),'submit','recovery:reset',boundary.wrap('password update',async event=>{
@@ -125,8 +154,8 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
       if(value.length<12||!/[A-Za-z]/.test(value)||!/[0-9]/.test(value)){if(message)message.textContent='Use at least 12 characters with both letters and numbers.';return}
       if(value!==confirmation){if(message)message.textContent='The passwords do not match.';return}
       if(button){button.disabled=true;button.textContent='Updating…'}
-      try{const {error}=await sb.auth.updateUser({password:value});if(error)throw error;if(message)message.textContent='Password updated. Returning to sign in…';await sb.auth.signOut();history.replaceState({},'',location.pathname);setTimeout(()=>{removeOverlay(overlay);show?.('auth');pane?.('signInPane');const authMessage=document.getElementById('authMessage');if(authMessage){authMessage.textContent='Password updated. Sign in with your new password.';authMessage.style.color='var(--nx-muted)'}},350)}
-      catch(error){console.error('Relystra password update failed',error);if(message)message.textContent='The password could not be updated. Request a fresh recovery link and try again.';if(button){button.disabled=false;button.textContent='Update password →'}}
+      try{const current=await sb.auth.getUser();if(current.error||!current.data?.user||current.data.user.id!==expectedUserId)throw new Error('RECOVERY_SESSION_CHANGED');const {error}=await sb.auth.updateUser({password:value});if(error)throw error;if(message)message.textContent='Password updated. Returning to sign in…';await sb.auth.signOut();history.replaceState({},'',location.pathname);setTimeout(()=>{removeOverlay(overlay);show?.('auth');pane?.('signInPane');const authMessage=document.getElementById('authMessage');if(authMessage){authMessage.textContent='Password updated. Sign in with your new password.';authMessage.style.color='var(--nx-muted)'}},350)}
+      catch(error){console.error('Nepsis password update failed',error);if(message)message.textContent='The password could not be updated. Request a fresh recovery link and try again.';if(button){button.disabled=false;button.textContent='Update password →'}}
     },{silent:true}));
   }
 
@@ -134,8 +163,8 @@ export async function initAuthUX({sb,$,pane,show,runtime}){
     if(document.getElementById('portalVerifiedOverlay'))return;
     const overlay=document.createElement('div');overlay.id='portalVerifiedOverlay';overlay.className='portal-verified-overlay';overlay.tabIndex=-1;
     overlay.innerHTML=ok
-      ? `<div class="portal-verified-card"><div class="portal-verified-icon">✓</div><div class="eyebrow">Email verification complete</div><h1>Your email is verified.</h1><p>Your Relystra account is active.</p><div class="actions"><button id="verifiedContinue" class="btn primary" type="button">Continue to Relystra →</button><button id="verifiedSignIn" class="btn secondary" type="button">Return to Sign In</button></div></div>`
-      : `<div class="portal-verified-card error"><div class="portal-verified-icon">!</div><div class="eyebrow">Verification problem</div><h1>We could not confirm that link.</h1><p>${escapeHtml(message||'The verification link may have expired or already been used. Return to Relystra and try signing in.')}</p><div class="actions"><button id="verifiedSignIn" class="btn primary" type="button">Return to Sign In</button><a class="btn secondary" href="/">Main Website</a></div></div>`;
+      ? `<div class="portal-verified-card"><img class="nepsis-recovery-mark" src="/assets/nepsis-homepage-mark.svg" alt=""><div class="eyebrow">Email verification complete</div><h1>Your email is verified.</h1><p>Your Nepsis account is active.</p><div class="actions"><button id="verifiedContinue" class="btn primary" type="button">Continue to Nepsis →</button><button id="verifiedSignIn" class="btn secondary" type="button">Return to Sign In</button></div></div>`
+      : `<div class="portal-verified-card error"><img class="nepsis-recovery-mark" src="/assets/nepsis-homepage-mark.svg" alt=""><div class="eyebrow">Verification problem</div><h1>We could not confirm that link.</h1><p>${escapeHtml(message||'The verification link may have expired or already been used. Return to Nepsis and try signing in.')}</p><div class="actions"><button id="verifiedSignIn" class="btn primary" type="button">Return to Sign In</button><a class="btn secondary" href="/">Main Website</a></div></div>`;
     appendOverlay(overlay,ok?'#verifiedContinue':'#verifiedSignIn');
     events.bind(document.getElementById('verifiedContinue'),'click','verification:continue',()=>{removeOverlay(overlay);history.replaceState({},'',location.pathname);if(session?.user)location.reload()});
     events.bind(document.getElementById('verifiedSignIn'),'click','verification:signin',boundary.wrap('verification sign out',async()=>{removeOverlay(overlay);history.replaceState({},'',location.pathname);try{await sb.auth.signOut()}catch(error){console.warn('Verification sign-out cleanup failed',error)}show?.('auth');pane?.('signInPane')},{silent:true}));

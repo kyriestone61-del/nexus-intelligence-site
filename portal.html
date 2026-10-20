@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://js.hs-scripts.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https://dmdgkjksouhhsuojthav.supabase.co wss://dmdgkjksouhhsuojthav.supabase.co https://*.hubspot.com https://*.hubapi.com; worker-src 'self' blob:; upgrade-insecure-requests">
-<title>Client Control Room | Relystra</title>
-<meta name="description" content="Secure Relystra client control room for preparation, files, decisions, actions, implementation progress, and measured improvement.">
+<title>Client Workspace | Nepsis</title>
+<meta name="description" content="Secure Nepsis client workspace for preparation, files, decisions, implementation progress, and measured improvement.">
 <link rel="stylesheet" href="/styles.css?v=20260831-discovery-capture1">
 <link rel="stylesheet" href="/portal-ops.css?v=20260831-discovery-capture1">
 <link rel="stylesheet" href="/portal-v2.css?v=20260831-discovery-capture1">
@@ -15,30 +15,34 @@
 #portalApp{visibility:hidden!important}
 body.nexus-shell-ready #portalApp{visibility:visible!important}
 </style>
-<link rel="stylesheet" href="/relystra-brand.css"><link rel="manifest" href="/site.webmanifest"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><link rel="icon" href="/assets/relystra-mark.svg" type="image/svg+xml"><meta name="robots" content="noindex,nofollow"><meta name="relystra-stage" content="provisional-owner-risk-accepted"><link rel="stylesheet" href="/relystra-commercial.css">
+<link rel="stylesheet" href="/relystra-brand.css"><link rel="manifest" href="/site.webmanifest"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><link rel="icon" href="/assets/nepsis-homepage-mark.svg" type="image/svg+xml"><meta name="robots" content="noindex,nofollow"><meta name="relystra-stage" content="provisional-owner-risk-accepted"><link rel="stylesheet" href="/relystra-commercial.css"><link rel="stylesheet" href="/portal-auth.css?v=20261015-nepsis-auth1">
 </head>
 <body class="portal-body">
 <a id="nexusSkipLink" class="nexus-skip-link" href="#nexusMainContent">Skip to main content</a>
 
-<div id="authView" class="auth-shell">
-  <div class="auth-grid">
-    <section class="panel nx-corner">
-      <div class="brand"><img class="brand-mark" src="/assets/relystra-mark.svg" alt=""><span>Relystra</span></div>
-      <div style="height:26px"></div>
-      <div class="eyebrow">Client Control Room</div>
-      <h1 style="font-size:clamp(43px,5.4vw,67px);line-height:.98;margin:18px 0">The work should be visible.<br>The next step should be obvious.</h1>
-      <p class="muted" style="font-size:17px;max-width:650px">Use one private workspace to prepare for discovery, exchange evidence, see responsibilities, make approvals, follow implementation, and measure what changed.</p>
-      <div class="data-room-help" style="margin-top:24px">
-        <div><b>01 · Today</b><span>Your ordered actions and decisions.</span></div>
-        <div><b>02 · Secure Data Room</b><span>Exactly what Relystra needs and why.</span></div>
-        <div><b>03 · Improvement record</b><span>Baseline → change → measured result.</span></div>
+<div id="authView" class="auth-shell nepsis-auth-shell">
+  <div class="auth-grid nepsis-auth-grid">
+    <section class="panel nx-corner nepsis-auth-story" aria-labelledby="nepsisAuthHeading">
+      <a class="brand nepsis-auth-brand" href="/" aria-label="Nepsis Intelligence home"><img class="brand-mark" src="/assets/nepsis-homepage-mark.svg" alt=""><span><b>NEPSIS</b><small>INTELLIGENCE</small></span></a>
+      <div class="nepsis-auth-story-copy">
+        <div class="eyebrow">Private client workspace</div>
+        <h1 id="nepsisAuthHeading">A clear place for the work ahead.</h1>
+        <p class="muted">See the next action, share only what is needed, and keep decisions and progress in one secure workspace.</p>
       </div>
+      <div class="nepsis-auth-principles" aria-label="Workspace principles">
+        <div><span>01</span><b>One next step</b><p>Start with the action that needs your attention now.</p></div>
+        <div><span>02</span><b>Private by design</b><p>Files and responses stay inside your company workspace.</p></div>
+        <div><span>03</span><b>Decisions stay visible</b><p>Scope, approvals, and progress remain easy to find.</p></div>
+      </div>
+      <p class="nepsis-auth-boundary">Signing in confirms access. It does not create paid scope, a deadline, or a service commitment.</p>
     </section>
 
-    <section class="panel">
-      <div class="tabs"><button id="tabSignIn" class="active" type="button">Sign in</button><button id="tabCreate" type="button">Create account</button></div>
+    <section class="panel nepsis-auth-card" aria-label="Client account access">
+      <div class="nepsis-auth-card-head"><span>CLIENT ACCESS</span><p>Use the email connected to your invitation or workspace.</p></div>
+      <div class="tabs" aria-label="Account access"><button id="tabSignIn" class="active" type="button" aria-controls="signInPane">Sign in</button><button id="tabCreate" type="button" aria-controls="createPane">Create account</button></div>
       <div id="signInPane" class="auth-pane active">
-        <div class="kicker">Authenticated workspace</div><h2>Welcome back.</h2>
+        <div class="kicker">Nepsis client workspace</div><h2>Welcome back.</h2>
+        <p class="small nepsis-auth-intro">Sign in to continue to your company workspace.</p>
         <form id="signInForm">
           <div class="field"><label for="signInEmail">Email</label><input id="signInEmail" type="email" autocomplete="email" required></div>
           <div class="field"><label for="signInPassword">Password</label><input id="signInPassword" type="password" autocomplete="current-password" required></div>
@@ -46,7 +50,7 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
         </form>
       </div>
       <div id="createPane" class="auth-pane">
-        <div class="kicker">Create your Relystra workspace</div><h2>Set up your company account.</h2>
+        <div class="kicker">Create your Nepsis workspace</div><h2>Set up your company account.</h2>
         <p class="small">Creating an account opens a coordination workspace. It does not by itself create a consulting engagement, fee, deadline, or service level.</p>
         <form id="createForm">
           <div class="field"><label for="createName">Your name</label><input id="createName" autocomplete="name" required></div>
@@ -58,10 +62,10 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
         </form>
       </div>
       <div id="confirmPane" class="auth-pane">
-        <div class="success-box"><div class="kicker">Account submitted</div><h2>Check your email to finish.</h2><p id="confirmText">We sent an account-confirmation email. Click the confirmation link once, then return to Relystra.</p><div class="actions"><button id="returnSignIn" class="btn primary" type="button">Return to sign in →</button></div></div>
+        <div class="success-box"><div class="kicker">Account submitted</div><h2>Check your email to finish.</h2><p id="confirmText">We sent an account-confirmation email. Click the confirmation link once, then return to Nepsis.</p><div class="actions"><button id="returnSignIn" class="btn primary" type="button">Return to sign in →</button></div></div>
       </div>
       <p id="authMessage" class="small" style="margin-top:15px"></p>
-      <div class="note" style="margin-top:20px"><b>Security boundary:</b> Never upload passwords, MFA codes, API keys, payment-card data, medical records, or other highly sensitive/regulated data unless Relystra has expressly approved that data type and handling method.</div>
+      <div class="note nepsis-auth-security"><b>Keep sensitive information private.</b> Never upload passwords, MFA codes, API keys, payment-card data, medical records, or other highly sensitive or regulated data unless Nepsis has expressly approved that data type and handling method.</div>
       <div class="actions"><a class="btn secondary" href="/">← Main website</a></div>
     </section>
   </div>
@@ -69,8 +73,8 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
 
 <div id="onboardView" class="auth-shell" style="display:none">
   <section class="panel" style="max-width:730px;margin:auto">
-    <div class="eyebrow">Workspace activation</div><h1 style="font-size:44px;line-height:1.02">Tell Relystra which company this workspace belongs to.</h1>
-    <p class="muted">Once you continue, Relystra will create your initial opportunity-assessment preparation checklist and next actions automatically.</p>
+    <div class="eyebrow">Workspace activation</div><h1 style="font-size:44px;line-height:1.02">Tell Nepsis which company this workspace belongs to.</h1>
+    <p class="muted">Once you continue, Nepsis will create your initial preparation checklist and next actions automatically.</p>
     <form id="onboardForm">
       <div class="field"><label for="onboardCompany">Company name</label><input id="onboardCompany" required></div>
       <div class="field"><label for="onboardWebsite">Website <span class="small">(optional)</span></label><input id="onboardWebsite" type="url"></div>
@@ -82,7 +86,7 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
 
 <div id="portalApp" style="display:none">
   <header class="topbar">
-    <a class="brand" href="/"><img class="brand-mark" src="/assets/relystra-mark.svg" alt=""><span>Relystra</span></a>
+    <a class="brand" href="/"><img class="brand-mark" src="/assets/nepsis-homepage-mark.svg" alt=""><span>Nepsis</span></a>
     <span class="pill">CONTROL ROOM</span>
     <select id="companySelect" class="company-select" aria-label="Select company"></select>
     <button id="alertsBtn" class="btn secondary" type="button">Browser alerts</button>
@@ -113,29 +117,29 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
       </section>
 
       <section id="section-documents" class="section">
-        <div class="toolbar"><div><div class="eyebrow">Evidence preparation + private exchange</div><h1 style="font-size:38px;margin:6px 0">Secure Data Room</h1><p class="small">Give Relystra enough evidence to understand the real operation. Perfect documentation is not required.</p></div><button id="newDocumentRequestBtn" class="btn primary" type="button" style="display:none">+ Request item</button></div>
+        <div class="toolbar"><div><div class="eyebrow">Evidence preparation + private exchange</div><h1 style="font-size:38px;margin:6px 0">Secure Data Room</h1><p class="small">Give Nepsis enough evidence to understand the real operation. Perfect documentation is not required.</p></div><button id="newDocumentRequestBtn" class="btn primary" type="button" style="display:none">+ Request item</button></div>
         <div class="data-room-stack">
           <div class="data-room-hero">
             <div class="kicker">Start here</div><h2>What should your company provide?</h2>
-            <p>Relystra is looking for evidence of <b>how the work actually happens</b>: the process, real examples, systems involved, volume, measurable baseline, and the people who own decisions. For every item below, we explain why it matters, where to find it, and what to do if it does not exist.</p>
+            <p>Nepsis is looking for evidence of <b>how the work actually happens</b>: the process, real examples, systems involved, volume, measurable baseline, and the people who own decisions. For every item below, we explain why it matters, where to find it, and what to do if it does not exist.</p>
             <div id="dataRoomProgress" class="data-room-meter"></div>
           </div>
           <div class="data-room-help">
             <div><b>Use representative—not exhaustive—evidence.</b><span>Three to ten normal examples usually teach more than a giant data dump.</span></div>
-            <div><b>Redact what Relystra does not need.</b><span>Remove unnecessary customer PII, secrets, credentials, payment information, and unrelated sensitive fields.</span></div>
-            <div><b>Missing is useful information.</b><span>If an SOP, KPI, systems map, or runbook does not exist, choose “Build with Relystra.” That gap can become part of the work.</span></div>
+            <div><b>Redact what Nepsis does not need.</b><span>Remove unnecessary customer PII, secrets, credentials, payment information, and unrelated sensitive fields.</span></div>
+            <div><b>Missing is useful information.</b><span>If an SOP, KPI, systems map, or runbook does not exist, choose “Build with Nepsis.” That gap can become part of the work.</span></div>
           </div>
           <div class="secure-doc-section"><div class="toolbar"><div><div class="kicker">Preparation checklist</div><h2>Recommended evidence for this service</h2></div></div><div id="dataRoomRequirements" class="requirement-grid"></div></div>
           <div class="secure-doc-section"><div class="toolbar"><div><div class="kicker">Specific requests</div><h2>Requested from You</h2></div></div><div id="explicitDocumentRequests"></div></div>
           <div class="upload data-room-upload">
-            <div class="kicker">Private upload</div><h2 style="font-size:24px;margin:5px 0 4px">Share a file securely</h2><p class="small">Use this for current-state evidence or a specific Relystra request. Select an item above first when possible so the portal can automatically mark the correct requirement as uploaded.</p>
+            <div class="kicker">Private upload</div><h2 style="font-size:24px;margin:5px 0 4px">Share a file securely</h2><p class="small">Use this for current-state evidence or a specific Nepsis request. Select an item above first when possible so the portal can automatically mark the correct requirement as uploaded.</p>
             <div id="uploadContext" class="upload-context"></div>
             <form id="uploadForm">
               <div class="form-grid">
                 <div class="field"><label for="docFile">File</label><input id="docFile" type="file" required accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg"></div>
-                <div class="field"><label for="docCategory">Category</label><select id="docCategory"><option>Client Source</option><option>Process Document</option><option>Measurement</option><option>Report</option><option>General</option><option>Relystra Deliverable</option></select></div>
+                <div class="field"><label for="docCategory">Category</label><select id="docCategory"><option>Client Source</option><option>Process Document</option><option>Measurement</option><option>Report</option><option>General</option><option>Nepsis Deliverable</option></select></div>
               </div>
-              <div class="field"><label for="docNote">Context note <span class="small">(recommended)</span></label><textarea id="docNote" placeholder="What is this file? What workflow, period, or question does it help Relystra understand?"></textarea></div>
+              <div class="field"><label for="docNote">Context note <span class="small">(recommended)</span></label><textarea id="docNote" placeholder="What is this file? What workflow, period, or question does it help Nepsis understand?"></textarea></div>
               <div class="actions"><button class="btn primary" type="submit">Upload securely →</button></div>
               <p class="small">Accepted: PDF, DOCX, XLSX, CSV, TXT, PNG, JPG · Maximum 25 MB · Private company-level storage.</p>
             </form>
@@ -144,11 +148,11 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
         </div>
       </section>
 
-      <section id="section-tasks" class="section"><div class="toolbar"><div><div class="eyebrow">Responsibility queue</div><h1 style="font-size:36px;margin:6px 0">Action Items</h1><p class="small">Who owns the next move, what “done” means, and where work is blocked.</p></div><button id="newTaskBtn" class="btn primary" type="button">+ Add action</button></div><div class="note"><b>Scope rule:</b> Assigning a portal task to Relystra coordinates existing work; it does not expand signed scope or create a binding deadline.</div><div style="height:14px"></div><div id="taskList" class="list"></div></section>
+      <section id="section-tasks" class="section"><div class="toolbar"><div><div class="eyebrow">Responsibility queue</div><h1 style="font-size:36px;margin:6px 0">Action Items</h1><p class="small">Who owns the next move, what “done” means, and where work is blocked.</p></div><button id="newTaskBtn" class="btn primary" type="button">+ Add action</button></div><div class="note"><b>Scope rule:</b> Assigning a portal task to Nepsis coordinates existing work; it does not expand signed scope or create a binding deadline.</div><div style="height:14px"></div><div id="taskList" class="list"></div></section>
 
       <section id="section-timeline" class="section"><div class="toolbar"><div><div class="eyebrow">Engagement progress</div><h1 style="font-size:36px;margin:6px 0">Projects & Milestones</h1></div><button id="newMilestoneBtn" class="btn primary" type="button" style="display:none">+ Add milestone</button></div><div id="projectBox" class="box" style="margin-bottom:16px"></div><div id="milestoneList" class="timeline"></div><p class="small">Portal dates are planning dates unless a signed agreement expressly identifies a binding deadline or service level.</p></section>
 
-      <section id="section-metrics" class="section"><div class="toolbar"><div><div class="eyebrow">Value & Improvement Ledger</div><h1 style="font-size:36px;margin:6px 0">Improvements</h1></div><button id="newMetricBtn" class="btn primary" type="button">+ Add measurement</button></div><div class="note"><b>Measurement rule:</b> Movement in a metric does not automatically prove Relystra caused the change. Baselines, measurement windows, assumptions, exclusions, and attribution should be documented.</div><div style="height:14px"></div><div id="metricList" class="metrics"></div></section>
+      <section id="section-metrics" class="section"><div class="toolbar"><div><div class="eyebrow">Value & Improvement Ledger</div><h1 style="font-size:36px;margin:6px 0">Improvements</h1></div><button id="newMetricBtn" class="btn primary" type="button">+ Add measurement</button></div><div class="note"><b>Measurement rule:</b> Movement in a metric does not automatically prove Nepsis caused the change. Baselines, measurement windows, assumptions, exclusions, and attribution should be documented.</div><div style="height:14px"></div><div id="metricList" class="metrics"></div></section>
 
       <section id="section-notifications" class="section"><div class="toolbar"><div><div class="eyebrow">Action routing</div><h1 style="font-size:36px;margin:6px 0">Notifications</h1><p class="small">Keep responsibilities visible without turning the workspace into notification noise.</p></div><button id="readAllBtn" class="btn secondary" type="button">Mark all read</button></div><div id="emailPreferencePanel"></div><div id="notificationList" class="list"></div></section>
 
@@ -157,7 +161,7 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
   </div>
 </div>
 
-<div id="taskModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add action item</h2><button class="btn secondary close" type="button">Close</button></div><form id="taskForm"><div class="field"><label for="taskTitle">Action</label><input id="taskTitle" required></div><div class="form-grid"><div class="field"><label for="taskAssignee">Owner</label><select id="taskAssignee"><option value="client">Client</option><option value="nexus">Relystra</option></select></div><div class="field"><label for="taskPriority">Priority</label><select id="taskPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div><div class="field"><label for="taskDue">Due date</label><input id="taskDue" type="date"></div></div><div class="field"><label for="taskDescription">Completion context</label><textarea id="taskDescription" placeholder="What needs to happen, and what should be true when this is done?"></textarea></div><div class="actions"><button class="btn primary" type="submit">Create action</button></div></form></div></div>
+<div id="taskModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add action item</h2><button class="btn secondary close" type="button">Close</button></div><form id="taskForm"><div class="field"><label for="taskTitle">Action</label><input id="taskTitle" required></div><div class="form-grid"><div class="field"><label for="taskAssignee">Owner</label><select id="taskAssignee"><option value="client">Client</option><option value="nexus">Nepsis</option></select></div><div class="field"><label for="taskPriority">Priority</label><select id="taskPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div><div class="field"><label for="taskDue">Due date</label><input id="taskDue" type="date"></div></div><div class="field"><label for="taskDescription">Completion context</label><textarea id="taskDescription" placeholder="What needs to happen, and what should be true when this is done?"></textarea></div><div class="actions"><button class="btn primary" type="submit">Create action</button></div></form></div></div>
 
 <div id="metricModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"><div class="modal-card"><div class="toolbar"><h2 style="margin:0">Add measurement</h2><button class="btn secondary close" type="button">Close</button></div><form id="metricForm"><div class="field"><label for="metricName">Metric</label><input id="metricName" required placeholder="Example: Weekly reporting time"></div><div class="form-grid"><div class="field"><label for="metricUnit">Unit</label><input id="metricUnit" placeholder="hours, %, days, count"></div><div class="field"><label for="metricBaseline">Baseline</label><input id="metricBaseline" type="number" step="any"></div><div class="field"><label for="metricCurrent">Current</label><input id="metricCurrent" type="number" step="any"></div><div class="field"><label for="metricTarget">Target</label><input id="metricTarget" type="number" step="any"></div></div><div class="field"><label for="metricMethod">Measurement method</label><textarea id="metricMethod"></textarea></div><div class="actions"><button class="btn primary" type="submit">Save measurement</button></div></form></div></div>
 
@@ -167,6 +171,6 @@ body.nexus-shell-ready #portalApp{visibility:visible!important}
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="/portal-security-hardening.js?v=20260831-discovery-capture1"></script>
-<script type="module" src="/portal-app.js?v=20260911-relystra-free-diagnosis-v2"></script>
+<script type="module" src="/portal-app.js?v=20261016-nepsis-client-journey-v1"></script>
 </body>
 </html>

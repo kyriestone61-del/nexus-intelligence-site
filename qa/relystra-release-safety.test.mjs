@@ -22,6 +22,8 @@ const allFiles = await walk(root);
 const convertedPublicHtml = new Set(['index.html', 'services.html', 'methodology.html', 'about.html', 'construction.html', 'faq.html']);
 const nepsisLegacyShellHtml = new Set(['delivery-standard.html']);
 const brandedLegalHtml = new Set(['privacy.html', 'terms.html', 'security.html', 'accessibility.html']);
+const privatePortalHtml = new Set(['portal.html']);
+const privateNepsisReportHtml = new Set(['basic-report.html']);
 const activeHtml = allFiles.filter(path => extname(path) === '.html'
   && !path.includes('/hlo-builds/')
   && !path.includes('/qa/')
@@ -68,6 +70,20 @@ test('converted public and supporting documents carry the intended brand and ind
       assert.match(text, /Nepsis Intelligence is the public-facing brand/, name);
       assert.match(text, /Relystra/, name);
       assert.doesNotMatch(text, /relystra-mark\.svg|relystra-stage/, name);
+    } else if (privatePortalHtml.has(name)) {
+      assert.match(text, /<title>Client Workspace \| Nepsis<\/title>/, name);
+      assert.match(text, /relystra-brand\.css/, name);
+      assert.match(text, /href="\/assets\/nepsis-homepage-mark\.svg"/, name);
+      assert.match(text, /site\.webmanifest/, name);
+      assert.match(text, /apple-touch-icon\.png/, name);
+      assert.match(text, /noindex,nofollow/, name);
+      assert.doesNotMatch(text, /relystra-mark\.svg/, name);
+    } else if (privateNepsisReportHtml.has(name)) {
+      assert.match(text, /<title>Your Basic Diagnosis \| Nepsis Intelligence<\/title>/, name);
+      assert.match(text, /relystra-brand\.css/, name);
+      assert.match(text, /class="nepsis-report-wordmark"/, name);
+      assert.match(text, /noindex,nofollow/, name);
+      assert.doesNotMatch(text, /relystra-mark\.svg|relystra-logo|site\.webmanifest|apple-touch-icon/i, name);
     } else {
       assert.match(text, /relystra-brand\.css/, name);
       assert.match(text, /relystra-mark\.svg/, name);

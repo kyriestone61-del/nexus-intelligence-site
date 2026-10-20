@@ -70,6 +70,8 @@ test('a slow previous workspace never overwrites a newer company, pointer, URL o
   const ctx=vm.createContext({URL,sb,state:controller.state,stateController:controller,workspaceRequests:createLatestRequestController(),selectActiveProject,workspaceUrl,location:{href:'https://example.test/portal?company=old&task=old-task'},history:{state:null,replaceState(_,__,url){urls.push(url)}},queryData:r=>r.data||[],fetchDataRequirements:async()=>[],fetchNotificationPrefs:async()=>null,fetchEmailStatus:async()=>false,$:()=>null,render:()=>renders.push(controller.state.companyId),esc:String,window:{dispatchEvent:event=>events.push(event)},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail}}});
   vm.runInContext(workspaceSource+';globalThis.load=workspace;',ctx);
   const previous=ctx.load('old');
+  assert.equal(events[0].type,'nexus:workspace-loading');
+  assert.equal(events[0].detail.previousCompanyId,'old');
   assert.equal(await ctx.load('moon'),true);
   unblock();
   assert.equal(await previous,false);
@@ -78,8 +80,10 @@ test('a slow previous workspace never overwrites a newer company, pointer, URL o
   assert.deepEqual([...controller.state.projects],[]);
   assert.deepEqual(renders,['moon']);
   assert.deepEqual(urls,['/portal?company=moon']);
-  assert.equal(events.length,1);
-  assert.equal(events[0].detail.companyId,'moon');
+  assert.equal(events.filter(event=>event.type==='nexus:workspace-loading').length,2);
+  const ready=events.filter(event=>event.type==='nexus:workspace-ready');
+  assert.equal(ready.length,1);
+  assert.equal(ready[0].detail.companyId,'moon');
 });
 
 test('administrator startup resolves relative workspace links against the current origin',async()=>{
