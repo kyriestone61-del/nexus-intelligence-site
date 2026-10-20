@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 const portalApp=readFileSync(new URL('../../portal-app.js',import.meta.url),'utf8');
 const simplify=readFileSync(new URL('../../portal-production-simplification.js',import.meta.url),'utf8');
 const clientShell=readFileSync(new URL('../../portal-client-shell-v2.js',import.meta.url),'utf8');
+const clientNavigation=readFileSync(new URL('../../portal-client-navigation.js',import.meta.url),'utf8');
 const companies=readFileSync(new URL('../../portal-buildingblok-cohesion.js',import.meta.url),'utf8');
 const inbox=readFileSync(new URL('../../portal-approval-inbox.js',import.meta.url),'utf8');
 const resolution=readFileSync(new URL('../../portal-resolution-plan.js',import.meta.url),'utf8');
@@ -13,7 +14,7 @@ const operations=readFileSync(new URL('../../portal-ops.js',import.meta.url),'ut
 const redirects=readFileSync(new URL('../../_redirects',import.meta.url),'utf8');
 
 test('delivery boot uses the canonical owners and does not load the retired Phase Zero overlay',()=>{
-  assert.match(portalApp,/const BUILD='20260911-relystra-free-diagnosis-v2'/);
+  assert.match(portalApp,/const BUILD='20261016-nepsis-client-journey-v1'/);
   assert.match(portalApp,/portal-delivery\.css/);
   assert.doesNotMatch(portalApp,/portal-phase-zero-lifecycle\.js/);
   assert.match(portalApp,/portal-admin-journey\.js/);
@@ -23,8 +24,10 @@ test('delivery boot uses the canonical owners and does not load the retired Phas
   assert.match(portalApp,/window\.NexusAdminJourney\?\.navigate/);
 });
 
-test('client journey keeps future stages visible with canonical gates',()=>{
-  for(const label of ['Overview','Diagnosis','Actions','Builds','Progress','Final Package','Support'])assert.ok(clientShell.includes(label));
+test('client journey uses four destinations while keeping all six lifecycle stages visible with canonical gates',()=>{
+  for(const label of ['Home','Diagnosis','Work','Handoff','Intake & Basic Diagnosis','Full Diagnosis + scoped service','Scope approval','Implementation + files','Revisions','Acceptance + handoff'])assert.ok(clientNavigation.includes(label));
+  assert.match(clientShell,/CLIENT_PRIMARY_NAV\.map/);
+  assert.match(clientShell,/clientJourneyStages\(lifecycleStore\.value\)/);
   assert.match(clientShell,/journeyGate/);
   assert.match(clientShell,/journeyNext\(lifecycleStore\.value/);
   assert.match(clientShell,/mountPackageDelivery/);

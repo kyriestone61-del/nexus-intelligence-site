@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {journeyProgress,journeyGate,journeyMarkup,journeyPagerMarkup,currentTranscript,journeyNext} from '../../portal-journey-steps.js';
+import {CLIENT_PRIMARY_NAV,clientJourneyStages} from '../../portal-client-navigation.js';
 import {persistEvidence} from '../../portal-evidence-upload.js';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
@@ -28,11 +29,14 @@ test('the numbered journey owns its layout instead of inheriting the global site
   assert.match(css,/\.relystra-numbered-journey\{display:block/);
   assert.match(css,/@media\(max-width:760px\).*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/s);
 });
-test('the client shell applies lifecycle visibility to its compact navigation',()=>{
+test('the client shell keeps a fixed compact navigation and renders the six-stage journey only as a summary',()=>{
   const shell=readFileSync('portal-client-shell-v2.js','utf8');
-  assert.match(shell,/visibleDeliverySections/);
+  assert.equal(CLIENT_PRIMARY_NAV.length,4);
+  assert.equal(clientJourneyStages(base).length,6);
+  assert.doesNotMatch(shell,/journeyMarkup|journeyPagerMarkup|visibleDeliverySections/);
   assert.match(shell,/function updatePrimaryNavigation\(\)/);
-  assert.match(shell,/button\.dataset\.clientView!=='transcript'/);
+  assert.match(shell,/button\.hidden=false/);
+  assert.match(shell,/data-client-group/);
   assert.match(shell,/updateMiniContext\(\);updatePrimaryNavigation\(\);renderInbox\(\)/);
 });
 test('the client action surface excludes historical and delivery work once diagnosis-led Actions exist',()=>{
