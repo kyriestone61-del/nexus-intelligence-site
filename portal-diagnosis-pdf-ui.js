@@ -5,8 +5,6 @@ const {sb,state,toast}=portal;
 let activeAdminRunId=null;
 let adminMountQueued=false;
 let clientMountQueued=false;
-let clientQueryPromise=null;
-let clientReleaseCache={companyId:null,rows:[]};
 
 function safeFilename(value,fallback='Relystra-Diagnosis-Report.pdf'){
   const name=String(value||'').trim().replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'-');
@@ -109,45 +107,25 @@ document.addEventListener('click',event=>{
   if(trigger?.dataset?.id)activeAdminRunId=trigger.dataset.id;
 },true);
 
-async function releasedRows(){
-  const companyId=state.companyId;
-  if(!companyId)return [];
-  if(clientReleaseCache.companyId===companyId&&clientReleaseCache.rows.length)return clientReleaseCache.rows;
-  if(clientQueryPromise)return clientQueryPromise;
-  clientQueryPromise=(async()=>{
-    const {data,error}=await sb.from('nexus_diagnosis_report_releases')
-      .select('id,released_at')
-      .eq('company_id',companyId)
-      .eq('status','released')
-      .is('revoked_at',null)
-      .order('released_at',{ascending:false});
-    if(error)throw error;
-    const rows=data||[];
-    clientReleaseCache={companyId,rows};
-    return rows;
-  })();
-  try{return await clientQueryPromise}finally{clientQueryPromise=null}
-}
-
-async function mountClientDownloads(){
+function mountClientDownloads(){
   const root=document.getElementById('nexus-client-reports');
   const cards=[...root?.querySelectorAll('.nexus-client-report')||[]];
-  if(!cards.length||cards.every(card=>card.querySelector('[data-diagnosis-pdf-release]')))return;
-  let rows;
-  try{rows=await releasedRows()}catch(error){console.error('Released diagnosis reports could not be loaded for PDF controls.',error);return}
-  if(rows.length!==cards.length){
-    console.warn('Relystra skipped diagnosis PDF controls because released report ordering could not be reconciled safely.',{cards:cards.length,releases:rows.length});
-    return;
-  }
-  cards.forEach((card,index)=>{
-    const releaseId=rows[index]?.id;
-    if(!releaseId||card.querySelector('[data-diagnosis-pdf-release]'))return;
+  // Identity comes from the same released row that rendered each report card.
+  // A second query/order-based cache can attach another report's download.
+  cards.forEach(card=>{
+    const releaseId=card.dataset.diagnosisReleaseId;
+    const companyId=card.dataset.diagnosisCompanyId;
+    const existing=card.querySelector('[data-diagnosis-pdf-release]');
+    if(!releaseId||!companyId||companyId!==state.companyId){existing?.remove();return}
+    if(existing){existing.dataset.diagnosisPdfRelease=releaseId;return}
     const button=document.createElement('button');
     button.className='btn secondary';
     button.type='button';
     button.textContent='Download PDF';
     button.dataset.diagnosisPdfRelease=releaseId;
     button.addEventListener('click',async()=>{
+      const releaseId=button.dataset.diagnosisPdfRelease;
+      if(!releaseId||releaseId!==card.dataset.diagnosisReleaseId||card.dataset.diagnosisCompanyId!==state.companyId)return;
       try{await downloadDiagnosisPdf({release_id:releaseId},{button,fallback:'Relystra-Client-Report.pdf'})}
       catch(error){console.error('Client diagnosis PDF download failed',error);toast?.(error.message||'Client report PDF could not be downloaded.')}
     });
@@ -163,13 +141,9 @@ function scheduleClientMount(){
 }
 
 const observer=new MutationObserver(()=>{scheduleAdminMount();scheduleClientMount()});
-observer.observe(document.body,{childList:true,subtree:true});
-window.addEventListener('nexus:client-context-ready',event=>{
-  const companyId=event.detail?.companyId||state.companyId;
-  if(companyId!==clientReleaseCache.companyId)clientReleaseCache={companyId:null,rows:[]};
-  scheduleClientMount();
-});
-window.addEventListener('nexus:diagnosis-changed',()=>{clientReleaseCache={companyId:null,rows:[]};scheduleAdminMount();scheduleClientMount()});
+observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-diagnosis-release-id','data-diagnosis-company-id']});
+window.addEventListener('nexus:client-context-ready',()=>scheduleClientMount());
+window.addEventListener('nexus:diagnosis-changed',()=>{scheduleAdminMount();scheduleClientMount()});
 
 scheduleAdminMount();
 scheduleClientMount();

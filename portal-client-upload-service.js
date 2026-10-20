@@ -9,13 +9,22 @@ if(!portal)throw new Error('Relystra portal context is unavailable for upload se
 const {sb,state,runtime,toast}=portal;
 const {events,boundary}=runtime;
 const MAX_BYTES=26214400;
-let selection={requestId:null,requirementId:null,taskId:null,title:''};
+let selection={requestId:null,requirementId:null,taskId:null,title:'',companyId:null,projectId:null};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
-function clear(){selection={requestId:null,requirementId:null,taskId:null,title:''};const box=$('uploadContext');if(box){box.classList.remove('show');box.innerHTML=''}}
+function clear({resetForm=false}={}){
+  selection={requestId:null,requirementId:null,taskId:null,title:'',companyId:null,projectId:null};
+  const box=$('uploadContext');if(box){box.classList.remove('show');box.innerHTML=''}
+  if(resetForm){
+    $('uploadForm')?.reset?.();
+    const file=$('docFile'),note=$('docNote');
+    if(file)file.value='';
+    if(note)note.value='';
+  }
+}
 function prepare({requestId=null,requirementId=null,taskId=null,title=''}){
-  selection={requestId,requirementId,taskId,title:String(title||'')};
+  selection={requestId,requirementId,taskId,title:String(title||''),companyId:state.companyId||null,projectId:state.activeProjectId||null};
   const box=$('uploadContext');if(!box)return;
   box.classList.add('show');box.innerHTML=`<b>Upload for:</b> ${esc(selection.title||'General evidence')} <button id="clientClearUploadContext" class="btn secondary" type="button">Clear</button>`;
   if($('docNote')&&!$('docNote').value)$('docNote').value=selection.title?`File for ${selection.title}`:'';
@@ -45,8 +54,13 @@ async function uploadFile({file,requestId=null,requirementId=null,taskId=null,ti
   if(file.size>MAX_BYTES)throw new Error('File exceeds the 25 MB limit.');
   const companyId=state.companyId;if(!companyId)throw new Error('Client company context is unavailable.');
   const task=assertTaskBoundary(taskId),request=requestFor(requestId),requirement=requirementFor(requirementId);
+  const activeProject=(state.projects||[]).find(project=>String(project.id)===String(state.activeProjectId||'')&&String(project.company_id)===String(companyId))||null;
   if(requestId&&(!request||request.company_id!==companyId))throw new Error('This request is outside the current company workspace.');
   if(requirementId&&(!requirement||!state.projects?.some(p=>p.id===requirement.project_id&&p.company_id===companyId)))throw new Error('This requirement is outside the current company workspace.');
+  if(request?.project_id&&String(request.project_id)!==String(activeProject?.id||''))throw new Error('This request belongs to a different package. Choose it again from the current package.');
+  if(requirement?.project_id&&String(requirement.project_id)!==String(activeProject?.id||''))throw new Error('This requirement belongs to a different package. Choose it again from the current package.');
+  if(task?.project_id&&String(task.project_id)!==String(activeProject?.id||''))throw new Error('This action belongs to a different package. Open it again from the current package.');
+  if(!request&&!requirement&&!task&&activeProject&&['complete','completed','cancelled','canceled','archived'].includes(String(activeProject.status||'').toLowerCase()))throw new Error('Completed packages are read-only. Select the current package before uploading new evidence.');
   const sensitivity=request?.sensitivity||requirement?.catalog?.sensitivity||'standard';
   const projectId=request?request.project_id||null:task?.work_kind==='prebuild_action'?null:(task?.project_id||state.activeProjectId||state.activeEngagement?.project_id||null);
   const document=await persistEvidence(sb,{file,companyId,userId:state.user.id,projectId,taskId:task?.id||null,requestId,requirementId,category,note:(note||title)?String(note||`File for ${title}`):null,sensitivity});
@@ -72,12 +86,15 @@ async function uploadFilesForTask({taskId,files,note=null,onProgress=null}={}){
 async function submit(event){
   event.preventDefault();event.stopImmediatePropagation();
   const form=event.currentTarget,file=$('docFile')?.files?.[0];if(!file)return;
+  const prepared={...selection};
+  if(prepared.companyId&&(prepared.companyId!==state.companyId||String(prepared.projectId||'')!==String(state.activeProjectId||'')))throw new Error('The workspace changed. Choose the upload target again in the current package.');
   const category=$('docCategory')?.value||'Client Source',note=$('docNote')?.value.trim()||null;
-  await uploadFile({file,requestId:selection.requestId,requirementId:selection.requirementId,taskId:selection.taskId,title:selection.title,category,note,refresh:false});
+  await uploadFile({file,requestId:prepared.requestId,requirementId:prepared.requirementId,taskId:prepared.taskId,title:prepared.title,category,note,refresh:false});
   form.reset();clear();toast('Document uploaded securely.');await portal.workspace?.();
 }
 
 const form=$('uploadForm');if(form)events.bind(form,'submit','client-upload:submit',boundary.wrap('client secure upload',submit),true);
+events.bind(window,'nexus:workspace-loading','client-upload:workspace-loading',()=>clear({resetForm:true}));
 const service=Object.freeze({prepare,clear,uploadFile,uploadFilesForTask,getSelection:()=>({...selection})});
 portal.services=portal.services||{};portal.services.clientUpload=service;
 Object.defineProperty(portal,'prepareUpload',{value:prepare,configurable:true,enumerable:false});

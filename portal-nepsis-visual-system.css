@@ -1,0 +1,1208 @@
+/*
+ * Nepsis Intelligence portal visual system
+ * Final signed-in cascade layer for the client and operator workspaces.
+ * The interaction model and four-part client navigation stay owned by the
+ * existing portal runtime; this file only applies the approved visual system.
+ */
+
+.portal-body {
+  --nx-void: #f7f3ea;
+  --nx-deep: #082538;
+  --nx-panel: #fbfaf6;
+  --nx-panel-2: #f2eee5;
+  --nx-line: #ddd7cb;
+  --nx-line-strong: #c8c0b2;
+  --nx-text: #102b3d;
+  --nx-muted: #65727a;
+  --nx-violet: #197884;
+  --nx-violet-2: #185864;
+  --nx-citron: #197884;
+  --nx-mint: #397f82;
+  --nx-amber: #9b6f2e;
+  --nx-red: #9d4a4a;
+  --nepsis-navy: #082538;
+  --nepsis-navy-deep: #082538;
+  --nepsis-teal: #197884;
+  --nepsis-teal-soft: #e4eeeb;
+  --nepsis-ivory: #f7f3ea;
+  --nepsis-paper: #fbfaf6;
+  --nepsis-rule: #ddd7cb;
+  --nepsis-ink: #102b3d;
+  --nepsis-copy: #52636d;
+  --nepsis-serif: Baskerville, Georgia, "Times New Roman", serif;
+  background: var(--nepsis-ivory) !important;
+  color: var(--nepsis-ink);
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+}
+
+.portal-body::before,
+.portal-body::after,
+.portal-body .sidebar::before {
+  display: none !important;
+}
+
+.portal-body a {
+  color: var(--nepsis-teal);
+}
+
+.portal-body h1,
+.portal-body h2,
+.portal-body h3,
+.portal-body .ops-stat strong,
+.portal-body .stat b,
+.portal-body .journey-summary-card b {
+  color: var(--nepsis-ink);
+  font-family: var(--nepsis-serif);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.portal-body p,
+.portal-body li,
+.portal-body dd,
+.portal-body .small,
+.portal-body .muted,
+.portal-body .ops-section-copy {
+  color: var(--nepsis-copy);
+}
+
+.portal-body .eyebrow,
+.portal-body .kicker {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--nepsis-teal);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.portal-body :focus-visible {
+  outline: 3px solid #2f7e87;
+  outline-offset: 3px;
+}
+
+/* Signed-in frame */
+.portal-body .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  min-height: 68px;
+  gap: 9px;
+  padding: 10px 22px;
+  border-bottom: 1px solid var(--nepsis-rule);
+  background: rgba(251, 250, 246, 0.97);
+  color: var(--nepsis-ink);
+  backdrop-filter: blur(14px);
+  box-shadow: none;
+}
+
+.portal-body .topbar .brand {
+  min-width: 198px;
+  color: var(--nepsis-ink);
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.portal-body .topbar .brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 0;
+}
+
+.portal-body .topbar .pill,
+.portal-body .ops-role-chip {
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 4px;
+  background: #f1eee7;
+  color: #617078;
+  box-shadow: none;
+}
+
+.portal-body .workspace,
+.nexus-client-shell-v2 .workspace {
+  max-width: none;
+  grid-template-columns: 224px minmax(0, 1fr) !important;
+  min-height: calc(100vh - 68px);
+  margin: 0;
+  background: var(--nepsis-ivory);
+}
+
+.portal-body .sidebar,
+.nexus-client-shell-v2 .sidebar {
+  position: relative;
+  padding: 24px 14px !important;
+  border: 0;
+  border-right: 1px solid #163c4d;
+  background: var(--nepsis-navy-deep);
+  color: #f4f3ee;
+  box-shadow: none;
+}
+
+.portal-body .main,
+.nexus-client-shell-v2 .main {
+  width: min(100%, 1360px);
+  padding: 30px 34px 48px !important;
+  background: var(--nepsis-ivory);
+}
+
+.portal-body .section,
+.nexus-client-shell-v2 .nexus-client-shell-section {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* Inputs and actions */
+.portal-body input,
+.portal-body select,
+.portal-body textarea,
+.portal-body .ops-select {
+  border: 1px solid #cfc8bc;
+  border-radius: 4px;
+  background: #fffdfa;
+  color: var(--nepsis-ink);
+  box-shadow: none;
+}
+
+.portal-body input:focus,
+.portal-body select:focus,
+.portal-body textarea:focus,
+.portal-body .ops-select:focus {
+  border-color: var(--nepsis-teal);
+  box-shadow: 0 0 0 3px rgba(35, 111, 123, 0.13);
+}
+
+.portal-body .btn,
+.portal-body button {
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+}
+
+.portal-body .btn {
+  border-radius: 4px;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+.portal-body .btn.primary {
+  border: 1px solid var(--nepsis-navy);
+  background: var(--nepsis-navy);
+  color: #fffdf8;
+  box-shadow: none;
+}
+
+.portal-body .btn.primary:hover {
+  border-color: #15475b;
+  background: #15475b;
+}
+
+.portal-body .btn.secondary {
+  border: 1px solid #cfc8bc;
+  background: #fffdfa;
+  color: var(--nepsis-ink);
+}
+
+.portal-body .btn.secondary:hover {
+  border-color: #9ea9a8;
+  background: #f4f0e7;
+}
+
+.portal-body .btn.danger {
+  border-color: #caa7a3;
+  color: #803f3f;
+}
+
+/* Shared restrained surfaces */
+.portal-body .panel,
+.portal-body .box,
+.portal-body .stat,
+.portal-body .row,
+.portal-body .metric-card,
+.portal-body .upload,
+.portal-body .ops-hero,
+.portal-body .ops-stat,
+.portal-body .ops-panel,
+.portal-body .ops-client,
+.portal-body .ops-item,
+.portal-body .ops-request-form,
+.portal-body .ops-memory,
+.portal-body .admin-journey-client,
+.portal-body .journey-focus,
+.portal-body .journey-summary-card,
+.portal-body .journey-step,
+.portal-body .journey-help,
+.portal-body .relystra-build-card,
+.portal-body .relystra-workflow-empty,
+.portal-body .relystra-workflow-primary-section,
+.portal-body .relystra-step-state {
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 5px;
+  background: var(--nepsis-paper);
+  color: var(--nepsis-ink);
+  box-shadow: none;
+}
+
+.portal-body .panel::before,
+.portal-body .nx-corner::before {
+  display: none;
+}
+
+.portal-body .note,
+.portal-body .success-box,
+.portal-body .empty,
+.portal-body .ops-empty {
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 4px;
+  background: #f7f3eb;
+  color: var(--nepsis-copy);
+  box-shadow: none;
+}
+
+.portal-body .modal {
+  background: rgba(8, 37, 53, 0.62);
+}
+
+.portal-body .modal-card,
+.portal-body .toast {
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 5px;
+  background: var(--nepsis-paper);
+  color: var(--nepsis-ink);
+  box-shadow: 0 22px 62px rgba(8, 37, 53, 0.2);
+}
+
+/* Navy rail — client and operator */
+.portal-body .nexus-client-mini-context,
+.portal-body #companyMini {
+  margin-bottom: 16px;
+  padding: 2px 10px 18px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f6f3ec;
+}
+
+.portal-body .nexus-client-mini-context .kicker,
+.portal-body #companyMini .small,
+.portal-body .sidebar .small {
+  color: #aebfc5;
+}
+
+.portal-body .nexus-client-mini-context b,
+.portal-body #companyMini b {
+  color: #fffdf8;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.portal-body .nexus-client-mini-context label {
+  color: #b7c5ca;
+  font-size: 11px;
+}
+
+.portal-body .nexus-client-mini-context select {
+  width: 100%;
+  margin-top: 7px;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  background: #12384a !important;
+  color: #fffdf8;
+}
+
+.portal-body .side-nav,
+.portal-body .nexus-client-primary-nav {
+  display: grid;
+  gap: 4px;
+}
+
+.portal-body .side-nav button,
+.portal-body .nexus-client-primary-nav button {
+  min-height: 46px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #d5dfe1;
+  text-align: left;
+  box-shadow: none;
+}
+
+.portal-body .nexus-client-primary-nav button {
+  grid-template-columns: 6px minmax(0, 1fr);
+  gap: 10px;
+  padding: 11px 12px;
+}
+
+.portal-body .nexus-client-primary-nav button > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #7f979e;
+  box-shadow: none;
+}
+
+.portal-body .side-nav button:hover,
+.portal-body .nexus-client-primary-nav button:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #123b4e;
+  color: #fffdf8;
+}
+
+.portal-body .side-nav button.active,
+.portal-body .nexus-client-primary-nav button.active {
+  border-color: #397887;
+  background: #22596d;
+  color: #fffdf8;
+}
+
+.portal-body .side-nav button.active::before {
+  left: -1px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 0;
+  background: #dcebea;
+}
+
+.portal-body .nexus-client-primary-nav button.active > span {
+  background: #e8f1ee;
+  box-shadow: none;
+}
+
+.portal-body .ops-nav-group {
+  margin: 17px 10px 6px;
+  color: #8ba3aa;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.17em;
+}
+
+.portal-body .admin-tool-drawer {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.portal-body .admin-tool-drawer summary {
+  color: #b5c5ca;
+}
+
+.portal-body .sidebar > .note {
+  margin-top: 28px !important;
+  padding: 15px 10px;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0;
+  background: transparent;
+  color: #aebfc5;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.portal-body .sidebar > .note b {
+  color: #eef2ef;
+}
+
+/* Client workspace */
+.nexus-client-shell-v2 .nexus-client-page-head,
+.portal-body .relystra-step-page-head,
+.portal-body .admin-journey-hero,
+.portal-body .ops-toolbar {
+  align-items: flex-end;
+  margin-bottom: 20px;
+  padding-bottom: 0;
+}
+
+.nexus-client-shell-v2 .nexus-client-page-head h1,
+.portal-body .relystra-step-page-head h1,
+.portal-body .admin-journey-hero h1,
+.portal-body .ops-hero h1,
+.portal-body .ops-toolbar h1,
+.portal-body .toolbar h1 {
+  color: var(--nepsis-ink);
+  font-family: var(--nepsis-serif);
+  font-size: clamp(34px, 4vw, 48px);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+
+.nexus-client-shell-v2 .nexus-client-page-head p,
+.portal-body .relystra-step-page-head p,
+.portal-body .admin-journey-hero p,
+.portal-body .ops-hero p {
+  max-width: 720px;
+  color: var(--nepsis-copy);
+  line-height: 1.6;
+}
+
+.nexus-client-shell-v2 .nexus-client-primary-action,
+.nexus-client-shell-v2 .nexus-client-today-strip,
+.nexus-client-shell-v2 .nexus-client-files-panel,
+.nexus-client-shell-v2 .nexus-client-progress-section,
+.nexus-client-shell-v2 .nexus-client-report,
+.nexus-client-shell-v2 .nexus-client-journey-summary,
+.nexus-client-shell-v2 .nexus-client-file-group,
+.nexus-client-shell-v2 .nexus-client-file-request,
+.nexus-client-shell-v2 .nexus-client-progress-row,
+.nexus-client-shell-v2 .nexus-client-metric-grid article,
+.nexus-client-shell-v2 .nexus-client-task-brief > div,
+.nexus-client-shell-v2 .nexus-client-security-note,
+.nexus-client-shell-v2 .nexus-client-inbox-card,
+.nexus-client-shell-v2 .nexus-client-guide-message,
+.nexus-client-shell-v2 .nexus-client-guide-quick button,
+.nexus-client-shell-v2 .nexus-progressive-help,
+.nexus-client-shell-v2 .nexus-client-commercial-note,
+.nexus-client-shell-v2 .nexus-client-evidence-help,
+.nexus-client-shell-v2 .nexus-client-clear-state,
+.nexus-client-shell-v2 .nexus-client-data-warning {
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 5px;
+  background: var(--nepsis-paper);
+  color: var(--nepsis-ink);
+  box-shadow: none;
+}
+
+.nexus-client-shell-v2 .nexus-client-primary-action {
+  padding: 24px 26px;
+  border-color: #c9d9d5;
+  border-left: 4px solid var(--nepsis-teal);
+}
+
+.nexus-client-shell-v2 .nexus-client-primary-label {
+  color: var(--nepsis-teal);
+  font-size: 10px;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.nexus-client-shell-v2 .nexus-client-primary-top h2,
+.nexus-client-shell-v2 .nexus-client-section-head h2,
+.nexus-client-shell-v2 .nexus-client-progress-section h2,
+.nexus-client-shell-v2 .nexus-client-report-head h2,
+.nexus-client-shell-v2 .nexus-client-journey-summary h2 {
+  color: var(--nepsis-ink);
+  font-family: var(--nepsis-serif);
+  font-weight: 400;
+}
+
+.nexus-client-shell-v2 .nexus-client-primary-action > p,
+.nexus-client-shell-v2 .nexus-client-file-request p,
+.nexus-client-shell-v2 .nexus-client-progress-row > div > span:not(.nexus-client-status),
+.nexus-client-shell-v2 .nexus-client-file-group small,
+.nexus-client-shell-v2 .nexus-client-shared-files small,
+.nexus-client-shell-v2 .nexus-client-progress-section summary small,
+.nexus-client-shell-v2 .nexus-client-report section p,
+.nexus-client-shell-v2 .nexus-client-report-dl dd,
+.nexus-client-shell-v2 .nexus-client-clear-state span,
+.nexus-client-shell-v2 .nexus-client-empty-small {
+  color: var(--nepsis-copy);
+}
+
+.nexus-client-shell-v2 .nexus-client-journey-summary {
+  padding: 20px;
+}
+
+.nexus-client-shell-v2 .nexus-client-journey-summary button {
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 4px;
+  background: #f7f4ed;
+  color: var(--nepsis-ink);
+}
+
+.nexus-client-shell-v2 .nexus-client-journey-summary button > span,
+.nexus-client-shell-v2 .nexus-client-milestones > div > span,
+.nexus-client-shell-v2 .nexus-client-approval-route > div > span {
+  border-color: #9eb8b5;
+  background: #edf3f1;
+  color: var(--nepsis-teal);
+  box-shadow: none;
+}
+
+.nexus-client-shell-v2 .nexus-client-journey-summary .is-current button {
+  border-color: #75a2a4;
+  background: #edf4f1;
+}
+
+.nexus-client-shell-v2 .nexus-client-journey-summary .is-complete button > span,
+.nexus-client-shell-v2 .nexus-client-milestones > div.complete > span {
+  border-color: var(--nepsis-teal);
+  background: var(--nepsis-teal);
+  color: #fffdf8;
+}
+
+.nexus-client-shell-v2 .nexus-client-status,
+.portal-body .journey-status,
+.portal-body .journey-step-meta span,
+.portal-body .ops-badge,
+.portal-body .nexus-lifecycle,
+.portal-body .pill {
+  border: 1px solid #bdc9c5;
+  border-radius: 999px;
+  background: #eef3f0;
+  color: #355d62;
+  box-shadow: none;
+}
+
+.nexus-client-shell-v2 .nexus-client-status.waiting-on-you,
+.portal-body .ops-badge.attention,
+.portal-body .ops-badge.waiting_client,
+.portal-body .ops-badge.pending,
+.portal-body .ops-badge.reviewing,
+.portal-body .ops-badge.assessing {
+  border-color: #dbc89f;
+  background: #faf2e2;
+  color: #755a2f;
+}
+
+.nexus-client-shell-v2 .nexus-client-status.complete,
+.nexus-client-shell-v2 .nexus-client-status.ready-to-review,
+.portal-body .ops-badge.healthy,
+.portal-body .ops-badge.approved,
+.portal-body .ops-badge.complete,
+.portal-body .ops-badge.implemented {
+  border-color: #a8c3ba;
+  background: #e8f1ed;
+  color: #2d665e;
+}
+
+.nexus-client-shell-v2 .nexus-client-status.nexus-working,
+.portal-body .ops-badge.building,
+.portal-body .ops-badge.submitted,
+.portal-body .ops-badge.planned,
+.portal-body .ops-badge.in_progress,
+.portal-body .ops-badge.recommended {
+  border-color: #9eb9be;
+  background: #e9f1f1;
+  color: #285f68;
+}
+
+.nexus-client-shell-v2 .nexus-client-status.upcoming,
+.portal-body .ops-badge.paused,
+.portal-body .ops-badge.retired,
+.portal-body .ops-badge.declined,
+.portal-body .ops-badge.cancelled {
+  border-color: #d2cec5;
+  background: #f3f0ea;
+  color: #747a7b;
+}
+
+.nexus-client-shell-v2 .nexus-client-progress-row.now:hover,
+.nexus-client-shell-v2 .nexus-client-inbox-card:hover,
+.nexus-client-shell-v2 .nexus-client-guide-quick button:hover {
+  border-color: #94b3b2;
+  background: #f0f5f2;
+}
+
+.nexus-client-shell-v2 .nexus-client-modal {
+  background: rgba(8, 37, 53, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.nexus-client-shell-v2 .nexus-client-modal-card,
+.nexus-client-shell-v2 .nexus-client-inbox-drawer,
+.nexus-client-shell-v2 .nexus-client-guide-drawer {
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 5px;
+  background: var(--nepsis-paper);
+  color: var(--nepsis-ink);
+  box-shadow: 0 22px 70px rgba(8, 37, 53, 0.22);
+}
+
+.nexus-client-shell-v2 .nexus-client-icon-button,
+.nexus-client-shell-v2 .nexus-client-inbox-tabs button {
+  border-color: var(--nepsis-rule);
+  border-radius: 4px;
+  background: #fffdfa;
+  color: var(--nepsis-ink);
+}
+
+.nexus-client-shell-v2 .nexus-client-inbox-tabs button.active {
+  border-color: #91b0af;
+  background: #e9f2ef;
+  color: var(--nepsis-ink);
+}
+
+.nexus-client-shell-v2 #nexusClientInboxCount {
+  background: var(--nepsis-teal);
+  color: #fffdf8;
+}
+
+.nexus-client-shell-v2 .nexus-client-load-status {
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 5px;
+  background: var(--nepsis-paper);
+  color: var(--nepsis-ink);
+  box-shadow: none;
+}
+
+/* Operator Today and administration */
+body.portal-admin-mode .ops-dashboard {
+  gap: 14px;
+}
+
+.portal-admin-mode .relystra-numbered-journey {
+  padding: 16px;
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 5px;
+  background: var(--nepsis-paper);
+  color: var(--nepsis-ink);
+}
+
+.portal-admin-mode .relystra-journey-position > span {
+  color: var(--nepsis-teal);
+}
+
+.portal-admin-mode .relystra-numbered-journey button {
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 4px;
+  background: #f7f4ed;
+  color: var(--nepsis-copy);
+  box-shadow: none;
+}
+
+.portal-admin-mode .relystra-numbered-journey button[aria-current="step"],
+.portal-admin-mode .relystra-numbered-journey .is-active button {
+  outline: 2px solid #91b5b3;
+  outline-offset: 1px;
+  border-color: #91b5b3;
+  background: #eaf2ef;
+  color: var(--nepsis-ink);
+}
+
+.portal-admin-mode .relystra-numbered-journey .is-completed .journey-number {
+  border-color: var(--nepsis-teal);
+  background: var(--nepsis-teal);
+  color: #fffdf8;
+}
+
+.portal-admin-mode .relystra-numbered-journey small {
+  color: var(--nepsis-copy);
+}
+
+.portal-admin-mode .ops-hero {
+  padding: 0 0 16px;
+  border: 0;
+  border-bottom: 1px solid var(--nepsis-rule);
+  border-radius: 0;
+  background: transparent;
+}
+
+.portal-admin-mode .ops-stat-grid {
+  gap: 9px;
+}
+
+.portal-admin-mode .ops-stat {
+  padding: 14px 16px;
+}
+
+.portal-admin-mode .ops-stat strong {
+  font-size: 28px;
+}
+
+.portal-admin-mode .ops-stat span,
+.portal-admin-mode .ops-action small,
+.portal-admin-mode .ops-item p,
+.portal-admin-mode .ops-kpi span,
+.portal-admin-mode .ops-section-copy {
+  color: var(--nepsis-copy);
+}
+
+.portal-admin-mode .ops-panel,
+.portal-admin-mode .ops-client,
+.portal-admin-mode .ops-item,
+.portal-admin-mode .ops-request-form,
+.portal-admin-mode .ops-memory {
+  border-radius: 5px;
+  background: var(--nepsis-paper);
+}
+
+.portal-admin-mode .ops-panel {
+  padding: 17px;
+}
+
+.portal-admin-mode .ops-panel h2,
+.portal-admin-mode .ops-panel h3,
+.portal-admin-mode .ops-client h3,
+.portal-admin-mode .ops-item h3 {
+  color: var(--nepsis-ink);
+  font-family: Baskerville, Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+.portal-admin-mode .ops-action {
+  border: 0;
+  border-bottom: 1px solid var(--nepsis-rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--nepsis-ink);
+}
+
+.portal-admin-mode .ops-action:last-child {
+  border-bottom: 0;
+}
+
+.portal-admin-mode .ops-action:hover {
+  background: #f1f5f2;
+}
+
+.portal-admin-mode .ops-kpi {
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 4px;
+  background: #f7f4ed;
+}
+
+.portal-admin-mode .ops-pulse {
+  border-color: var(--nepsis-teal);
+}
+
+.portal-admin-mode .ops-stage span.active {
+  border-color: #95b4b2;
+  background: #e9f2ef;
+  color: #255f66;
+}
+
+.portal-admin-mode .journey-focus,
+.portal-admin-mode .journey-step.current {
+  border-color: #98b7b3;
+  background: #edf4f1;
+}
+
+.portal-admin-mode .journey-progress span {
+  background: #ddd8cd;
+}
+
+.portal-admin-mode .journey-progress span.complete {
+  background: var(--nepsis-teal);
+}
+
+.portal-admin-mode .journey-progress span.current {
+  background: #91b7b5;
+  box-shadow: none;
+}
+
+.portal-admin-mode .journey-step-number,
+.portal-admin-mode .approval-route-number {
+  border-color: #a8bbb8;
+  border-radius: 50%;
+  background: #edf3f1;
+  color: #2a666d;
+}
+
+.portal-admin-mode .nexus-inbox-card,
+.portal-admin-mode .nexus-approval-summary,
+.portal-admin-mode .nexus-approval-decision,
+.portal-admin-mode .embedded-checklist-head,
+.portal-admin-mode .embedded-requirement,
+.portal-admin-mode .action-empty {
+  border-color: var(--nepsis-rule);
+  border-radius: 5px;
+  background: var(--nepsis-paper);
+  color: var(--nepsis-ink);
+  box-shadow: none;
+}
+
+/* Existing data-room and workflow modules inherit the same paper system. */
+.portal-body .data-room-hero,
+.portal-body .data-room-upload,
+.portal-body .data-room-help > div,
+.portal-body .requirement-card,
+.portal-body .email-control,
+.portal-body .pref-toggle,
+.portal-body .embedded-checklist-head,
+.portal-body .embedded-requirement,
+.portal-body .action-empty {
+  border: 1px solid var(--nepsis-rule) !important;
+  border-radius: 5px !important;
+  background: var(--nepsis-paper) !important;
+  color: var(--nepsis-ink);
+  box-shadow: none !important;
+}
+
+.portal-body .data-room-hero::after,
+.portal-body .requirement-card::before {
+  display: none;
+}
+
+.portal-body .data-room-meter-track {
+  background: #ded8cc;
+}
+
+.portal-body .data-room-meter-fill {
+  background: var(--nepsis-teal);
+}
+
+.portal-body .data-room-meter strong,
+.portal-body .req-status.build_with_nexus {
+  color: var(--nepsis-teal);
+}
+
+.portal-body .req-detail,
+.portal-body .nexus-client-report-head,
+.portal-body .nexus-client-report section,
+.portal-body .nexus-client-report-dl > div,
+.portal-body .nexus-client-file-list > div,
+.portal-body .nexus-client-waiting-note {
+  border-color: var(--nepsis-rule);
+}
+
+/* The mobile shell uses the existing accessible menu controls. Navigation is
+   revealed as a two-column panel, never compressed into a bottom bar. */
+.portal-body .relystra-mobile-toggle,
+.portal-body #nexusMobileNavToggle {
+  display: none;
+}
+
+@media (max-width: 1020px) {
+  .portal-body .workspace,
+  .nexus-client-shell-v2 .workspace {
+    grid-template-columns: 200px minmax(0, 1fr) !important;
+  }
+
+  .portal-body .main,
+  .nexus-client-shell-v2 .main {
+    padding: 26px 24px 42px !important;
+  }
+
+  .portal-body .ops-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .portal-body .topbar {
+    position: relative;
+    min-height: 0;
+    padding: 10px 12px;
+    background: var(--nepsis-paper);
+  }
+
+  .portal-body .topbar .brand {
+    min-width: 0;
+    margin-right: auto;
+  }
+
+  .portal-body .topbar .brand span,
+  .portal-body .topbar .pill {
+    display: none;
+  }
+
+  .portal-body .topbar .company-select {
+    order: 10;
+    width: 100%;
+    max-width: none;
+  }
+
+  .portal-body .workspace,
+  .nexus-client-shell-v2 .workspace {
+    display: block !important;
+    min-height: 0;
+  }
+
+  .portal-body .sidebar,
+  .nexus-client-shell-v2 .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 42;
+    padding: 10px 12px !important;
+    border-right: 0;
+    border-bottom: 1px solid #214455;
+    background: var(--nepsis-navy-deep);
+  }
+
+  .portal-body .nexus-client-mini-context,
+  .portal-body #companyMini {
+    display: none;
+  }
+
+  .portal-body .relystra-mobile-toggle,
+  .portal-body #nexusMobileNavToggle {
+    display: flex;
+    width: 100%;
+    min-height: 46px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 4px;
+    background: #12394b;
+    color: #fffdf8;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .portal-body .nexus-client-primary-nav,
+  .portal-body .side-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .portal-body .relystra-menu-collapsed .nexus-client-primary-nav,
+  .portal-body .nexus-mobile-nav-collapsed .side-nav {
+    display: none;
+  }
+
+  .portal-body .nexus-client-primary-nav button,
+  .portal-body .side-nav button {
+    min-height: 46px;
+    padding: 10px;
+    white-space: normal;
+  }
+
+  .portal-body .nexus-client-primary-nav button {
+    grid-template-columns: 6px minmax(0, 1fr);
+    text-align: left;
+  }
+
+  .portal-body .nexus-client-primary-nav button > span {
+    display: block;
+  }
+
+  .portal-body .main,
+  .nexus-client-shell-v2 .main {
+    width: 100%;
+    padding: 22px 15px calc(32px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .nexus-client-shell-v2 .nexus-client-page-head,
+  .portal-body .relystra-step-page-head,
+  .portal-body .admin-journey-hero,
+  .portal-body .ops-toolbar {
+    align-items: flex-start;
+  }
+
+  .nexus-client-shell-v2 .nexus-client-page-head h1,
+  .portal-body .relystra-step-page-head h1,
+  .portal-body .admin-journey-hero h1,
+  .portal-body .ops-hero h1,
+  .portal-body .ops-toolbar h1,
+  .portal-body .toolbar h1 {
+    font-size: 34px;
+  }
+
+  .nexus-client-shell-v2 .nexus-client-primary-action,
+  .nexus-client-shell-v2 .nexus-client-files-panel,
+  .nexus-client-shell-v2 .nexus-client-progress-section,
+  .nexus-client-shell-v2 .nexus-client-report,
+  .portal-admin-mode .ops-panel {
+    padding: 16px;
+  }
+
+  .nexus-client-shell-v2 .nexus-client-journey-summary ol {
+    grid-template-columns: 1fr;
+  }
+
+  .nexus-client-shell-v2 .nexus-client-journey-summary button {
+    min-height: 78px;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    grid-template-rows: 1fr;
+    align-items: center;
+  }
+
+  .portal-admin-mode .ops-stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .portal-body .nexus-client-primary-nav,
+  .portal-body .side-nav,
+  .portal-admin-mode .ops-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-body .nexus-client-utility-button,
+  .portal-body #signOutBtn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-body *,
+  .portal-body *::before,
+  .portal-body *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+.portal-admin-mode .nepsis-operator-today > header {
+  max-width: 760px;
+  margin-bottom: 24px;
+}
+
+.portal-admin-mode .nepsis-operator-today > header h1 {
+  margin: 7px 0 10px;
+  color: var(--nepsis-navy);
+  font: 400 clamp(38px, 5vw, 62px)/.98 var(--nepsis-serif);
+  letter-spacing: -.035em;
+}
+
+.portal-admin-mode .nepsis-operator-today > header p {
+  margin: 0;
+  color: var(--nepsis-copy);
+  line-height: 1.65;
+}
+
+.portal-admin-mode .nepsis-today-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.portal-admin-mode .nepsis-today-summary span {
+  padding: 8px 11px;
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 999px;
+  background: rgba(255,255,255,.5);
+  color: var(--nepsis-copy);
+  font-size: 12px;
+}
+
+.portal-admin-mode .nepsis-today-summary b {
+  color: var(--nepsis-navy);
+}
+
+.portal-admin-mode .nepsis-today-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 14px;
+}
+
+.portal-admin-mode .nepsis-today-column {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--nepsis-rule);
+  border-top: 3px solid var(--nepsis-teal);
+  border-radius: 3px;
+  background: var(--nepsis-paper);
+  box-shadow: 0 12px 34px rgba(8,37,56,.06);
+}
+
+.portal-admin-mode .nepsis-today-column-head {
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 92px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--nepsis-rule);
+}
+
+.portal-admin-mode .nepsis-today-column-head > span {
+  color: var(--nepsis-teal);
+  font: 700 11px/1 var(--nepsis-sans);
+  letter-spacing: .16em;
+}
+
+.portal-admin-mode .nepsis-today-column h2 {
+  margin: -4px 0 5px;
+  color: var(--nepsis-navy);
+  font: 400 25px/1.05 var(--nepsis-serif);
+}
+
+.portal-admin-mode .nepsis-today-column-head p {
+  margin: 0;
+  color: var(--nepsis-copy);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.portal-admin-mode .nepsis-today-list {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.portal-admin-mode .nepsis-today-item {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 74px;
+  padding: 12px;
+  border: 1px solid var(--nepsis-rule);
+  border-radius: 3px;
+  background: var(--nepsis-ivory);
+  color: var(--nepsis-navy);
+  text-align: left;
+}
+
+.portal-admin-mode .nepsis-today-item:hover {
+  border-color: var(--nepsis-teal);
+  background: var(--nepsis-teal-soft);
+}
+
+.portal-admin-mode .nepsis-today-item b,
+.portal-admin-mode .nepsis-today-item small {
+  display: block;
+}
+
+.portal-admin-mode .nepsis-today-item b {
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+.portal-admin-mode .nepsis-today-item small {
+  color: var(--nepsis-copy);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.portal-admin-mode .nepsis-today-empty {
+  display: grid;
+  gap: 6px;
+  min-height: 130px;
+  place-content: center;
+  padding: 18px 10px;
+  color: var(--nepsis-copy);
+  text-align: center;
+}
+
+.portal-admin-mode .nepsis-today-empty b {
+  color: var(--nepsis-navy);
+  font: 400 19px/1.1 var(--nepsis-serif);
+}
+
+.portal-admin-mode .nepsis-today-empty span,
+.portal-admin-mode .nepsis-today-load-warning {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.portal-admin-mode .nepsis-today-load-warning {
+  padding: 10px 12px;
+  border-left: 3px solid var(--nx-amber);
+  background: #fff8e7;
+  color: var(--nepsis-navy);
+}
+
+.portal-admin-mode #relystraDiagnosisOffer .nexus-client-commercial-note {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 12px;
+  color: var(--nepsis-copy);
+}
+
+.portal-admin-mode #relystraDiagnosisOffer .nexus-client-commercial-note b {
+  color: var(--nepsis-navy);
+  white-space: nowrap;
+}
+
+@media (max-width: 1050px) {
+  .portal-admin-mode .nepsis-today-grid { grid-template-columns: 1fr; }
+  .portal-admin-mode .nepsis-today-column-head { min-height: 0; }
+}

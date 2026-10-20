@@ -7,14 +7,17 @@ const normalize=value=>String(value||'').trim().toLowerCase().replaceAll(' ','_'
 let releases=[];
 let decisions=[];
 let loadedCompanyId=null;
-let loading=false;
+let loadingCompanyId=null;
+let loadingPromise=null;
+let reloadQueued=false;
+let retryAfterFailure=false;
 let scheduled=false;
 
 const isPreview=()=>state.previewReadOnly===true;
 const isDiagnosisApprovalTask=task=>!!task&&normalize(task.task_type)==='approval'&&normalize(task.phase)==='diagnosis'&&!!task.source_diagnosis_run_id;
 const taskById=id=>(state.tasks||[]).find(task=>String(task.id)===String(id))||null;
-const releaseForTask=task=>isDiagnosisApprovalTask(task)?releases.find(row=>String(row.diagnosis_run_id)===String(task.source_diagnosis_run_id))||null:null;
-const decisionFor=release=>decisions.filter(row=>String(row.release_id)===String(release.id)&&Number(row.report_version)===Number(release.report_version)).sort((a,b)=>String(b.decided_at||b.updated_at||'').localeCompare(String(a.decided_at||a.updated_at||'')))[0]||null;
+const releaseForTask=task=>isDiagnosisApprovalTask(task)?releases.find(row=>row.company_id===state.companyId&&row.status==='released'&&!row.revoked_at&&String(row.diagnosis_run_id)===String(task.source_diagnosis_run_id)&&(!task.project_id||String(row.project_id||'')===String(task.project_id)))||null:null;
+const decisionFor=release=>decisions.filter(row=>String(row.release_id)===String(release.id)&&Number(row.report_version)===Number(release.report_version)&&row.report_digest===release.report_digest).sort((a,b)=>String(b.decided_at||b.updated_at||'').localeCompare(String(a.decided_at||a.updated_at||'')))[0]||null;
 
 function ensureStyles(){
   if(document.getElementById('nexusClientDiagnosisFlowStyles'))return;
@@ -37,25 +40,39 @@ function ensureStyles(){
   document.head.appendChild(style);
 }
 
-async function load({force=false}={}){
+function load({force=false,retryOnFailure=false}={}){
   const companyId=state.companyId;
-  if(!companyId||loading)return;
-  if(!force&&loadedCompanyId===companyId&&releases.length)return;
-  loading=true;
-  try{
-    const [releaseResult,decisionResult]=await Promise.all([
-      sb.from('nexus_diagnosis_report_releases').select('id,company_id,project_id,diagnosis_run_id,status,report_version,released_at,revoked_at').eq('company_id',companyId).eq('status','released').is('revoked_at',null).order('released_at',{ascending:false}),
-      sb.from('nexus_diagnosis_report_client_decisions').select('id,release_id,report_version,company_id,decision,note,decided_at,updated_at').eq('company_id',companyId).order('decided_at',{ascending:false})
-    ]);
-    if(releaseResult.error)throw releaseResult.error;
-    if(decisionResult.error)throw decisionResult.error;
-    if(companyId!==state.companyId)return;
-    releases=releaseResult.data||[];
-    decisions=decisionResult.data||[];
-    loadedCompanyId=companyId;
-    decorate();
-  }catch(error){console.error('Relystra diagnosis approval flow could not load.',error)}
-  finally{loading=false}
+  if(!companyId)return Promise.resolve();
+  if(loadingPromise){
+    if(loadingCompanyId!==companyId||(force&&!retryOnFailure))reloadQueued=true;
+    else if(retryOnFailure)retryAfterFailure=true;
+    return loadingPromise;
+  }
+  if(!force&&loadedCompanyId===companyId&&releases.length)return Promise.resolve();
+  loadingCompanyId=companyId;
+  loadingPromise=(async()=>{
+    let failed=false;
+    try{
+      const [releaseResult,decisionResult]=await Promise.all([
+        sb.from('nexus_diagnosis_report_releases').select('id,company_id,project_id,diagnosis_run_id,status,report_version,report_digest,released_at,revoked_at').eq('company_id',companyId).eq('status','released').is('revoked_at',null).order('released_at',{ascending:false}),
+        sb.from('nexus_diagnosis_report_client_decisions').select('id,release_id,report_version,report_digest,company_id,decision,note,decided_at,updated_at').eq('company_id',companyId).order('decided_at',{ascending:false})
+      ]);
+      if(releaseResult.error)throw releaseResult.error;
+      if(decisionResult.error)throw decisionResult.error;
+      if(companyId!==state.companyId)return;
+      releases=releaseResult.data||[];
+      decisions=decisionResult.data||[];
+      loadedCompanyId=companyId;
+      decorate();
+    }catch(error){failed=true;if(companyId===state.companyId)console.error('Nepsis diagnosis approval flow could not load.',error)}
+    finally{
+      loadingPromise=null;loadingCompanyId=null;
+      if(failed&&retryAfterFailure)reloadQueued=true;
+      retryAfterFailure=false;
+      if(reloadQueued){reloadQueued=false;return load({force:true})}
+    }
+  })();
+  return loadingPromise;
 }
 
 function statusMarkup(current){
@@ -68,8 +85,8 @@ function decisionMarkup(release){
   const current=decisionFor(release),approved=current?.decision==='approved',changes=current?.decision==='changes_requested',preview=isPreview();
   const intro=approved?'You approved this diagnosis. The next eligible client step is now available when its prerequisites are satisfied.':changes?'Relystra has your requested changes. This approval stays paused until a revised report version is released.':'Review the diagnosis above, including the recommended first priority. Approve it if it is accurate enough to move forward, or request a correction.';
   const previewNote=preview?'<div class="nexus-diagnosis-preview-note"><b>Admin Client View:</b> this is a read-only preview. The signed-in client can approve or request changes from this exact report.</div>':'';
-  const approveButton=!approved?(preview?'<button type="button" class="btn primary" disabled aria-disabled="true">Client can approve diagnosis</button>':'<button type="button" class="btn primary" data-diagnosis-approve>Approve diagnosis</button>'):'';
-  const changeBlock=preview?'':`<details><summary>${approved?'Need to correct something after approval?':'Request changes instead'}</summary><textarea data-diagnosis-change-note placeholder="Tell Relystra exactly what is inaccurate, missing, or unclear.">${changes?esc(current.note||''):''}</textarea><div class="actions"><button type="button" class="btn secondary" data-diagnosis-request-changes>Send change request</button></div></details>`;
+  const approveButton=!current?(preview?'<button type="button" class="btn primary" disabled aria-disabled="true">Client can approve diagnosis</button>':'<button type="button" class="btn primary" data-diagnosis-approve>Approve diagnosis</button>'):'';
+  const changeBlock=preview||current?'':`<details><summary>Request changes instead</summary><textarea data-diagnosis-change-note placeholder="Tell Relystra exactly what is inaccurate, missing, or unclear."></textarea><div class="actions"><button type="button" class="btn secondary" data-diagnosis-request-changes>Send change request</button></div></details>`;
   return `<section class="nexus-diagnosis-decision" data-diagnosis-decision-release="${esc(release.id)}"><div class="nexus-diagnosis-decision-head"><div><div class="kicker">Your decision · Report v${esc(release.report_version)}</div><h3>${approved?'Diagnosis approved':changes?'Relystra is revising the report':'Approve the diagnosis and first priority'}</h3><p>${esc(intro)} Approval does not authorize implementation, production access, or additional paid work.</p></div>${statusMarkup(current)}</div>${changes&&current.note?`<div class="nexus-diagnosis-decision-note"><b>Your change request:</b><br>${esc(current.note)}</div>`:''}${previewNote}${approveButton?`<div class="actions">${approveButton}</div>`:''}${changeBlock}</section>`;
 }
 
@@ -77,27 +94,39 @@ function bindDecisionPanel(card,release){
   const panel=card.querySelector(`[data-diagnosis-decision-release="${CSS.escape(release.id)}"]`);if(!panel)return;
   panel.querySelector('[data-diagnosis-approve]')?.addEventListener('click',event=>{
     if(!window.confirm('Approve this diagnosis and recommended first priority? This does not authorize implementation or production access.'))return;
-    submitDecision(release,'approved','',event.currentTarget);
+    submitDecision(release,'approved','',event.currentTarget,card);
   });
   panel.querySelector('[data-diagnosis-request-changes]')?.addEventListener('click',event=>{
     const note=panel.querySelector('[data-diagnosis-change-note]')?.value?.trim()||'';
     if(!note){toast?.('Explain what needs to change before sending the request.');return}
-    submitDecision(release,'changes_requested',note,event.currentTarget);
+    submitDecision(release,'changes_requested',note,event.currentTarget,card);
   });
 }
 
 function mountReportControls(){
   const root=document.getElementById('nexus-client-reports');
   const cards=[...root?.querySelectorAll('.nexus-client-report')||[]];
-  if(!cards.length||!releases.length)return;
-  const count=Math.min(cards.length,releases.length);
-  for(let index=0;index<count;index+=1){
-    const card=cards[index],release=releases[index];
-    card.dataset.diagnosisReleaseId=release.id;
+  const selectedProjectId=state.activeProjectId||null;
+  for(const card of cards){
+    // The renderer owns identity. Cache order and a selected-package subset
+    // cannot change which report the client is reading or downloading.
+    const id=card.dataset.diagnosisReleaseId;
+    const version=Number(card.dataset.diagnosisReportVersion);
+    const release=releases.find(row=>row.id===id&&row.company_id===state.companyId&&row.status==='released'&&!row.revoked_at&&Number(row.report_version)===version&&(!selectedProjectId||String(row.project_id||'')===String(selectedProjectId)));
     card.querySelector('[data-diagnosis-decision-release]')?.remove();
+    if(loadedCompanyId!==state.companyId||card.dataset.diagnosisCompanyId!==state.companyId||card.dataset.diagnosisProjectId!==String(release?.project_id||'')||card.dataset.diagnosisRunId!==String(release?.diagnosis_run_id||'')||card.dataset.diagnosisReportDigest!==String(release?.report_digest||'')||!Number.isInteger(version)||version<1||!release)continue;
     card.insertAdjacentHTML('beforeend',decisionMarkup(release));
     bindDecisionPanel(card,release);
   }
+}
+
+function syncDiagnosisSummary(){
+  const root=document.getElementById('nexus-client-reports'),summary=root?.querySelector('[data-diagnosis-decision-summary]');
+  if(!summary||loadedCompanyId!==state.companyId)return;
+  const cards=[...root.querySelectorAll('.nexus-client-report[data-diagnosis-release-id]')],visible=cards.map(card=>releases.find(row=>row.id===card.dataset.diagnosisReleaseId&&row.company_id===state.companyId&&row.status==='released'&&!row.revoked_at&&Number(row.report_version)===Number(card.dataset.diagnosisReportVersion)&&row.report_digest===card.dataset.diagnosisReportDigest)).filter(Boolean);
+  if(!visible.length)return;
+  const states=visible.map(release=>decisionFor(release)?.decision||'awaiting_approval');
+  summary.textContent=states.includes('changes_requested')?'Changes requested':states.every(value=>value==='approved')?'Approved & released':'Released · awaiting approval';
 }
 
 function decorateTaskButtons(){
@@ -118,6 +147,7 @@ function decorate(){
   ensureStyles();
   decorateTaskButtons();
   mountReportControls();
+  syncDiagnosisSummary();
 }
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>requestAnimationFrame(()=>{scheduled=false;decorate()}))}
 
@@ -135,12 +165,15 @@ async function openDiagnosisTask(task){
   if(card){card.classList.add('nexus-diagnosis-focus');card.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>card.classList.remove('nexus-diagnosis-focus'),2200)}
 }
 
-async function submitDecision(release,decision,note,button){
+async function submitDecision(release,decision,note,button,card){
   if(isPreview()){toast?.('Client View is read-only. The signed-in client can make this decision.');return}
+  const selectedProjectId=state.activeProjectId||null;
+  const current=releases.find(row=>row.id===release.id&&row.company_id===state.companyId&&row.status==='released'&&!row.revoked_at&&(!selectedProjectId||String(row.project_id||'')===String(selectedProjectId)));
+  if(!button?.isConnected||loadedCompanyId!==state.companyId||card?.dataset.diagnosisCompanyId!==state.companyId||card?.dataset.diagnosisReleaseId!==release.id||card?.dataset.diagnosisProjectId!==String(release.project_id||'')||card?.dataset.diagnosisRunId!==String(release.diagnosis_run_id||'')||card?.dataset.diagnosisReportDigest!==String(release.report_digest||'')||Number(card?.dataset.diagnosisReportVersion)!==Number(release.report_version)||Number(current?.report_version)!==Number(release.report_version)||current?.report_digest!==release.report_digest){toast?.('This report has changed. Refresh Reports and review the current version before making a decision.');return}
   const original=button?.textContent||'';
   if(button){button.disabled=true;button.textContent=decision==='approved'?'Approving…':'Sending…'}
   try{
-    const {error}=await sb.rpc('nexus_submit_diagnosis_report_decision',{p_release_id:release.id,p_decision:decision,p_note:note||null});
+    const {error}=await sb.rpc('nexus_submit_diagnosis_report_decision',{p_release_id:release.id,p_expected_report_version:release.report_version,p_expected_report_digest:release.report_digest,p_decision:decision,p_note:note||null});
     if(error)throw error;
     await portal.workspace?.();
     await window.NexusClientShell?.refresh?.({force:true});
@@ -167,7 +200,8 @@ document.addEventListener('click',event=>{
 },true);
 
 window.addEventListener('nexus:workspace-ready',event=>{if(event.detail?.companyId===state.companyId){loadedCompanyId=null;releases=[];decisions=[];load({force:true})}});
-window.addEventListener('nexus:client-context-ready',event=>{if(event.detail?.companyId===state.companyId){load();schedule()}});
+window.addEventListener('nexus:client-context-ready',event=>{if(event.detail?.companyId===state.companyId){load({force:true,retryOnFailure:true});schedule()}});
+window.addEventListener('nexus:client-view-rendered',event=>{if(event.detail?.companyId===state.companyId&&event.detail?.view==='reports')schedule()});
 window.addEventListener('nexus:diagnosis-changed',()=>{loadedCompanyId=null;releases=[];decisions=[];load({force:true})});
 
 ensureStyles();

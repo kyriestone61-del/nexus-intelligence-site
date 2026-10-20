@@ -1,88 +1,326 @@
-/* Relystra portal account-verification UX */
+/* Nepsis client access — visually aligned with the public Nepsis experience. */
+#authView,
+#onboardView,
+.portal-verified-overlay {
+  --auth-paper: #f7f3ea;
+  --auth-paper-deep: #efe9dd;
+  --auth-surface: #fffdf8;
+  --auth-ink: #0b263a;
+  --auth-muted: #425462;
+  --auth-navy: #082538;
+  --auth-navy-2: #0f354a;
+  --auth-teal: #197884;
+  --auth-teal-dark: #0d5b66;
+  --auth-teal-soft: #e2efeb;
+  --auth-line: #d9d3c8;
+  --auth-line-strong: #bfc5c3;
+  --auth-danger: #a23f30;
+  --auth-serif: Baskerville, Georgia, "Times New Roman", serif;
+  --auth-sans: "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+}
+
+body.portal-body:has(#authView:not([style*="display: none"])) {
+  background: var(--auth-paper, #f7f3ea);
+}
+
+body.portal-body:has(#authView:not([style*="display: none"]))::before,
+body.portal-body:has(#authView:not([style*="display: none"]))::after {
+  display: none;
+}
+
+#authView.nepsis-auth-shell {
+  width: 100%;
+  max-width: none;
+  min-height: 100svh;
+  margin: 0;
+  padding: 0;
+  color: var(--auth-ink);
+  background: var(--auth-paper);
+  font-family: var(--auth-sans);
+}
+
+#authView .nepsis-auth-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(430px, .88fr);
+  gap: 0;
+  width: min(1440px, 100%);
+  min-height: 100svh;
+  margin: 0 auto;
+}
+
+#authView .panel {
+  position: relative;
+  overflow: visible;
+  min-width: 0;
+  padding: clamp(42px, 6vw, 88px);
+  color: var(--auth-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#authView .panel::before { display: none; }
+
+#authView .nepsis-auth-story {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  align-content: stretch;
+  border-right: 1px solid var(--auth-line);
+  background: var(--auth-paper);
+}
+
+#authView .nepsis-auth-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 13px;
+  color: var(--auth-navy);
+  text-decoration: none;
+}
+
+#authView .nepsis-auth-brand .brand-mark {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 4px;
+}
+
+#authView .nepsis-auth-brand > span { display: grid; gap: 3px; }
+#authView .nepsis-auth-brand b { font-family: var(--auth-serif); font-size: 21px; font-weight: 400; line-height: 1; letter-spacing: .27em; }
+#authView .nepsis-auth-brand small { color: var(--auth-muted); font-size: 7px; font-weight: 700; line-height: 1; letter-spacing: .19em; }
+
+#authView .nepsis-auth-story-copy {
+  align-self: center;
+  max-width: 690px;
+  padding: clamp(64px, 8vh, 118px) 0 clamp(46px, 7vh, 88px);
+}
+
+#authView .eyebrow,
+#onboardView .eyebrow,
+.portal-verified-card .eyebrow {
+  display: inline-block;
+  padding: 0;
+  color: var(--auth-teal-dark);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: .19em;
+  text-transform: uppercase;
+}
+
+#authView .nepsis-auth-story h1 {
+  max-width: 650px;
+  margin: 21px 0 24px;
+  color: var(--auth-navy);
+  font-family: var(--auth-serif);
+  font-size: clamp(52px, 6vw, 84px);
+  font-weight: 400;
+  line-height: .98;
+  letter-spacing: -.045em;
+}
+
+#authView .nepsis-auth-story-copy > p { max-width: 620px; margin: 0; color: var(--auth-muted); font-size: clamp(17px, 1.5vw, 20px); line-height: 1.55; }
+
+#authView .nepsis-auth-principles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--auth-line);
+  border-bottom: 1px solid var(--auth-line);
+}
+
+#authView .nepsis-auth-principles > div { min-width: 0; padding: 22px 24px 22px 0; }
+#authView .nepsis-auth-principles > div + div { padding-left: 24px; border-left: 1px solid var(--auth-line); }
+#authView .nepsis-auth-principles span { display: block; margin-bottom: 17px; color: var(--auth-teal); font-family: var(--auth-serif); font-size: 19px; }
+#authView .nepsis-auth-principles b { display: block; color: var(--auth-navy); font-family: var(--auth-serif); font-size: 19px; font-weight: 400; line-height: 1.2; }
+#authView .nepsis-auth-principles p { margin: 8px 0 0; color: var(--auth-muted); font-size: 12px; line-height: 1.5; }
+#authView .nepsis-auth-boundary { margin: 22px 0 0; color: var(--auth-muted); font-size: 11px; line-height: 1.55; }
+
+#authView .nepsis-auth-card {
+  display: grid;
+  align-content: center;
+  padding-inline: clamp(34px, 5vw, 72px);
+  background: var(--auth-surface);
+}
+
+#authView .nepsis-auth-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; margin-bottom: 34px; padding-bottom: 18px; border-bottom: 1px solid var(--auth-line); }
+#authView .nepsis-auth-card-head span { flex: none; color: var(--auth-teal-dark); font-size: 10px; font-weight: 800; letter-spacing: .17em; }
+#authView .nepsis-auth-card-head p { max-width: 270px; margin: 0; color: var(--auth-muted); font-size: 12px; text-align: right; }
+
+#authView .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 0 0 38px; padding: 0; background: transparent; border: 0; border-bottom: 1px solid var(--auth-line-strong); border-radius: 0; }
+#authView .tabs button { min-height: 48px; padding: 10px 8px; color: var(--auth-muted); background: transparent; border: 0; border-bottom: 3px solid transparent; border-radius: 0; font: 700 13px/1.2 var(--auth-sans); cursor: pointer; }
+#authView .tabs button.active { color: var(--auth-navy); background: transparent; border-bottom-color: var(--auth-teal-dark); }
+#authView .auth-pane { display: none; }
+#authView .auth-pane.active { display: block; }
+
+#authView .auth-pane h2,
+#onboardView h1,
+.portal-verified-card h1 {
+  margin: 10px 0 12px;
+  color: var(--auth-navy);
+  font-family: var(--auth-serif);
+  font-size: clamp(38px, 4vw, 52px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -.035em;
+}
+
+#authView .nepsis-auth-intro { margin: 0 0 27px; color: var(--auth-muted); font-size: 14px; }
+#authView form,
+#portalRecoveryOverlay form { display: grid; gap: 18px; }
+#authView .field,
+#portalRecoveryOverlay .field { gap: 8px; }
+#authView label,
+#portalRecoveryOverlay label { color: var(--auth-navy); font-size: 12px; font-weight: 800; letter-spacing: .03em; }
+
+#authView input,
+#portalRecoveryOverlay input {
+  min-height: 50px;
+  padding: 12px 14px;
+  color: var(--auth-ink);
+  background: #fff;
+  border: 1px solid #87969a;
+  border-radius: 4px;
+  box-shadow: none;
+  font: 16px/1.4 var(--auth-sans);
+}
+
+#authView input:focus,
+#portalRecoveryOverlay input:focus { border-color: var(--auth-teal-dark); box-shadow: 0 0 0 3px rgba(13, 91, 102, .13); }
+
+#authView .actions,
+.portal-verified-card .actions { gap: 10px; margin-top: 7px; }
+
+#authView .btn,
+.portal-verified-card .btn {
+  min-height: 48px;
+  padding: 0 19px;
+  color: var(--auth-navy);
+  background: transparent;
+  border: 1px solid #74868b;
+  border-radius: 4px;
+  box-shadow: none;
+  font: 700 13px/1 var(--auth-sans);
+  text-decoration: none;
+}
+
+#authView .btn.primary,
+.portal-verified-card .btn.primary { color: #fff; background: var(--auth-navy); border-color: var(--auth-navy); }
+#authView .btn:hover,
+.portal-verified-card .btn:hover { transform: translateY(-1px); }
+#authView .btn.primary:hover,
+.portal-verified-card .btn.primary:hover { background: var(--auth-navy-2); }
+#authView .small,
+#authView .muted,
+.portal-verified-card .small { color: var(--auth-muted); }
+
+#authView #authMessage { min-height: 20px; margin: 16px 0 0 !important; color: var(--auth-muted) !important; font-size: 13px; }
+
+#authView .nepsis-auth-security,
 #portalEmailConfirmNote,
-.portal-verify-preflight{
-  margin:18px 0 6px;
-  padding:18px 20px;
-  border:2px solid rgba(101,216,255,.42);
-  border-radius:16px;
-  background:linear-gradient(135deg,rgba(101,216,255,.13),rgba(169,184,255,.07));
-  color:#eefbff;
-  font-size:16px!important;
-  line-height:1.55;
+#authView .portal-verify-preflight {
+  margin: 17px 0 0 !important;
+  padding: 15px 0 0;
+  color: var(--auth-muted);
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--auth-line);
+  border-radius: 0;
+  font-size: 11px !important;
+  line-height: 1.55;
 }
+
+#authView .nepsis-auth-security b,
 #portalEmailConfirmNote b,
-.portal-verify-preflight b{font-size:18px;color:#fff}
+#authView .portal-verify-preflight b { color: var(--auth-navy); font-size: inherit; }
+#authView > .nepsis-auth-grid > .nepsis-auth-card > .actions:last-child { margin-top: 18px; }
 
-#confirmPane .success-box{
-  border:2px solid rgba(117,228,181,.55)!important;
-  background:linear-gradient(135deg,rgba(117,228,181,.14),rgba(101,216,255,.07))!important;
-  padding:28px!important;
-  border-radius:20px!important;
-  box-shadow:0 18px 50px rgba(0,0,0,.2);
+#confirmPane .success-box {
+  padding: 26px 0 !important;
+  color: var(--auth-ink);
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--auth-teal) !important;
+  border-bottom: 1px solid var(--auth-line) !important;
+  border-radius: 0 !important;
+  box-shadow: none;
 }
-#confirmPane .eyebrow{font-size:13px!important}
-#confirmPane h2{
-  font-size:34px!important;
-  line-height:1.08;
-  margin:12px 0!important;
-}
-#confirmPane #confirmText{
-  font-size:18px!important;
-  line-height:1.55;
-  color:#e4edf7!important;
-  margin:12px 0!important;
-}
-#confirmPane .small{
-  font-size:15px!important;
-  line-height:1.5;
-  color:#bdcad8!important;
-}
-#confirmPane .btn{min-height:54px;font-size:16px;padding:0 22px}
 
-.portal-verified-overlay{
-  position:fixed;
-  inset:0;
-  z-index:200;
-  display:grid;
-  place-items:center;
-  padding:22px;
-  background:rgba(4,10,18,.92);
-  backdrop-filter:blur(16px);
-}
-.portal-verified-card{
-  width:min(620px,100%);
-  padding:38px;
-  border:2px solid rgba(117,228,181,.5);
-  border-radius:24px;
-  background:#0b1726;
-  box-shadow:0 30px 90px rgba(0,0,0,.45);
-  text-align:center;
-}
-.portal-verified-icon{
-  width:70px;
-  height:70px;
-  display:grid;
-  place-items:center;
-  margin:0 auto 18px;
-  border-radius:50%;
-  background:rgba(117,228,181,.14);
-  border:2px solid rgba(117,228,181,.5);
-  color:#8af0c5;
-  font-size:34px;
-  font-weight:900;
-}
-.portal-verified-card h1{font-size:38px;line-height:1.05;margin:8px 0 14px}
-.portal-verified-card p{font-size:18px;line-height:1.55;color:#b9c7d8;margin:0 auto 24px;max-width:510px}
-.portal-verified-card .actions{justify-content:center}
-.portal-verified-card .btn{min-height:56px;font-size:16px;padding:0 24px}
-.portal-verified-card.error{border-color:rgba(255,150,150,.45)}
-.portal-verified-card.error .portal-verified-icon{border-color:rgba(255,150,150,.45);background:rgba(255,120,120,.09);color:#ffb5b5}
+#confirmPane #confirmText { margin: 12px 0 !important; color: var(--auth-muted) !important; font-size: 16px !important; line-height: 1.55; }
 
-@media(max-width:560px){
-  #confirmPane h2{font-size:29px!important}
-  #confirmPane #confirmText{font-size:17px!important}
-  .portal-verified-card{padding:28px 20px}
-  .portal-verified-card h1{font-size:31px}
-  .portal-verified-card p{font-size:17px}
-  .portal-verified-card .actions{display:grid}
+#onboardView { max-width: none; min-height: 100svh; padding: 72px 24px; color: var(--auth-ink); background: var(--auth-paper); font-family: var(--auth-sans); }
+#onboardView .panel { padding: clamp(32px, 5vw, 58px) !important; color: var(--auth-ink); background: var(--auth-surface); border: 1px solid var(--auth-line); border-radius: 4px; box-shadow: 0 16px 42px rgba(8, 37, 56, .06); }
+#onboardView input { color: var(--auth-ink); background: #fff; border: 1px solid #87969a; border-radius: 4px; }
+
+.portal-verified-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 22px;
+  color: var(--auth-ink);
+  background: rgba(239, 233, 221, .96);
+  backdrop-filter: blur(12px);
+  font-family: var(--auth-sans);
+}
+
+.portal-verified-card {
+  width: min(620px, 100%);
+  padding: clamp(30px, 5vw, 52px);
+  color: var(--auth-ink);
+  background: var(--auth-surface);
+  border: 1px solid var(--auth-line-strong);
+  border-top: 4px solid var(--auth-teal-dark);
+  border-radius: 4px;
+  box-shadow: 0 30px 80px rgba(8, 37, 56, .14);
+  text-align: left;
+}
+
+.portal-verified-card.error { border-color: var(--auth-line-strong); border-top-color: var(--auth-danger); }
+.portal-verified-card .nepsis-recovery-mark { width: 42px; height: 42px; margin-bottom: 28px; border-radius: 4px; }
+.portal-verified-card p { max-width: 520px; margin: 0 0 25px; color: var(--auth-muted); font-size: 16px; line-height: 1.6; }
+.portal-verified-card .actions { justify-content: flex-start; }
+.portal-verified-card [hidden] { display: none !important; }
+.portal-body .portal-verified-card .btn.secondary { color: var(--auth-navy); background: transparent; border-color: #74868b; }
+.portal-body .portal-verified-card .btn.primary { color: #fff; background: var(--auth-navy); border-color: var(--auth-navy); }
+
+#authView :focus-visible,
+#onboardView :focus-visible,
+.portal-verified-overlay :focus-visible { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 7px var(--auth-teal-dark); }
+
+@media (max-width: 980px) {
+  #authView .nepsis-auth-grid { grid-template-columns: 1fr; }
+  #authView .nepsis-auth-story { min-height: auto; padding-bottom: 38px; border-right: 0; border-bottom: 1px solid var(--auth-line); }
+  #authView .nepsis-auth-story-copy { padding: 54px 0 42px; }
+  #authView .nepsis-auth-card { padding-block: 54px 78px; }
+}
+
+@media (max-width: 620px) {
+  #authView .panel { padding: 28px 20px; }
+  #authView .nepsis-auth-story-copy { padding: 48px 0 34px; }
+  #authView .nepsis-auth-story h1 { margin-top: 17px; font-size: 44px !important; }
+  #authView .nepsis-auth-principles { grid-template-columns: 1fr; }
+  #authView .nepsis-auth-principles > div { padding: 17px 0; }
+  #authView .nepsis-auth-principles > div + div { padding-left: 0; border-top: 1px solid var(--auth-line); border-left: 0; }
+  #authView .nepsis-auth-principles span { margin-bottom: 8px; }
+  #authView .nepsis-auth-principles p { margin-top: 5px; }
+  #authView .nepsis-auth-card { padding-block: 44px 62px; }
+  #authView .nepsis-auth-card-head { display: block; margin-bottom: 28px; }
+  #authView .nepsis-auth-card-head p { margin-top: 8px; text-align: left; }
+  #authView .tabs { margin-bottom: 30px; }
+  #authView .btn,
+  .portal-verified-card .btn { width: 100%; }
+  .portal-verified-overlay { align-items: start; padding: 16px; }
+  .portal-verified-card { margin: 18px 0; }
+  .portal-verified-card .actions { display: grid; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #authView *,
+  .portal-verified-overlay * { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }

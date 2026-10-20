@@ -1,5 +1,5 @@
 /**
- * Relystra Client Core
+ * Nepsis Client Core
  * Canonical client-side state engine for dependency evaluation, notification rollups,
  * report serialization, and workspace-current-action context.
  */
@@ -112,12 +112,12 @@ export function evaluateClientActionState(tasks) {
     else if (!prerequisitesSatisfied) state = 'UPCOMING';
     else if (rawCanonical === 'READY_TO_REVIEW') state = 'NEXUS_WORKING';
     else state = 'WAITING_ON_YOU';
-    return { task, state, dependencies, prerequisitesSatisfied, blockedByTaskId: firstIncomplete?.parentTaskId || null, blockedByTitle: cycleDetected ? 'Dependency cycle requires Relystra review' : firstIncomplete?.parentTitle || null, cycleDetected };
+    return { task, state, dependencies, prerequisitesSatisfied, blockedByTaskId: firstIncomplete?.parentTaskId || null, blockedByTitle: cycleDetected ? 'Dependency cycle requires Nepsis review' : firstIncomplete?.parentTitle || null, cycleDetected };
   });
 }
 
 export function clientStatusLabel(state) {
-  return ({ WAITING_ON_YOU: 'Waiting on you', UPCOMING: 'Upcoming', NEXUS_WORKING: 'Relystra working', READY_TO_REVIEW: 'Ready to review', COMPLETE: 'Complete', BLOCKED: 'Blocked' })[state] || 'Relystra working';
+  return ({ WAITING_ON_YOU: 'Waiting on you', UPCOMING: 'Upcoming', NEXUS_WORKING: 'Nepsis working', READY_TO_REVIEW: 'Ready to review', COMPLETE: 'Complete', BLOCKED: 'Blocked' })[state] || 'Nepsis working';
 }
 
 function inferNotificationCategory(record) {
@@ -133,9 +133,9 @@ function inferNotificationCategory(record) {
 }
 
 function groupTitle(category, sample) {
-  const titles = { financial: 'Financial pilot information requested', systems: 'Systems information requested', people: 'People & approval information requested', legal: 'Legal information requested', evidence: 'Supporting evidence requested', general: 'Relystra workspace updates' };
-  if (String(category).startsWith('initiative:')) return sample?.initiative_title || 'Relystra initiative';
-  return titles[category] || 'Relystra workspace updates';
+  const titles = { financial: 'Financial pilot information requested', systems: 'Systems information requested', people: 'People & approval information requested', legal: 'Legal information requested', evidence: 'Supporting evidence requested', general: 'Nepsis workspace updates' };
+  if (String(category).startsWith('initiative:')) return sample?.initiative_title || 'Nepsis initiative';
+  return titles[category] || 'Nepsis workspace updates';
 }
 
 function stableDisplayKey(row) {
@@ -155,7 +155,7 @@ export function aggregateNotifications(notifications) {
     const kind = String(row.kind || row.notification_type || row.related_type || '').toLowerCase();
     const isDocumentLike = kind.includes('document') || /document requested|evidence requested/i.test(row.title || '');
     if (!isDocumentLike) {
-      singles.push({ id: `single:${row.id || row.related_id || stableDisplayKey(row)}`, category: kind || 'update', title: row.title || 'Relystra update', itemCount: 1, completedCount: isCompleteNotification(row) ? 1 : 0, unreadCount: isUnread(row) ? 1 : 0, relatedIds: [row.related_id || row.id].filter(Boolean), items: [row], cta: row.kind === 'approval' ? 'Review decision →' : row.kind === 'task' ? 'Open action →' : 'View update →', newestAt: row.created_at || '' });
+      singles.push({ id: `single:${row.id || row.related_id || stableDisplayKey(row)}`, category: kind || 'update', title: row.title || 'Nepsis update', itemCount: 1, completedCount: isCompleteNotification(row) ? 1 : 0, unreadCount: isUnread(row) ? 1 : 0, relatedIds: [row.related_id || row.id].filter(Boolean), items: [row], cta: row.kind === 'approval' ? 'Review decision →' : row.kind === 'task' ? 'Open action →' : 'View update →', newestAt: row.created_at || '' });
       continue;
     }
     const category = inferNotificationCategory(row);
@@ -171,21 +171,21 @@ export function aggregateNotifications(notifications) {
   return [...grouped, ...singles].sort((a, b) => String(b.newestAt || '').localeCompare(String(a.newestAt || '')));
 }
 
-function actionWhy(task) { return task.description || 'Relystra needs this information or decision to move the engagement forward without making assumptions.'; }
+function actionWhy(task) { return task.description || 'Nepsis needs this information or decision to move the engagement forward without making assumptions.'; }
 function actionProvide(task) {
   if (task.instructions) return task.instructions;
   const type = String(task.task_type || '').toLowerCase();
-  if (type.includes('upload') || type.includes('evidence')) return 'Provide the requested representative evidence in Files. Redact anything Relystra does not need.';
+  if (type.includes('upload') || type.includes('evidence')) return 'Provide the requested representative evidence in Files. Redact anything Nepsis does not need.';
   if (type === 'approval') return 'Review the decision, confirm the allowed boundary, and submit your response.';
-  if (type === 'access') return 'Confirm the approved access boundary. Never place passwords, MFA codes, API keys, or secrets in a Relystra response.';
-  if (type === 'decision') return 'State the business decision clearly so Relystra does not infer it from incomplete context.';
-  return 'Complete the requested action and submit any context Relystra needs to review it.';
+  if (type === 'access') return 'Confirm the approved access boundary. Never place passwords, MFA codes, API keys, or secrets in a Nepsis response.';
+  if (type === 'decision') return 'State the business decision clearly so Nepsis does not infer it from incomplete context.';
+  return 'Complete the requested action and submit any context Nepsis needs to review it.';
 }
 function actionAfter(task, evaluated, allEvaluated) {
   const child = allEvaluated.find(x => x.task.dependency_task_id === task.id && x.state !== 'COMPLETE');
-  if (child) return `Relystra will review this step. Once accepted, “${child.task.title}” can move forward.`;
-  if (evaluated.state === 'WAITING_ON_YOU') return 'Relystra will review your submission and advance the engagement to the next controlled step.';
-  return 'Relystra will update the workspace when the next step becomes available.';
+  if (child) return `Nepsis will review this step. Once accepted, “${child.task.title}” can move forward.`;
+  if (evaluated.state === 'WAITING_ON_YOU') return 'Nepsis will review your submission and advance the engagement to the next controlled step.';
+  return 'Nepsis will update the workspace when the next step becomes available.';
 }
 
 function buildWorkspaceContextFromEvaluated(evaluated) {
@@ -206,13 +206,13 @@ export function buildWorkspaceContextFromTasks(tasks) {
 
 /**
  * Single asynchronous consumer for Home, Inbox, Guide, email jobs, and mobile notification producers.
- * The database RPC is authoritative for dependency state so hidden Relystra prerequisites do not need
+ * The database RPC is authoritative for dependency state so hidden Nepsis prerequisites do not need
  * to be exposed to the client browser merely to evaluate whether a client task is ready.
  */
 export async function getWorkspaceCurrentActionContext(clientId, options = {}) {
   const sb = options.sb || window.NexusPortal?.sb;
   if (!clientId) throw new Error('Client/company id is required.');
-  if (!sb && !Array.isArray(options.tasks)) throw new Error('Relystra data client is unavailable.');
+  if (!sb && !Array.isArray(options.tasks)) throw new Error('Nepsis data client is unavailable.');
   let tasks = Array.isArray(options.tasks) ? options.tasks : null;
   let canonicalRows = null;
   if (sb) {
@@ -245,25 +245,75 @@ export async function getWorkspaceCurrentActionContext(clientId, options = {}) {
   return buildWorkspaceContextFromEvaluated(evaluated);
 }
 
-const CLIENT_REPORT_ALLOWED_KEYS = new Set(['title', 'executive_summary', 'summary', 'overview', 'findings', 'recommendations', 'priorities', 'opportunities', 'risks', 'next_steps', 'implementation_plan', 'expected_outcomes', 'metrics', 'baseline', 'client_actions', 'nexus_actions', 'appendix', 'generated_at', 'report_date']);
-const INTERNAL_KEY_PATTERN = /(agent|evidence[_ -]?score|confidence[_ -]?score|release[_ -]?queue|review[_ -]?state|ranking|orchestrat|internal|raw[_ -]?analysis|analysis[_ -]?packet|prompt|token|system[_ -]?message|model[_ -]?trace)/i;
-function sanitizeReportValue(value) {
-  if (Array.isArray(value)) return value.map(sanitizeReportValue);
-  if (!value || typeof value !== 'object') return value;
-  const output = {};
-  for (const [key, val] of Object.entries(value)) { if (!INTERNAL_KEY_PATTERN.test(key)) output[key] = sanitizeReportValue(val); }
-  return output;
+const record = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+const text = value => typeof value === 'string' ? value : '';
+const stringList = value => Array.isArray(value) ? value.filter(item => typeof item === 'string') : [];
+const rows = value => Array.isArray(value) ? value.filter(item => item && typeof item === 'object' && !Array.isArray(item)) : [];
+const score = value => Number.isFinite(value) ? value : null;
+const scalar = value => ['string','number','boolean'].includes(typeof value) ? value : null;
+const compact = value => Object.fromEntries(Object.entries(value).filter(([, item]) => item !== null && item !== ''));
+
+/**
+ * Rebuild the released report from an exact client-safe v2 allowlist.
+ *
+ * Historical hosted rows used a display wrapper (`findings`, `opportunities`,
+ * `next_steps`, `client_actions`, `appendix`). Those rows are accepted as
+ * inputs, but are never returned wholesale: every nested field is projected
+ * again so an old or malformed row cannot smuggle internal evidence metadata
+ * into the browser.
+ */
+export function projectClientReportV2(value) {
+  const source = record(value), findings = record(source.findings), appendix = record(source.appendix);
+  const processSource = source.process_map ?? findings.process_map;
+  const pilotSource = record(source.smallest_safe_pilot ?? source.next_steps);
+  return {
+    title: text(source.title),
+    executive_summary: text(source.executive_summary),
+    facts: rows(source.facts ?? findings.facts).map(item => compact({ statement: text(item.statement) })),
+    client_statements: rows(source.client_statements ?? findings.client_statements).map(item => compact({ statement: text(item.statement) })),
+    process_map: rows(processSource).map(item => compact({
+      name: text(item.name) || (typeof item.step === 'string' || Number.isFinite(item.step) ? `Step ${String(item.step)}` : ''),
+      trigger: text(item.trigger),
+      owner: text(item.owner),
+      inputs: stringList(item.inputs),
+      steps: stringList(item.steps).length ? stringList(item.steps) : text(item.current_state) ? [text(item.current_state)] : [],
+      systems: stringList(item.systems),
+      handoffs: stringList(item.handoffs),
+      delays: stringList(item.delays),
+      exceptions: stringList(item.exceptions),
+      output: text(item.output)
+    })),
+    bottlenecks: rows(source.bottlenecks ?? findings.bottlenecks).map(item => compact({
+      title: text(item.title), description: text(item.description), impact: text(item.impact)
+    })),
+    opportunity_backlog: rows(source.opportunity_backlog ?? source.opportunities).map(item => compact({
+      rank: score(item.rank), title: text(item.title), problem: text(item.problem), recommendation: text(item.recommendation),
+      value_score: score(item.value_score), effort_score: score(item.effort_score), readiness_score: score(item.readiness_score),
+      human_controls: stringList(item.human_controls)
+    })),
+    follow_up_questions: rows(source.follow_up_questions ?? appendix.follow_up_questions).map(item => compact({
+      question: text(item.question), reason: text(item.reason)
+    })),
+    success_metrics: rows(source.success_metrics ?? appendix.success_metrics).map(item => compact({
+      name: text(item.name), value: scalar(item.value), unit: text(item.unit), claim_type: text(item.claim_type),
+      measurement_window: text(item.measurement_window), methodology_note: text(item.methodology_note)
+    })),
+    smallest_safe_pilot: compact({
+      title: text(pilotSource.title), summary: text(pilotSource.summary), scope_in: stringList(pilotSource.scope_in),
+      scope_out: stringList(pilotSource.scope_out), acceptance_criteria: stringList(pilotSource.acceptance_criteria),
+      human_controls: stringList(pilotSource.human_controls), milestones: rows(pilotSource.milestones).map(item => compact({
+        title: text(item.title), description: text(item.description)
+      }))
+    }),
+    client_action_items: rows(source.client_action_items ?? source.client_actions).map(item => compact({
+      title: text(item.title), description: text(item.description), instructions: text(item.instructions), priority: text(item.priority)
+    }))
+  };
 }
 export function serializeReleasedClientReport(releaseRecord) {
   if (!releaseRecord || normalizeRawStatus(releaseRecord.status) !== 'released' || releaseRecord.revoked_at) return null;
-  const source = releaseRecord.client_report && typeof releaseRecord.client_report === 'object' ? releaseRecord.client_report : {};
-  const safe = {};
-  for (const [key, value] of Object.entries(source)) {
-    if (!CLIENT_REPORT_ALLOWED_KEYS.has(key) || INTERNAL_KEY_PATTERN.test(key)) continue;
-    safe[key] = sanitizeReportValue(value);
-  }
-  return { id: releaseRecord.id, reportVersion: releaseRecord.report_version, releasedAt: releaseRecord.released_at, ...safe };
+  return { id: releaseRecord.id, reportVersion: releaseRecord.report_version, releasedAt: releaseRecord.released_at, ...projectClientReportV2(releaseRecord.client_report) };
 }
 
-export const NexusClientCore = Object.freeze({ canonicalTaskStatus, evaluateClientActionState, clientStatusLabel, aggregateNotifications, buildWorkspaceContextFromTasks, getWorkspaceCurrentActionContext, serializeReleasedClientReport });
+export const NexusClientCore = Object.freeze({ canonicalTaskStatus, evaluateClientActionState, clientStatusLabel, aggregateNotifications, buildWorkspaceContextFromTasks, getWorkspaceCurrentActionContext, projectClientReportV2, serializeReleasedClientReport });
 window.NexusClientCore = NexusClientCore;

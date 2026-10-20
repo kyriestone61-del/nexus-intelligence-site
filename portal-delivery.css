@@ -115,3 +115,4 @@
  body.relystra-free-diagnosis-printing .relystra-report-footer{padding:11px 0;background:#fff}
  body.relystra-free-diagnosis-printing a[href]:after{content:none!important}
 }
+.relystra-checkout-pending{margin-top:18px;padding:14px;border:1px solid rgba(217,255,114,.24);border-radius:9px;background:rgba(217,255,114,.05)}.relystra-checkout-pending b{display:block;color:var(--nx-text,#f3efff)}.relystra-checkout-pending p{margin:6px 0 0;color:var(--nx-muted,#aaa4ba)}
