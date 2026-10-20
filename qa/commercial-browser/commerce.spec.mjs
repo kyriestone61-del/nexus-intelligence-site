@@ -27,7 +27,9 @@ test('client Roadmap preserves original scope, supports one or multiple addition
  await page.getByRole('button',{name:'Discuss this Build / confirm scope'}).click();await expect(page.locator('#fixtureNotice')).toContainText('recorded');
  await page.getByRole('button',{name:'Review additional scope and payment',exact:true}).click();
  await expect(page.locator('[data-saved-plans]')).toContainText('$2,000.00');await expect(page.locator('[data-saved-plans]')).toContainText('Required payment now: $1,000.00');
- await page.getByRole('button',{name:'Recommended Builds Completed',exact:true}).click();
+ // The simplified four-destination shell preserves the canonical deep link;
+ // it no longer renders the retired eleven-step next/previous button label.
+ await page.goto('/qa/delivery-browser/?role=client&shell&section=builds');
  await expect(page.getByRole('heading',{name:'Included Now',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'View implementation progress',exact:true}).click();
  await expect(page.locator('#nexus-client-progress').getByText('Bid intake',{exact:true})).toBeVisible();await fits(page);expect(errors).toEqual([]);
@@ -47,7 +49,9 @@ test('administrator requests a private input for its paid Build before implement
  await form.getByLabel('Input title',{exact:true}).fill('Authorized sample rows');
  await form.getByLabel('Why this input is needed',{exact:true}).fill('Populate the accepted intake register with authorized sample rows.');
  await form.getByRole('button',{name:'Request Build input',exact:true}).click();
- await expect(page.getByText('Bid intake: Authorized sample rows',{exact:true})).toBeVisible();
+ const confirmation='Bid intake: Authorized sample rows';
+ await expect(page.locator('#adminJourneyRoot').getByText(confirmation,{exact:true})).toBeHidden();
+ await expect(page.locator('#section-relystra-delivery.active').getByText(confirmation,{exact:true})).toBeVisible();
  await expect(page.locator('[role="alert"]')).toHaveCount(0);
 });
 
