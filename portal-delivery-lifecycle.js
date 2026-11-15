@@ -85,6 +85,6 @@ export function mountMobileMenu(nav){
   const mobile=matchMedia('(max-width:760px)');
   const collapse=value=>{sidebar.classList.toggle('relystra-menu-collapsed',value);toggle.setAttribute('aria-expanded',String(!value))};
   toggle.onclick=()=>collapse(!sidebar.classList.contains('relystra-menu-collapsed'));
-  nav.addEventListener('click',event=>{if(mobile.matches&&event.target.closest('[data-relystra-nav],[data-client-view]')){collapse(true);toggle.focus()}});
+  nav.addEventListener('click',event=>{if(mobile.matches&&event.target.closest('[data-relystra-nav],[data-client-view],[data-client-group]')){collapse(true);toggle.focus()}});
   mobile.addEventListener('change',()=>collapse(mobile.matches));collapse(mobile.matches);
 }
