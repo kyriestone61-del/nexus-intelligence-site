@@ -147,12 +147,26 @@ function ensurePreviewBanner(portal){
   document.getElementById('portalApp')?.insertBefore(bar,document.querySelector('#portalApp .workspace'));
 }
 
+function syncPreviewUploadControls(portal){
+  if(!isPreview(portal.state))return;
+  const form=document.getElementById('uploadForm');if(!form)return;
+  form.querySelectorAll('input,textarea,select,button').forEach(control=>{
+    control.disabled=true;
+    control.setAttribute('aria-describedby','nexusPreviewUploadNote');
+  });
+  if(!document.getElementById('nexusPreviewUploadNote')){
+    const note=document.createElement('p');note.id='nexusPreviewUploadNote';note.setAttribute('role','note');
+    note.textContent='Uploads are unavailable in this read-only Client View. Switch to Admin or Operations to make changes.';
+    form.before(note);
+  }
+}
+
 function renderSwitcher(portal){
   if(!portal.state?.platformAdmin)return;
   document.body.classList.add('nexus-perspective-enabled');
   const mode=portal.state.viewMode||'admin';let node=document.getElementById('nexusPerspectiveSwitcher');
   if(!node){node=document.createElement('details');node.id='nexusPerspectiveSwitcher';node.className='nexus-perspective-switcher';const anchor=document.getElementById('companySelect');if(anchor?.parentElement)anchor.after(node);else document.querySelector('.topbar')?.appendChild(node)}
-  node.innerHTML=switcherMarkup(portal.state,mode);bindSwitcher(node,portal,mode);ensurePreviewBanner(portal);
+  node.innerHTML=switcherMarkup(portal.state,mode);bindSwitcher(node,portal,mode);ensurePreviewBanner(portal);syncPreviewUploadControls(portal);
 }
 
 function interceptCompanySelector(portal){
@@ -177,7 +191,7 @@ export async function preparePerspective(portal){
 
 export function mountPerspectiveSwitcher(portal){
   if(!portal.state?.platformAdmin)return;renderSwitcher(portal);interceptCompanySelector(portal);
-  const observer=new MutationObserver(()=>{if(!document.getElementById('nexusPerspectiveSwitcher'))renderSwitcher(portal)});observer.observe(document.getElementById('portalApp')||document.body,{childList:true,subtree:true});
+  const observer=new MutationObserver(()=>{if(!document.getElementById('nexusPerspectiveSwitcher'))renderSwitcher(portal);syncPreviewUploadControls(portal)});observer.observe(document.getElementById('portalApp')||document.body,{childList:true,subtree:true});
 }
 
 window.NexusPerspectiveSwitcher={preparePerspective,mountPerspectiveSwitcher};
