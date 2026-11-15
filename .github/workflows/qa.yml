@@ -119,7 +119,7 @@ jobs:
           node --test qa/relystra-delivery-lifecycle.test.mjs qa/contracts/production-ui-simplification.test.mjs
           grep -q 'Needs action' portal-client-shell-v2.js
           grep -q 'Updates' portal-client-shell-v2.js
-          grep -q 'Available after Relystra completes' portal-client-shell-v2.js
+          grep -q 'Available after Nepsis completes' portal-client-shell-v2.js
           if grep -q 'new MutationObserver' portal-client-shell-v2.js; then
             echo 'Reconciled client shell must not use DOM mutation rewrite loops.' >&2
             exit 1

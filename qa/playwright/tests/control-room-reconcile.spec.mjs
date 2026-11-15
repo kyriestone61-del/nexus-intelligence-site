@@ -66,7 +66,7 @@ test('auth tabs and verification entry surface remain stable',async({page})=>{
 
 test('public Control Room header links remain reachable and touch safe',async({page})=>{
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
-  await expect(page.locator('a.brand')).toHaveAttribute('href','/');
+  await expect(page.getByRole('link',{name:'Nepsis Intelligence home',exact:true})).toHaveAttribute('href','/');
   for(const selector of ['#tabSignIn','#tabCreate','#signInBtn']){const box=await page.locator(selector).boundingBox();expect(box?.height||0).toBeGreaterThanOrEqual(40);}
   await assertNoOverflow(page);
 });

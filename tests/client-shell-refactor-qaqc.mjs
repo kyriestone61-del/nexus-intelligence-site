@@ -34,13 +34,14 @@ const notifications=[
 {id:'n4',notification_type:'document_request',title:'Existing profit-and-loss template',message:'P&L',created_at:'2026-09-01T04:00:00Z',read_at:null},
 {id:'n5',notification_type:'document_request',title:'Stripe pilot-month export',message:'Revenue',created_at:'2026-09-01T05:00:00Z',read_at:null}];
 const rollups=core.aggregateNotifications(notifications);assert.equal(rollups.length,1);assert.equal(rollups[0].title,'Financial pilot information requested');assert.equal(rollups[0].itemCount,5);assert.equal(rollups[0].cta,'Review request →');
-const report=core.serializeReleasedClientReport({id:'r',status:'released',revoked_at:null,report_version:2,released_at:'2026-09-01T00:00:00Z',client_report:{title:'Client report',executive_summary:'Safe',agent_code:'secret',evidence_score:99,findings:[{title:'Finding',review_state:'internal',summary:'Safe nested'}]}});
-assert.equal(report.executive_summary,'Safe');assert.equal('agent_code'in report,false);assert.equal('evidence_score'in report,false);assert.equal('review_state'in report.findings[0],false);
+const report=core.serializeReleasedClientReport({id:'r',status:'released',revoked_at:null,report_version:2,released_at:'2026-09-01T00:00:00Z',client_report:{title:'Client report',executive_summary:'Safe',agent_code:'secret',evidence_score:99,findings:{bottlenecks:[{title:'Finding',review_state:'internal',description:'Safe nested'}]}}});
+assert.equal(report.executive_summary,'Safe');assert.equal('agent_code'in report,false);assert.equal('evidence_score'in report,false);assert.equal(report.bottlenecks[0].description,'Safe nested');assert.equal('review_state'in report.bottlenecks[0],false);assert.equal('findings'in report,false);
 
 const app=fs.readFileSync('portal-app.js','utf8');
 const client=fs.readFileSync('portal-client.js','utf8');
 const runtime=fs.readFileSync('portal-runtime-core.js','utf8');
 const shell=fs.readFileSync('portal-client-shell-v2.js','utf8');
+const navigation=await import('../portal-client-navigation.js');
 const css=fs.readFileSync('portal-client-shell-v2.css','utf8');
 const persistence=fs.readFileSync('portal-evidence-upload.js','utf8');
 const upload=fs.readFileSync('portal-client-upload-service.js','utf8');
@@ -59,7 +60,10 @@ assert.equal(/\.onclick\s*=/.test(client),false,'base portal must not use onclic
 assert.match(runtime,/createStateController/);assert.match(runtime,/createEventRegistry/);assert.match(runtime,/createModalManager/);assert.match(runtime,/event\.shiftKey/);assert.match(runtime,/event\.key === 'Escape'/);assert.match(runtime,/document\.body\.classList\.add\('nexus-modal-open'\)/);
 assert.match(migration,/pg_advisory_xact_lock/);assert.match(migration,/insert into public\.nexus_companies/);assert.match(migration,/insert into public\.nexus_company_members/);assert.match(migration,/insert into public\.nexus_projects/);
 
-assert.match(shell,/PRIMARY_VIEWS=\[\['today','Overview'\],\['transcript','Discovery & Free Diagnosis'\],\['reports','Full Diagnosis'\],\['actions','Actions'\],\['builds','Roadmap & Builds'\],\['progress','Progress'\],\['final-package','Final Package'\],\['support','Support'\]\]/);
+assert.deepEqual(navigation.CLIENT_PRIMARY_NAV.map(({key,label})=>[key,label]),[['home','Home'],['diagnosis','Diagnosis'],['work','Work'],['handoff','Handoff']]);
+assert.equal(navigation.normalizeClientSection('overview'),'today');
+assert.equal(navigation.normalizeClientSection('diagnosis'),'reports');
+assert.match(shell,/CLIENT_PRIMARY_NAV/);
 assert.match(shell,/journeyNext\(lifecycleStore.value/);assert.match(shell,/data-client-go/);assert.match(shell,/Reports/);assert.match(shell,/Help/);assert.match(shell,/Inbox/);
 assert.equal(shell.includes('new MutationObserver'),false);assert.equal(/\.onclick\s*=/.test(shell),false);assert.equal(/\.onchange\s*=/.test(shell),false);
 assert.match(shell,/runtime/);assert.match(shell,/events\.bind/);assert.match(shell,/boundary\.run|boundary\.wrap/);assert.match(shell,/modals\.open/);

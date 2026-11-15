@@ -62,7 +62,7 @@ jobs:
           probe 'custom-home-name' "$custom/" '<span>NEPSIS</span><small>INTELLIGENCE</small>'
           probe_calendar_handoff 'pages-book-handoff' "$pages/book"
           probe_calendar_handoff 'custom-book-handoff' "$custom/book"
-          probe 'pages-portal-brand' "$pages/portal" 'Relystra'
-          probe 'custom-portal-brand' "$custom/portal" 'Relystra'
+          probe 'pages-portal-brand' "$pages/portal" 'Client Workspace | Nepsis'
+          probe 'custom-portal-brand' "$custom/portal" 'Client Workspace | Nepsis'
 
           echo 'NEPSIS_PUBLIC_RELYSTRA_PORTAL_BRAND_PARITY=PASS'
