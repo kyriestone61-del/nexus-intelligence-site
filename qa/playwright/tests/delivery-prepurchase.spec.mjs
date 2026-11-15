@@ -24,16 +24,17 @@ test('authenticated preparation retains private files and enforces diagnosis and
   try{
     await login(client,clientEmail,clientPassword);
     await expect(client.locator('#companySelect')).toHaveValue(company);
-    const journey=client.getByRole('navigation',{name:'Numbered client journey'});
-    await expect(journey.getByRole('button')).toHaveCount(11);
-    await journey.getByRole('button',{name:/Upload Discovery Material/}).click();
+    const navigation=client.getByRole('navigation',{name:'Client workspace',exact:true});
+    await expect(navigation.getByRole('button')).toHaveCount(4);
+    await expect(client.locator('.nexus-client-journey-summary button')).toHaveCount(6);
+    await client.locator('.nexus-client-journey-summary [data-client-go="transcript"]').click();
     await expect(client.getByRole('heading',{name:'Upload Discovery Material'})).toBeVisible();
     await expect(client.locator('[data-transcript-run]')).toHaveCount(0);
-    await journey.getByRole('button',{name:/Free Diagnosis/}).click();
+    await client.goto(`/portal?company=${encodeURIComponent(company)}&section=free-diagnosis`);
     await expect(client.getByRole('heading',{name:'Free Business Diagnosis'})).toBeVisible();
     await expect(client.getByRole('button',{name:'Generate Free Diagnosis',exact:true})).toHaveCount(0);
     await expect(client.getByRole('button',{name:'Return to Step 1',exact:true})).toBeVisible();
-    await journey.getByRole('button',{name:/Final handoff/}).click();
+    await client.goto(`/portal?company=${encodeURIComponent(company)}&section=final-package`);
     await expect(client.getByRole('heading',{name:'This step begins after scope and payment'})).toBeVisible();
 
     await client.locator('#nexusClientReportsButton').click();await expect(client.locator('#uploadForm')).toBeVisible();
