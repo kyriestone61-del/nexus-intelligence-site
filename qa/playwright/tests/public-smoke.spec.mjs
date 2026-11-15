@@ -33,7 +33,8 @@ test('portal is private from search indexing and has security boundary copy',asy
   expect(await robots.count()).toBeGreaterThan(0);
   const directives=await robots.evaluateAll(nodes=>nodes.map(node=>node.getAttribute('content')||''));
   expect(directives.every(x=>/noindex/i.test(x))).toBe(true);
-  await expect(page.getByText('Security boundary:',{exact:false})).toBeVisible();
+  await expect(page.getByText('Keep sensitive information private.',{exact:true})).toBeVisible();
+  await expect(page.locator('.nepsis-auth-security')).toContainText('Never upload passwords, MFA codes, API keys, payment-card data, medical records');
 });
 
 test('password recovery opens and cancels without sending email',async({page})=>{
