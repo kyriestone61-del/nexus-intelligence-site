@@ -86,18 +86,19 @@ test.describe('authenticated client control room',()=>{
   test('client sees progressive delivery navigation and working Files, Inbox and Help',async({page})=>{
     const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
     await signIn(page,clientEmail,clientPassword);
-    const nav=page.locator('#nexusClientPrimaryNav [data-client-view]');
-    await expect(nav).toHaveCount(8);
-    expect(await nav.allTextContents()).toEqual(['Overview','Discovery & Free Diagnosis','Full Diagnosis','Actions','Roadmap & Builds','Progress','Final Package','Support']);
+    const nav=page.locator('#nexusClientPrimaryNav [data-client-group]');
+    await expect(nav).toHaveCount(4);
+    expect(await nav.allTextContents()).toEqual(['Home','Diagnosis','Work','Handoff']);
     await expect(page.locator('#nexus-client-today')).toBeVisible();
-    for(const view of ['progress','final-package','support'])await expect(page.locator(`#nexusClientPrimaryNav [data-client-view="${view}"]`)).toHaveAttribute('hidden','');
+    for(const group of ['home','diagnosis','work','handoff'])await expect(page.locator(`#nexusClientPrimaryNav [data-client-group="${group}"]`)).not.toHaveAttribute('hidden','');
     await page.locator('#nexusClientReportsButton').click();await expect(page.locator('#nexus-client-files')).toBeVisible();await expect(page.locator('#uploadForm')).toBeVisible();
-    await openMobileMenu(page);await page.locator('#nexusClientPrimaryNav [data-client-view="reports"]').click();await expect(page.locator('#nexus-client-reports')).toBeVisible();
+    await openMobileMenu(page);await page.locator('#nexusClientPrimaryNav [data-client-group="diagnosis"]').click();await expect(page.locator('#nexus-client-transcript')).toBeVisible();
+    console.log('CLIENT_MOBILE_NAV_OBSERVATION',JSON.stringify(await page.evaluate(()=>({mobile:matchMedia('(max-width:760px)').matches,menuExpanded:document.querySelector('.relystra-mobile-toggle')?.getAttribute('aria-expanded')}))));
     await page.locator('#nexusClientInboxButton').click();await expect(page.locator('#nexusClientInboxDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientInboxDrawer')).not.toHaveClass(/show/);
     await page.locator('#nexusClientHelpButton').click();await expect(page.locator('#nexusClientGuideDrawer')).toHaveClass(/show/);await page.keyboard.press('Escape');await expect(page.locator('#nexusClientGuideDrawer')).not.toHaveClass(/show/);
     await page.evaluate(()=>window.NexusClientShell.refresh({force:true}));
-    await expect(page.locator('#nexus-client-reports')).toBeVisible();
-    await expect(page.locator('#nexusClientPrimaryNav [data-client-view="reports"]')).toHaveAttribute('aria-current','page');
+    await expect(page.locator('#nexus-client-transcript')).toBeVisible();
+    await expect(page.locator('#nexusClientPrimaryNav [data-client-group="diagnosis"]')).toHaveAttribute('aria-current','page');
     await assertNoOverflow(page);expect(meaningfulConsoleErrors(errors)).toEqual([]);
     await page.locator('#signOutBtn').click();await expect(page.locator('#signInForm')).toBeVisible({timeout:20_000});
   });
@@ -158,12 +159,12 @@ test.describe('administrator and client-preview boundaries',()=>{
     }
     const primary=page.locator('.side-nav > [data-relystra-nav]');
     await expect(primary).toHaveCount(6);
-    expect(await primary.allTextContents()).toEqual(['Home','Clients','Projects','Sales','Discovery & Basic Report','Settings']);
+    expect(await primary.allTextContents()).toEqual(['Today','Clients','Projects','Sales','Discovery & Basic Report','Settings']);
     await openRoute('Clients');await expect(page.locator('#section-clients')).toHaveClass(/active/);
     await openRoute('Projects');await expect(page.locator('#section-relystra-projects')).toHaveClass(/active/);
     await openRoute('Settings');await expect(page.locator('#section-relystra-settings')).toHaveClass(/active/);
     await openRoute('Sales');await expect(page.locator('#section-revenue')).toHaveClass(/active/);
-    await openRoute('Home');await expect(page.locator('#adminJourneyRoot')).toBeVisible();
+    await openRoute('Today');await expect(page.locator('#adminJourneyRoot')).toBeVisible();
     await openMenu();
     const records=page.locator('details.admin-tool-drawer');await expect(records).toBeVisible();await records.locator('summary').click();await expect(records).toHaveAttribute('open','');
     await assertNoOverflow(page);
@@ -189,8 +190,8 @@ test.describe('administrator and client-preview boundaries',()=>{
     await waitForSettledPortal(page);
     await expect(page.locator('#nexusClientPrimaryNav')).toBeAttached({timeout:40_000});await openMobileMenu(page);await expect(page.locator('#nexusClientPrimaryNav')).toBeVisible();
     await expect(page.getByText('Relystra could not finish loading.',{exact:true})).toHaveCount(0);
-    await expect(page.locator('#nexusClientPrimaryNav [data-client-view]')).toHaveCount(8);
-    expect(await page.locator('#nexusClientPrimaryNav [data-client-view]').allTextContents()).toEqual(['Overview','Discovery & Free Diagnosis','Full Diagnosis','Actions','Roadmap & Builds','Progress','Final Package','Support']);
+    await expect(page.locator('#nexusClientPrimaryNav [data-client-group]')).toHaveCount(4);
+    expect(await page.locator('#nexusClientPrimaryNav [data-client-group]').allTextContents()).toEqual(['Home','Diagnosis','Work','Handoff']);
     expect(meaningfulConsoleErrors(errors)).toEqual([]);
   });
 

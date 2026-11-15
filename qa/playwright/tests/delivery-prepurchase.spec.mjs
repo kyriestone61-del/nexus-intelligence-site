@@ -24,8 +24,10 @@ test('authenticated preparation retains private files and enforces diagnosis and
   try{
     await login(client,clientEmail,clientPassword);
     await expect(client.locator('#companySelect')).toHaveValue(company);
-    const navigation=client.getByRole('navigation',{name:'Client workspace',exact:true});
-    await expect(navigation.getByRole('button')).toHaveCount(4);
+    await expect.poll(()=>client.evaluate(()=>document.querySelector('.main')?.dataset.clientLoadState),{timeout:40_000}).toBe('ready');
+    const navigation=client.locator('#nexusClientPrimaryNav [data-client-group]');
+    await expect(navigation).toHaveCount(4);
+    expect(await navigation.allTextContents()).toEqual(['Home','Diagnosis','Work','Handoff']);
     await expect(client.locator('.nexus-client-journey-summary button')).toHaveCount(6);
     await client.locator('.nexus-client-journey-summary [data-client-go="transcript"]').click();
     await expect(client.getByRole('heading',{name:'Upload Discovery Material'})).toBeVisible();
