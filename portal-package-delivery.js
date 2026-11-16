@@ -10,6 +10,13 @@ const briefFields=[['tools_platforms','Tools and platforms'],['users_roles','Use
 const qaFields=['functionality','outputs','permissions','integrations','links','error_states','input_validation','data_behavior','mobile_usability','client_usability','documentation','faq','support_grounding'];
 const label=s=>({briefs:'Preparing Builds',ready:'Ready to build',internal_qa:'Internal review',client_review:'Client review',final_qa:'Final delivery checks',faq:'FAQ',support_grounding:'Support sources',completed:'Completed'}[s]||s.replaceAll('_',' ').replace(/^./,c=>c.toUpperCase()));
 
+// Presentation only: the database validates draft identity and content digest.
+export function clientReviewState(build){
+ if(build?.review_decision==='approve')return 'approved';
+ if(['minor_revision','problem'].includes(build?.review_decision))return 'revision';
+ return build?.status;
+}
+
 function briefCard(build){
   const raw=build.build_brief||{},scope=raw.scope||{};
   const b={problem:scope.problem,desired_outcome:scope.outcome,approved_scope:scope.scope_in,exclusions:scope.scope_out,success_criteria:scope.acceptance_criteria,diagnosis_source:scope.source_finding_refs,required_inputs:scope.inputs,price_cents:scope.price_cents,currency:scope.currency,duration_min:scope.duration_min,duration_max:scope.duration_max,...raw};
@@ -84,7 +91,7 @@ export function mountPackageDelivery(root,portal){
     const step=final?10:8,title=final?'Final Handoff':'Build & Quality Checks',description=final?'Access the approved Builds, usage guidance, supporting files, and final delivery material in one durable handoff.':'Follow each Build through production, internal QA, and final checks without mixing client feedback into the work queue.';
     root.innerHTML=`<header class="relystra-step-page-head" data-step-page="${final?'final-package':'progress'}"><div class="relystra-step-page-copy"><div class="eyebrow">Step ${step} of 11 · ${title}</div><h1>${title}</h1><p>${description}</p></div><aside class="relystra-step-state" aria-label="Step status"><span>${final?'Handoff status':'Production status'}</span><strong>${esc(label(project.package_stage||'Preparing delivery'))}${progress.livemode===false?' · Test package':''}</strong><small>Next · ${final?'Completion & support':'Client review'}</small><button class="relystra-text-action" data-delivery-refresh>Refresh status</button></aside></header>
       ${!final?`<label>Package progress <b>${progress.percent}%</b><progress max="100" value="${progress.percent}">${progress.percent}%</progress></label><div class="relystra-build-grid">${arr(progress.builds).map(b=>`<article class="relystra-build-card"><b>${esc(b.name)}</b><p>${esc(label(b.status||b.stage||'Preparing'))} · ${b.percent}%</p></article>`).join('')}</div>`:''}
-      ${pkg?`<section class="relystra-workflow-primary-section"><div class="relystra-section-intro"><span>${final?'Delivered assets':'Current package'}</span><h2>${final?'Approved Builds & instructions':'Draft delivery material'}</h2><p>${final?'Everything approved for handoff remains available here after completion.':'Draft content is visible here for production context. Client decisions belong in Step 9.'}</p></div><div class="relystra-build-grid">${arr(pkg.items).map(i=>deliveredCard(i,final?null:pkg.id,false,arr(progress.builds).find(b=>b.id===i.build_id)?.status)).join('')}</div></section>`:final?'<section class="relystra-workflow-empty"><span>Not released</span><h2>The Final Package is not ready yet.</h2><p>Client approval and final QA must be complete before the handoff is published.</p></section>':''}
+      ${pkg?`<section class="relystra-workflow-primary-section"><div class="relystra-section-intro"><span>${final?'Delivered assets':'Current package'}</span><h2>${final?'Approved Builds & instructions':'Draft delivery material'}</h2><p>${final?'Everything approved for handoff remains available here after completion.':'Draft content is visible here for production context. Client decisions belong in Step 9.'}</p></div><div class="relystra-build-grid">${arr(pkg.items).map(i=>deliveredCard(i,final?null:pkg.id,false,clientReviewState(arr(progress.builds).find(b=>b.id===i.build_id)))).join('')}</div></section>`:final?'<section class="relystra-workflow-empty"><span>Not released</span><h2>The Final Package is not ready yet.</h2><p>Client approval and final QA must be complete before the handoff is published.</p></section>':''}
       ${state.admin&&!final?`<section><h2>Build inputs</h2>${builds.map(b=>inputCard(b,inputRequests.filter(r=>r.build_id===b.id))).join('')}</section><section><h2>Build Briefs</h2>${builds.map(briefCard).join('')}</section>
         <section><h2>Internal Build Tasks</h2>${builds.map(b=>`<details class="relystra-build-card"><summary>${esc(b.name)}</summary>${tasks.filter(t=>t.build_id===b.id).map(t=>`<label><input type="checkbox" data-build-task="${esc(t.id)}" ${t.status==='completed'?'checked':''} ${!['briefs','building','revisions'].includes(project.package_stage)||(t.dependency_task_id&&tasks.some(d=>d.id===t.dependency_task_id&&d.status!=='completed'))?'disabled':''}>${esc(t.title)}</label>`).join('')||'<p>Approve the brief to generate internal work.</p>'}</details>`).join('')}</section>
         ${builds.filter(b=>b.build_status==='revision'&&!b.revision_resolution).map(b=>`<form class="relystra-build-card" data-delivery-form="revision" data-build="${esc(b.id)}"><h3>Review feedback · ${esc(b.name)}</h3><p>${esc(b.client_review?.note||b.client_review?.feedback)}</p><label>Scope decision<select name="decision"><option value="in_scope">Within purchased scope</option><option value="separate_build">Separate Build required</option><option value="approved_exception">Admin-approved exception</option></select></label>${area('note','Explain the scope decision','',true)}<button class="btn primary">Confirm revision scope</button></form>`).join('')}
@@ -94,9 +101,9 @@ export function mountPackageDelivery(root,portal){
     root.querySelectorAll('details').forEach(el=>{if(expanded.has(el.querySelector('summary')?.textContent))el.open=true});
   }
   function renderReview(){
-    const pkg=project.draft_package,reviewable=!state.admin&&['client_review','revisions'].includes(project.package_stage),reviewed=arr(progress.builds).filter(build=>['approved','revision'].includes(build.status)).length,total=arr(progress.builds).length;
+    const pkg=project.draft_package,reviewable=!state.admin&&['client_review','revisions'].includes(project.package_stage),reviewed=arr(progress.builds).filter(build=>['approved','revision'].includes(clientReviewState(build))).length,total=arr(progress.builds).length;
     root.innerHTML=`<header class="relystra-step-page-head" data-step-page="review"><div class="relystra-step-page-copy"><div class="eyebrow">Step 9 of 11 · Client Review</div><h1>Client Review</h1><p>Review the delivered draft, record feedback by Build, request scoped revisions, or approve the work for final quality checks.</p></div><aside class="relystra-step-state" aria-label="Step status"><span>Review status</span><strong>${reviewable?`${reviewed} of ${total} decisions recorded`:esc(label(project.package_stage||'Preparing draft'))}</strong><small>Next · Final handoff</small><button class="relystra-text-action" data-delivery-refresh>Refresh status</button></aside></header>
-      ${pkg?`<section class="relystra-review-brief"><div><span>Decision required</span><h2>Test each Build against the agreed outcome.</h2><p>Approve what is ready. For a revision or problem, include specific feedback so Relystra can assess it against the purchased scope.</p></div><dl><div><dt>Delivered drafts</dt><dd>${arr(pkg.items).length}</dd></div><div><dt>Decisions recorded</dt><dd>${reviewed}</dd></div><div><dt>Remaining</dt><dd>${Math.max(0,total-reviewed)}</dd></div></dl></section><div class="relystra-build-grid">${arr(pkg.items).map(i=>deliveredCard(i,pkg.id,reviewable,arr(progress.builds).find(b=>b.id===i.build_id)?.status)).join('')}</div>`:'<section class="relystra-workflow-empty"><span>Upcoming</span><h2>No draft is ready for review.</h2><p>Relystra will publish one unified Draft Package after Build work and internal QA are complete.</p></section>'}
+      ${pkg?`<section class="relystra-review-brief"><div><span>Decision required</span><h2>Test each Build against the agreed outcome.</h2><p>Approve what is ready. For a revision or problem, include specific feedback so Relystra can assess it against the purchased scope.</p></div><dl><div><dt>Delivered drafts</dt><dd>${arr(pkg.items).length}</dd></div><div><dt>Decisions recorded</dt><dd>${reviewed}</dd></div><div><dt>Remaining</dt><dd>${Math.max(0,total-reviewed)}</dd></div></dl></section><div class="relystra-build-grid">${arr(pkg.items).map(i=>deliveredCard(i,pkg.id,reviewable,clientReviewState(arr(progress.builds).find(b=>b.id===i.build_id)))).join('')}</div>`:'<section class="relystra-workflow-empty"><span>Upcoming</span><h2>No draft is ready for review.</h2><p>Relystra will publish one unified Draft Package after Build work and internal QA are complete.</p></section>'}
       ${state.admin&&builds.some(b=>b.build_status==='revision'&&!b.revision_resolution)?`<section class="relystra-workflow-primary-section"><div class="relystra-section-intro"><span>Revision decisions</span><h2>Resolve feedback against purchased scope.</h2></div>${builds.filter(b=>b.build_status==='revision'&&!b.revision_resolution).map(b=>`<form class="relystra-build-card" data-delivery-form="revision" data-build="${esc(b.id)}"><h3>${esc(b.name)}</h3><p>${esc(b.client_review?.note||b.client_review?.feedback)}</p><label>Scope decision<select name="decision"><option value="in_scope">Within purchased scope</option><option value="separate_build">Separate Build required</option><option value="approved_exception">Admin-approved exception</option></select></label>${area('note','Explain the scope decision','',true)}<button class="btn primary">Confirm revision scope</button></form>`).join('')}</section>`:''}`;
   }
   function renderSupport(){
@@ -107,13 +114,17 @@ export function mountPackageDelivery(root,portal){
       <section class="relystra-support-center"><div><span>${supportActive?'Included support':'Support resources'}</span><h2>${supportActive?'Ask about a delivered Build.':'The included support period has ended.'}</h2><p>${supportActive?'Questions without a verified answer are sent to Relystra for review.':'Your materials and request history remain available. Contact Relystra to define any new scope.'}</p></div>${supportActive?`<form data-delivery-form="support">${area('question','Your question','',true)}<button class="btn primary">Ask Relystra</button></form>`:''}</section>
       ${arr(requests).length?`<section class="relystra-workflow-primary-section"><div class="relystra-section-intro"><span>Support history</span><h2>Questions & answers</h2></div>${arr(requests).map(r=>`<article class="relystra-build-card"><h3>${esc(r.description)}</h3><p>${esc(label(r.status))}</p><p class="relystra-support-answer">${esc(r.support_answer||'Relystra is reviewing this question.')}</p>${state.admin?`<form data-delivery-form="support-answer" data-request="${esc(r.id)}">${area('answer','Relystra response',r.support_answer,true)}<button class="btn secondary">Save support answer</button></form>`:''}</article>`).join('')}</section>`:''}`;
   }
-  async function mutate(fn){
+  async function mutate(fn,onFailure){
     if(busy||company!==state.companyId)return;busy=true;const co=company,id=projectId;
     const disabledStates=[...root.querySelectorAll('button,input,textarea,select')].map(el=>[el,el.disabled]);
     disabledStates.forEach(([el])=>el.disabled=true);
     try{const result=await fn();if(result?.error)throw result.error;if(co!==state.companyId||id!==projectId)return;
       await refresh();window.dispatchEvent(new CustomEvent('relystra:delivery-changed',{detail:{companyId:co,projectId:id}}));
-    }catch(error){if(co===state.companyId){portal.toast?.(error.message||'The change could not be saved.');const note=document.createElement('p');note.setAttribute('role','alert');note.textContent=error.message||'The change could not be saved.';root.prepend(note)}}
+    }catch(error){if(co===state.companyId&&id===projectId){
+      const reconciled=await onFailure?.();if(co!==state.companyId||id!==projectId)return;
+      const message=reconciled||error.message||'The change could not be saved.';
+      portal.toast?.(message);const note=document.createElement('p');note.setAttribute('role','alert');note.textContent=message;root.prepend(note)
+    }}
     finally{busy=false;if(co===state.companyId)disabledStates.forEach(([el,disabled])=>{if(el.isConnected)el.disabled=disabled})}
   }
   const onClick=event=>{
@@ -122,7 +133,21 @@ export function mountPackageDelivery(root,portal){
     if(button.hasAttribute('data-add-faq')){const fieldset=button.form.querySelector('[data-faq-list]');fieldset.insertAdjacentHTML('beforeend',faqFields({},fieldset.querySelectorAll('[data-faq-row]').length))}
     if(button.dataset.publish)mutate(()=>sb.rpc('relystra_publish_'+button.dataset.publish,{p_project_id:projectId}));
   };
-  const onChange=event=>{if(event.target.name==='question')delete event.target.form.dataset.turnId;if(event.target.dataset.buildTask){const el=event.target;mutate(()=>sb.rpc('relystra_set_build_task',{p_task_id:el.dataset.buildTask,p_complete:el.checked}))}};
+  const onChange=event=>{if(event.target.name==='question')delete event.target.form.dataset.turnId;if(event.target.dataset.buildTask){const el=event.target,complete=el.checked,co=company,id=projectId;
+    mutate(()=>sb.rpc('relystra_set_build_task',{p_task_id:el.dataset.buildTask,p_complete:complete}),async()=>{
+      // A failed response does not prove the server rejected the write.
+      try{
+        const saved=await sb.from('nexus_tasks').select('status').eq('id',el.dataset.buildTask).eq('project_id',id).single();
+        if(saved.error||!saved.data)throw new Error('Task state unavailable');
+        if(co!==state.companyId||id!==projectId||!el.isConnected)return;
+        el.checked=['completed','approved','done'].includes(saved.data.status);el.indeterminate=false;
+        if(el.checked===complete)return 'The save response was interrupted. The current saved task status has been restored. Refresh status to update package progress and available next tasks.';
+      }catch{
+        if(co!==state.companyId||id!==projectId||!el.isConnected)return;
+        el.indeterminate=true;
+        return 'The task save outcome could not be confirmed. Refresh status before trying again.';
+      }
+    })}};
   const onSubmit=event=>{
     const form=event.target.closest('[data-delivery-form]');if(!form)return;event.preventDefault();
     const fd=new FormData(form),get=key=>String(fd.get(key)||'').trim(),type=form.dataset.deliveryForm,build=form.dataset.build,decision=event.submitter?.value;
