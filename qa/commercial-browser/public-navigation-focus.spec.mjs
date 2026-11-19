@@ -12,26 +12,6 @@ for(const route of ['/','/services','/methodology','/about']){
   test(`${route} keeps keyboard focus on visible navigation after restoration and resize`,async({page})=>{
     await page.setViewportSize({width:390,height:844});
     await page.goto(route);
-    await page.evaluate(()=>{
-      const events=[];
-      window.__qaNavigationFocusEvents=events;
-      const record=(type,event)=>{
-        const menu=document.getElementById('public-menu-button');
-        events.push({type,target:event?.target?.id||event?.target?.tagName,
-          related:event?.relatedTarget?.id||event?.relatedTarget?.tagName,
-          active:document.activeElement?.id||document.activeElement?.tagName,
-          width:innerWidth,desktop:matchMedia('(min-width: 961px)').matches,
-          eventMatches:event?.matches,targetRects:event?.target?.getClientRects?.().length,
-          menuRects:menu?.getClientRects().length});
-        if(events.length>60)events.shift();
-      };
-      document.addEventListener('focusin',e=>record('focusin',e));
-      document.addEventListener('focusout',e=>record('focusout',e));
-      window.addEventListener('resize',()=>record('resize'));
-      matchMedia('(min-width: 961px)').addEventListener('change',e=>{
-        record('breakpoint',e);requestAnimationFrame(()=>record('breakpoint-frame'));
-      });
-    });
     const menu=page.locator('#public-menu-button');
     const firstLink=page.locator('#public-nav a').first();
     await menu.click();
@@ -46,11 +26,7 @@ for(const route of ['/','/services','/methodology','/about']){
     await expect(firstLink).toBeVisible();
     await firstLink.focus();
     await page.setViewportSize({width:390,height:844});
-    try { await expect(menu).toBeFocused(); }
-    catch(error) {
-      error.message+='\nNavigation focus events: '+JSON.stringify(await page.evaluate(()=>window.__qaNavigationFocusEvents));
-      throw error;
-    }
+    await expect(menu).toBeFocused();
     await expect(menu).toHaveAttribute('aria-expanded','false');
 
     // Growing the viewport must not leave focus on the now-hidden Menu button.
@@ -179,4 +155,17 @@ test('same-page fragment navigation keeps the native fragment focus',async({page
   await expect(page).toHaveURL(/#main-content$/);
   await expectVisibleFocus(page,page.locator('#main-content'));
   await expect(page.locator('#public-menu-button')).toHaveAttribute('aria-expanded','false');
+});
+
+
+test('height-only resize preserves an open mobile menu and visible link focus',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/');
+  const menu=page.locator('#public-menu-button');
+  const link=page.locator('#public-nav a').nth(2);
+  await menu.click();
+  await link.focus();
+  await page.setViewportSize({width:390,height:740});
+  await expectVisibleFocus(page,link);
+  await expect(menu).toHaveAttribute('aria-expanded','true');
 });
