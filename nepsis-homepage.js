@@ -139,11 +139,28 @@
   const menu = document.getElementById('public-menu-button');
   const nav = document.getElementById('public-nav');
   const desktop = window.matchMedia('(min-width: 961px)');
+  // A breakpoint can hide the focused control before the media-query callback
+  // runs, at which point browsers report body as the active element.
+  let lastNavigationFocus = null;
+  document.addEventListener('focusin', event => {
+    lastNavigationFocus = nav.contains(event.target) || event.target === menu ? event.target : null;
+  });
+  document.addEventListener('focusout', event => {
+    if (event.target !== menu && !nav.contains(event.target)) return;
+    const hiddenByBreakpoint = event.target.isConnected && !event.target.getClientRects().length &&
+      (event.target === menu ? desktop.matches : !desktop.matches);
+    // Only a control hidden by the new layout may survive a blur to body.
+    lastNavigationFocus = !event.relatedTarget && hiddenByBreakpoint ? event.target : null;
+  });
+  document.addEventListener('pointerdown', event => {
+    if (!nav.contains(event.target) && !menu.contains(event.target)) lastNavigationFocus = null;
+  });
   function closeMenu(restoreFocus = false) {
+    const focusInMenu = nav.contains(document.activeElement);
     nav.classList.remove('is-open');
     menu.setAttribute('aria-expanded', 'false');
     menu.textContent = 'Menu';
-    if (restoreFocus) menu.focus();
+    if (!desktop.matches && (restoreFocus || focusInMenu)) menu.focus();
   }
   menu.addEventListener('click', () => {
     const open = nav.classList.toggle('is-open');
@@ -157,7 +174,34 @@
   document.addEventListener('click', event => {
     if (!nav.contains(event.target) && !menu.contains(event.target)) closeMenu();
   });
-  desktop.addEventListener('change', () => closeMenu());
+  function navigationFocus() {
+    const candidate = document.activeElement === document.body ? lastNavigationFocus : document.activeElement;
+    return candidate?.isConnected ? candidate : null;
+  }
+  function reconcileNavigationFocus() {
+    const focused = navigationFocus();
+    lastNavigationFocus = null;
+    closeMenu();
+    if (desktop.matches && focused === menu) nav.querySelectorAll('a')[0]?.focus();
+    if (!desktop.matches && nav.contains(focused)) menu.focus();
+    const active = document.activeElement;
+    lastNavigationFocus = active === menu || nav.contains(active) ? active : null;
+  }
+  desktop.addEventListener('change', reconcileNavigationFocus);
+  let resizeFocusPending = false;
+  window.addEventListener('resize', () => {
+    if (resizeFocusPending) return;
+    resizeFocusPending = true;
+    // WebKit can coalesce media-query change events across a rapid round trip.
+    // After layout settles, recover only navigation controls that became hidden.
+    window.requestAnimationFrame(() => {
+      resizeFocusPending = false;
+      const focused = navigationFocus();
+      if (focused && (focused === menu || nav.contains(focused)) && !focused.getClientRects().length) {
+        reconcileNavigationFocus();
+      }
+    });
+  });
   window.addEventListener('pageshow', () => closeMenu());
 
   window.NexusConsent.bindBanner();

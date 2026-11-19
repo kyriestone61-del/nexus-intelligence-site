@@ -75,9 +75,10 @@ function harness({ storage = new Map(), gpc = false, storageBlocked = false } = 
   const loaded = [];
   document.body = { appendChild: node => { if (node.src) loaded.push(node.src); elements.set(node.id, node); } };
   const media = element('media'); const window = element('window'); window.matchMedia = () => media;
+  const frames = []; window.requestAnimationFrame = fn => frames.push(fn);
   const localStorage = { getItem: key => { if (storageBlocked) throw Error('Storage denied'); return storage.get(key) ?? null; }, removeItem: key => { if (storageBlocked) throw Error('Storage denied'); storage.delete(key); }, setItem: (key, value) => { if (storageBlocked) throw Error('Storage denied'); storage.set(key, value); } };
   vm.runInNewContext(script, { window, document, localStorage, navigator: { globalPrivacyControl: gpc }, location: { pathname: '/' }, Date, JSON });
-  return { elements, storage, loaded, document, window, media, link, click: id => elements.get(id).dispatch('click') };
+  return { elements, storage, loaded, document, window, media, link, click: id => elements.get(id).dispatch('click'), flushFrames: () => frames.splice(0).forEach(fn => fn()) };
 }
 
 test('Fresh visit has no analytics; rejection persists and survives reload', () => {
@@ -150,4 +151,34 @@ test('Previously declined and fresh visits discard stale analytics queue without
     assert.equal(storage.has('nexus_event_queue'), false);
     assert.deepEqual(h.loaded, []);
   }
+});
+
+test('Breakpoint recovery retains a still-focused link when hiding emits no blur', () => {
+  const h = harness();
+  const menu = h.elements.get('public-menu-button');
+  h.link.isConnected = true;
+  h.document.activeElement = h.link;
+  h.document.dispatch('focusin', { target: h.link });
+  h.media.matches = true;
+  h.media.dispatch('change');
+  // Simulate layout hiding the link and dropping focus to body without focusout.
+  h.document.activeElement = h.document.body;
+  h.media.matches = false;
+  h.media.dispatch('change');
+  assert.equal(menu.focused, true);
+});
+
+test('Resize recovers hidden navigation when breakpoint change events are coalesced', () => {
+  const h = harness();
+  h.link.isConnected = true;
+  h.link.getClientRects = () => [];
+  h.document.activeElement = h.link;
+  h.document.dispatch('focusin', { target: h.link });
+  // Layout crossed desktop and returned to mobile without a media change event.
+  h.media.matches = false;
+  h.document.activeElement = h.document.body;
+  h.document.dispatch('focusout', { target: h.link, relatedTarget: null });
+  h.window.dispatch('resize');
+  h.flushFrames();
+  assert.equal(h.elements.get('public-menu-button').focused, true);
 });
