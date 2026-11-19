@@ -181,7 +181,8 @@
     closeMenu();
     if (desktop.matches && focused === menu) nav.querySelectorAll('a')[0]?.focus();
     if (!desktop.matches && nav.contains(focused)) menu.focus();
-    lastNavigationFocus = null;
+    const active = document.activeElement;
+    lastNavigationFocus = active === menu || nav.contains(active) ? active : null;
   });
   window.addEventListener('pageshow', () => closeMenu());
 

@@ -10,24 +10,6 @@ test.beforeEach(async({page})=>{
 
 for(const route of ['/','/services','/methodology','/about']){
   test(`${route} keeps keyboard focus on visible navigation after restoration and resize`,async({page})=>{
-    await page.addInitScript(()=>{
-      const events=[];
-      window.__qaNavigationFocusEvents=events;
-      const record=(type,event)=>{
-        const menu=document.getElementById('public-menu-button');
-        events.push({type,target:event?.target?.id||event?.target?.tagName,
-          related:event?.relatedTarget?.id||event?.relatedTarget?.tagName,
-          active:document.activeElement?.id||document.activeElement?.tagName,
-          width:innerWidth,desktop:matchMedia('(min-width: 961px)').matches,
-          targetRects:event?.target?.getClientRects?.().length,menuRects:menu?.getClientRects().length});
-        if(events.length>40)events.shift();
-      };
-      document.addEventListener('focusin',e=>record('focusin',e));
-      document.addEventListener('focusout',e=>record('focusout',e));
-      matchMedia('(min-width: 961px)').addEventListener('change',()=>{
-        record('breakpoint');requestAnimationFrame(()=>record('breakpoint-frame'));
-      });
-    });
     await page.setViewportSize({width:390,height:844});
     await page.goto(route);
     const menu=page.locator('#public-menu-button');
@@ -44,11 +26,7 @@ for(const route of ['/','/services','/methodology','/about']){
     await expect(firstLink).toBeVisible();
     await firstLink.focus();
     await page.setViewportSize({width:390,height:844});
-    try { await expect(menu).toBeFocused(); }
-    catch(error) {
-      error.message+='\nNavigation focus events: '+JSON.stringify(await page.evaluate(()=>window.__qaNavigationFocusEvents));
-      throw error;
-    }
+    await expect(menu).toBeFocused();
     await expect(menu).toHaveAttribute('aria-expanded','false');
 
     // Growing the viewport must not leave focus on the now-hidden Menu button.

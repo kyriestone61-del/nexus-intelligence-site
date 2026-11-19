@@ -151,3 +151,18 @@ test('Previously declined and fresh visits discard stale analytics queue without
     assert.deepEqual(h.loaded, []);
   }
 });
+
+test('Breakpoint recovery retains a still-focused link when hiding emits no blur', () => {
+  const h = harness();
+  const menu = h.elements.get('public-menu-button');
+  h.link.isConnected = true;
+  h.document.activeElement = h.link;
+  h.document.dispatch('focusin', { target: h.link });
+  h.media.matches = true;
+  h.media.dispatch('change');
+  // Simulate layout hiding the link and dropping focus to body without focusout.
+  h.document.activeElement = h.document.body;
+  h.media.matches = false;
+  h.media.dispatch('change');
+  assert.equal(menu.focused, true);
+});
