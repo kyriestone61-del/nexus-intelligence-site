@@ -12,6 +12,26 @@ for(const route of ['/','/services','/methodology','/about']){
   test(`${route} keeps keyboard focus on visible navigation after restoration and resize`,async({page})=>{
     await page.setViewportSize({width:390,height:844});
     await page.goto(route);
+    await page.evaluate(()=>{
+      const events=[];
+      window.__qaNavigationFocusEvents=events;
+      const record=(type,event)=>{
+        const menu=document.getElementById('public-menu-button');
+        events.push({type,target:event?.target?.id||event?.target?.tagName,
+          related:event?.relatedTarget?.id||event?.relatedTarget?.tagName,
+          active:document.activeElement?.id||document.activeElement?.tagName,
+          width:innerWidth,desktop:matchMedia('(min-width: 961px)').matches,
+          eventMatches:event?.matches,targetRects:event?.target?.getClientRects?.().length,
+          menuRects:menu?.getClientRects().length});
+        if(events.length>60)events.shift();
+      };
+      document.addEventListener('focusin',e=>record('focusin',e));
+      document.addEventListener('focusout',e=>record('focusout',e));
+      window.addEventListener('resize',()=>record('resize'));
+      matchMedia('(min-width: 961px)').addEventListener('change',e=>{
+        record('breakpoint',e);requestAnimationFrame(()=>record('breakpoint-frame'));
+      });
+    });
     const menu=page.locator('#public-menu-button');
     const firstLink=page.locator('#public-nav a').first();
     await menu.click();
@@ -26,7 +46,11 @@ for(const route of ['/','/services','/methodology','/about']){
     await expect(firstLink).toBeVisible();
     await firstLink.focus();
     await page.setViewportSize({width:390,height:844});
-    await expect(menu).toBeFocused();
+    try { await expect(menu).toBeFocused(); }
+    catch(error) {
+      error.message+='\nNavigation focus events: '+JSON.stringify(await page.evaluate(()=>window.__qaNavigationFocusEvents));
+      throw error;
+    }
     await expect(menu).toHaveAttribute('aria-expanded','false');
 
     // Growing the viewport must not leave focus on the now-hidden Menu button.
