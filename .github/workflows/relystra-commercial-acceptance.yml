@@ -8,7 +8,8 @@ permissions:
   contents: read
 jobs:
   commercial-acceptance:
-    runs-on: ubuntu-latest
+    # Keep Playwright's system dependencies stable across runner-image migrations.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +21,12 @@ jobs:
       - run: node --test qa/contracts/*.test.mjs qa/relystra-delivery-lifecycle.test.mjs qa/relystra-release-safety.test.mjs qa/database/*.test.mjs
       - run: node --test tests/nepsis-homepage-qaqc.mjs tests/nepsis-public-pages-qaqc.mjs tests/nepsis-homepage-middleware-qaqc.mjs tests/nepsis-public-release-boundary.test.mjs
       - run: npm ci --prefix qa/playwright --ignore-scripts
-      - run: qa/playwright/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Install browser system dependencies
+        timeout-minutes: 5
+        run: qa/playwright/node_modules/.bin/playwright install-deps chromium webkit
+      - name: Download Playwright browsers
+        timeout-minutes: 5
+        run: qa/playwright/node_modules/.bin/playwright install chromium webkit
       - run: qa/playwright/node_modules/.bin/playwright test --config qa/commercial-browser/playwright.config.mjs
       - uses: actions/upload-artifact@v4
         if: always()
