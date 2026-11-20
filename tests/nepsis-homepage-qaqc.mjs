@@ -22,7 +22,60 @@ test('Homepage contains only approved public experience and commercial sequence'
   assert.match(html, /aria-controls="public-nav"/);
   const bookings = [...html.matchAll(/<a\b[^>]*href="\/book"[^>]*>(.*?)<\/a>/g)];
   assert.equal(bookings.length, 3);
-  bookings.forEach(link => assert.equal(link[1], 'Schedule a free consultation'));
+  // The shared header keeps the cross-page nav label; homepage body CTAs use the approved wording.
+  const header = html.match(/<header\b[\s\S]*?<\/header>/)[0];
+  const main = html.match(/<main\b[\s\S]*?<\/main>/)[0];
+  assert.deepEqual([...header.matchAll(/<a\b[^>]*href="\/book"[^>]*>(.*?)<\/a>/g)].map(link => link[1]), ['Schedule a free consultation']);
+  const mainBookings = [...main.matchAll(/<a\b[^>]*href="\/book"[^>]*>(.*?)<\/a>/g)].map(link => link[1]);
+  assert.deepEqual(mainBookings, ['Book a free consultation', 'Book a free consultation']);
+  assert.doesNotMatch(main, /Schedule a free consultation/);
+  const consultationLinks = [...html.matchAll(/<a\b([^>]*)>([^<]*free consultation)<\/a>/gi)];
+  assert.equal(consultationLinks.length, 3);
+  for (const [, attributes, label] of consultationLinks) assert.match(attributes, /\bhref="\/book"/, label);
+});
+
+test('Homepage leads with the approved category, headline and free/optional-paid boundary', () => {
+  const text = value => value.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  assert.match(html, /<title>Nepsis Intelligence \| Workflow Consulting for Owner-Led Small Businesses<\/title>/);
+  assert.doesNotMatch(html, /Practical Construction Systems|Make everyday|operations work better/);
+  const h1 = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/);
+  assert.equal(text(h1[1]), 'Know what to fix before you pay to change it.');
+  const hero = html.match(/<section class="hero[^"]*"[\s\S]*?<\/section>/)[0];
+  assert.ok(text(hero).includes('Workflow consulting for owner-led small businesses.'));
+  assert.ok(text(hero).includes('where work gets delayed, repeated or lost'));
+  const primary = hero.match(/<a class="button"[^>]*>(.*?)<\/a>/);
+  assert.match(primary[0], /href="\/book"/);
+  assert.equal(primary[1], 'Book a free consultation');
+  assert.match(hero, /<a class="text-link" href="\/services">See workflow examples<\/a>/);
+  assert.ok(text(hero).includes('Free: the consultation, including a written Basic Diagnosis.'));
+  assert.ok(text(hero).includes('Optional: a paid Full Diagnosis and scoped implementation, agreed before any paid work starts.'));
+  for (const meta of [/name="description" content="([^"]+)"/, /property="og:title" content="([^"]+)"/, /property="og:description" content="([^"]+)"/, /"description":"([^"]+)"/]) {
+    const value = html.match(meta)[1];
+    assert.doesNotMatch(value, /construction businesses/i);
+  }
+  assert.match(html.match(/name="description" content="([^"]+)"/)[1], /owner-led small businesses/);
+  assert.match(html.match(/property="og:description" content="([^"]+)"/)[1], /owner-led small businesses/);
+  assert.match(html.match(/"description":"([^"]+)"/)[1], /owner-led small businesses/);
+  assert.doesNotMatch(html, /guaranteed (fix|result|savings)|we guarantee|testimonial|case study|\$\d|always (identif|find|recommend)/i);
+  assert.match(html, /Examples do not guarantee results\./);
+});
+
+test('Hero shows a labelled illustrative Basic Diagnosis, not a client result, with exactly three evidence statements', () => {
+  const text = value => value.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  const panel = html.match(/<aside class="diagnosis-panel" aria-labelledby="diagnosis-title">([\s\S]*?)<\/aside>/);
+  assert.ok(panel, 'diagnosis panel');
+  assert.match(panel[1], /<h2 id="diagnosis-title">Illustrative Basic Diagnosis<\/h2>/);
+  assert.match(text(panel[1]), /Illustrative example · Not a client result/);
+  const items = [...panel[1].matchAll(/<li>([\s\S]*?)<\/li>/g)].map(item => text(item[1]));
+  assert.deepEqual(items, [
+    'What we know: Requests arrive by phone and form and are tracked separately.',
+    'What we suspect: Requests can wait without a named next owner.',
+    'What still needs checking: Who takes over when the first person is unavailable?'
+  ]);
+  for (const statement of items) assert.equal(text(html).split(statement).length - 1, 1, statement);
+  assert.doesNotMatch(panel[1], /<img\b|steps-panel|hero-steps/);
+  assert.doesNotMatch(text(panel[1]), /recommend|we will fix|result:/i);
+  assert.doesNotMatch(html.match(/<section class="hero[\s\S]*?<\/section>/)[0], /kyrie-founder/);
 });
 
 test('All local links, fragment targets and asset references resolve without external calls', () => {

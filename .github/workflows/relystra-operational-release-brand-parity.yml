@@ -56,8 +56,8 @@ jobs:
             exit 1
           }
 
-          probe 'pages-home-brand' "$pages/" '<title>Nepsis Intelligence | Practical Construction Systems</title>'
-          probe 'custom-home-brand' "$custom/" '<title>Nepsis Intelligence | Practical Construction Systems</title>'
+          probe 'pages-home-brand' "$pages/" '<title>Nepsis Intelligence | Workflow Consulting for Owner-Led Small Businesses</title>'
+          probe 'custom-home-brand' "$custom/" '<title>Nepsis Intelligence | Workflow Consulting for Owner-Led Small Businesses</title>'
           probe 'pages-home-name' "$pages/" '<span>NEPSIS</span><small>INTELLIGENCE</small>'
           probe 'custom-home-name' "$custom/" '<span>NEPSIS</span><small>INTELLIGENCE</small>'
           probe_calendar_handoff 'pages-book-handoff' "$pages/book"

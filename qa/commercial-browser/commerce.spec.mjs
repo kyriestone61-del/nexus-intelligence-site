@@ -55,6 +55,51 @@ test('administrator requests a private input for its paid Build before implement
  await expect(page.locator('[role="alert"]')).toHaveCount(0);
 });
 
+test('rendered homepage leads with the category, illustrative Basic Diagnosis and free/optional-paid boundary',async({page})=>{
+ await page.goto('/');
+ await expect(page).toHaveTitle('Nepsis Intelligence | Workflow Consulting for Owner-Led Small Businesses');
+ await expect(page.getByRole('heading',{level:1})).toHaveText('Know what to fix before you pay to change it.');
+ const hero=page.locator('.hero');
+ await expect(hero).toContainText('Workflow consulting for owner-led small businesses.');
+ await expect(hero).toContainText('where work gets delayed, repeated or lost');
+ await expect(hero.getByRole('link',{name:'Book a free consultation',exact:true})).toHaveAttribute('href','/book');
+ await expect(hero.getByRole('link',{name:'See workflow examples',exact:true})).toHaveAttribute('href','/services');
+ await expect(hero).toContainText('agreed before any paid work starts');
+ const panel=page.getByRole('complementary',{name:'Illustrative Basic Diagnosis'});
+ await expect(panel).toContainText('Not a client result');
+ await expect(panel.getByRole('listitem')).toHaveText([
+  'What we know: Requests arrive by phone and form and are tracked separately.',
+  'What we suspect: Requests can wait without a named next owner.',
+  'What still needs checking: Who takes over when the first person is unavailable?'
+ ]);
+ await expect(page.locator('main')).not.toContainText('Schedule a free consultation');
+ await expect(page.locator('a[href="/book"]')).toHaveCount(3);
+ await expect(page.locator('header a[href="/book"]')).toHaveText(['Schedule a free consultation']);
+ await expect(page.locator('main a[href="/book"]')).toHaveText(['Book a free consultation','Book a free consultation']);
+ // The shared header CTA is only exposed to assistive technology once the responsive menu is open.
+ const menu=page.locator('#public-menu-button');
+ const headerCta=page.locator('header').getByRole('link',{name:'Schedule a free consultation',exact:true});
+ if(await menu.isVisible()){
+  await expect(menu).toHaveAttribute('aria-expanded','false');
+  await menu.click();
+  await expect(menu).toHaveAttribute('aria-expanded','true');
+  await expect(headerCta).toBeVisible();
+  await expect(headerCta).toHaveAttribute('href','/book');
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveAttribute('aria-expanded','false');
+  await expect(menu).toBeFocused();
+  await expect(headerCta).toBeHidden();
+ }else{
+  await expect(headerCta).toBeVisible();
+  await expect(headerCta).toHaveAttribute('href','/book');
+ }
+ await expect(page.locator('body')).not.toContainText('$350');
+ await fits(page);
+ await page.setViewportSize({width:320,height:800});
+ await fits(page);
+ await expect(page.getByRole('heading',{level:1})).toBeVisible();
+});
+
 test('rendered Services preserves the settled free-to-paid sequence and retires legacy injected recommendations',async({page})=>{
  await page.goto('/services');
  await expect(page.getByRole('heading',{name:'One workflow. A clearer way forward.'})).toBeVisible();
