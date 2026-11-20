@@ -1,0 +1,275 @@
+WEBVTT
+
+00:00.821 --> 00:03.233
+Estimate stuck before
+it reaches the customer?
+
+00:03.338 --> 00:05.971
+Nepsis maps, improves, tests,
+
+00:06.026 --> 00:08.489
+and hands over one
+recurring workflow.
+
+00:08.544 --> 00:10.821
+Follow this estimate
+from request to sent.
+
+00:12.469 --> 00:15.449
+A homeowner asks for an estimate
+on a residential addition.
+
+00:15.504 --> 00:17.284
+The request becomes site notes,
+
+00:17.339 --> 00:20.270
+measurements, photographs, office intake,
+
+00:20.325 --> 00:22.447
+pricing, a formatted estimate,
+
+00:22.502 --> 00:24.978
+and finally an email
+to the customer.
+
+00:25.147 --> 00:27.085
+That sounds like one straight line.
+
+00:27.185 --> 00:29.391
+In practice, several
+people touch it,
+
+00:29.446 --> 00:31.226
+and every handoff can add a wait
+
+00:31.281 --> 00:32.633
+or send it backward.
+
+00:35.816 --> 00:38.976
+Nepsis starts by mapping the
+route as it actually runs.
+
+00:39.102 --> 00:40.967
+The enquiry reaches the site visit.
+
+00:41.022 --> 00:42.918
+The site notes reach the office.
+
+00:42.973 --> 00:45.779
+The office checks whether the
+pack is ready for pricing.
+
+00:45.834 --> 00:47.969
+The owner applies pricing judgment.
+
+00:48.095 --> 00:50.728
+The office prepares the
+customer-facing estimate.
+
+00:50.783 --> 00:52.136
+Nothing is simplified yet,
+
+00:52.191 --> 00:53.801
+and no tool is chosen.
+
+00:53.871 --> 00:56.447
+The first job is to make
+the current route visible.
+
+00:59.687 --> 01:01.694
+Now watch where the estimate stops.
+
+01:01.805 --> 01:03.472
+The owner’s tray is not just full
+
+01:03.527 --> 01:04.581
+of pricing work.
+
+01:04.636 --> 01:07.380
+One pack has measurements
+but no photographs.
+
+01:07.476 --> 01:09.426
+Another has a scope
+question with no
+
+01:09.481 --> 01:11.048
+named person to answer it.
+
+01:11.103 --> 01:13.856
+A third looks complete
+until pricing begins.
+
+01:13.991 --> 01:16.466
+The owner is receiving
+work that is nearly ready,
+
+01:16.521 --> 01:19.027
+then spending attention
+chasing what is missing.
+
+01:19.172 --> 01:21.091
+The hold is the
+readiness handoff into
+
+01:21.146 --> 01:21.873
+pricing.
+
+01:25.654 --> 01:28.432
+That does not mean the whole
+business needs rebuilding.
+
+01:28.601 --> 01:30.679
+Nepsis and the owner
+agree a boundary
+
+01:30.734 --> 01:33.197
+around one segment: ready to price,
+
+01:33.252 --> 01:35.031
+priced, and ready to send.
+
+01:35.086 --> 01:36.655
+Site visits stay outside.
+
+01:36.856 --> 01:38.891
+Pricing judgment
+stays with the owner.
+
+01:38.946 --> 01:41.188
+Unrelated systems stay outside.
+
+01:41.378 --> 01:43.769
+The boundary says
+exactly what can change,
+
+01:43.853 --> 01:45.675
+what cannot, and what the team will
+
+01:45.730 --> 01:46.358
+test.
+
+01:49.626 --> 01:51.961
+Inside that boundary,
+the rule comes before
+
+01:52.016 --> 01:53.071
+the software.
+
+01:53.143 --> 01:55.520
+A ready-to-price pack
+has the agreed notes,
+
+01:55.575 --> 01:58.762
+measurements, photographs,
+and scope questions in one
+
+01:58.817 --> 01:59.587
+place.
+
+01:59.756 --> 02:02.480
+A named office check
+confirms the pack is ready.
+
+02:02.547 --> 02:05.274
+Missing information follows
+an exception route instead
+
+02:05.329 --> 02:07.407
+of entering the
+owner’s pricing tray.
+
+02:07.462 --> 02:09.956
+Ownership is visible at every step.
+
+02:10.011 --> 02:12.221
+Existing tools can
+support that method where
+
+02:12.276 --> 02:14.397
+they fit; a different
+tool is considered
+
+02:14.452 --> 02:16.345
+only if the workflow needs it.
+
+02:20.100 --> 02:22.640
+Then the people who will
+use it run the process.
+
+02:22.830 --> 02:26.053
+First, the team moves a normal
+estimate through the route.
+
+02:26.108 --> 02:29.033
+Next, they test a
+changed-scope case.
+
+02:29.138 --> 02:31.891
+Then a pack arrives without
+a required photograph.
+
+02:31.954 --> 02:33.648
+If an instruction is unclear,
+
+02:33.703 --> 02:36.720
+the team changes the instruction
+and runs the case again.
+
+02:36.775 --> 02:38.784
+The goal is not a
+good-looking demo.
+
+02:38.839 --> 02:42.894
+It is a workflow the team can operate,
+including an ordinary exception.
+
+02:46.606 --> 02:48.898
+Handoff means the team
+receives the operating
+
+02:48.953 --> 02:50.434
+note, the named owner,
+
+02:50.489 --> 02:52.666
+the normal route, and the fallback.
+
+02:52.793 --> 02:55.317
+The consultant stops
+directing every move.
+
+02:55.448 --> 02:57.313
+The office runs the next estimate,
+
+02:57.368 --> 03:01.774
+the owner keeps the pricing decision, and
+the exception has somewhere clear to go.
+
+03:05.005 --> 03:06.650
+That is what Nepsis does:
+
+03:06.712 --> 03:08.975
+map the work, find the hold,
+
+03:09.101 --> 03:10.667
+agree a bounded improvement,
+
+03:10.722 --> 03:12.332
+configure it, test it,
+
+03:12.387 --> 03:13.796
+and hand it over.
+
+03:13.965 --> 03:15.916
+Bring one recurring
+workflow to a free
+
+03:15.971 --> 03:17.068
+consultation.
+
+03:17.224 --> 03:19.857
+You receive a concise
+Basic Diagnosis,
+
+03:19.912 --> 03:21.793
+then decide whether to continue.

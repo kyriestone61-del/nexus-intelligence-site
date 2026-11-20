@@ -1,0 +1,237 @@
+WEBVTT
+
+00:00.816 --> 00:03.831
+Collection requested.
+Equipment still on site.
+
+00:03.931 --> 00:05.843
+Nepsis shows why a working demo
+
+00:05.893 --> 00:07.678
+is not a handoff—and what the
+
+00:07.728 --> 00:09.441
+team needs before takeover.
+
+00:11.971 --> 00:13.159
+The example is simple:
+
+00:13.209 --> 00:14.737
+a rented machine is ready to
+
+00:14.787 --> 00:16.294
+leave the site. On a perfect
+
+00:16.344 --> 00:18.403
+day, the supervisor marks it ready,
+
+00:18.482 --> 00:21.376
+the supplier is contacted,
+the machine is collected,
+
+00:21.426 --> 00:24.270
+and the office receives
+the expected confirmation.
+
+00:24.413 --> 00:27.143
+A clean demo can make
+that route look finished.
+
+00:29.673 --> 00:31.711
+But the screen is not the workflow.
+
+00:31.790 --> 00:33.951
+The team first needs clear states.
+
+00:34.094 --> 00:38.182
+Ready for collection means site use has
+finished. Collection requested means
+
+00:38.232 --> 00:41.482
+the supplier has been contacted.
+Collected means the machine
+
+00:41.560 --> 00:45.500
+has physically left. Supplier confirmation
+received is another state where
+
+00:45.550 --> 00:48.913
+the applicable process requires
+it. The relevant hire terms and
+
+00:48.963 --> 00:52.656
+confirmations still need to be
+checked; a button does not decide them.
+
+00:55.186 --> 00:58.808
+Each transition also needs
+an expected action or source.
+
+00:58.929 --> 01:00.472
+Who marks the machine ready?
+
+01:00.551 --> 01:02.541
+What information goes to the supplier?
+
+01:02.641 --> 01:03.999
+Who can confirm it left?
+
+01:04.049 --> 01:05.986
+Where is the supplier reference kept?
+
+01:06.074 --> 01:09.025
+What happens if the normal
+evidence does not arrive?
+
+01:09.189 --> 01:11.144
+Without those answers, one green
+
+01:11.194 --> 01:13.761
+status can hide several
+different realities.
+
+01:16.291 --> 01:19.071
+Now the site supervisor
+runs the normal case.
+
+01:19.150 --> 01:21.655
+The consultant does not
+narrate every click.
+
+01:21.705 --> 01:24.216
+The supervisor identifies
+the machine, records
+
+01:24.266 --> 01:27.160
+that it is ready, makes
+or records the collection
+
+01:27.210 --> 01:29.890
+request, and watches the
+office receive the correct
+
+01:29.940 --> 01:33.334
+state. The route works when the
+people doing the job can follow it
+
+01:33.384 --> 01:35.524
+without being coached through every move.
+
+01:38.054 --> 01:40.004
+Then the consultant steps away.
+
+01:40.106 --> 01:41.891
+This is the retention reset and
+
+01:41.941 --> 01:43.811
+the real test: the builder is
+
+01:43.861 --> 01:45.518
+no longer in the room, and
+
+01:45.568 --> 01:47.537
+the user owns the next action.
+
+01:50.067 --> 01:52.303
+The supplier does not collect the machine.
+
+01:52.519 --> 01:53.977
+It is still in the yard,
+
+01:54.055 --> 01:57.177
+but the old workflow
+offers one tempting word:
+
+01:57.255 --> 01:59.808
+done. Done could mean the request was
+
+01:59.858 --> 02:02.197
+sent. It could mean the machine left.
+
+02:02.247 --> 02:04.314
+It could mean a confirmation arrived.
+
+02:04.448 --> 02:07.214
+The exception exposes
+an ambiguous state and
+
+02:07.264 --> 02:09.489
+no named person for the follow-up.
+
+02:12.019 --> 02:15.852
+The team corrects the workflow. The
+status stays at collection requested
+
+02:15.902 --> 02:17.729
+while the machine remains on site.
+
+02:17.779 --> 02:19.265
+A named person owns the
+
+02:19.315 --> 02:21.760
+follow-up. The next check is visible.
+
+02:21.810 --> 02:24.618
+The supplier reference stays
+attached. If collection
+
+02:24.668 --> 02:28.843
+fails again, the issue follows an agreed
+escalation route instead of disappearing
+
+02:28.893 --> 02:30.264
+behind a completed button.
+
+02:32.794 --> 02:34.781
+Then the same exception is run again.
+
+02:34.920 --> 02:36.612
+The machine remains visible.
+
+02:36.712 --> 02:38.553
+The status remains accurate.
+
+02:38.632 --> 02:40.430
+The follow-up reaches its owner.
+
+02:40.509 --> 02:43.353
+The office can see what
+happened and what comes next.
+
+02:43.453 --> 02:44.470
+Only after the user
+
+02:44.520 --> 02:47.975
+can complete that route does the
+workflow move toward handoff.
+
+02:50.505 --> 02:52.710
+Handoff includes the operating note,
+
+02:52.760 --> 02:54.885
+the named owner, the normal path,
+
+02:54.935 --> 02:57.275
+the fallback, and the exception route. The
+
+02:57.325 --> 03:00.276
+consultant leaves the path;
+the team keeps running it.
+
+03:02.806 --> 03:04.122
+A screen can pass a demo
+
+03:04.172 --> 03:06.084
+while the operation still fails.
+
+03:06.233 --> 03:09.469
+Nepsis tests the people,
+states, decisions,
+
+03:09.519 --> 03:12.967
+and exceptions together. Bring
+one workflow your team has
+
+03:13.017 --> 03:17.270
+to work around and start with the
+free consultation and Basic Diagnosis.

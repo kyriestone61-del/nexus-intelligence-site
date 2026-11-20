@@ -96,9 +96,16 @@ h3 { line-height: 1.25; }
 .problem-list h3 { font-family: var(--font-serif); font-size: 25px; font-weight: 400; }
 .problem-list p { color: var(--ink-soft); }
 .workflow-videos-section { border-top: 1px solid var(--line); }
-.workflow-video-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: start; }
+.workflow-video-group + .workflow-video-group { margin-top: 58px; padding-top: 52px; border-top: 1px solid var(--line); }
+.workflow-video-group-heading { max-width: 720px; margin-bottom: 28px; }
+.workflow-video-group-heading .eyebrow { margin-bottom: 10px; }
+.workflow-video-group-heading h3 { margin: 0; font-family: var(--font-serif); font-size: clamp(30px, 3vw, 42px); font-weight: 400; }
+.workflow-video-grid { display: grid; gap: 22px; align-items: start; }
+.workflow-video-grid--features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.workflow-video-grid--shorts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .workflow-video-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
 .workflow-video-card video { display: block; width: 100%; aspect-ratio: 9 / 16; object-fit: cover; background: var(--navy); }
+.workflow-video-card--feature video { aspect-ratio: 16 / 9; }
 .workflow-video-copy { padding: 26px; }
 .workflow-video-copy .card-label { margin-bottom: 13px; }
 .workflow-video-copy h3 { margin-bottom: 14px; font-family: var(--font-serif); font-size: clamp(26px, 2.2vw, 32px); font-weight: 400; }
@@ -150,6 +157,7 @@ h3 { line-height: 1.25; }
   .three-cards { grid-template-columns: 1fr; }
   .service-card { min-height: 0; }
   .card-index { margin-bottom: 28px; }
+  .workflow-video-grid--shorts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .working-grid { gap: 38px; }
 }
 @media (max-width: 960px) {
@@ -176,7 +184,8 @@ h3 { line-height: 1.25; }
   .section-heading h2, .about-section h2, .final-cta h2 { font-size: 42px; }
   .problem-list { grid-template-columns: 1fr; }
   .problem-list article, .problem-list article + article { padding: 24px 0; border-left: 0; border-bottom: 1px solid var(--line-strong); }
-  .workflow-video-grid { grid-template-columns: 1fr; width: min(100%, 440px); margin-inline: auto; }
+  .workflow-video-grid--features { grid-template-columns: 1fr; }
+  .workflow-video-grid--shorts { grid-template-columns: 1fr; width: min(100%, 440px); margin-inline: auto; }
   .working-grid, .about-section { grid-template-columns: 1fr; gap: 34px; }
   .measure-card { position: static; }
   .about-section > div:last-child { padding-top: 0; }

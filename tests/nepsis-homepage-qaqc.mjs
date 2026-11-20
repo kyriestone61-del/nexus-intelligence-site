@@ -103,18 +103,26 @@ test('Approved palette, typography, responsive breakpoints and focus affordances
   assert.doesNotMatch(script, /fetch\(|XMLHttpRequest|supabase/);
 });
 
-test('Homepage publishes the three approved workflow videos with local media, captions and transcripts', () => {
+test('Homepage publishes the six approved workflow videos with local media, captions and transcripts', () => {
   const section = html.match(/<section class="content-section section-shell workflow-videos-section"[\s\S]*?<\/section>/)?.[0];
   assert.ok(section, 'workflow video section');
   assert.match(section, /See the workflow, not just the claim\./);
-  assert.equal((section.match(/<article class="workflow-video-card">/g) || []).length, 3);
-  assert.equal((section.match(/<video\b/g) || []).length, 3);
-  assert.equal((section.match(/<track kind="captions"/g) || []).length, 3);
-  assert.equal((section.match(/<details class="workflow-transcript"/g) || []).length, 3);
+  assert.equal((section.match(/<article class="workflow-video-card(?: [^"]+)?">/g) || []).length, 6);
+  assert.equal((section.match(/<video\b/g) || []).length, 6);
+  assert.equal((section.match(/<track kind="captions"/g) || []).length, 6);
+  assert.equal((section.match(/<details class="workflow-transcript"/g) || []).length, 6);
   for (const asset of [...section.matchAll(/(?:src|poster)="(\/assets\/workflow-walkthroughs\/[^"]+)"/g)].map(match => match[1])) {
     assert.ok(fs.existsSync(new URL(asset.slice(1), root)), asset);
   }
-  for (const title of ['Where the Estimate Actually Stops', 'Requested Is Not Collected', 'The Handoff Test Most Demos Skip']) assert.ok(section.includes(title), title);
+  for (const title of [
+    'What Nepsis Actually Does: One Estimate, Start to Finish',
+    'A Demo Is Not a Handoff: How Nepsis Tests a Workflow',
+    'Before You Buy Another App, Find the Bottleneck',
+    'Where the Estimate Actually Stops',
+    'Requested Is Not Collected',
+    'The Handoff Test Most Demos Skip'
+  ]) assert.ok(section.includes(title), title);
+  assert.equal((section.match(/workflow-video-card--feature/g) || []).length, 2);
   assert.match(headers, /\/assets\/workflow-walkthroughs\/\*\.vtt\s+Content-Type: text\/vtt; charset=utf-8/);
   assert.doesNotMatch(section, /not a real example|fictional|mock client|sample client|disclaimer/i);
 });
