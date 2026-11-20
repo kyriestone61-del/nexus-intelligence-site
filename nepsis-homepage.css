@@ -207,6 +207,15 @@ h3 { line-height: 1.25; }
 .nepsis-homepage .hero h1, .nepsis-homepage .hero-intro, .nepsis-homepage .diagnosis-panel { overflow-wrap: break-word; }
 .nepsis-homepage .hero-boundary { max-width: 620px; margin: 24px 0 0; padding-top: 18px; color: var(--ink-soft); border-top: 1px solid var(--line); font-size: 15px; }
 .nepsis-homepage .hero-boundary strong { color: var(--ink); }
+.nepsis-homepage .hero-boundary-label { margin-bottom: 8px; color: var(--teal-dark); font-size: 11px; font-weight: 700; letter-spacing: .19em; text-transform: uppercase; }
+.nepsis-homepage .hero-boundary ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+/* Homepage-only Basic / Full / implementation comparison. Overrides are scoped
+   so construction.html keeps its existing service cards. */
+.nepsis-homepage .offer-compare .service-card { min-height: 0; }
+.nepsis-homepage .offer-compare .card-index { margin-bottom: 20px; }
+.nepsis-homepage .offer-tag { margin-bottom: 10px; color: var(--teal-dark); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.nepsis-homepage .offer-boundary { max-width: 820px; margin: 28px 0 0; color: var(--ink-soft); font-size: 16px; }
+.nepsis-homepage .offer-boundary strong { color: var(--ink); }
 .nepsis-homepage .diagnosis-panel { min-width: 0; padding: 30px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
 .nepsis-homepage .diagnosis-label { display: inline-block; margin-bottom: 16px; padding: 6px 10px; color: var(--ink); background: var(--amber-soft); border-radius: var(--radius); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .nepsis-homepage .diagnosis-panel h2 { margin-bottom: 18px; font-size: clamp(28px, 2.4vw, 34px); letter-spacing: -.02em; line-height: 1.1; }
@@ -225,10 +234,12 @@ h3 { line-height: 1.25; }
   .nepsis-homepage .diagnosis-panel { max-width: 760px; }
 }
 @media (max-width: 760px) {
+  .nepsis-homepage .hero-actions .text-link { display: inline-flex; align-items: center; min-height: 44px; }
   .nepsis-homepage .diagnosis-panel { padding: 24px 20px; }
   .nepsis-homepage .diagnosis-evidence li { font-size: 16px; }
 }
 @media (max-width: 440px) {
+  .nepsis-homepage .hero-actions .text-link { align-self: flex-start; }
   .nepsis-homepage .diagnosis-panel { padding: 20px 16px; }
   .nepsis-homepage .founder-note { align-items: flex-start; }
   .nepsis-homepage .founder-note img { width: 80px; }
