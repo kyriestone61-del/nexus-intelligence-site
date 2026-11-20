@@ -6,6 +6,7 @@ const root = new URL('../', import.meta.url);
 const html = fs.readFileSync(new URL('index.html', root), 'utf8');
 const script = fs.readFileSync(new URL('nepsis-homepage.js', root), 'utf8');
 const css = fs.readFileSync(new URL('nepsis-homepage.css', root), 'utf8');
+const headers = fs.readFileSync(new URL('_headers', root), 'utf8');
 
 test('Homepage contains only approved public experience and commercial sequence', () => {
   assert.match(html, /Nepsis Intelligence/);
@@ -100,6 +101,22 @@ test('Approved palette, typography, responsive breakpoints and focus affordances
   assert.match(css, /\.wordmark span \{/);
   assert.doesNotMatch(html, /src="\/app.js"|href="\/styles.css"|href="\/simple-site.css"/);
   assert.doesNotMatch(script, /fetch\(|XMLHttpRequest|supabase/);
+});
+
+test('Homepage publishes the three approved workflow videos with local media, captions and transcripts', () => {
+  const section = html.match(/<section class="content-section section-shell workflow-videos-section"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(section, 'workflow video section');
+  assert.match(section, /See the workflow, not just the claim\./);
+  assert.equal((section.match(/<article class="workflow-video-card">/g) || []).length, 3);
+  assert.equal((section.match(/<video\b/g) || []).length, 3);
+  assert.equal((section.match(/<track kind="captions"/g) || []).length, 3);
+  assert.equal((section.match(/<details class="workflow-transcript"/g) || []).length, 3);
+  for (const asset of [...section.matchAll(/(?:src|poster)="(\/assets\/workflow-walkthroughs\/[^"]+)"/g)].map(match => match[1])) {
+    assert.ok(fs.existsSync(new URL(asset.slice(1), root)), asset);
+  }
+  for (const title of ['Where the Estimate Actually Stops', 'Requested Is Not Collected', 'The Handoff Test Most Demos Skip']) assert.ok(section.includes(title), title);
+  assert.match(headers, /\/assets\/workflow-walkthroughs\/\*\.vtt\s+Content-Type: text\/vtt; charset=utf-8/);
+  assert.doesNotMatch(section, /not a real example|fictional|mock client|sample client|disclaimer/i);
 });
 
 // Minimal DOM contract harness: no browser, networking or third-party code executes.

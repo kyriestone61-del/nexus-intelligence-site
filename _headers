@@ -33,6 +33,11 @@
 /phase-five.js
   Cache-Control: no-store, max-age=0
 
+# Serve accessible caption tracks with an explicit MIME type. The global
+# nosniff policy otherwise makes an incorrect host default fatal in browsers.
+/assets/workflow-walkthroughs/*.vtt
+  Content-Type: text/vtt; charset=utf-8
+
 # Keep the Cloudflare Pages project domain and branch/version preview URLs out of search results.
 # The root Pages Function also applies this header because _headers does not affect Function-generated responses.
 https://:project.pages.dev/*
