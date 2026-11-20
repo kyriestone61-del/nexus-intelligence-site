@@ -32,10 +32,11 @@ test('homepage workflow walkthroughs load on desktop and fit a phone viewport',a
   const section=page.locator('#walkthroughs');
   await expect(section.getByRole('heading',{name:'See the workflow, not just the claim.'})).toBeVisible();
   const cards=section.locator('.workflow-video-card');
-  await expect(cards).toHaveCount(3);
-  await expect(section.locator('video')).toHaveCount(3);
-  await expect(section.locator('track[kind="captions"]')).toHaveCount(3);
-  await expect(section.locator('details.workflow-transcript')).toHaveCount(3);
+  await expect(cards).toHaveCount(6);
+  await expect(section.locator('.workflow-video-card--feature')).toHaveCount(2);
+  await expect(section.locator('video')).toHaveCount(6);
+  await expect(section.locator('track[kind="captions"]')).toHaveCount(6);
+  await expect(section.locator('details.workflow-transcript')).toHaveCount(6);
 
   for(const source of await section.locator('video source').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('src')))){
     expect(source).toMatch(/^\/assets\/workflow-walkthroughs\/.+\.mp4$/);
@@ -46,7 +47,7 @@ test('homepage workflow walkthroughs load on desktop and fit a phone viewport',a
 
   await page.setViewportSize({width:390,height:844});
   await page.reload({waitUntil:'domcontentloaded'});
-  await expect(page.locator('#walkthroughs .workflow-video-card')).toHaveCount(3);
+  await expect(page.locator('#walkthroughs .workflow-video-card')).toHaveCount(6);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
   const widths=await page.locator('#walkthroughs .workflow-video-card').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().width));
   expect(widths.every(width=>width<=358&&width>=300)).toBe(true);
