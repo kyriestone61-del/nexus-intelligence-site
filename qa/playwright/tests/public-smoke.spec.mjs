@@ -27,6 +27,31 @@ test('public navigation exposes client login and reaches the sign-in experience'
   await expect(page.locator('#signInForm')).toBeVisible();
 });
 
+test('homepage workflow walkthroughs load on desktop and fit a phone viewport',async({page,request})=>{
+  await page.goto('/#walkthroughs',{waitUntil:'domcontentloaded'});
+  const section=page.locator('#walkthroughs');
+  await expect(section.getByRole('heading',{name:'See the workflow, not just the claim.'})).toBeVisible();
+  const cards=section.locator('.workflow-video-card');
+  await expect(cards).toHaveCount(3);
+  await expect(section.locator('video')).toHaveCount(3);
+  await expect(section.locator('track[kind="captions"]')).toHaveCount(3);
+  await expect(section.locator('details.workflow-transcript')).toHaveCount(3);
+
+  for(const source of await section.locator('video source').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('src')))){
+    expect(source).toMatch(/^\/assets\/workflow-walkthroughs\/.+\.mp4$/);
+    const response=await request.get(source);
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('video/mp4');
+  }
+
+  await page.setViewportSize({width:390,height:844});
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expect(page.locator('#walkthroughs .workflow-video-card')).toHaveCount(3);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+  const widths=await page.locator('#walkthroughs .workflow-video-card').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().width));
+  expect(widths.every(width=>width<=358&&width>=300)).toBe(true);
+});
+
 test('portal is private from search indexing and has security boundary copy',async({page})=>{
   await page.goto('/portal',{waitUntil:'domcontentloaded'});
   const robots=page.locator('meta[name="robots"]');
