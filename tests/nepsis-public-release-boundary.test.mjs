@@ -47,7 +47,9 @@ test('legal pages show the public brand while preserving the existing Relystra l
 test('operational brand parity verifies the current Nepsis public and portal identity', () => {
   const workflow = read('.github/workflows/relystra-operational-release-brand-parity.yml');
   assert.match(workflow, /name: Nepsis Public \/ Relystra Portal Brand Parity/);
-  assert.match(workflow, /pages-home-brand[^\n]+Nepsis Intelligence \| Practical Construction Systems/);
+  assert.match(workflow, /pages-home-brand[^\n]+Nepsis Intelligence \| Workflow Consulting for Owner-Led Small Businesses/);
+  assert.match(workflow, /custom-home-brand[^\n]+Nepsis Intelligence \| Workflow Consulting for Owner-Led Small Businesses/);
+  assert.doesNotMatch(workflow, /Practical Construction Systems/);
   assert.match(workflow, /custom-home-name[^\n]+<span>NEPSIS<\/span><small>INTELLIGENCE<\/small>/);
   assert.match(workflow, /pages-portal-brand[^\n]+Client Workspace \| Nepsis/);
   assert.match(workflow, /custom-portal-brand[^\n]+Client Workspace \| Nepsis/);

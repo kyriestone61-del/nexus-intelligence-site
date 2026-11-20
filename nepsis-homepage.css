@@ -199,3 +199,37 @@ h3 { line-height: 1.25; }
     box-shadow: none;
   }
 }
+
+/* Homepage-only hero category, free/paid boundary, illustrative Basic Diagnosis
+   and founder note. Scoped to .nepsis-homepage so shared public pages that
+   reuse this stylesheet keep their existing hero step panels. */
+.nepsis-homepage .hero-category { margin-bottom: 18px; color: var(--teal-dark); font-size: clamp(15px, 1.3vw, 18px); font-weight: 700; letter-spacing: .02em; }
+.nepsis-homepage .hero h1, .nepsis-homepage .hero-intro, .nepsis-homepage .diagnosis-panel { overflow-wrap: break-word; }
+.nepsis-homepage .hero-boundary { max-width: 620px; margin: 24px 0 0; padding-top: 18px; color: var(--ink-soft); border-top: 1px solid var(--line); font-size: 15px; }
+.nepsis-homepage .hero-boundary strong { color: var(--ink); }
+.nepsis-homepage .diagnosis-panel { min-width: 0; padding: 30px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+.nepsis-homepage .diagnosis-label { display: inline-block; margin-bottom: 16px; padding: 6px 10px; color: var(--ink); background: var(--amber-soft); border-radius: var(--radius); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.nepsis-homepage .diagnosis-panel h2 { margin-bottom: 18px; font-size: clamp(28px, 2.4vw, 34px); letter-spacing: -.02em; line-height: 1.1; }
+.nepsis-homepage .diagnosis-evidence { margin: 0; padding: 0; list-style: none; }
+.nepsis-homepage .diagnosis-evidence li { padding: 16px 0; border-top: 1px solid var(--line); font-size: 17px; line-height: 1.45; }
+.nepsis-homepage .diagnosis-evidence strong { display: block; margin-bottom: 6px; color: var(--teal-dark); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+.nepsis-homepage .diagnosis-note { margin: 0; padding-top: 16px; color: var(--ink-soft); border-top: 1px solid var(--line); font-size: 13px; }
+.nepsis-homepage .section-heading .text-link { white-space: normal; }
+.nepsis-homepage .founder-note { display: flex; align-items: center; gap: 18px; margin: 28px 0 0; }
+.nepsis-homepage .founder-note img { display: block; flex: 0 0 auto; width: 96px; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border: 1px solid var(--line); border-radius: var(--radius); }
+.nepsis-homepage .founder-note figcaption { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; color: var(--ink-soft); }
+.nepsis-homepage .founder-note figcaption strong { color: var(--ink); }
+.nepsis-homepage .founder-links { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 6px; }
+.nepsis-homepage .founder-links a { display: inline-flex; align-items: center; min-height: 32px; }
+@media (max-width: 1020px) {
+  .nepsis-homepage .diagnosis-panel { max-width: 760px; }
+}
+@media (max-width: 760px) {
+  .nepsis-homepage .diagnosis-panel { padding: 24px 20px; }
+  .nepsis-homepage .diagnosis-evidence li { font-size: 16px; }
+}
+@media (max-width: 440px) {
+  .nepsis-homepage .diagnosis-panel { padding: 20px 16px; }
+  .nepsis-homepage .founder-note { align-items: flex-start; }
+  .nepsis-homepage .founder-note img { width: 80px; }
+}
