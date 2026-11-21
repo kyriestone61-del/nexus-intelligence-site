@@ -1,0 +1,57 @@
+name: Nexus Booking Runtime Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'functions/api/booking-availability.js'
+      - 'functions/_lib/google-calendar.js'
+      - '.github/workflows/booking-runtime-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'functions/api/booking-availability.js'
+      - 'functions/_lib/google-calendar.js'
+      - '.github/workflows/booking-runtime-smoke.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '43 */6 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  live-booking:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify production calendar availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://nexusintelligence.live/api/booking-availability'
+          body="$(mktemp)"
+          report='booking-runtime-report.txt'
+          code="$(curl --silent --show-error --location --output "$body" --write-out '%{http_code}' "$url" || true)"
+          {
+            echo "url=$url"
+            echo "http=${code:-curl_error}"
+            echo 'body:'
+            cat "$body" || true
+          } > "$report"
+          echo "booking_availability http=${code:-curl_error} body=$(tr '\n' ' ' < "$body" | head -c 1200)"
+          if [ "$code" != '200' ]; then
+            echo 'Live Nexus booking availability is not healthy.' >&2
+            exit 1
+          fi
+          grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' "$body"
+          grep -Eq '"configured"[[:space:]]*:[[:space:]]*true' "$body"
+          grep -Eq '"slots"[[:space:]]*:' "$body"
+          echo 'BOOKING_RUNTIME_SMOKE=PASS'
+
+      - name: Upload booking runtime report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-booking-runtime-smoke
+          path: booking-runtime-report.txt
+          retention-days: 30
