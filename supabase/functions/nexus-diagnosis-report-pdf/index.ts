@@ -99,7 +99,7 @@ Deno.serve(async(req:Request)=>{
       const {data:company}=await db.from("nexus_companies").select("name").eq("id",run.company_id).single();
       report=run.analysis_result;companyName=company?.name||"Client";client=false;filename=`${companyName.replace(/[^a-z0-9_-]+/gi,"-")}-Relystra-Diagnosis.pdf`;
     }else if(body?.release_id){
-      const {data:release,error}=await db.from("nexus_diagnosis_report_releases").select("id,company_id,status,client_report").eq("id",body.release_id).single();
+      const {data:release,error}=await db.from("nexus_diagnosis_report_releases").select("id,company_id,status,client_report").eq("id",body.release_id).is("revoked_at",null).single();
       if(error||!release||release.status!=="released")throw new Error("REPORT_NOT_FOUND");
       if(!isAdmin&&!await isMember(user.id,release.company_id))throw new Error("COMPANY_ACCESS_REQUIRED");
       const {data:company}=await db.from("nexus_companies").select("name").eq("id",release.company_id).single();
@@ -126,7 +126,7 @@ Deno.serve(async(req:Request)=>{
     }
     if(free){ensure(72);draw("Recommended Next Step",13,true);y-=3;draw("Validate the preliminary findings in Step 3. Relystra can then inspect the affected workflows, identify root causes, define requirements, and determine which improvements are worth pursuing.",9,false);for(const [index,p] of pdf.getPages().entries()){p.drawLine({start:{x:margin,y:42},end:{x:width-margin,y:42},thickness:.5,color:rgb(.75,.72,.78)});p.drawText("RELYSTRA | Free Diagnosis",{x:margin,y:28,size:7,font:regular,color:rgb(.4,.37,.42)});p.drawText(`Page ${index+1} of ${pdf.getPageCount()}`,{x:width-margin-52,y:28,size:7,font:bold,color:rgb(.4,.37,.42)})}}
     const bytes=await pdf.save();
-    return new Response(bytes,{headers:{...cors,"Content-Type":"application/pdf","Content-Disposition":`attachment; filename="${filename}"`,`Cache-Control`:"no-store"}});
+    return new Response(bytes,{headers:{...cors,"Content-Type":"application/pdf","Content-Disposition":`attachment; filename="${filename}"`,"Cache-Control":"no-store"}});
   }catch(e){
     const msg=safe((e as Error)?.message||e,500);const status=msg.includes("AUTH_REQUIRED")?401:msg.includes("ADMIN_REQUIRED")||msg.includes("COMPANY_ACCESS_REQUIRED")?403:404;
     return new Response(JSON.stringify({ok:false,error:msg}),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
