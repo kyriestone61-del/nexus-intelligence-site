@@ -13,8 +13,10 @@ const SHARED = new URL('../../supabase/functions/_shared/', import.meta.url);
 const REAL_FILES = ['relystra-basic-report-handler.ts', 'relystra-checkout-handler.ts', 'relystra-payments.ts', 'relystra-stripe.ts'].map(name => new URL(name, SHARED).href);
 const STUBS = {'jsr:@supabase/supabase-js@2': 'stub:supabase', 'npm:stripe@22.6.1': 'stub:stripe'};
 
-const activity = {createClient: 0, rpc: [], from: 0, stripe: 0, fetch: 0, loaded: new Set()};
+const activity = {createClient: 0, rpc: [], from: 0, lookups: [], stripe: 0, fetch: 0, loaded: new Set()};
 let rpcResult = {data: null, error: null};
+// Synthetic nexus_delivery_settings lookup result; 'throw' makes the lookup reject.
+let settingsResult = {data: null, error: null};
 
 globalThis.Deno = {env: {get: key => ({
   SUPABASE_URL: 'http://synthetic.invalid',
@@ -28,7 +30,24 @@ globalThis.__basicReportStubs = {
     activity.createClient++;
     return {
       rpc: async (name, args) => { activity.rpc.push({name, args}); return rpcResult; },
-      from() { activity.from++; throw new Error('UNEXPECTED_TABLE_ACCESS'); },
+      // Records the exact availability lookup chain so a wrong table/column/filter cannot
+      // hide behind the handler's fail-closed catch and still look like "unknown".
+      from(table) {
+        activity.from++;
+        const lookup = {table};
+        activity.lookups.push(lookup);
+        return {select(columns) {
+          lookup.select = columns;
+          return {eq(column, value) {
+            lookup.eq = [column, value];
+            return {async maybeSingle() {
+              lookup.maybeSingle = (lookup.maybeSingle ?? 0) + 1;
+              if (settingsResult === 'throw') throw new Error('synthetic lookup failure');
+              return settingsResult;
+            }};
+          }};
+        }};
+      },
       auth: {getUser() { throw new Error('UNEXPECTED_AUTH'); }},
     };
   },
@@ -63,7 +82,10 @@ registerHooks({
 
 const {handleBasicReport} = await import(REAL_FILES[0]);
 
-const reset = result => { rpcResult = result; activity.createClient = 0; activity.rpc = []; activity.from = 0; };
+const reset = (result, settings = {data: null, error: null}) => {
+  rpcResult = result; settingsResult = settings;
+  activity.createClient = 0; activity.rpc = []; activity.from = 0; activity.lookups = [];
+};
 const call = () => handleBasicReport(new Request('https://synthetic.invalid/api/basic-report', {
   method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({token: TOKEN, operation: 'view'}),
 }));
@@ -72,12 +94,17 @@ const assertHeaders = res => {
   assert.equal(res.headers.get('cache-control'), 'no-store');
   assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
 };
-const assertNoCheckoutActivity = () => {
+const assertNoCheckoutActivity = ({availabilityLookup = false} = {}) => {
   assert.equal(activity.createClient, 1, 'only the report handler creates a client');
-  assert.equal(activity.from, 0, 'no table access');
   assert.equal(activity.stripe, 0, 'Stripe never instantiated');
   assert.equal(activity.fetch, 0, 'fetch never called');
   assert.deepEqual(activity.rpc, [{name: 'relystra_basic_report_access', args: {p_token: TOKEN, p_operation: 'view'}}]);
+  if (availabilityLookup) {
+    assert.equal(activity.from, 1, 'exactly one table access');
+    assert.deepEqual(activity.lookups, [{table: 'nexus_delivery_settings', select: 'checkout_enabled,stripe_account_id', eq: ['singleton', true], maybeSingle: 1}]);
+  } else {
+    assert.equal(activity.from, 0, 'no table access');
+  }
 };
 
 test('real import chain loaded with only external packages substituted', async () => {
@@ -99,21 +126,35 @@ for (const [label, result] of [['RPC error', {data: null, error: {message: 'synt
   });
 }
 
-test('valid view returns 200 with client-safe report fields only', async () => {
-  const safe = {
-    id: 'synthetic-report', plan_id: null, plan_status: null, state: 'pending', company_name: 'Synthetic Co',
-    heard: 'Synthetic heard', bottleneck: 'Synthetic bottleneck', checkout_available: false,
-    primary: {name: 'Synthetic build', offer_name: 'Synthetic offer', price_cents: 100000, deposit_cents: 50000, currency: 'usd'},
-    later: [],
-  };
-  reset({data: {...safe, actor_id: 'synthetic-actor', company_id: 'synthetic-company'}, error: null});
-  const res = await call();
-  assert.equal(res.status, 200);
-  assertHeaders(res);
-  const text = await res.text();
-  assert.ok(!text.includes(RECOVERY), 'success body has no recovery copy');
-  const body = JSON.parse(text);
-  assert.deepEqual(body, {ok: true, report: safe});
-  assert.ok(!('actor_id' in body.report) && !('company_id' in body.report));
-  assertNoCheckoutActivity();
-});
+const ACCOUNT = 'acct_synthetic_only';
+const AVAILABILITY_CASES = [
+  ['enabled with account id', {data: {checkout_enabled: true, stripe_account_id: ACCOUNT}, error: null}, true],
+  ['checkout disabled', {data: {checkout_enabled: false, stripe_account_id: ACCOUNT}, error: null}, false],
+  ['enabled with empty account id', {data: {checkout_enabled: true, stripe_account_id: ''}, error: null}, false],
+  ['enabled with non-string account id', {data: {checkout_enabled: true, stripe_account_id: null}, error: null}, false],
+  ['lookup error (unknown)', {data: null, error: {message: 'synthetic lookup error'}}, null],
+  ['no settings row (unknown)', {data: null, error: null}, null],
+  ['lookup throws (unknown)', 'throw', null],
+];
+
+for (const [label, settings, expected] of AVAILABILITY_CASES) {
+  test(`valid view returns 200 with client-safe fields; checkout_available ${JSON.stringify(expected)} when ${label}`, async () => {
+    const safe = {
+      id: 'synthetic-report', plan_id: null, plan_status: null, state: 'pending', company_name: 'Synthetic Co',
+      heard: 'Synthetic heard', bottleneck: 'Synthetic bottleneck',
+      primary: {name: 'Synthetic build', offer_name: 'Synthetic offer', price_cents: 100000, deposit_cents: 50000, currency: 'usd'},
+      later: [],
+    };
+    reset({data: {...safe, actor_id: 'synthetic-actor', company_id: 'synthetic-company'}, error: null}, settings);
+    const res = await call();
+    assert.equal(res.status, 200);
+    assertHeaders(res);
+    const text = await res.text();
+    assert.ok(!text.includes(RECOVERY), 'success body has no recovery copy');
+    for (const leak of ['actor_id', 'company_id', 'synthetic-actor', 'synthetic-company', 'stripe_account_id', 'checkout_enabled', ACCOUNT, 'synthetic lookup']) {
+      assert.ok(!text.includes(leak), `leaked ${leak}`);
+    }
+    assert.deepEqual(JSON.parse(text), {ok: true, report: {...safe, checkout_available: expected}});
+    assertNoCheckoutActivity({availabilityLookup: true});
+  });
+}

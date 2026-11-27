@@ -88,6 +88,14 @@ test('valid JSON error message is preserved (transient retry)', async () => {
   assert.ok(!html.includes(RECOVERY));
 });
 
+test('legacy REPORT_UNAVAILABLE server message is replaced by approved recovery copy', async () => {
+  const legacy = 'This report link is unavailable or this decision needs Relystra review.';
+  const {html, fetches} = await loadClient({hash: `#report=${TOKEN}`, respond: () => new Response(JSON.stringify({error: 'REPORT_UNAVAILABLE', message: legacy}), {status: 404})});
+  assert.equal(fetches.length, 1);
+  assert.ok(html.includes(RECOVERY), html);
+  assert.ok(!html.includes(legacy) && !html.includes('Relystra review'), html);
+});
+
 test('error JSON without usable message falls back to recovery copy', async () => {
   const {html} = await loadClient({stored: TOKEN, respond: () => new Response(JSON.stringify({error: 'REPORT_UNAVAILABLE', message: '  '}), {status: 404})});
   assert.ok(html.includes(RECOVERY), html);
