@@ -11,7 +11,7 @@ export async function handleBasicReport(req:Request){
   const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
   const checkout=['checkout','cancel'].includes(body.operation);
   const {data,error}=await db.rpc('relystra_basic_report_access',{p_token:body.token,p_operation:checkout?'checkout':body.operation});
-  if(error||!data)return reply({error:'REPORT_UNAVAILABLE',message:'This report link is unavailable or this decision needs Relystra review.'},404);
+  if(error||!data)return reply({error:'REPORT_UNAVAILABLE',message:'This report link is no longer available. Contact the Nepsis person who shared it to request a new link. Please don’t forward the old link.'},404);
   if(checkout)return handleCheckout(new Request(req.url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plan_id:data.plan_id,report_token:body.token,operation:body.operation})}));
   const {actor_id,company_id,...report}=data;
   return reply({ok:true,report});
